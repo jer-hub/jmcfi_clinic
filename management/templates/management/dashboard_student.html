@@ -1,0 +1,168 @@
+<!-- Student Dashboard -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+  <!-- Quick Stats -->
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600">Upcoming Appointments</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ upcoming_appointments.count }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-green-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600">Medical Records</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_records }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-yellow-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600">Pending Certificates</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ pending_certificates }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-blue-100 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600">Notifications</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ unread_notifications }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+  <a href="{% url 'management:schedule_appointment' %}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">Schedule Appointment</h3>
+        <p class="text-xs sm:text-sm text-gray-600">Book a new appointment with a doctor</p>
+      </div>
+    </div>
+  </a>
+
+  <a href="{% url 'management:request_certificate' %}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-green-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">Request Certificate</h3>
+        <p class="text-xs sm:text-sm text-gray-600">Apply for medical certificates</p>
+      </div>
+    </div>
+  </a>
+
+  <a href="{% url 'management:health_tips' %}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-blue-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">Health Tips</h3>
+        <p class="text-xs sm:text-sm text-gray-600">Browse health tips and advice</p>
+      </div>
+    </div>
+  </a>
+</div>
+
+<!-- Recent Activity -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+  <!-- Upcoming Appointments -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+      <h3 class="text-base sm:text-lg font-semibold text-gray-900">Upcoming Appointments</h3>
+    </div>
+    <div class="p-4 sm:p-6">
+      {% if upcoming_appointments %}
+        <div class="space-y-3 sm:space-y-4">
+          {% for appointment in upcoming_appointments %}
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-gray-50 rounded-lg space-y-2 sm:space-y-0">
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ appointment.get_appointment_type_display }}</p>
+                <p class="text-xs sm:text-sm text-gray-600 truncate">Dr. {{ appointment.doctor.get_full_name }}</p>
+                <p class="text-xs sm:text-sm text-gray-500">{{ appointment.date|date:"M d, Y" }} at {{ appointment.time|time:"g:i A" }}</p>
+              </div>
+              <div class="flex-shrink-0">
+                <span class="px-2 py-1 text-xs font-medium rounded-full 
+                  {% if appointment.status == 'confirmed' %}bg-green-100 text-green-800
+                  {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                  {{ appointment.get_status_display }}
+                </span>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-gray-500 text-center py-4">No upcoming appointments</p>
+      {% endif %}
+      <div class="mt-4">
+        <a href="{% url 'management:appointment_list' %}" class="text-primary-600 hover:text-primary-500 text-sm font-medium">View all appointments →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Medical Records -->
+  <div class="bg-white rounded-lg shadow">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+      <h3 class="text-base sm:text-lg font-semibold text-gray-900">Recent Medical Records</h3>
+    </div>
+    <div class="p-4 sm:p-6">
+      {% if recent_records %}
+        <div class="space-y-3 sm:space-y-4">
+          {% for record in recent_records %}
+            <div class="p-3 sm:p-4 bg-gray-50 rounded-lg">
+              <div class="flex flex-col space-y-1">
+                <p class="text-sm font-medium text-gray-900 break-words">{{ record.diagnosis|truncatewords:5 }}</p>
+                <p class="text-xs sm:text-sm text-gray-600 break-words">Dr. {{ record.doctor.get_full_name }}</p>
+                <p class="text-xs sm:text-sm text-gray-500">{{ record.created_at|date:'M d, Y' }}</p>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-gray-500 text-center py-4">No medical records found</p>
+      {% endif %}
+      <div class="mt-4">
+        <a href="{% url 'management:medical_records' %}" class="text-primary-600 hover:text-primary-500 text-sm font-medium">View all records →</a>
+      </div>
+    </div>
+  </div>
+</div>

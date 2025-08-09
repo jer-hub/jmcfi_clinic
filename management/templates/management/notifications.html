@@ -1,0 +1,235 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Notifications - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Notifications</h2>
+                        <p class="mt-1 text-sm text-gray-600">Stay updated with your appointments and health information</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        {% if user.role == 'admin' %}
+                        <a href="{% url 'management:create_system_notification' %}" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Create System Notification
+                        </a>
+                        {% endif %}
+                        {% if unread_count > 0 %}
+                        <a href="?mark_all_read=true" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            Mark all as read
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <form method="GET" class="flex flex-wrap items-center gap-4">
+                    <div>
+                        <label for="status" class="sr-only">Status</label>
+                        <select name="status" id="status" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                            <option value="">All ({{ total_count }})</option>
+                            <option value="unread" {% if current_status == 'unread' %}selected{% endif %}>Unread ({{ unread_count }})</option>
+                            <option value="read" {% if current_status == 'read' %}selected{% endif %}>Read ({{ read_count }})</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="type" class="sr-only">Type</label>
+                        <select name="type" id="type" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                            <option value="">All Types</option>
+                            <option value="appointment" {% if current_type == 'appointment' %}selected{% endif %}>Appointments</option>
+                            <option value="certificate" {% if current_type == 'certificate' %}selected{% endif %}>Certificates</option>
+                            <option value="health_tip" {% if current_type == 'health_tip' %}selected{% endif %}>Health Tips</option>
+                            <option value="general" {% if current_type == 'general' %}selected{% endif %}>General</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                        Filter
+                    </button>
+                    <a href="{% url 'management:notifications' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                        Clear
+                    </a>
+                </form>
+            </div>
+
+            <div class="divide-y divide-gray-200">
+                {% for notification in notifications %}
+                    <div class="p-6 {% if not notification.is_read %}bg-blue-50{% endif %} hover:bg-gray-50 transition-colors">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0">
+                                        {% if notification.notification_type == 'appointment' %}
+                                            <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                                                <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                </svg>
+                                            </div>
+                                        {% elif notification.notification_type == 'certificate' %}
+                                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                </svg>
+                                            </div>
+                                        {% elif notification.notification_type == 'health_tip' %}
+                                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                            </div>
+                                        {% else %}
+                                            <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                                                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-3.6-3.6a1 1 0 00-.7-.3h-3.4a1 1 0 00-.7.3L15 17zm-5-8a3 3 0 016 0v6l2 2v1H8v-1l2-2V9z"></path>
+                                                </svg>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ml-4 flex-1">
+                                        <div class="flex items-center">
+                                            <h3 class="text-sm font-medium text-gray-900">{{ notification.title }}</h3>
+                                            {% if not notification.is_read %}
+                                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    New
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="mt-1 text-sm text-gray-600">{{ notification.message }}</p>
+                                        <p class="mt-1 text-xs text-gray-500">{{ notification.created_at|timesince }} ago</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex-shrink-0 ml-4">
+                                {% if not notification.is_read %}
+                                    <button onclick="markAsRead({{ notification.id }})" class="text-primary-600 hover:text-primary-500 text-sm font-medium">
+                                        Mark as read
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="p-12 text-center">
+                        <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-3.6-3.6a1 1 0 00-.7-.3h-3.4a1 1 0 00-.7.3L15 17zm-5-8a3 3 0 016 0v6l2 2v1H8v-1l2-2V9z"></path>
+                        </svg>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No notifications</h3>
+                        <p class="text-gray-600">You're all caught up! New notifications will appear here.</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pagination -->
+            {% if notifications.has_other_pages %}
+                <div class="px-6 py-4 border-t border-gray-200">
+                    <div class="flex justify-between">
+                        {% if notifications.has_previous %}
+                            <a href="?page={{ notifications.previous_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Previous
+                            </a>
+                        {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+                                Previous
+                            </span>
+                        {% endif %}
+                        
+                        <span class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700">
+                            Page {{ notifications.number }} of {{ notifications.paginator.num_pages }}
+                        </span>
+                        
+                        {% if notifications.has_next %}
+                            <a href="?page={{ notifications.next_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Next
+                            </a>
+                        {% else %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+                                Next
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Back to Dashboard -->
+        <div class="mt-6 text-center">
+            <a href="{% url 'management:dashboard' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function markAsRead(notificationId) {
+    const csrftoken = getCookie('csrftoken');
+    
+    fetch(`{% url 'management:mark_notification_read' 0 %}`.replace('0', notificationId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Find the notification element and update its appearance
+            const button = document.querySelector(`[onclick="markAsRead(${notificationId})"]`);
+            const notificationElement = button.closest('.p-6');
+            
+            // Remove blue background
+            notificationElement.classList.remove('bg-blue-50');
+            
+            // Remove the "New" badge
+            const newBadge = notificationElement.querySelector('.bg-blue-100');
+            if (newBadge) {
+                newBadge.remove();
+            }
+            
+            // Remove the "Mark as read" button
+            button.parentElement.remove();
+            
+            // Update notification count in navigation if it exists
+            updateNotificationCount();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to mark notification as read. Please try again.');
+    });
+}
+
+function updateNotificationCount() {
+    // This function can be enhanced to update the notification count in the navigation
+    // For now, it's a placeholder for future enhancement
+}
+</script>
+{% endblock content %}

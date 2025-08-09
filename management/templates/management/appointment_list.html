@@ -1,0 +1,190 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Appointments - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-900">
+                            {% if user.role == 'student' %}My Appointments
+                            {% elif user.role == 'admin' %}All Appointments
+                            {% else %}Patient Appointments{% endif %}
+                        </h2>
+                        <p class="mt-1 text-sm text-gray-600">
+                            {% if user.role == 'student' %}
+                                View and manage your medical appointments
+                            {% elif user.role == 'admin' %}
+                                View and manage all appointments in the system
+                            {% else %}
+                                Manage patient appointments and schedules
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if user.role == 'student' %}
+                        <a href="{% url 'management:schedule_appointment' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Schedule Appointment</span>
+                            <span class="sm:hidden">Schedule</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <form method="GET" class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
+                    <div class="flex-1 min-w-0">
+                        <label for="status" class="sr-only">Status</label>
+                        <select name="status" id="status" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm">
+                            <option value="">All Status</option>
+                            <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                            <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
+                            <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label for="date_from" class="sr-only">From Date</label>
+                        <input type="date" name="date_from" id="date_from" value="{{ request.GET.date_from }}" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm" placeholder="From Date">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <label for="date_to" class="sr-only">To Date</label>
+                        <input type="date" name="date_to" id="date_to" value="{{ request.GET.date_to }}" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm" placeholder="To Date">
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                        <button type="submit" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                            Filter
+                        </button>
+                        <a href="{% url 'management:appointment_list' %}" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="overflow-hidden">
+                {% if appointments %}
+                    <div class="divide-y divide-gray-200">
+                        {% for appointment in appointments %}
+                            <div class="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex flex-col sm:flex-row sm:items-center">
+                                            <div class="flex-shrink-0 mb-3 sm:mb-0 sm:mr-4">
+                                                <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                                                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                </div>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex flex-col sm:flex-row sm:items-center mb-2">
+                                                    <h3 class="text-lg font-medium text-gray-900 truncate">{{ appointment.get_appointment_type_display }}</h3>
+                                                    <span class="mt-2 sm:mt-0 sm:ml-2 px-2 py-1 text-xs font-medium rounded-full inline-flex items-center w-fit
+                                                        {% if appointment.status == 'confirmed' %}bg-green-100 text-green-800
+                                                        {% elif appointment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                                        {% elif appointment.status == 'completed' %}bg-blue-100 text-blue-800
+                                                        {% else %}bg-red-100 text-red-800{% endif %}">
+                                                        {{ appointment.get_status_display }}
+                                                    </span>
+                                                </div>
+                                                <div class="text-sm text-gray-600 space-y-1">
+                                                    {% if user.role == 'student' %}
+                                                        <p><strong>Doctor:</strong> <span class="break-words">Dr. {{ appointment.doctor.get_full_name }}</span></p>
+                                                    {% else %}
+                                                        <p><strong>Patient:</strong> <span class="break-words">{{ appointment.student.get_full_name }}</span></p>
+                                                    {% endif %}
+                                                    <p><strong>Date & Time:</strong> {{ appointment.date|date:"M d, Y" }} at {{ appointment.time|time:"g:i A" }}</p>
+                                                    <p><strong>Reason:</strong> <span class="break-words">{{ appointment.reason|truncatewords:10 }}</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                                        <a href="{% url 'management:appointment_detail' appointment.id %}" class="w-full sm:w-auto text-center px-3 py-2 text-primary-600 hover:text-primary-500 text-sm font-medium border border-primary-200 rounded-md hover:bg-primary-50">
+                                            View Details
+                                        </a>
+                                        {% if user.role == 'student' and appointment.status == 'completed' %}
+                                            <a href="{% url 'management:submit_feedback_appointment' appointment.id %}" class="w-full sm:w-auto text-center px-3 py-2 text-green-600 hover:text-green-500 text-sm font-medium border border-green-200 rounded-md hover:bg-green-50">
+                                                Give Feedback
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Pagination -->
+                    {% if appointments.has_other_pages %}
+                        <div class="px-4 sm:px-6 py-4 border-t border-gray-200">
+                            <div class="flex flex-col sm:flex-row sm:justify-between items-center space-y-3 sm:space-y-0">
+                                <div class="flex space-x-2">
+                                    {% if appointments.has_previous %}
+                                        <a href="?page={{ appointments.previous_page_number }}" class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                            Previous
+                                        </a>
+                                    {% else %}
+                                        <span class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+                                            Previous
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {% if appointments.has_next %}
+                                        <a href="?page={{ appointments.next_page_number }}" class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                            Next
+                                        </a>
+                                    {% else %}
+                                        <span class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+                                            Next
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <span class="relative inline-flex items-center px-3 sm:px-4 py-2 text-sm font-medium text-gray-700">
+                                    Page {{ appointments.number }} of {{ appointments.paginator.num_pages }}
+                                </span>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="p-8 sm:p-12 text-center">
+                        <svg class="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-2">No appointments found</h3>
+                        <p class="text-sm sm:text-base text-gray-600 mb-4">
+                            {% if user.role == 'student' %}
+                                You haven't scheduled any appointments yet.
+                            {% else %}
+                                No appointments scheduled at this time.
+                            {% endif %}
+                        </p>
+                        {% if user.role == 'student' %}
+                            <a href="{% url 'management:schedule_appointment' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                                Schedule Your First Appointment
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Back to Dashboard -->
+        <div class="mt-6 text-center">
+            <a href="{% url 'management:dashboard' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock content %}

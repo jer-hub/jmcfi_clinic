@@ -1,0 +1,160 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Submit Feedback - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-900">Submit Feedback</h2>
+                <p class="mt-1 text-sm text-gray-600">
+                    {% if appointment %}
+                        Share your experience with your appointment on {{ appointment.date }}
+                    {% else %}
+                        Share your experience with our clinic services
+                    {% endif %}
+                </p>
+            </div>
+
+            <form method="POST" class="p-6 space-y-6">
+                {% csrf_token %}
+                
+                {% if appointment %}
+                    <!-- Appointment Info -->
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <h3 class="text-sm font-medium text-gray-900 mb-2">Appointment Details</h3>
+                        <div class="text-sm text-gray-600">
+                            <p><strong>Date:</strong> {{ appointment.date }}</p>
+                            <p><strong>Time:</strong> {{ appointment.time }}</p>
+                            <p><strong>Doctor:</strong> Dr. {{ appointment.doctor.get_full_name }}</p>
+                            <p><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Rating -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-3">Overall Rating</label>
+                    <div class="flex items-center space-x-4">
+                        {% for i in "12345" %}
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="rating" value="{{ i }}" required class="sr-only peer">
+                                <div class="flex items-center">
+                                    <svg class="w-8 h-8 text-gray-300 peer-checked:text-yellow-400 hover:text-yellow-400 transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                    </svg>
+                                    <span class="ml-2 text-sm text-gray-700">{{ i }}</span>
+                                </div>
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <p class="mt-2 text-sm text-gray-500">1 = Poor, 5 = Excellent</p>
+                </div>
+
+                <!-- Comments -->
+                <div>
+                    <label for="comments" class="block text-sm font-medium text-gray-700">Comments</label>
+                    <textarea id="comments" name="comments" rows="4" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Please share your experience, what went well, and what could be improved..."></textarea>
+                </div>
+
+                <!-- Suggestions -->
+                <div>
+                    <label for="suggestions" class="block text-sm font-medium text-gray-700">Suggestions for Improvement</label>
+                    <textarea id="suggestions" name="suggestions" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Any suggestions to help us improve our services..."></textarea>
+                </div>
+
+                <!-- Anonymous Option -->
+                <div class="flex items-center">
+                    <input id="is_anonymous" name="is_anonymous" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                    <label for="is_anonymous" class="ml-2 block text-sm text-gray-900">
+                        Submit feedback anonymously
+                    </label>
+                </div>
+
+                <!-- Privacy Notice -->
+                <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-blue-800">Privacy Information</h3>
+                            <div class="mt-2 text-sm text-blue-700">
+                                <p>Your feedback helps us improve our services. If you choose to submit anonymously, your identity will not be shared with the medical staff.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-end space-x-3">
+                    <a href="{% url 'dashboard' %}" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        Submit Feedback
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Star rating interactive functionality
+document.querySelectorAll('input[name="rating"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        const value = parseInt(this.value);
+        const stars = document.querySelectorAll('input[name="rating"]');
+        
+        stars.forEach((star, index) => {
+            const svg = star.nextElementSibling.querySelector('svg');
+            if (index < value) {
+                svg.classList.add('text-yellow-400');
+                svg.classList.remove('text-gray-300');
+            } else {
+                svg.classList.add('text-gray-300');
+                svg.classList.remove('text-yellow-400');
+            }
+        });
+    });
+});
+
+// Hover effect for stars
+document.querySelectorAll('input[name="rating"]').forEach(radio => {
+    const label = radio.closest('label');
+    label.addEventListener('mouseenter', function() {
+        const value = parseInt(radio.value);
+        const stars = document.querySelectorAll('input[name="rating"]');
+        
+        stars.forEach((star, index) => {
+            const svg = star.nextElementSibling.querySelector('svg');
+            if (index < value) {
+                svg.classList.add('text-yellow-400');
+                svg.classList.remove('text-gray-300');
+            } else {
+                svg.classList.add('text-gray-300');
+                svg.classList.remove('text-yellow-400');
+            }
+        });
+    });
+});
+
+// Reset to checked state on mouse leave
+document.querySelector('.flex.items-center.space-x-4').addEventListener('mouseleave', function() {
+    const checkedRadio = document.querySelector('input[name="rating"]:checked');
+    if (checkedRadio) {
+        checkedRadio.dispatchEvent(new Event('change'));
+    } else {
+        document.querySelectorAll('input[name="rating"]').forEach(radio => {
+            const svg = radio.nextElementSibling.querySelector('svg');
+            svg.classList.add('text-gray-300');
+            svg.classList.remove('text-yellow-400');
+        });
+    }
+});
+</script>
+{% endblock content %}

@@ -1,0 +1,280 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Medical Records - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <!-- Page Header -->
+        <div class="mb-6 sm:mb-8">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 break-words">Medical Records</h1>
+            <p class="text-xs sm:text-sm text-gray-600 mt-1 break-words">
+                {% if user.role == 'student' %}
+                    Your medical history and records
+                {% elif user.role == 'staff' %}
+                    Medical records for your patients
+                {% else %}
+                    All medical records in the system
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- Filters -->
+        {% if user.role in 'staff,admin' %}
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+            <form method="GET" class="space-y-4 md:space-y-0 md:flex md:items-end md:space-x-4">
+                {% if user.role == 'admin' or user.role == 'staff' %}
+                <div class="flex-1">
+                    <label for="student_id" class="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                    <input type="text" id="student_id" name="student_id" value="{{ request.GET.student_id }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           placeholder="Search by student ID">
+                </div>
+                {% endif %}
+                
+                <div class="flex-1">
+                    <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                    <input type="date" id="date_from" name="date_from" value="{{ request.GET.date_from }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="flex-1">
+                    <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                    <input type="date" id="date_to" name="date_to" value="{{ request.GET.date_to }}" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Filter
+                    </button>
+                    <a href="{% url 'management:medical_records' %}" class="px-4 py-2 bg-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                        Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Records Summary -->
+        <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">Records Summary</h3>
+                    <p class="text-sm text-gray-600">Total records: {{ total_count }}</p>
+                </div>
+                {% if user.role == 'student' and total_count > 0 %}
+                <div class="text-right">
+                    <p class="text-sm text-gray-600">Last record:</p>
+                    <p class="text-lg font-medium text-gray-900">{{ records.0.created_at|date:"M d, Y" }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Medical Records List -->
+        <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+            {% if records %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                {% if user.role != 'student' %}
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                {% endif %}
+                                {% if user.role == 'admin' %}
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</th>
+                                {% endif %}
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Diagnosis</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Treatment</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Follow-up</th>
+                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for record in records %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ record.created_at|date:"M d, Y" }}<br>
+                                    <span class="text-xs text-gray-500">{{ record.created_at|time:"g:i A" }}</span>
+                                </td>
+                                {% if user.role != 'student' %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <div class="font-medium">{{ record.student.get_full_name }}</div>
+                                    {% if record.student.student_profile %}
+                                    <div class="text-xs text-gray-500">{{ record.student.student_profile.student_id }}</div>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                {% if user.role == 'admin' %}
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <div class="font-medium">Dr. {{ record.doctor.get_full_name }}</div>
+                                    {% if record.doctor.staff_profile %}
+                                    <div class="text-xs text-gray-500">{{ record.doctor.staff_profile.department }}</div>
+                                    {% endif %}
+                                </td>
+                                {% endif %}
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    <div class="max-w-xs truncate">{{ record.diagnosis }}</div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-900">
+                                    <div class="max-w-xs truncate">{{ record.treatment }}</div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {% if record.follow_up_required %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            Required
+                                        </span>
+                                        {% if record.follow_up_date %}
+                                        <div class="text-xs text-gray-500 mt-1">{{ record.follow_up_date|date:"M d, Y" }}</div>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            None
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <button onclick="viewRecord({{ record.id }})" class="text-blue-600 hover:text-blue-900 mr-3">
+                                        View Details
+                                    </button>
+                                    {% if record.appointment %}
+                                    <a href="{% url 'management:appointment_detail' record.appointment.id %}" class="text-gray-600 hover:text-gray-900">
+                                        View Appointment
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if records.has_other_pages %}
+                <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <div class="flex-1 flex justify-between sm:hidden">
+                        {% if records.has_previous %}
+                            <a href="?page={{ records.previous_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Previous
+                            </a>
+                        {% endif %}
+                        {% if records.has_next %}
+                            <a href="?page={{ records.next_page_number }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                Next
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Showing <span class="font-medium">{{ records.start_index }}</span>
+                                to <span class="font-medium">{{ records.end_index }}</span>
+                                of <span class="font-medium">{{ records.paginator.count }}</span> results
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                                {% if records.has_previous %}
+                                    <a href="?page={{ records.previous_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        Previous
+                                    </a>
+                                {% endif %}
+                                
+                                {% for page_num in records.paginator.page_range %}
+                                    {% if page_num == records.number %}
+                                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                                            {{ page_num }}
+                                        </span>
+                                    {% else %}
+                                        <a href="?page={{ page_num }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                            {{ page_num }}
+                                        </a>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if records.has_next %}
+                                    <a href="?page={{ records.next_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        Next
+                                    </a>
+                                {% endif %}
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No medical records found</h3>
+                    <p class="mt-1 text-sm text-gray-500">
+                        {% if user.role == 'student' %}
+                            You don't have any medical records yet. Schedule an appointment to get started.
+                        {% else %}
+                            No medical records match your current filters.
+                        {% endif %}
+                    </p>
+                    {% if user.role == 'student' %}
+                    <div class="mt-6">
+                        <a href="{% url 'management:schedule_appointment' %}" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Schedule Appointment
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Medical Record Detail Modal -->
+<div id="recordModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between pb-3 border-b">
+                <h3 class="text-lg font-medium text-gray-900">Medical Record Details</h3>
+                <button onclick="closeRecordModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div id="recordDetails" class="mt-4">
+                <!-- Record details will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function viewRecord(recordId) {
+    // Show loading state
+    document.getElementById('recordDetails').innerHTML = '<div class="text-center py-4"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div></div>';
+    document.getElementById('recordModal').classList.remove('hidden');
+    
+    // Fetch record details (you'll need to implement this endpoint)
+    fetch(`/medical-records/${recordId}/details/`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('recordDetails').innerHTML = data.html;
+        })
+        .catch(error => {
+            document.getElementById('recordDetails').innerHTML = '<div class="text-center py-4 text-red-600">Error loading record details</div>';
+        });
+}
+
+function closeRecordModal() {
+    document.getElementById('recordModal').classList.add('hidden');
+}
+
+// Close modal when clicking outside
+document.getElementById('recordModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeRecordModal();
+    }
+});
+</script>
+{% endblock content %}

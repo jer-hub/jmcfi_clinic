@@ -1,0 +1,221 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Certificate - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-6 sm:py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-4 sm:mb-6">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Medical Certificate</h1>
+                    <p class="text-sm text-gray-600">Certificate #{{ certificate_number }}</p>
+                </div>
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <a href="{% url 'management:certificate_requests' %}" 
+                       class="inline-flex items-center justify-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        Back to Requests
+                    </a>
+                    {% if cert_request.status == 'ready' %}
+                    <a href="{% url 'management:print_certificate' cert_request.id %}" 
+                       class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+                       target="_blank">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H9.5a2 2 0 01-1.414-.586l-.707-.707A2 2 0 006.828 7H4a2 2 0 00-2 2v9a2 2 0 002 2h2"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 8a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Print Certificate
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Certificate Preview -->
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <!-- Certificate Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-800 text-white p-6 sm:p-8 text-center">
+                <div class="mb-4">
+                    <svg class="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-bold mb-2">JMCFI CLINIC</h1>
+                <p class="text-sm sm:text-base text-blue-200">Jose Maria College Foundation, Inc.</p>
+                <div class="mt-4 h-1 bg-white mx-auto w-16 sm:w-24"></div>
+            </div>
+
+            <!-- Certificate Body -->
+            <div class="p-6 sm:p-8 lg:p-12">
+                <div class="text-center mb-6 sm:mb-8">
+                    <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-2">
+                        {{ cert_request.get_certificate_type_display }}
+                    </h2>
+                    <p class="text-sm sm:text-base text-gray-600">Certificate No: <strong>{{ certificate_number }}</strong></p>
+                </div>
+
+                <div class="space-y-4 sm:space-y-6">
+                    <!-- Student Information -->
+                    <div class="border-l-4 border-blue-500 pl-4 sm:pl-6">
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3">Student Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Full Name:</span>
+                                <p class="text-base sm:text-lg font-medium text-gray-900 break-words">{{ cert_request.student.get_full_name }}</p>
+                            </div>
+                            {% if cert_request.student.student_profile %}
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Student ID:</span>
+                                <p class="text-base sm:text-lg font-medium text-gray-900 break-all">{{ cert_request.student.student_profile.student_id }}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Date of Birth:</span>
+                                <p class="text-base sm:text-lg font-medium text-gray-900">{{ cert_request.student.student_profile.date_of_birth|date:"F d, Y" }}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Blood Type:</span>
+                                <p class="text-base sm:text-lg font-medium text-gray-900">{{ cert_request.student.student_profile.blood_type }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Certificate Content -->
+                    <div class="border-l-4 border-green-500 pl-4 sm:pl-6">
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3">Certificate Details</h3>
+                        
+                        {% if cert_request.certificate_type == 'fitness' %}
+                            <div class="bg-green-50 p-3 sm:p-4 rounded-lg">
+                                <p class="text-sm sm:text-base text-gray-800 leading-relaxed break-words">
+                                    This is to certify that <strong>{{ cert_request.student.get_full_name }}</strong> 
+                                    has been medically examined and found to be <strong>PHYSICALLY FIT</strong> 
+                                    for {{ cert_request.purpose }}.
+                                </p>
+                                <p class="text-sm sm:text-base text-gray-800 mt-2 break-words">
+                                    The student shows no signs of any contagious or disqualifying medical conditions 
+                                    at the time of examination.
+                                </p>
+                            </div>
+                        {% elif cert_request.certificate_type == 'absence' %}
+                            <div class="bg-yellow-50 p-3 sm:p-4 rounded-lg">
+                                <p class="text-sm sm:text-base text-gray-800 leading-relaxed break-words">
+                                    This is to certify that <strong>{{ cert_request.student.get_full_name }}</strong> 
+                                    was under medical care and treatment, and was advised to take medical leave 
+                                    for {{ cert_request.purpose }}.
+                                </p>
+                                <p class="text-sm sm:text-base text-gray-800 mt-2 break-words">
+                                    This certificate is issued upon the request of the student for official purposes.
+                                </p>
+                            </div>
+                        {% elif cert_request.certificate_type == 'vaccination' %}
+                            <div class="bg-blue-50 p-3 sm:p-4 rounded-lg">
+                                <p class="text-sm sm:text-base text-gray-800 leading-relaxed break-words">
+                                    This is to certify that <strong>{{ cert_request.student.get_full_name }}</strong> 
+                                    has received the required vaccinations as per medical records on file.
+                                </p>
+                                <p class="text-sm sm:text-base text-gray-800 mt-2 break-words">
+                                    This certificate is issued for {{ cert_request.purpose }}.
+                                </p>
+                            </div>
+                        {% elif cert_request.certificate_type == 'health_record' %}
+                            <div class="bg-purple-50 p-3 sm:p-4 rounded-lg">
+                                <p class="text-sm sm:text-base text-gray-800 leading-relaxed break-words">
+                                    This is to certify that the health records of <strong>{{ cert_request.student.get_full_name }}</strong> 
+                                    are on file at the JMCFI Medical Center and have been reviewed.
+                                </p>
+                                <p class="text-sm sm:text-base text-gray-800 mt-2 break-words">
+                                    This certificate is issued for {{ cert_request.purpose }}.
+                                </p>
+                            </div>
+                        {% endif %}
+                        
+                        {% if cert_request.additional_info %}
+                        <div class="mt-3 sm:mt-4 p-3 bg-gray-50 rounded">
+                            <span class="text-sm font-medium text-gray-600">Additional Information:</span>
+                            <p class="text-sm sm:text-base text-gray-800 break-words">{{ cert_request.additional_info }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Signature Section -->
+                    <div class="border-l-4 border-purple-500 pl-4 sm:pl-6">
+                        <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-3">Authorization</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+                            <div>
+                                <div class="text-center">
+                                    <div class="border-b-2 border-gray-300 mb-2 pb-6 sm:pb-8"></div>
+                                    <p class="text-sm font-medium text-gray-800">Medical Officer</p>
+                                    <p class="text-xs text-gray-600">JMCFI Medical Center</p>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-center">
+                                    <div class="border-b-2 border-gray-300 mb-2 pb-6 sm:pb-8"></div>
+                                    <p class="text-sm font-medium text-gray-800">Clinic Administrator</p>
+                                    <p class="text-xs text-gray-600">JMCFI Medical Center</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Certificate Footer -->
+                <div class="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200 text-center">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                        <div>
+                            <p><strong>Issue Date:</strong></p>
+                            <p>{{ issue_date|date:"F d, Y" }}</p>
+                        </div>
+                        <div>
+                            <p><strong>Status:</strong></p>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if cert_request.status == 'ready' %}bg-green-100 text-green-800
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                {{ cert_request.get_status_display }}
+                            </span>
+                        </div>
+                        <div>
+                            <p><strong>Valid Until:</strong></p>
+                            <p>{{ issue_date|date:"F d, Y"|add:"1 year" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-3 sm:mt-4 text-xs text-gray-500">
+                        <p>This certificate is issued by JMCFI Medical Center and is valid for official purposes.</p>
+                        <p>For verification, please contact the clinic at +63 (02) 123-4567</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Information -->
+        <div class="mt-4 sm:mt-6 bg-white rounded-lg shadow p-4 sm:p-6">
+            <h3 class="text-base sm:text-lg font-semibold text-gray-800 mb-4">Request Information</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <span class="text-sm font-medium text-gray-600">Request Date:</span>
+                    <p class="text-sm sm:text-base text-gray-900 break-words">{{ cert_request.created_at|date:"F d, Y g:i A" }}</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-600">Purpose:</span>
+                    <p class="text-sm sm:text-base text-gray-900 break-words">{{ cert_request.purpose }}</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-600">Processed By:</span>
+                    <p class="text-sm sm:text-base text-gray-900 break-words">
+                        {% if cert_request.processed_by %}
+                            Dr. {{ cert_request.processed_by.get_full_name }}
+                        {% else %}
+                            Pending
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

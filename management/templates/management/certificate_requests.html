@@ -1,0 +1,275 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Certificate Requests - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Certificate Requests</h1>
+                    <p class="text-sm text-gray-600">
+                        {% if user.role == 'student' %}
+                            Manage your certificate requests
+                        {% else %}
+                            Process student certificate requests
+                        {% endif %}
+                    </p>
+                </div>
+                {% if user.role == 'student' %}
+                <a href="{% url 'management:request_certificate' %}" 
+                   class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <span>New Request</span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-blue-100 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Total Requests</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ total_count }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-yellow-100 rounded-lg">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">Pending</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ pending_count }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-green-100 rounded-lg">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-gray-600">This Month</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ requests|length }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow mb-8">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Filter Requests</h3>
+            </div>
+            <div class="p-6">
+                <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                        <select name="status" id="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                            <option value="">All Statuses</option>
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="type" class="block text-sm font-medium text-gray-700">Certificate Type</label>
+                        <select name="type" id="type" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                            <option value="">All Types</option>
+                            {% for value, label in certificate_types %}
+                            <option value="{{ value }}" {% if current_type == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="flex items-end">
+                        <button type="submit" class="w-full bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md">
+                            Apply Filters
+                        </button>
+                    </div>
+                    
+                    <div class="flex items-end">
+                        <a href="{% url 'management:certificate_requests' %}" class="w-full text-center bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md">
+                            Clear Filters
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Requests List -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Certificate Requests</h3>
+            </div>
+            
+            {% if requests %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            {% if user.role != 'student' %}
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                            {% endif %}
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Certificate Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Purpose</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for request in requests %}
+                        <tr class="hover:bg-gray-50">
+                            {% if user.role != 'student' %}
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">{{ request.student.get_full_name }}</div>
+                                <div class="text-sm text-gray-500">{{ request.student.email }}</div>
+                            </td>
+                            {% endif %}
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ request.get_certificate_type_display }}</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900">{{ request.purpose|truncatechars:50 }}</div>
+                                {% if request.additional_info %}
+                                <div class="text-sm text-gray-500">{{ request.additional_info|truncatechars:30 }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if request.status == 'pending' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    Pending
+                                </span>
+                                {% elif request.status == 'approved' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                    Approved
+                                </span>
+                                {% elif request.status == 'rejected' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                    Rejected
+                                </span>
+                                {% elif request.status == 'ready' %}
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                    Ready
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {{ request.created_at|date:"M d, Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                {% if user.role == 'student' %}
+                                    {% if request.status in 'approved,ready' %}
+                                        <a href="{% url 'management:view_certificate' request.id %}" 
+                                           class="text-blue-600 hover:text-blue-900 mr-3">View</a>
+                                        {% if request.status == 'ready' %}
+                                            <a href="{% url 'management:print_certificate' request.id %}" 
+                                               class="text-green-600 hover:text-green-900" target="_blank">Print</a>
+                                        {% endif %}
+                                    {% elif request.status == 'rejected' %}
+                                        <span class="text-red-600 text-sm">
+                                            {% if request.rejection_reason %}
+                                                Reason: {{ request.rejection_reason|truncatechars:30 }}
+                                            {% else %}
+                                                Rejected
+                                            {% endif %}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-gray-400">Pending review</span>
+                                    {% endif %}
+                                {% else %}
+                                    {% if request.status == 'pending' %}
+                                    <a href="{% url 'management:process_certificate' request.id %}" 
+                                       class="text-primary-600 hover:text-primary-900">Process</a>
+                                    {% elif request.status == 'approved' %}
+                                    <a href="{% url 'management:process_certificate' request.id %}" 
+                                       class="text-green-600 hover:text-green-900">Mark Ready</a>
+                                    {% else %}
+                                    <span class="text-gray-400">No action</span>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if requests.has_other_pages %}
+            <div class="bg-white px-6 py-3 border-t border-gray-200">
+                <div class="flex justify-between items-center">
+                    <div class="text-sm text-gray-700">
+                        Showing {{ requests.start_index }} to {{ requests.end_index }} of {{ requests.paginator.count }} results
+                    </div>
+                    <div class="flex space-x-2">
+                        {% if requests.has_previous %}
+                        <a href="?page={{ requests.previous_page_number }}" 
+                           class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Previous</a>
+                        {% endif %}
+                        
+                        {% for num in requests.paginator.page_range %}
+                        {% if requests.number == num %}
+                        <span class="px-3 py-1 text-sm bg-primary-600 text-white rounded">{{ num }}</span>
+                        {% else %}
+                        <a href="?page={{ num }}" 
+                           class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300">{{ num }}</a>
+                        {% endif %}
+                        {% endfor %}
+                        
+                        {% if requests.has_next %}
+                        <a href="?page={{ requests.next_page_number }}" 
+                           class="px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded hover:bg-gray-300">Next</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="px-6 py-12 text-center">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <h3 class="mt-4 text-lg font-medium text-gray-900">No certificate requests found</h3>
+                <p class="mt-2 text-gray-500">
+                    {% if user.role == 'student' %}
+                        You haven't submitted any certificate requests yet.
+                    {% else %}
+                        No certificate requests match your current filters.
+                    {% endif %}
+                </p>
+                {% if user.role == 'student' %}
+                <div class="mt-6">
+                    <a href="{% url 'management:request_certificate' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700">
+                        Request Certificate
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock content %}

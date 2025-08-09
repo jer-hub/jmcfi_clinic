@@ -1,0 +1,225 @@
+{% load static %}
+{% load role_tags %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% block title %}
+      {% endblock %}
+    </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                50: '#faf5ff',
+                100: '#f3e8ff',
+                200: '#e9d5ff',
+                300: '#d8b4fe',
+                400: '#c084fc',
+                500: '#a855f7',
+                600: '#9333ea',
+                700: '#7c3aed',
+                800: '#6b21a8',
+                900: '#581c87'
+              }
+            }
+          }
+        }
+      }
+    </script>
+    {% block head %}
+    {% endblock %}
+  </head>
+  <body class="bg-gray-50">
+    {% if user.is_authenticated %}
+      <!-- Navigation -->
+      <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between h-16">
+            <div class="flex">
+              <!-- Logo -->
+              <div class="flex-shrink-0 flex items-center">
+                <a href="{% url 'management:dashboard' %}" class="text-lg sm:text-xl font-bold text-primary-600">JMCFI Clinic</a>
+              </div>
+
+              <!-- Desktop Navigation Links -->
+              <div class="hidden lg:ml-6 lg:flex lg:space-x-8">
+                <a href="{% url 'management:dashboard' %}" class="border-primary-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Dashboard</a>
+
+                {% if user.role == 'student' %}
+                  <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Appointments</a>
+                  <a href="{% url 'management:medical_records' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Medical Records</a>
+                  <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Certificates</a>
+                  <a href="{% url 'management:health_tips' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Health Tips</a>
+                {% elif user.role == 'staff' %}
+                  <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Appointments</a>
+                  <a href="{% url 'management:medical_records' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Medical Records</a>
+                  <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Certificates</a>
+                  <a href="{% url 'management:health_tips' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Health Tips</a>
+                  <a href="{% url 'management:feedback_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Feedback</a>
+                {% elif user.role == 'admin' %}
+                  <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Appointments</a>
+                  <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Certificates</a>
+                  <a href="{% url 'management:feedback_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Feedback</a>
+                  <a href="/admin/" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Admin</a>
+                {% endif %}
+              </div>
+            </div>
+
+            <!-- Right side menu -->
+            <div class="flex items-center">
+              <!-- Notifications -->
+              <a href="{% url 'management:notifications' %}" class="relative p-2 text-gray-400 hover:text-gray-500 mr-2">
+                <span class="sr-only">View notifications</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                </svg>
+                {% if unread_notifications_count > 0 %}
+                <span class="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 bg-red-500 rounded-full flex items-center justify-center">
+                  <span class="text-xs font-medium text-white">
+                    {% if unread_notifications_count > 9 %}9+{% else %}{{ unread_notifications_count }}{% endif %}
+                  </span>
+                </span>
+                {% endif %}
+              </a>
+
+              <!-- User menu - Desktop -->
+              <div class="hidden sm:flex items-center space-x-2">
+                <span class="text-xs sm:text-sm text-gray-700 truncate max-w-24 sm:max-w-none">{{ user.get_full_name }}</span>
+                <span class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">{{ user.get_role_display }}</span>
+                <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-gray-500 p-1">
+                  <span class="sr-only">Logout</span>
+                  <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </a>
+              </div>
+
+              <!-- Mobile menu button -->
+              <div class="lg:hidden">
+                <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500" aria-controls="mobile-menu" aria-expanded="false">
+                  <span class="sr-only">Open main menu</span>
+                  <svg id="menu-open" class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
+                  <svg id="menu-close" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mobile menu -->
+          <div class="lg:hidden" id="mobile-menu" style="display: none;">
+            <div class="pt-2 pb-3 space-y-1 border-t border-gray-200">
+              <!-- Mobile User Info -->
+              <div class="flex items-center px-4 py-2 bg-gray-50">
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 truncate">{{ user.get_full_name }}</div>
+                  <div class="text-xs text-gray-500">{{ user.get_role_display }}</div>
+                </div>
+                <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-gray-500">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                </a>
+              </div>
+
+              <!-- Mobile Navigation Links -->
+              <a href="{% url 'management:dashboard' %}" class="bg-primary-50 border-primary-500 text-primary-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Dashboard</a>
+              
+              {% if user.role == 'student' %}
+                <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Appointments</a>
+                <a href="{% url 'management:medical_records' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Medical Records</a>
+                <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Certificates</a>
+                <a href="{% url 'management:health_tips' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Health Tips</a>
+              {% elif user.role == 'staff' %}
+                <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Appointments</a>
+                <a href="{% url 'management:medical_records' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Medical Records</a>
+                <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Certificates</a>
+                <a href="{% url 'management:health_tips' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Health Tips</a>
+                <a href="{% url 'management:feedback_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Feedback</a>
+              {% elif user.role == 'admin' %}
+                <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Appointments</a>
+                <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Certificates</a>
+                <a href="{% url 'management:feedback_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Feedback</a>
+                <a href="/admin/" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Admin</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Flash Messages -->
+      {% if messages %}
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          {% for message in messages %}
+            <div class="mb-4 p-4 rounded-md {% if message.tags == 'success' %}
+                bg-green-50 border-green-200 text-green-800
+              {% elif message.tags == 'error' %}
+                bg-red-50 border-red-200 text-red-800
+              {% elif message.tags == 'warning' %}
+                bg-yellow-50 border-yellow-200 text-yellow-800
+              {% else %}
+                bg-blue-50 border-blue-200 text-blue-800
+              {% endif %} border">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endif %}
+
+    {% block header %}
+    {% endblock %}
+    {% block content %}
+    {% endblock %}
+    {% block scripts %}
+    {% endblock %}
+
+    <!-- Mobile Menu JavaScript -->
+    <script>
+      function toggleMobileMenu() {
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuOpen = document.getElementById('menu-open');
+        const menuClose = document.getElementById('menu-close');
+        
+        if (mobileMenu.style.display === 'none' || mobileMenu.style.display === '') {
+          mobileMenu.style.display = 'block';
+          menuOpen.classList.add('hidden');
+          menuClose.classList.remove('hidden');
+        } else {
+          mobileMenu.style.display = 'none';
+          menuOpen.classList.remove('hidden');
+          menuClose.classList.add('hidden');
+        }
+      }
+
+      // Close mobile menu when clicking outside
+      document.addEventListener('click', function(event) {
+        const mobileMenu = document.getElementById('mobile-menu');
+        const mobileMenuButton = event.target.closest('button[aria-controls="mobile-menu"]');
+        
+        if (!mobileMenuButton && !mobileMenu.contains(event.target)) {
+          if (mobileMenu.style.display === 'block') {
+            toggleMobileMenu();
+          }
+        }
+      });
+
+      // Close mobile menu when window is resized to desktop
+      window.addEventListener('resize', function() {
+        const mobileMenu = document.getElementById('mobile-menu');
+        if (window.innerWidth >= 1024) { // lg breakpoint
+          mobileMenu.style.display = 'none';
+          document.getElementById('menu-open').classList.remove('hidden');
+          document.getElementById('menu-close').classList.add('hidden');
+        }
+      });
+    </script>
+  </body>
+</html>

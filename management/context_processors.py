@@ -1,4 +1,3 @@
-from django.db.models import Q
 from .models import Notification
 
 def notification_context(request):

@@ -159,11 +159,42 @@ class Notification(models.Model):
         ('health_tip', 'Health Tip'),
         ('general', 'General Notification'),
     ]
+    
+    TRANSACTION_TYPE_CHOICES = [
+        # Appointment related
+        ('appointment_reminder', 'Appointment Reminder'),
+        ('appointment_confirmed', 'Appointment Confirmed'),
+        ('appointment_cancelled', 'Appointment Cancelled'),
+        ('appointment_completed', 'Appointment Completed'),
+        ('appointment_scheduled', 'New Appointment Scheduled'),
+        
+        # Certificate related  
+        ('certificate_requested', 'Certificate Request Submitted'),
+        ('certificate_approved', 'Certificate Request Approved'),
+        ('certificate_ready', 'Certificate Ready for Collection'),
+        ('certificate_rejected', 'Certificate Request Rejected'),
+        ('certificate_processing', 'Certificate Being Processed'),
+        
+        # Health tip related
+        ('health_tip_new', 'New Health Tip Available'),
+        ('health_tip_updated', 'Health Tip Updated'),
+        
+        # Medical record related
+        ('medical_record_created', 'Medical Record Created'),
+        ('medical_record_updated', 'Medical Record Updated'),
+        
+        # General system
+        ('system_maintenance', 'System Maintenance'),
+        ('general_announcement', 'General Announcement'),
+        ('feedback_request', 'Feedback Request'),
+    ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     title = models.CharField(max_length=200)
     message = models.TextField()
     notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    transaction_type = models.CharField(max_length=30, choices=TRANSACTION_TYPE_CHOICES, null=True, blank=True, help_text="Specific transaction type for better routing")
+    related_id = models.PositiveIntegerField(null=True, blank=True, help_text="ID of the related object (appointment, certificate request, etc.)")
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

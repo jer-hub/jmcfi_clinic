@@ -1,4 +1,4 @@
-from django.db.models import Count, Q
+from django.db.models import Count, Q, Avg
 from django.utils import timezone
 from datetime import datetime, timedelta
 from .models import Appointment, MedicalRecord, CertificateRequest, HealthTip, Feedback, Notification
@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-def create_notification(user, title, message, notification_type='general'):
+def create_notification(user, title, message, notification_type='general', related_id=None, transaction_type=None):
     """
     Helper function to create notifications
     """
@@ -14,10 +14,12 @@ def create_notification(user, title, message, notification_type='general'):
         user=user,
         title=title,
         message=message,
-        notification_type=notification_type
+        notification_type=notification_type,
+        related_id=related_id,
+        transaction_type=transaction_type
     )
 
-def create_bulk_notifications(users, title, message, notification_type='general'):
+def create_bulk_notifications(users, title, message, notification_type='general', related_id=None, transaction_type=None):
     """
     Create notifications for multiple users
     """
@@ -26,32 +28,34 @@ def create_bulk_notifications(users, title, message, notification_type='general'
             user=user,
             title=title,
             message=message,
-            notification_type=notification_type
+            notification_type=notification_type,
+            related_id=related_id,
+            transaction_type=transaction_type
         )
         for user in users
     ]
     return Notification.objects.bulk_create(notifications)
 
-def notify_all_students(title, message, notification_type='general'):
+def notify_all_students(title, message, notification_type='general', related_id=None, transaction_type=None):
     """
     Send notification to all students
     """
     students = User.objects.filter(role='student')
-    return create_bulk_notifications(students, title, message, notification_type)
+    return create_bulk_notifications(students, title, message, notification_type, related_id, transaction_type)
 
-def notify_all_staff(title, message, notification_type='general'):
+def notify_all_staff(title, message, notification_type='general', related_id=None, transaction_type=None):
     """
     Send notification to all staff
     """
     staff = User.objects.filter(role='staff')
-    return create_bulk_notifications(staff, title, message, notification_type)
+    return create_bulk_notifications(staff, title, message, notification_type, related_id, transaction_type)
 
-def notify_all_users(title, message, notification_type='general'):
+def notify_all_users(title, message, notification_type='general', related_id=None, transaction_type=None):
     """
     Send notification to all users
     """
     users = User.objects.filter(role__in=['student', 'staff'])
-    return create_bulk_notifications(users, title, message, notification_type)
+    return create_bulk_notifications(users, title, message, notification_type, related_id, transaction_type)
 
 def get_dashboard_stats(user):
     """Get dashboard statistics based on user role"""
@@ -110,7 +114,7 @@ def get_dashboard_stats(user):
             'total_certificates': CertificateRequest.objects.count(),
             'total_health_tips': HealthTip.objects.filter(is_active=True).count(),
             'avg_rating': Feedback.objects.aggregate(
-                avg_rating=Count('rating')
+                avg_rating=Avg('rating')
             )['avg_rating'] or 0,
         }
     

@@ -62,7 +62,80 @@
 
             <div class="divide-y divide-gray-200">
                 {% for notification in notifications %}
-                    <div class="p-6 {% if not notification.is_read %}bg-blue-50{% endif %} hover:bg-gray-50 transition-colors">
+                    {% comment %}Determine the appropriate URL based on transaction_type and notification_type{% endcomment %}
+                    {% if notification.transaction_type %}
+                        {% comment %}Use specific transaction_type for precise routing{% endcomment %}
+                        {% if notification.transaction_type == 'appointment_reminder' or notification.transaction_type == 'appointment_confirmed' or notification.transaction_type == 'appointment_completed' %}
+                            {% if notification.related_id %}
+                                {% url 'management:appointment_detail' notification.related_id as notification_url %}
+                            {% else %}
+                                {% url 'management:appointment_list' as notification_url %}
+                            {% endif %}
+                        {% elif notification.transaction_type == 'appointment_scheduled' %}
+                            {% url 'management:schedule_appointment' as notification_url %}
+                        {% elif notification.transaction_type == 'appointment_cancelled' %}
+                            {% url 'management:appointment_list' as notification_url %}
+                        {% elif notification.transaction_type == 'certificate_requested' or notification.transaction_type == 'certificate_processing' %}
+                            {% url 'management:certificate_requests' as notification_url %}
+                        {% elif notification.transaction_type == 'certificate_approved' or notification.transaction_type == 'certificate_ready' %}
+                            {% if notification.related_id %}
+                                {% url 'management:view_certificate' notification.related_id as notification_url %}
+                            {% else %}
+                                {% url 'management:certificate_requests' as notification_url %}
+                            {% endif %}
+                        {% elif notification.transaction_type == 'certificate_rejected' %}
+                            {% url 'management:certificate_requests' as notification_url %}
+                        {% elif notification.transaction_type == 'health_tip_new' or notification.transaction_type == 'health_tip_updated' %}
+                            {% url 'management:health_tips' as notification_url %}
+                        {% elif notification.transaction_type == 'medical_record_created' or notification.transaction_type == 'medical_record_updated' %}
+                            {% if notification.related_id %}
+                                {% url 'management:medical_record_detail' notification.related_id as notification_url %}
+                            {% else %}
+                                {% url 'management:medical_records' as notification_url %}
+                            {% endif %}
+                        {% elif notification.transaction_type == 'feedback_request' %}
+                            {% url 'management:submit_feedback' as notification_url %}
+                        {% elif notification.transaction_type == 'system_maintenance' or notification.transaction_type == 'general_announcement' %}
+                            {% url 'management:dashboard' as notification_url %}
+                        {% else %}
+                            {% url 'management:notifications' as notification_url %}
+                        {% endif %}
+                    {% else %}
+                        {% comment %}Fallback to original logic for notifications without transaction_type{% endcomment %}
+                        {% if notification.notification_type == 'appointment' and notification.related_id %}
+                            {% if 'schedule' in notification.title|lower or 'book' in notification.title|lower %}
+                                {% url 'management:schedule_appointment' as notification_url %}
+                            {% else %}
+                                {% url 'management:appointment_detail' notification.related_id as notification_url %}
+                            {% endif %}
+                        {% elif notification.notification_type == 'certificate' and notification.related_id %}
+                            {% if 'ready' in notification.title|lower or 'approved' in notification.title|lower or 'completed' in notification.title|lower %}
+                                {% url 'management:view_certificate' notification.related_id as notification_url %}
+                            {% elif 'request' in notification.title|lower or 'submitted' in notification.title|lower %}
+                                {% url 'management:certificate_requests' as notification_url %}
+                            {% elif 'process' in notification.title|lower %}
+                                {% url 'management:process_certificate' notification.related_id as notification_url %}
+                            {% else %}
+                                {% url 'management:certificate_requests' as notification_url %}
+                            {% endif %}
+                        {% elif notification.notification_type == 'health_tip' %}
+                            {% url 'management:health_tips' as notification_url %}
+                        {% elif notification.notification_type == 'general' %}
+                            {% if 'feedback' in notification.title|lower %}
+                                {% url 'management:feedback_list' as notification_url %}
+                            {% elif 'medical record' in notification.title|lower %}
+                                {% url 'management:medical_records' as notification_url %}
+                            {% elif 'appointment' in notification.title|lower %}
+                                {% url 'management:appointment_list' as notification_url %}
+                            {% else %}
+                                {% url 'management:dashboard' as notification_url %}
+                            {% endif %}
+                        {% else %}
+                            {% url 'management:notifications' as notification_url %}
+                        {% endif %}
+                    {% endif %}
+                    
+                    <a href="{{ notification_url }}" class="block p-6 {% if not notification.is_read %}bg-primary-50{% endif %} hover:bg-gray-50 transition-colors" onclick="{% if not notification.is_read %}markNotificationRead(event, {{ notification.id }});{% endif %}">
                         <div class="flex items-start justify-between">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center">
@@ -80,8 +153,8 @@
                                                 </svg>
                                             </div>
                                         {% elif notification.notification_type == 'health_tip' %}
-                                            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+                                                <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                                 </svg>
                                             </div>
@@ -97,7 +170,7 @@
                                         <div class="flex items-center">
                                             <h3 class="text-sm font-medium text-gray-900">{{ notification.title }}</h3>
                                             {% if not notification.is_read %}
-                                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                                                     New
                                                 </span>
                                             {% endif %}
@@ -110,13 +183,13 @@
                             
                             <div class="flex-shrink-0 ml-4">
                                 {% if not notification.is_read %}
-                                    <button onclick="markAsRead({{ notification.id }})" class="text-primary-600 hover:text-primary-500 text-sm font-medium">
+                                    <button onclick="event.preventDefault(); markAsRead({{ notification.id }}, '{{ notification_url }}');" class="text-primary-600 hover:text-primary-500 text-sm font-medium">
                                         Mark as read
                                     </button>
                                 {% endif %}
                             </div>
                         </div>
-                    </div>
+                    </a>
                 {% empty %}
                     <div class="p-12 text-center">
                         <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -188,7 +261,8 @@ function getCookie(name) {
     return cookieValue;
 }
 
-function markAsRead(notificationId) {
+function markNotificationRead(event, notificationId) {
+    // Mark notification as read when clicking on the notification itself
     const csrftoken = getCookie('csrftoken');
     
     fetch(`{% url 'management:mark_notification_read' 0 %}`.replace('0', notificationId), {
@@ -201,24 +275,37 @@ function markAsRead(notificationId) {
     .then(response => response.json())
     .then(data => {
         if (data.status === 'success') {
-            // Find the notification element and update its appearance
-            const button = document.querySelector(`[onclick="markAsRead(${notificationId})"]`);
-            const notificationElement = button.closest('.p-6');
-            
-            // Remove blue background
-            notificationElement.classList.remove('bg-blue-50');
-            
-            // Remove the "New" badge
-            const newBadge = notificationElement.querySelector('.bg-blue-100');
-            if (newBadge) {
-                newBadge.remove();
+            // Continue with the navigation - the link will handle the redirect
+            return true;
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        // Still allow navigation even if marking as read fails
+        return true;
+    });
+}
+
+function markAsRead(notificationId, redirectUrl) {
+    const csrftoken = getCookie('csrftoken');
+    
+    fetch(`{% url 'management:mark_notification_read' 0 %}`.replace('0', notificationId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Redirect to the appropriate page after marking as read
+            if (redirectUrl) {
+                window.location.href = redirectUrl;
+            } else {
+                // If no redirect URL, just reload the page to update the UI
+                window.location.reload();
             }
-            
-            // Remove the "Mark as read" button
-            button.parentElement.remove();
-            
-            // Update notification count in navigation if it exists
-            updateNotificationCount();
         }
     })
     .catch(error => {

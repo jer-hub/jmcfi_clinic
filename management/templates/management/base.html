@@ -49,23 +49,26 @@
 
               <!-- Desktop Navigation Links -->
               <div class="hidden lg:ml-6 lg:flex lg:space-x-8">
-                <a href="{% url 'management:dashboard' %}" class="border-primary-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Dashboard</a>
+                <a href="{% url 'management:dashboard' %}" class="{% nav_link_class 'management:dashboard' %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Dashboard</a>
 
                 {% if user.role == 'student' %}
-                  <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Appointments</a>
-                  <a href="{% url 'management:medical_records' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Medical Records</a>
-                  <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Certificates</a>
-                  <a href="{% url 'management:health_tips' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Health Tips</a>
+                  <a href="{% url 'management:appointment_list' %}" class="{% nav_link_class 'management:appointment_list' %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Appointments</a>
+                  <a href="{% url 'management:medical_records' %}" class="{% nav_link_class 'management:medical_records' %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Medical Records</a>
+                  <a href="{% url 'management:certificate_requests' %}" class="{% nav_link_class 'management:certificate_requests' startswith=True %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Certificates</a>
+                  <a href="{% url 'management:health_tips' %}" class="{% nav_link_class 'management:health_tips' startswith=True %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Health Tips</a>
+                  <a href="{% url 'management:feedback_list' %}" class="{% nav_link_class 'management:feedback_list' startswith=True %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Feedback</a>
                 {% elif user.role == 'staff' %}
-                  <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Appointments</a>
-                  <a href="{% url 'management:medical_records' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Medical Records</a>
-                  <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Certificates</a>
-                  <a href="{% url 'management:health_tips' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Health Tips</a>
-                  <a href="{% url 'management:feedback_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Feedback</a>
+                  <a href="{% url 'management:appointment_list' %}" class="{% nav_link_class 'management:appointment_list' %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Appointments</a>
+                  <a href="{% url 'management:medical_records' %}" class="{% nav_link_class 'management:medical_records' %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Medical Records</a>
+                  <a href="{% url 'management:certificate_requests' %}" class="{% nav_link_class 'management:certificate_requests' startswith=True %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Certificates</a>
+                  <a href="{% url 'management:health_tips' %}" class="{% nav_link_class 'management:health_tips' startswith=True %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Health Tips</a>
+                  <a href="{% url 'management:feedback_list' %}" class="{% nav_link_class 'management:feedback_list' startswith=True %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Feedback</a>
                 {% elif user.role == 'admin' %}
-                  <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Appointments</a>
-                  <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Certificates</a>
-                  <a href="{% url 'management:feedback_list' %}" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Feedback</a>
+                  <a href="{% url 'management:appointment_list' %}" class="{% nav_link_class 'management:appointment_list' %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Appointments</a>
+                  <a href="{% url 'management:medical_records' %}" class="{% nav_link_class 'management:medical_records' %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Medical Records</a>
+                  <a href="{% url 'management:certificate_requests' %}" class="{% nav_link_class 'management:certificate_requests' startswith=True %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Certificates</a>
+                  <a href="{% url 'management:health_tips' %}" class="{% nav_link_class 'management:health_tips' startswith=True %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Health Tips</a>
+                  <a href="{% url 'management:feedback_list' %}" class="{% nav_link_class 'management:feedback_list' startswith=True %} inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Feedback</a>
                   <a href="/admin/" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">Admin</a>
                 {% endif %}
               </div>
@@ -139,6 +142,7 @@
                 <a href="{% url 'management:medical_records' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Medical Records</a>
                 <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Certificates</a>
                 <a href="{% url 'management:health_tips' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Health Tips</a>
+                <a href="{% url 'management:feedback_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Feedback</a>
               {% elif user.role == 'staff' %}
                 <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Appointments</a>
                 <a href="{% url 'management:medical_records' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Medical Records</a>
@@ -147,7 +151,9 @@
                 <a href="{% url 'management:feedback_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Feedback</a>
               {% elif user.role == 'admin' %}
                 <a href="{% url 'management:appointment_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Appointments</a>
+                <a href="{% url 'management:medical_records' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Medical Records</a>
                 <a href="{% url 'management:certificate_requests' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Certificates</a>
+                <a href="{% url 'management:health_tips' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Health Tips</a>
                 <a href="{% url 'management:feedback_list' %}" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Feedback</a>
                 <a href="/admin/" class="border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-800 block pl-3 pr-4 py-2 border-l-4 text-base font-medium">Admin</a>
               {% endif %}
@@ -167,7 +173,7 @@
               {% elif message.tags == 'warning' %}
                 bg-yellow-50 border-yellow-200 text-yellow-800
               {% else %}
-                bg-blue-50 border-blue-200 text-blue-800
+                bg-primary-50 border-primary-200 text-primary-800
               {% endif %} border">{{ message }}</div>
           {% endfor %}
         </div>

@@ -1,5 +1,5 @@
 from pathlib import Path
-from decouple import config
+from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -12,7 +12,8 @@ SECRET_KEY = config(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = config("ALLOWED_HOSTS", default=[])
+# Ensure ALLOWED_HOSTS is a list. Support comma-separated env via decouple's Csv cast.
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
 
 # Application definition
 INSTALLED_APPS = [

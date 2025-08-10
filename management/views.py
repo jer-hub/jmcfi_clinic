@@ -37,7 +37,8 @@ def login_view(request):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('management:login')
+    # Redirect to allauth login to avoid missing local login url name
+    return redirect('account_login')
 
 @login_required
 def dashboard(request):
@@ -473,8 +474,8 @@ def create_medical_record(request, appointment_id):
     
     appointment = get_object_or_404(Appointment, id=appointment_id, doctor=request.user)
     
-    # Check if medical record already exists
-    if hasattr(appointment, 'medicalrecord'):
+    # Check if medical record already exists (use queryset for clarity)
+    if MedicalRecord.objects.filter(appointment=appointment).exists():
         messages.warning(request, 'Medical record already exists for this appointment.')
         return redirect('management:appointment_detail', appointment_id=appointment.id)
     
@@ -979,8 +980,7 @@ def delete_health_tip(request, tip_id):
 @login_required
 def toggle_health_tip_status(request, tip_id):
     if request.user.role != 'staff':
-        messages.error(request, 'Only staff members can toggle health tip status')
-        return redirect('management:dashboard')
+        return JsonResponse({'error': 'Access denied'}, status=403)
     
     health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
     
@@ -989,99 +989,18 @@ def toggle_health_tip_status(request, tip_id):
         health_tip.save()
         
         status_text = 'published' if health_tip.is_active else 'unpublished'
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': True,
+                'is_active': health_tip.is_active,
+                'status_text': status_text,
+                'message': f'Health tip has been {status_text}'
+            })
         messages.success(request, f'Health tip "{health_tip.title}" has been {status_text}.')
     
     return redirect('management:health_tips')
 
-@login_required
-def edit_health_tip(request, tip_id):
-    if request.user.role != 'staff':
-        messages.error(request, 'Only staff members can edit health tips')
-        return redirect('management:dashboard')
-    
-    health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
-    
-    if request.method == 'POST':
-        title = request.POST.get('title', '').strip()
-        content = request.POST.get('content', '').strip()
-        category = request.POST.get('category', '').strip()
-        status = request.POST.get('status', 'published')
-        
-        # Validation
-        errors = []
-        if not title:
-            errors.append('Title is required')
-        elif len(title) > 200:
-            errors.append('Title must be less than 200 characters')
-        
-        if not content:
-            errors.append('Content is required')
-        elif len(content) < 50:
-            errors.append('Content must be at least 50 characters')
-        
-        if not category:
-            errors.append('Category is required')
-        elif category not in [choice[0] for choice in HealthTip.CATEGORY_CHOICES]:
-            errors.append('Invalid category selected')
-        
-        if errors:
-            for error in errors:
-                messages.error(request, error)
-            return render(request, 'management/edit_health_tip.html', {
-                'health_tip': health_tip,
-                'title': title,
-                'content': content,
-                'category': category,
-            })
-        
-        # Update health tip
-        health_tip.title = title
-        health_tip.content = content
-        health_tip.category = category
-        health_tip.is_active = (status == 'published')
-        health_tip.save()
-        
-        if status == 'published':
-            messages.success(request, f'Health tip "{title}" has been updated and published!')
-        else:
-            messages.success(request, f'Health tip "{title}" has been updated and saved as draft.')
-        
-        return redirect('management:health_tips')
-    
-    return render(request, 'management/edit_health_tip.html', {'health_tip': health_tip})
-
-@login_required
-def delete_health_tip(request, tip_id):
-    if request.user.role != 'staff':
-        messages.error(request, 'Only staff members can delete health tips')
-        return redirect('management:dashboard')
-    
-    health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
-    
-    if request.method == 'POST':
-        title = health_tip.title
-        health_tip.delete()
-        messages.success(request, f'Health tip "{title}" has been deleted successfully.')
-        return redirect('management:health_tips')
-    
-    return render(request, 'management/delete_health_tip.html', {'health_tip': health_tip})
-
-@login_required
-def toggle_health_tip_status(request, tip_id):
-    if request.user.role != 'staff':
-        return JsonResponse({'error': 'Access denied'}, status=403)
-    
-    health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
-    health_tip.is_active = not health_tip.is_active
-    health_tip.save()
-    
-    status_text = 'published' if health_tip.is_active else 'unpublished'
-    return JsonResponse({
-        'success': True,
-        'is_active': health_tip.is_active,
-        'status_text': status_text,
-        'message': f'Health tip has been {status_text}'
-    })
+ 
 
 # Notification Views
 @login_required
@@ -1183,11 +1102,11 @@ def create_system_notification(request):
 @login_required
 def feedback_list(request):
     if request.user.role == 'student':
-        feedbacks = Feedback.objects.filter(student=request.user)
+        feedbacks_qs = Feedback.objects.filter(student=request.user).select_related('appointment')
     else:
-        feedbacks = Feedback.objects.all()
-    
-    paginator = Paginator(feedbacks, 10)
+        feedbacks_qs = Feedback.objects.all().select_related('student', 'appointment')
+
+    paginator = Paginator(feedbacks_qs.order_by('-created_at'), 10)
     page = request.GET.get('page')
     feedbacks = paginator.get_page(page)
     
@@ -1198,27 +1117,38 @@ def submit_feedback(request, appointment_id=None):
     if request.user.role != 'student':
         messages.error(request, 'Only students can submit feedback')
         return redirect('management:dashboard')
-    
+
     appointment = None
     if appointment_id:
         appointment = get_object_or_404(Appointment, id=appointment_id, student=request.user)
-    
+
     if request.method == 'POST':
         rating = request.POST.get('rating')
-        comments = request.POST.get('comments')
-        suggestions = request.POST.get('suggestions')
+        comments = request.POST.get('comments', '').strip()
+        suggestions = request.POST.get('suggestions', '').strip()
         is_anonymous = request.POST.get('is_anonymous') == 'on'
-        
-        Feedback.objects.create(
-            student=request.user,
-            appointment=appointment,
-            rating=rating,
-            comments=comments,
-            suggestions=suggestions,
-            is_anonymous=is_anonymous
-        )
-        
-        messages.success(request, 'Feedback submitted successfully!')
-        return redirect('management:feedback_list')
-    
+
+        # Validate rating
+        try:
+            rating_int = int(rating)
+        except (TypeError, ValueError):
+            rating_int = None
+
+        if rating_int is None or rating_int < 1 or rating_int > 5:
+            messages.error(request, 'Please provide a valid rating between 1 and 5.')
+        elif not comments:
+            messages.error(request, 'Comments are required.')
+        else:
+            Feedback.objects.create(
+                student=request.user,
+                appointment=appointment,
+                rating=rating_int,
+                comments=comments,
+                suggestions=suggestions,
+                is_anonymous=is_anonymous
+            )
+
+            messages.success(request, 'Feedback submitted successfully!')
+            return redirect('management:feedback_list')
+
     return render(request, 'management/submit_feedback.html', {'appointment': appointment})

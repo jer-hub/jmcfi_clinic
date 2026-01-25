@@ -115,10 +115,12 @@
                                 <span class="px-3 py-1.5 text-xs font-semibold text-primary-700 bg-white rounded-full shadow-sm border border-primary-200">
                                     {{ tip.get_category_display }}
                                 </span>
-                                {% if user.role == 'staff' and tip.created_by == user and not tip.is_active %}
-                                    <span class="px-2 py-1 text-xs font-medium text-amber-700 bg-amber-100 rounded-full border border-amber-200">
-                                        Draft
-                                    </span>
+                                {% if user.role == 'staff' or user.role == 'doctor' %}
+                                    {% if tip.created_by == user and not tip.is_active %}
+                                        <span class="px-2 py-1 text-xs font-medium text-amber-700 bg-amber-100 rounded-full border border-amber-200">
+                                            Draft
+                                        </span>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                             <span class="text-xs sm:text-sm text-gray-600 font-medium">{{ tip.created_at|date:"M d, Y" }}</span>
@@ -153,7 +155,8 @@
                             
                             <!-- Action Buttons -->
                             <div class="flex items-center space-x-3">
-                                {% if user.role == 'staff' and tip.created_by == user %}
+                                {% if user.role == 'staff' or user.role == 'doctor' %}
+                                    {% if tip.created_by == user %}
                                     <a href="{% url 'management:edit_health_tip' tip.id %}" 
                                        class="inline-flex items-center text-xs font-medium text-gray-600 hover:text-primary-600 transition-colors duration-200"
                                        title="Edit this health tip">
@@ -162,6 +165,7 @@
                                         </svg>
                                         Edit
                                     </a>
+                                {% endif %}
                                 {% endif %}
                                 <button onclick="showTipModal('{{ tip.id }}', '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', '{{ tip.get_category_display }}', '{{ tip.created_by.get_full_name }}', '{{ tip.created_at|date:"M d, Y" }}')" 
                                         class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-lg transition-colors duration-200 group-hover:bg-primary-100">
@@ -232,7 +236,7 @@
         {% endif %}
 
         <!-- Add Health Tip Button (Staff Only) -->
-        {% if user.role == 'staff' %}
+        {% if user.role == 'staff' or user.role == 'doctor' %}
             <div class="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8 z-40">
                 <a href="{% url 'management:create_health_tip' %}" class="group inline-flex items-center px-4 py-3 border border-transparent rounded-full shadow-lg text-sm font-semibold text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transform transition-all duration-200 hover:scale-105 hover:shadow-xl">
                     <svg class="w-5 h-5 mr-2 group-hover:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">

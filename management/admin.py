@@ -6,17 +6,32 @@ from .models import (
 
 @admin.register(StudentProfile)
 class StudentProfileAdmin(admin.ModelAdmin):
-    list_display = ('student_id', 'user', 'phone', 'blood_type', 'created_at')
+    list_display = ('student_id', 'user', 'phone', 'blood_type', 'has_profile_image', 'created_at')
     search_fields = ('student_id', 'user__username', 'user__email', 'user__first_name', 'user__last_name')
     list_filter = ('blood_type', 'created_at')
     readonly_fields = ('created_at', 'updated_at')
+    fields = ('user', 'student_id', 'profile_image', 'date_of_birth', 'phone', 
+             'emergency_contact', 'emergency_phone', 'blood_type', 'allergies', 
+             'medical_conditions', 'created_at', 'updated_at')
+
+    def has_profile_image(self, obj):
+        return bool(obj.profile_image)
+    has_profile_image.boolean = True
+    has_profile_image.short_description = 'Has Image'
 
 @admin.register(StaffProfile)
 class StaffProfileAdmin(admin.ModelAdmin):
-    list_display = ('staff_id', 'user', 'department', 'specialization', 'created_at')
+    list_display = ('staff_id', 'user', 'department', 'specialization', 'has_profile_image', 'created_at')
     search_fields = ('staff_id', 'user__username', 'user__email', 'user__first_name', 'user__last_name', 'department')
     list_filter = ('department', 'created_at')
     readonly_fields = ('created_at', 'updated_at')
+    fields = ('user', 'staff_id', 'profile_image', 'department', 'specialization', 
+             'license_number', 'phone', 'created_at', 'updated_at')
+
+    def has_profile_image(self, obj):
+        return bool(obj.profile_image)
+    has_profile_image.boolean = True
+    has_profile_image.short_description = 'Has Image'
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
@@ -88,6 +103,3 @@ class FeedbackAdmin(admin.ModelAdmin):
     search_fields = ('student__username', 'comments', 'suggestions')
     list_filter = ('rating', 'is_anonymous', 'created_at')
     readonly_fields = ('created_at',)
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).select_related('student', 'appointment')

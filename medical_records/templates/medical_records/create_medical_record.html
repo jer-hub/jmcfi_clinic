@@ -1,0 +1,144 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Create Medical Record - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-6 sm:py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
+                    <div class="mb-4 sm:mb-0">
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-900 break-words">Create Medical Record</h2>
+                        <p class="mt-1 text-xs sm:text-sm text-gray-600 break-words">Create a medical record for the appointment</p>
+                    </div>
+                    <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        <span class="break-words">Back to Appointment</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Appointment Info -->
+            <div class="px-4 sm:px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    <div>
+                        <span class="text-xs sm:text-sm font-medium text-gray-500">Patient:</span>
+                        <span class="text-xs sm:text-sm text-gray-900 ml-2 break-words">{{ appointment.student.get_full_name }}</span>
+                    </div>
+                    <div>
+                        <span class="text-xs sm:text-sm font-medium text-gray-500">Date:</span>
+                        <span class="text-xs sm:text-sm text-gray-900 ml-2">{{ appointment.date|date:"F d, Y" }}</span>
+                    </div>
+                    <div>
+                        <span class="text-xs sm:text-sm font-medium text-gray-500">Time:</span>
+                        <span class="text-xs sm:text-sm text-gray-900 ml-2">{{ appointment.time|time:"g:i A" }}</span>
+                    </div>
+                </div>
+                <div class="mt-2 sm:mt-3">
+                    <span class="text-xs sm:text-sm font-medium text-gray-500">Reason for Visit:</span>
+                    <span class="text-xs sm:text-sm text-gray-900 ml-2 break-words">{{ appointment.reason }}</span>
+                </div>
+            </div>
+
+            <form method="POST" class="p-4 sm:p-6">
+                {% csrf_token %}
+                
+                <div class="space-y-4 sm:space-y-6">
+                    <!-- Vital Signs -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                        <div>
+                            <label for="blood_pressure" class="block text-sm font-medium text-gray-700">Blood Pressure</label>
+                            <input type="text" id="blood_pressure" name="blood_pressure" placeholder="120/80" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                        <div>
+                            <label for="temperature" class="block text-sm font-medium text-gray-700">Temperature (°C)</label>
+                            <input type="number" step="0.1" id="temperature" name="temperature" placeholder="36.5" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                        <div>
+                            <label for="heart_rate" class="block text-sm font-medium text-gray-700">Heart Rate (bpm)</label>
+                            <input type="number" id="heart_rate" name="heart_rate" placeholder="72" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                        <div>
+                            <label for="weight" class="block text-sm font-medium text-gray-700">Weight (kg)</label>
+                            <input type="number" step="0.1" id="weight" name="weight" placeholder="70.5" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                    </div>
+
+                    <!-- Diagnosis -->
+                    <div>
+                        <label for="diagnosis" class="block text-sm font-medium text-gray-700">Diagnosis *</label>
+                        <textarea id="diagnosis" name="diagnosis" rows="4" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Enter the diagnosis..."></textarea>
+                    </div>
+
+                    <!-- Treatment -->
+                    <div>
+                        <label for="treatment" class="block text-sm font-medium text-gray-700">Treatment *</label>
+                        <textarea id="treatment" name="treatment" rows="4" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Enter the treatment plan..."></textarea>
+                    </div>
+
+                    <!-- Prescription -->
+                    <div>
+                        <label for="prescription" class="block text-sm font-medium text-gray-700">Prescription</label>
+                        <textarea id="prescription" name="prescription" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Enter medications and dosages..."></textarea>
+                    </div>
+
+                    <!-- Lab Results -->
+                    <div>
+                        <label for="lab_results" class="block text-sm font-medium text-gray-700">Lab Results</label>
+                        <textarea id="lab_results" name="lab_results" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Enter any lab test results..."></textarea>
+                    </div>
+
+                    <!-- Follow-up -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <div class="flex items-center">
+                                <input id="follow_up_required" name="follow_up_required" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                                <label for="follow_up_required" class="ml-2 block text-sm text-gray-700">Follow-up required</label>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="follow_up_date" class="block text-sm font-medium text-gray-700">Follow-up Date</label>
+                            <input type="date" id="follow_up_date" name="follow_up_date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" disabled>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-end space-x-3">
+                        <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Cancel
+                        </a>
+                        <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            Create Medical Record
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const followUpCheckbox = document.getElementById('follow_up_required');
+    const followUpDate = document.getElementById('follow_up_date');
+    
+    followUpCheckbox.addEventListener('change', function() {
+        followUpDate.disabled = !this.checked;
+        if (!this.checked) {
+            followUpDate.value = '';
+        }
+    });
+    
+    // Set minimum date to today
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    const todayString = `${year}-${month}-${day}`;
+    followUpDate.min = todayString;
+});
+</script>
+{% endblock content %}

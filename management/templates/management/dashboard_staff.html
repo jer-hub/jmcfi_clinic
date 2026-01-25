@@ -44,8 +44,8 @@
 
   <div class="bg-white rounded-lg shadow p-4 sm:p-6">
     <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="p-2 sm:p-3 bg-purple-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
         </svg>
       </div>
@@ -58,48 +58,69 @@
 </div>
 
 <!-- Quick Actions for Staff -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-  <a href="{% url 'management:appointment_list' %}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4 min-w-0 flex-1">
-        <h3 class="text-base sm:text-lg font-semibold text-gray-900 break-words">Manage Appointments</h3>
-        <p class="text-xs sm:text-sm text-gray-600 break-words">View and manage patient appointments</p>
-      </div>
-    </div>
-  </a>
+<div class="bg-white rounded-lg shadow mb-6 sm:mb-8">
+  <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Quick Actions</h3>
+  </div>
+  <div class="p-4 sm:p-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <a href="{% url 'management:appointment_list' %}" class="flex items-center p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Appointments</p>
+          <p class="text-xs text-gray-600">Manage patient appointments</p>
+        </div>
+      </a>
 
-  <a href="{% url 'management:certificate_requests' %}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-green-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4 min-w-0 flex-1">
-        <h3 class="text-base sm:text-lg font-semibold text-gray-900 break-words">Process Certificates</h3>
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Review and process certificate requests</p>
-      </div>
-    </div>
-  </a>
+      <a href="{% url 'management:certificate_requests' %}" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Certificates</p>
+          <p class="text-xs text-gray-600">Process requests</p>
+        </div>
+      </a>
 
-  <a href="{% url 'management:create_health_tip' %}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4 min-w-0 flex-1">
-        <h3 class="text-base sm:text-lg font-semibold text-gray-900 break-words">Create Health Tip</h3>
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Share health tips with students</p>
-      </div>
+      <a href="{% url 'management:medical_records' %}" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Medical Records</p>
+          <p class="text-xs text-gray-600">View patient records</p>
+        </div>
+      </a>
+
+      <a href="{% url 'management:create_health_tip' %}" class="flex items-center p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Health Tips</p>
+          <p class="text-xs text-gray-600">Share health information</p>
+        </div>
+      </a>
     </div>
-  </a>
+  </div>
 </div>
 
 <!-- Recent Activity -->
@@ -122,9 +143,7 @@
                 </div>
                 <div class="flex items-center justify-between sm:justify-end space-x-2 sm:flex-col sm:items-end sm:space-x-0 sm:space-y-1">
                   <span class="px-2 py-1 text-xs font-medium rounded-full break-words
-                                                  {% if appointment.status == 'confirmed' %}
-                    bg-green-100 text-green-800
-                  {% elif appointment.status == 'pending' %}
+                                                  {% if appointment.status == 'pending' %}
                     bg-yellow-100 text-yellow-800
                   {% else %}
                     bg-gray-100 text-gray-800

@@ -1,0 +1,373 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}My Dental Record - {{ dental_record.date_of_examination|date:"M d, Y" }} - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2><i class="fas fa-tooth"></i> My Dental Record</h2>
+                <a href="{% url 'dental_records:my_dental_records' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to My Records
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Examination Date -->
+    <div class="row mb-3">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <h5 class="mb-1"><i class="fas fa-calendar-alt"></i> Examination Date: {{ dental_record.date_of_examination|date:"F d, Y" }}</h5>
+                <p class="mb-0">
+                    <strong>Examined By:</strong> 
+                    {% if dental_record.examined_by %}
+                        Dr. {{ dental_record.examined_by.get_full_name }}
+                    {% else %}
+                        Not specified
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patient Demographics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-user"></i> Patient Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Name:</strong> {{ dental_record.patient.last_name }}, {{ dental_record.patient.first_name }} {{ dental_record.middle_name }}</p>
+                            <p><strong>Age:</strong> {{ dental_record.age }}</p>
+                            <p><strong>Gender:</strong> {{ dental_record.get_gender_display }}</p>
+                            <p><strong>Civil Status:</strong> {{ dental_record.get_civil_status_display }}</p>
+                            <p><strong>Date of Birth:</strong> {{ dental_record.date_of_birth|date:"M d, Y" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Email:</strong> {{ dental_record.email }}</p>
+                            <p><strong>Contact:</strong> {{ dental_record.contact_number }}</p>
+                            <p><strong>Designation:</strong> {{ dental_record.get_designation_display }}</p>
+                            <p><strong>Department:</strong> {{ dental_record.department_college_office }}</p>
+                            <p><strong>Emergency Contact:</strong> {{ dental_record.guardian_name }} ({{ dental_record.guardian_contact }})</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vital Signs -->
+    {% if vital_signs and vital_signs.blood_pressure %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-thermometer"></i> Vital Signs</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p><strong>Blood Pressure:</strong> {{ vital_signs.blood_pressure|default:"Not recorded" }}</p>
+                            <p><strong>Pulse Rate:</strong> {{ vital_signs.pulse_rate|default:"Not recorded" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Respiratory Rate:</strong> {{ vital_signs.respiratory_rate|default:"Not recorded" }}</p>
+                            <p><strong>Temperature:</strong> {{ vital_signs.temperature|default:"Not recorded" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Weight:</strong> {{ vital_signs.weight|default:"Not recorded" }}</p>
+                            <p><strong>Height:</strong> {{ vital_signs.height|default:"Not recorded" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Health Information -->
+    {% if health_questionnaire %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-clipboard-list"></i> Health Information</h5>
+                </div>
+                <div class="card-body">
+                    {% if health_questionnaire.last_hospital_date or health_questionnaire.medications_2years or health_questionnaire.is_pregnant %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            {% if health_questionnaire.last_hospital_date %}
+                            <p><strong>Last Hospital Confinement:</strong> {{ health_questionnaire.last_hospital_date|date:"M d, Y" }}<br>
+                            <small class="text-muted">{{ health_questionnaire.last_hospital_reason }}</small></p>
+                            {% endif %}
+                            
+                            {% if health_questionnaire.medications_2years %}
+                            <p><strong>Current/Recent Medications:</strong><br>
+                            <small class="text-muted">{{ health_questionnaire.medications_for }}</small></p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {% if health_questionnaire.excessive_bleeding %}
+                            <p><strong>History of Excessive Bleeding:</strong> Yes<br>
+                            <small class="text-muted">{{ health_questionnaire.excessive_bleeding_when }}</small></p>
+                            {% endif %}
+                            
+                            {% if health_questionnaire.is_pregnant %}
+                            <div class="alert alert-warning">
+                                <strong><i class="fas fa-exclamation-triangle"></i> Pregnant:</strong> 
+                                {{ health_questionnaire.pregnancy_months }} months
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No significant health history recorded.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Medical Conditions & Allergies -->
+    {% if systems_review %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0"><i class="fas fa-heartbeat"></i> Medical Conditions & Allergies</h5>
+                </div>
+                <div class="card-body">
+                    {% if systems_review.allergies %}
+                    <div class="alert alert-danger">
+                        <strong><i class="fas fa-exclamation-circle"></i> ALLERGIES:</strong> {{ systems_review.allergies }}
+                    </div>
+                    {% endif %}
+                    
+                    <p><strong>Medical Conditions:</strong></p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul>
+                                {% if systems_review.heart_disease %}<li>Heart Disease</li>{% endif %}
+                                {% if systems_review.hypertension %}<li>Hypertension</li>{% endif %}
+                                {% if systems_review.diabetes %}<li>Diabetes</li>{% endif %}
+                                {% if systems_review.asthma %}<li>Asthma</li>{% endif %}
+                                {% if systems_review.bleeding_tendencies %}<li>Bleeding Tendencies</li>{% endif %}
+                                {% if systems_review.anemia %}<li>Anemia</li>{% endif %}
+                                {% if systems_review.thyroid_problem %}<li>Thyroid Problem</li>{% endif %}
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul>
+                                {% if systems_review.kidney_problem %}<li>Kidney Problem</li>{% endif %}
+                                {% if systems_review.liver_problem %}<li>Liver Problem</li>{% endif %}
+                                {% if systems_review.hepatitis_a %}<li>Hepatitis A</li>{% endif %}
+                                {% if systems_review.hepatitis_b %}<li>Hepatitis B</li>{% endif %}
+                                {% if systems_review.tuberculosis %}<li>Tuberculosis</li>{% endif %}
+                                {% if systems_review.arthritis %}<li>Arthritis</li>{% endif %}
+                                {% if not systems_review.heart_disease and not systems_review.hypertension and not systems_review.diabetes and not systems_review.asthma %}
+                                <li class="text-muted">None reported</li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    {% if systems_review.other_conditions %}
+                    <p><strong>Other Conditions:</strong><br>
+                    <small>{{ systems_review.other_conditions }}</small></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dental History -->
+    {% if dental_history %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Dental History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>First Dental Visit?</strong> {{ dental_history.first_dental_visit|yesno:"Yes,No" }}</p>
+                            {% if not dental_history.first_dental_visit and dental_history.last_dental_visit %}
+                            <p><strong>Last Dental Visit:</strong> {{ dental_history.last_dental_visit|date:"M d, Y" }}<br>
+                            <small class="text-muted">{{ dental_history.last_visit_reason }}</small></p>
+                            {% endif %}
+                            
+                            {% if dental_history.teeth_extracted %}
+                            <p><strong>Teeth Extracted:</strong> Yes ({{ dental_history.extraction_when }})</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {% if dental_history.anesthesia_allergy %}
+                            <div class="alert alert-warning">
+                                <strong><i class="fas fa-exclamation-triangle"></i> Anesthesia Allergy:</strong> 
+                                {{ dental_history.anesthesia_allergy_when }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if dental_history.dental_appliance %}
+                            <p><strong>Dental Appliance:</strong> {{ dental_history.appliance_type }}</p>
+                            {% endif %}
+                            
+                            {% if dental_history.pain_discomfort %}
+                            <div class="alert alert-danger">
+                                <strong><i class="fas fa-exclamation-circle"></i> Current Pain/Discomfort:</strong><br>
+                                {{ dental_history.pain_location }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Examination Findings -->
+    {% if examination %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-stethoscope"></i> Examination Findings</h5>
+                </div>
+                <div class="card-body">
+                    {% if examination.oral_hygiene or examination.gingiva or examination.tongue %}
+                    <h6 class="text-primary">Oral Examination:</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            {% if examination.oral_hygiene %}
+                            <p><strong>Oral Hygiene:</strong><br>
+                            <small>{{ examination.oral_hygiene }}</small></p>
+                            {% endif %}
+                            
+                            {% if examination.gingiva %}
+                            <p><strong>Gingiva:</strong><br>
+                            <small>{{ examination.gingiva }}</small></p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            {% if examination.tongue %}
+                            <p><strong>Tongue:</strong><br>
+                            <small>{{ examination.tongue }}</small></p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No examination findings recorded yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Dental Chart -->
+    {% if dental_chart %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="fas fa-teeth"></i> Dental Chart</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted"><small>Universal Numbering System: Permanent teeth (1-32), Primary teeth (51-85)</small></p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Tooth #</th>
+                                    <th>Type</th>
+                                    <th>Condition</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tooth in dental_chart %}
+                                <tr>
+                                    <td><strong>{{ tooth.tooth_number }}</strong></td>
+                                    <td>{{ tooth.get_tooth_type_display }}</td>
+                                    <td>
+                                        <span class="badge bg-{% if tooth.condition == 'healthy' %}success{% elif tooth.condition == 'cavity' %}danger{% elif tooth.condition == 'filled' %}warning{% else %}secondary{% endif %}">
+                                            {{ tooth.get_condition_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ tooth.notes|default:"-" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="mt-3">
+                        <h6>Condition Legend:</h6>
+                        <span class="badge bg-success me-2">Healthy</span>
+                        <span class="badge bg-danger me-2">Cavity</span>
+                        <span class="badge bg-warning me-2">Filled</span>
+                        <span class="badge bg-secondary me-2">Missing/Other</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No dental chart recorded yet.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Consent Status -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-{% if dental_record.consent_signed %}success{% else %}warning{% endif %}">
+                <div class="card-body">
+                    <h6><i class="fas fa-file-signature"></i> Consent Status:</h6>
+                    <p>
+                        {% if dental_record.consent_signed %}
+                            <span class="badge bg-success"><i class="fas fa-check-circle"></i> Consent Signed</span>
+                            {% if dental_record.consent_date %}
+                            on {{ dental_record.consent_date|date:"F d, Y" }}
+                            {% endif %}
+                        {% else %}
+                            <span class="badge bg-warning"><i class="fas fa-exclamation-triangle"></i> Consent Pending</span>
+                            <br><small class="text-muted">Please sign the consent form during your next visit.</small>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note for Patient -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle"></i> Important Information:</h6>
+                <ul class="mb-0">
+                    <li>This dental record is for your reference only</li>
+                    <li>If you notice any incorrect information, please inform the clinic</li>
+                    <li>Keep the clinic updated on any changes to your health status, medications, or allergies</li>
+                    <li>For questions about your dental health, consult with your dentist</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

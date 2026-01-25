@@ -1,0 +1,410 @@
+<!-- Staff Profile Fields -->
+<div class="space-y-8">
+    <!-- Demographics Section -->
+    <div class="border-b-2 border-gray-200 pb-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mr-3 shadow-md">
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <span>Personal & Demographic Information</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Staff ID -->
+            <div class="form-group lg:col-span-1">
+                <label for="{{ form.staff_id.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Staff ID <span class="text-red-600">*</span>
+                </label>
+                {{ form.staff_id }}
+                {% if form.staff_id.errors %}
+                    {% for error in form.staff_id.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Middle Name -->
+            <div class="form-group">
+                <label for="{{ form.middle_name.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Middle Name
+                </label>
+                {{ form.middle_name }}
+                {% if form.middle_name.errors %}
+                    {% for error in form.middle_name.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Gender -->
+            <div class="form-group">
+                <label for="{{ form.gender.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Gender <span class="text-red-600">*</span>
+                </label>
+                {{ form.gender }}
+                {% if form.gender.errors %}
+                    {% for error in form.gender.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Civil Status -->
+            <div class="form-group">
+                <label for="{{ form.civil_status.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Civil Status <span class="text-red-600">*</span>
+                </label>
+                {{ form.civil_status }}
+                {% if form.civil_status.errors %}
+                    {% for error in form.civil_status.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Date of Birth -->
+            <div class="form-group">
+                <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Date of Birth <span class="text-red-600">*</span>
+                </label>
+                {{ form.date_of_birth }}
+                {% if form.date_of_birth.errors %}
+                    {% for error in form.date_of_birth.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Age -->
+            <div class="form-group">
+                <label for="{{ form.age.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Age <span class="text-red-600">*</span>
+                </label>
+                {{ form.age }}
+                {% if form.age.errors %}
+                    {% for error in form.age.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Place of Birth -->
+            <div class="form-group md:col-span-2 lg:col-span-3">
+                <label for="{{ form.place_of_birth.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Place of Birth <span class="text-red-600">*</span>
+                </label>
+                {{ form.place_of_birth }}
+                {% if form.place_of_birth.errors %}
+                    {% for error in form.place_of_birth.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Contact Information Section -->
+    <div class="border-b-2 border-gray-200 pb-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center mr-3 shadow-md">
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                </svg>
+            </div>
+            <span>Contact Information</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Address -->
+            <div class="form-group md:col-span-2">
+                <label for="{{ form.address.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Complete Residential Address <span class="text-red-600">*</span>
+                </label>
+                {{ form.address }}
+                {% if form.address.errors %}
+                    {% for error in form.address.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Mobile Phone -->
+            <div class="form-group">
+                <label for="{{ form.phone.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Mobile Phone Number <span class="text-red-600">*</span>
+                </label>
+                {{ form.phone }}
+                <p class="mt-1 text-xs text-gray-500">Format: +639171234567 or 09171234567</p>
+                {% if form.phone.errors %}
+                    {% for error in form.phone.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Telephone Number -->
+            <div class="form-group">
+                <label for="{{ form.telephone_number.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Landline / Telephone <span class="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                {{ form.telephone_number }}
+                {% if form.telephone_number.errors %}
+                    {% for error in form.telephone_number.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Emergency Contact Name -->
+            <div class="form-group">
+                <label for="{{ form.emergency_contact.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Emergency Contact Person <span class="text-red-600">*</span>
+                </label>
+                {{ form.emergency_contact }}
+                <p class="mt-1 text-xs text-gray-500">Full name of person to contact in emergency</p>
+                {% if form.emergency_contact.errors %}
+                    {% for error in form.emergency_contact.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Emergency Contact Phone -->
+            <div class="form-group">
+                <label for="{{ form.emergency_phone.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Emergency Contact Number <span class="text-red-600">*</span>
+                </label>
+                {{ form.emergency_phone }}
+                <p class="mt-1 text-xs text-gray-500">Phone number of emergency contact</p>
+                {% if form.emergency_phone.errors %}
+                    {% for error in form.emergency_phone.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Professional Information Section -->
+    <div class="border-b-2 border-gray-200 pb-8">
+        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mr-3 shadow-md">
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                    <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/>
+                </svg>
+            </div>
+            <span>Professional Information</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Department -->
+            <div class="form-group">
+                <label for="{{ form.department.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Department <span class="text-red-600">*</span>
+                </label>
+                {{ form.department }}
+                <p class="mt-1 text-xs text-gray-500">e.g., Cardiology, Emergency, Administration</p>
+                {% if form.department.errors %}
+                    {% for error in form.department.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Position -->
+            <div class="form-group">
+                <label for="{{ form.position.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Position / Title <span class="text-red-600">*</span>
+                </label>
+                {{ form.position }}
+                <p class="mt-1 text-xs text-gray-500">e.g., Doctor, Nurse, Medical Technologist</p>
+                {% if form.position.errors %}
+                    {% for error in form.position.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Specialization -->
+            <div class="form-group">
+                <label for="{{ form.specialization.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Specialization <span class="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                {{ form.specialization }}
+                <p class="mt-1 text-xs text-gray-500">Your medical or professional specialization</p>
+                {% if form.specialization.errors %}
+                    {% for error in form.specialization.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- License Number -->
+            <div class="form-group">
+                <label for="{{ form.license_number.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Professional License Number <span class="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                {{ form.license_number }}
+                <p class="mt-1 text-xs text-gray-500">Medical or professional license number</p>
+                {% if form.license_number.errors %}
+                    {% for error in form.license_number.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Medical Information Section -->
+    <div>
+        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center mr-3 shadow-md">
+                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15.586 13H14a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <span>Medical & Health Information</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Blood Type -->
+            <div class="form-group">
+                <label for="{{ form.blood_type.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Blood Type <span class="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                {{ form.blood_type }}
+                {% if form.blood_type.errors %}
+                    {% for error in form.blood_type.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Allergies -->
+            <div class="form-group md:col-span-2">
+                <label for="{{ form.allergies.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Allergies <span class="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                {{ form.allergies }}
+                <p class="mt-1 text-xs text-gray-500">List any allergies to food, medication, or environmental factors. Write "None" if you have no allergies.</p>
+                {% if form.allergies.errors %}
+                    {% for error in form.allergies.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Medical Conditions -->
+            <div class="form-group md:col-span-2">
+                <label for="{{ form.medical_conditions.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Pre-existing Medical Conditions <span class="text-gray-400 text-xs">(Optional)</span>
+                </label>
+                {{ form.medical_conditions }}
+                <p class="mt-1 text-xs text-gray-500">List any chronic illnesses, ongoing medical conditions, or health concerns. Write "None" if you have no conditions.</p>
+                {% if form.medical_conditions.errors %}
+                    {% for error in form.medical_conditions.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

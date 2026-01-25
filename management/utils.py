@@ -1,10 +1,165 @@
 from django.db.models import Count, Q, Avg
 from django.utils import timezone
+from django.core.paginator import Paginator
 from datetime import datetime, timedelta
-from .models import Appointment, MedicalRecord, CertificateRequest, HealthTip, Feedback, Notification
+from .models import (
+    Appointment, MedicalRecord, CertificateRequest, HealthTip, 
+    Feedback, Notification, StudentProfile, StaffProfile
+)
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
+def get_user_profile(user):
+    """Get user profile based on role"""
+    if user.role == 'student':
+        try:
+            return user.student_profile
+        except StudentProfile.DoesNotExist:
+            return None
+    elif user.role in ['staff', 'doctor']:
+        try:
+            return user.staff_profile
+        except StaffProfile.DoesNotExist:
+            return None
+    return None
+
+def is_profile_complete(user):
+    """Check if user's profile is complete with all required fields"""
+    try:
+        profile = get_user_profile(user)
+        
+        if not profile:
+            return False
+
+        if user.role == 'student':
+            return is_student_profile_complete(profile)
+        elif user.role in ['staff', 'doctor']:
+            return is_staff_profile_complete(profile)
+        
+        return True
+    except Exception:
+        return False
+
+def is_student_profile_complete(profile):
+    """Check if student profile is complete with all required fields"""
+    required_fields = [
+        'student_id', 'date_of_birth', 'phone', 
+        'emergency_contact', 'emergency_phone', 'blood_type'
+    ]
+    
+    for field in required_fields:
+        value = getattr(profile, field, None)
+        if not value or (isinstance(value, str) and not value.strip()):
+            return False
+    
+    return True
+
+def is_staff_profile_complete(profile):
+    """Check if staff profile is complete with all required fields"""
+    required_fields = [
+        'staff_id', 'department', 'phone'
+    ]
+    
+    for field in required_fields:
+        value = getattr(profile, field, None)
+        if not value or (isinstance(value, str) and not value.strip()):
+            return False
+    
+    return True
+
+def get_missing_profile_fields(user):
+    """Get list of missing required fields for user's profile"""
+    profile = get_user_profile(user)
+    missing_fields = []
+    
+    if not profile:
+        if user.role == 'student':
+            return ['student_id', 'date_of_birth', 'phone', 'emergency_contact', 'emergency_phone', 'blood_type']
+        elif user.role == 'staff':
+            return ['staff_id', 'department', 'phone']
+        return []
+
+    if user.role == 'student':
+        required_fields = [
+            'student_id', 'date_of_birth', 'phone', 
+            'emergency_contact', 'emergency_phone', 'blood_type'
+        ]
+    elif user.role == 'staff':
+        required_fields = [
+            'staff_id', 'department', 'phone'
+        ]
+    else:
+        return []
+    
+    for field in required_fields:
+        value = getattr(profile, field, None)
+        if not value or (isinstance(value, str) and not value.strip()):
+            missing_fields.append(field)
+    
+    return missing_fields
+
+def check_permission(user, obj, field='user'):
+    """Check if user has permission to access object"""
+    if user.role == 'admin':
+        return True
+    
+    if hasattr(obj, field):
+        return getattr(obj, field) == user
+    
+    # For appointments, check both student and doctor
+    if hasattr(obj, 'student') and hasattr(obj, 'doctor'):
+        return obj.student == user or obj.doctor == user
+    
+    return False
+
+def paginate_queryset(queryset, request, per_page=10):
+    """Paginate queryset"""
+    paginator = Paginator(queryset, per_page)
+    page = request.GET.get('page')
+    return paginator.get_page(page)
+
+def parse_date(date_string):
+    """Parse date string safely"""
+    if not date_string:
+        return None
+    try:
+        return datetime.strptime(date_string, '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+def get_queryset_by_role(model, user, student_field='student', doctor_field='doctor'):
+    """Get queryset based on user role for models with student/doctor fields"""
+    if user.role == 'student':
+        return model.objects.filter(**{student_field: user})
+    elif user.role == 'staff':
+        if hasattr(model.objects.first(), doctor_field):
+            return model.objects.filter(**{doctor_field: user})
+        else:
+            return model.objects.all()  # For models without doctor field
+    elif user.role == 'admin':
+        return model.objects.all()
+    else:
+        return model.objects.none()
+
+def apply_date_filters(queryset, request, date_field='created_at'):
+    """Apply date filters to queryset"""
+    date_from = parse_date(request.GET.get('date_from'))
+    date_to = parse_date(request.GET.get('date_to'))
+    
+    if date_from:
+        if '__date' in date_field:
+            queryset = queryset.filter(**{f'{date_field}__gte': date_from})
+        else:
+            queryset = queryset.filter(**{f'{date_field}__date__gte': date_from})
+    
+    if date_to:
+        if '__date' in date_field:
+            queryset = queryset.filter(**{f'{date_field}__lte': date_to})
+        else:
+            queryset = queryset.filter(**{f'{date_field}__date__lte': date_to})
+    
+    return queryset
 
 def create_notification(user, title, message, notification_type='general', related_id=None, transaction_type=None):
     """
@@ -47,7 +202,7 @@ def notify_all_staff(title, message, notification_type='general', related_id=Non
     """
     Send notification to all staff
     """
-    staff = User.objects.filter(role='staff')
+    staff = User.objects.filter(role__in=['staff', 'doctor'])
     return create_bulk_notifications(staff, title, message, notification_type, related_id, transaction_type)
 
 def notify_all_users(title, message, notification_type='general', related_id=None, transaction_type=None):
@@ -66,7 +221,7 @@ def get_dashboard_stats(user):
             'upcoming_appointments': Appointment.objects.filter(
                 student=user, 
                 date__gte=timezone.now().date(),
-                status__in=['pending', 'confirmed']
+                status__in=['pending']
             ).count(),
             'total_appointments': Appointment.objects.filter(student=user).count(),
             'medical_records': MedicalRecord.objects.filter(student=user).count(),
@@ -104,7 +259,7 @@ def get_dashboard_stats(user):
         today = timezone.now().date()
         stats = {
             'total_students': User.objects.filter(role='student').count(),
-            'total_staff': User.objects.filter(role='staff').count(),
+            'total_staff': User.objects.filter(role__in=['staff', 'doctor']).count(),
             'today_appointments': Appointment.objects.filter(date=today).count(),
             'pending_certificates': CertificateRequest.objects.filter(
                 status='pending'

@@ -65,7 +65,6 @@
                         <select name="status" id="status" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                             <option value="">All Status</option>
                             <option value="pending" {% if request.GET.status == 'pending' %}selected{% endif %}>Pending</option>
-                            <option value="confirmed" {% if request.GET.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
                             <option value="completed" {% if request.GET.status == 'completed' %}selected{% endif %}>Completed</option>
                             <option value="cancelled" {% if request.GET.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
                         </select>
@@ -116,14 +115,7 @@
                                                 <div class="flex flex-col sm:flex-row sm:items-center mb-3">
                                                     <h3 class="text-lg font-semibold text-gray-900 truncate">{{ appointment.get_appointment_type_display }}</h3>
                                                     <div class="mt-2 sm:mt-0 sm:ml-3">
-                                                        {% if appointment.status == 'confirmed' %}
-                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
-                                                                <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                                </svg>
-                                                                Confirmed
-                                                            </span>
-                                                        {% elif appointment.status == 'pending' %}
+                                                        {% if appointment.status == 'pending' %}
                                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                                                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -175,6 +167,22 @@
                                                         </svg>
                                                         <span class="break-words"><strong>Reason:</strong> {{ appointment.reason|truncatewords:15 }}</span>
                                                     </div>
+                                                    {% if appointment.notes and appointment.status == 'cancelled' %}
+                                                    <div class="flex items-start mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                                        <svg class="w-4 h-4 mr-2 mt-0.5 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span class="text-sm text-red-700 break-words"><strong>Note:</strong> {{ appointment.notes }}</span>
+                                                    </div>
+                                                    {% endif %}
+                                                    {% if appointment.notes and appointment.status == 'completed' %}
+                                                    <div class="flex items-start mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                                        <svg class="w-4 h-4 mr-2 mt-0.5 text-green-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span class="text-sm text-green-700 break-words"><strong>Note:</strong> {{ appointment.notes }}</span>
+                                                    </div>
+                                                    {% endif %}
                                                 </div>
                                             </div>
                                         </div>
@@ -193,6 +201,14 @@
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                                                 </svg>
                                                 Give Feedback
+                                            </a>
+                                        {% endif %}
+                                        {% if user.role == 'student' and appointment.status == 'cancelled' %}
+                                            <a href="{% url 'management:schedule_appointment' %}" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                                </svg>
+                                                Book Again
                                             </a>
                                         {% endif %}
                                     </div>

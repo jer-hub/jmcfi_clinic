@@ -1,0 +1,348 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}Dental Record Details - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                        <span class="text-primary-600">
+                            <i class="fas fa-tooth"></i> Dental Record Details
+                        </span>
+                    </h1>
+                    <p class="mt-2 text-gray-600">Comprehensive dental health record</p>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <a href="{% url 'dental_records:dental_record_edit' dental_record.id %}" 
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="{% url 'dental_records:dental_record_export_json' dental_record.id %}" 
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200" target="_blank">
+                        <i class="fas fa-download"></i> Export
+                    </a>
+                    <a href="{% url 'dental_records:dental_record_list' %}" 
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient Demographics -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-700 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-user"></i> Patient Demographics
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Name</span>
+                            <p class="text-gray-900 font-semibold">{{ dental_record.patient.last_name }}, {{ dental_record.patient.first_name }} {{ dental_record.middle_name }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Age</span>
+                            <p class="text-gray-900">{{ dental_record.age }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Gender</span>
+                            <p class="text-gray-900">{{ dental_record.get_gender_display }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Civil Status</span>
+                            <p class="text-gray-900">{{ dental_record.get_civil_status_display }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Date of Birth</span>
+                            <p class="text-gray-900">{{ dental_record.date_of_birth|date:"M d, Y" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Place of Birth</span>
+                            <p class="text-gray-900">{{ dental_record.place_of_birth }}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Email</span>
+                            <p class="text-gray-900">{{ dental_record.email }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Contact</span>
+                            <p class="text-gray-900">{{ dental_record.contact_number }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Designation</span>
+                            <p class="text-gray-900">{{ dental_record.get_designation_display }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Department</span>
+                            <p class="text-gray-900">{{ dental_record.department_college_office }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Emergency Contact</span>
+                            <p class="text-gray-900">{{ dental_record.guardian_name }} ({{ dental_record.guardian_contact }})</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Date of Examination</span>
+                            <p class="text-gray-900">{{ dental_record.date_of_examination|date:"M d, Y" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vital Signs -->
+        {% if vital_signs %}
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-primary-500 to-cyan-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-thermometer"></i> Vital Signs
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Blood Pressure</span>
+                            <p class="text-gray-900 text-lg font-semibold">{{ vital_signs.blood_pressure|default:"Not recorded" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Pulse Rate</span>
+                            <p class="text-gray-900 text-lg font-semibold">{{ vital_signs.pulse_rate|default:"Not recorded" }}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Respiratory Rate</span>
+                            <p class="text-gray-900 text-lg font-semibold">{{ vital_signs.respiratory_rate|default:"Not recorded" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Temperature</span>
+                            <p class="text-gray-900 text-lg font-semibold">{{ vital_signs.temperature|default:"Not recorded" }}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Weight</span>
+                            <p class="text-gray-900 text-lg font-semibold">{{ vital_signs.weight|default:"Not recorded" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Height</span>
+                            <p class="text-gray-900 text-lg font-semibold">{{ vital_signs.height|default:"Not recorded" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Health Questionnaire -->
+        {% if health_questionnaire %}
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-clipboard-list"></i> Health Questionnaire
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        {% if health_questionnaire.last_hospital_date %}
+                        <div class="p-4 bg-primary-50 rounded-lg">
+                            <span class="text-sm font-medium text-blue-900">Last Hospital Confinement</span>
+                            <p class="text-blue-800 font-semibold mt-1">{{ health_questionnaire.last_hospital_date|date:"M d, Y" }}</p>
+                            <p class="text-blue-700 text-sm mt-1">{{ health_questionnaire.last_hospital_reason }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if health_questionnaire.doctor_care_2years %}
+                        <div class="p-4 bg-primary-50 rounded-lg">
+                            <span class="text-sm font-medium text-primary-900">Under Doctor's Care (Last 2 Years)</span>
+                            <p class="text-primary-800 font-semibold mt-1">Yes</p>
+                            <p class="text-primary-700 text-sm mt-1">{{ health_questionnaire.doctor_care_reason }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if health_questionnaire.medications_2years %}
+                        <div class="p-4 bg-green-50 rounded-lg">
+                            <span class="text-sm font-medium text-green-900">Medications (Last 2 Years)</span>
+                            <p class="text-green-800 font-semibold mt-1">Yes</p>
+                            <p class="text-green-700 text-sm mt-1">{{ health_questionnaire.medications_for }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="space-y-4">
+                        {% if health_questionnaire.excessive_bleeding %}
+                        <div class="p-4 bg-red-50 rounded-lg">
+                            <span class="text-sm font-medium text-red-900">Excessive Bleeding</span>
+                            <p class="text-red-800 font-semibold mt-1">Yes</p>
+                            <p class="text-red-700 text-sm mt-1">{{ health_questionnaire.excessive_bleeding_when }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if health_questionnaire.easily_exhausted %}
+                        <div class="p-4 bg-yellow-50 rounded-lg">
+                            <span class="text-sm font-medium text-yellow-900">Easily Exhausted</span>
+                            <p class="text-yellow-800 font-semibold mt-1">Yes</p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if health_questionnaire.is_pregnant %}
+                        <div class="p-4 bg-pink-50 rounded-lg">
+                            <span class="text-sm font-medium text-pink-900">Pregnant</span>
+                            <p class="text-pink-800 font-semibold mt-1">Yes ({{ health_questionnaire.pregnancy_months }} months)</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Systems Review -->
+        {% if systems_review %}
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-red-500 to-pink-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-heartbeat"></i> Systems Review - Medical Conditions
+                </h2>
+            </div>
+            <div class="p-6">
+                {% if systems_review.allergies %}
+                <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-red-600 mt-1 mr-3"></i>
+                        <div>
+                            <h3 class="text-red-900 font-semibold">Allergies</h3>
+                            <p class="text-red-800 mt-1">{{ systems_review.allergies }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div>
+                    <h3 class="text-gray-700 font-semibold mb-3">Medical Conditions:</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {% if systems_review.heart_disease %}
+                        <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                            <span class="text-gray-800">Heart Disease</span>
+                        </div>
+                        {% endif %}
+                        {% if systems_review.hypertension %}
+                        <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                            <span class="text-gray-800">Hypertension</span>
+                        </div>
+                        {% endif %}
+                        {% if systems_review.diabetes %}
+                        <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                            <span class="text-gray-800">Diabetes</span>
+                        </div>
+                        {% endif %}
+                        {% if systems_review.asthma %}
+                        <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                            <span class="text-gray-800">Asthma</span>
+                        </div>
+                        {% endif %}
+                        {% if systems_review.bleeding_tendencies %}
+                        <div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <i class="fas fa-check-circle text-green-600"></i>
+                            <span class="text-gray-800">Bleeding Tendencies</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Dental Chart -->
+        {% if dental_chart %}
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-teeth"></i> Dental Chart
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Tooth #</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Condition</th>
+                                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for tooth in dental_chart %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-lg font-bold text-gray-900">{{ tooth.tooth_number }}</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                    {{ tooth.get_tooth_type_display }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full {% if tooth.condition == 'healthy' %}bg-green-100 text-green-800{% elif tooth.condition == 'cavity' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ tooth.get_condition_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-700">
+                                    {{ tooth.notes }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Consent Status -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Consent Status</span>
+                        <div class="mt-2">
+                            {% if dental_record.consent_signed %}
+                                <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i> Signed on {{ dental_record.consent_date|date:"M d, Y" }}
+                                </span>
+                            {% else %}
+                                <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-exclamation-circle mr-1"></i> Not Signed
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Examined By</span>
+                        <p class="text-gray-900 font-semibold mt-2">
+                            {% if dental_record.examined_by %}
+                                Dr. {{ dental_record.examined_by.get_full_name }}
+                            {% else %}
+                                <span class="text-gray-400 italic">Not assigned</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -7,9 +7,16 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.core.paginator import Paginator
 from datetime import datetime, timedelta
+import json
 from .models import (
     Appointment, MedicalRecord, CertificateRequest, 
     HealthTip, Notification, Feedback, StudentProfile, StaffProfile
+)
+from .forms import StudentProfileForm, StaffProfileForm
+from .utils import (
+    create_notification, get_dashboard_stats, get_recent_activity,
+    get_user_profile, check_permission, paginate_queryset, parse_date,
+    get_queryset_by_role, apply_date_filters
 )
 from django.contrib.auth import get_user_model
 
@@ -17,9 +24,14 @@ User = get_user_model()
 
 # Authentication Views
 def login_view(request):
+    """Handle user login"""
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
+        
+        if not email or not password:
+            messages.error(request, 'Please provide both email and password.')
+            return render(request, 'management/login.html')
         
         try:
             user = User.objects.get(email=email)
@@ -28,16 +40,17 @@ def login_view(request):
                 login(request, user)
                 return redirect('management:dashboard')
             else:
-                messages.error(request, 'Invalid credentials')
+                messages.error(request, 'Invalid credentials.')
         except User.DoesNotExist:
-            messages.error(request, 'User not found')
+            messages.error(request, 'User not found.')
     
     return render(request, 'management/login.html')
 
 @login_required
 def logout_view(request):
+    """Handle user logout"""
     logout(request)
-    # Redirect to allauth login to avoid missing local login url name
+    messages.success(request, 'You have been logged out successfully.')
     return redirect('account_login')
 
 @login_required
@@ -70,7 +83,7 @@ def dashboard(request):
             ).count(),
         })
     
-    elif request.user.role == 'staff':
+    elif request.user.role in ['staff', 'doctor']:
         today = timezone.now().date()
         context.update({
             'today_appointments': Appointment.objects.filter(
@@ -100,7 +113,7 @@ def dashboard(request):
         today = timezone.now().date()
         context.update({
             'total_students': User.objects.filter(role='student').count(),
-            'total_staff': User.objects.filter(role='staff').count(),
+            'total_staff': User.objects.filter(role__in=['staff', 'doctor']).count(),
             'total_appointments': Appointment.objects.filter(date=today).count(),
             'pending_certificates': CertificateRequest.objects.filter(
                 status='pending'
@@ -121,9 +134,11 @@ def dashboard(request):
 
 @login_required
 def appointment_list(request):
+    """Display list of appointments based on user role"""
+    # Get appointments based on user role
     if request.user.role == 'student':
         appointments = Appointment.objects.filter(student=request.user)
-    elif request.user.role == 'staff':
+    elif request.user.role in ['staff', 'doctor']:
         appointments = Appointment.objects.filter(doctor=request.user)
     elif request.user.role == 'admin':
         appointments = Appointment.objects.all()
@@ -132,33 +147,18 @@ def appointment_list(request):
     
     # Apply filters
     status = request.GET.get('status')
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
+    date_from = parse_date(request.GET.get('date_from'))
+    date_to = parse_date(request.GET.get('date_to'))
     
     if status:
         appointments = appointments.filter(status=status)
-    
     if date_from:
-        try:
-            from datetime import datetime
-            date_from_parsed = datetime.strptime(date_from, '%Y-%m-%d').date()
-            appointments = appointments.filter(date__gte=date_from_parsed)
-        except ValueError:
-            pass
-    
+        appointments = appointments.filter(date__gte=date_from)
     if date_to:
-        try:
-            from datetime import datetime
-            date_to_parsed = datetime.strptime(date_to, '%Y-%m-%d').date()
-            appointments = appointments.filter(date__lte=date_to_parsed)
-        except ValueError:
-            pass
+        appointments = appointments.filter(date__lte=date_to)
     
     appointments = appointments.order_by('-date', '-time')
-    
-    paginator = Paginator(appointments, 10)
-    page = request.GET.get('page')
-    appointments = paginator.get_page(page)
+    appointments = paginate_queryset(appointments, request)
     
     return render(request, 'management/appointment_list.html', {'appointments': appointments})
 
@@ -178,8 +178,9 @@ def schedule_appointment(request):
         # Validation
         if not all([doctor_id, appointment_type, date, time, reason]):
             messages.error(request, 'All fields are required.')
-            doctors = User.objects.filter(role='staff').select_related('staff_profile')
-            return render(request, 'management/schedule_appointment.html', {'doctors': doctors})
+            doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
+            context = _get_appointment_context(doctors)
+            return render(request, 'management/schedule_appointment.html', context)
         
         try:
             from datetime import datetime
@@ -189,16 +190,18 @@ def schedule_appointment(request):
             # Check if date is not in the past
             if appointment_date < timezone.now().date():
                 messages.error(request, 'Cannot schedule appointments for past dates.')
-                doctors = User.objects.filter(role='staff').select_related('staff_profile')
-                return render(request, 'management/schedule_appointment.html', {'doctors': doctors})
+                doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
+                context = _get_appointment_context(doctors)
+                return render(request, 'management/schedule_appointment.html', context)
             
             # Check if it's a weekend
             if appointment_date.weekday() >= 5:  # Saturday = 5, Sunday = 6
                 messages.error(request, 'Appointments are not available on weekends.')
-                doctors = User.objects.filter(role='staff').select_related('staff_profile')
-                return render(request, 'management/schedule_appointment.html', {'doctors': doctors})
+                doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
+                context = _get_appointment_context(doctors)
+                return render(request, 'management/schedule_appointment.html', context)
             
-            doctor = User.objects.get(id=doctor_id, role='staff')
+            doctor = User.objects.get(id=doctor_id, role__in=['staff', 'doctor'])
             
             # Check for conflicts
             existing_appointment = Appointment.objects.filter(
@@ -210,8 +213,9 @@ def schedule_appointment(request):
             
             if existing_appointment:
                 messages.error(request, 'This time slot is already booked. Please choose a different time.')
-                doctors = User.objects.filter(role='staff').select_related('staff_profile')
-                return render(request, 'management/schedule_appointment.html', {'doctors': doctors})
+                doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
+                context = _get_appointment_context(doctors)
+                return render(request, 'management/schedule_appointment.html', context)
             
             appointment = Appointment.objects.create(
                 student=request.user,
@@ -248,8 +252,77 @@ def schedule_appointment(request):
         except Exception as e:
             messages.error(request, 'An error occurred while scheduling the appointment. Please try again.')
     
-    doctors = User.objects.filter(role='staff').select_related('staff_profile')
-    return render(request, 'management/schedule_appointment.html', {'doctors': doctors})
+    doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
+    context = _get_appointment_context(doctors)
+    
+    # Add appointment type defaults to context
+    from .models import AppointmentTypeDefault
+    appointment_defaults = {}
+    for default in AppointmentTypeDefault.objects.filter(is_active=True).select_related('default_doctor'):
+        if default.default_doctor:
+            appointment_defaults[default.appointment_type] = {
+                'doctor_id': default.default_doctor.id,
+                'doctor_name': f"Dr. {default.default_doctor.get_full_name()}",
+                'department': default.default_doctor.staff_profile.department if hasattr(default.default_doctor, 'staff_profile') else 'N/A'
+            }
+    context['appointment_defaults'] = appointment_defaults
+    
+    return render(request, 'management/schedule_appointment.html', context)
+
+
+def _get_appointment_context(doctors):
+    """Helper function to prepare context for appointment scheduling"""
+    # Define mapping between appointment types and specializations/departments
+    appointment_type_mapping = {
+        'consultation': ['General Medicine', 'Internal Medicine', 'Family Medicine'],
+        'checkup': ['General Medicine', 'Internal Medicine', 'Family Medicine'],
+        'vaccination': ['Immunology', 'Pediatrics', 'General Medicine'],
+        'emergency': ['Emergency Medicine', 'General Medicine'],
+        'followup': ['General Medicine', 'Internal Medicine', 'Family Medicine']
+    }
+    
+    # Create a dictionary to store default doctor IDs for each appointment type
+    default_doctors = {}
+    
+    for apt_type, specializations in appointment_type_mapping.items():
+        # Try to find a doctor with matching specialization
+        for specialization in specializations:
+            matching_doctor = doctors.filter(
+                staff_profile__specialization__icontains=specialization
+            ).first()
+            if matching_doctor:
+                default_doctors[apt_type] = matching_doctor.id
+                break
+        
+        # If no match found by specialization, try department
+        if apt_type not in default_doctors:
+            for specialization in specializations:
+                matching_doctor = doctors.filter(
+                    staff_profile__department__icontains=specialization
+                ).first()
+                if matching_doctor:
+                    default_doctors[apt_type] = matching_doctor.id
+                    break
+        
+        # If still no match, use the first available doctor
+        if apt_type not in default_doctors and doctors.exists():
+            default_doctors[apt_type] = doctors.first().id
+    
+    # Prepare doctors data with their specializations for JavaScript
+    doctors_data = []
+    for doctor in doctors:
+        doctors_data.append({
+            'id': doctor.id,
+            'name': doctor.get_full_name(),
+            'specialization': doctor.staff_profile.specialization if hasattr(doctor, 'staff_profile') and doctor.staff_profile.specialization else '',
+            'department': doctor.staff_profile.department if hasattr(doctor, 'staff_profile') and doctor.staff_profile.department else ''
+        })
+    
+    return {
+        'doctors': doctors,
+        'default_doctors': json.dumps(default_doctors),
+        'doctors_data': doctors_data
+    }
 
 @login_required
 def appointment_detail(request, appointment_id):
@@ -259,12 +332,12 @@ def appointment_detail(request, appointment_id):
     if request.user.role == 'student' and appointment.student != request.user:
         messages.error(request, 'Access denied')
         return redirect('management:appointment_list')
-    elif request.user.role == 'staff' and appointment.doctor != request.user and request.user.role != 'admin':
+    elif request.user.role in ['staff', 'doctor'] and appointment.doctor != request.user and request.user.role != 'admin':
         messages.error(request, 'Access denied')
         return redirect('management:appointment_list')
     
     if request.method == 'POST':
-        if request.user.role in ['staff', 'admin']:
+        if request.user.role in ['staff', 'doctor', 'admin']:
             status = request.POST.get('status')
             notes = request.POST.get('notes')
             
@@ -287,7 +360,7 @@ def appointment_detail(request, appointment_id):
         elif request.user.role == 'student' and appointment.student == request.user:
             # Allow students to cancel their own appointments
             status = request.POST.get('status')
-            if status == 'cancelled' and appointment.status in ['pending', 'confirmed']:
+            if status == 'cancelled' and appointment.status in ['pending']:
                 appointment.status = 'cancelled'
                 appointment.save()
                 
@@ -310,9 +383,11 @@ def appointment_detail(request, appointment_id):
 # Medical Records Views
 @login_required
 def medical_records(request):
+    """Display medical records based on user role"""
+    # Get records based on user role
     if request.user.role == 'student':
         records = MedicalRecord.objects.filter(student=request.user)
-    elif request.user.role == 'staff':
+    elif request.user.role in ['staff', 'doctor']:
         records = MedicalRecord.objects.filter(doctor=request.user)
     elif request.user.role == 'admin':
         records = MedicalRecord.objects.all()
@@ -321,33 +396,18 @@ def medical_records(request):
     
     # Apply filters
     student_id = request.GET.get('student_id')
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
+    date_from = parse_date(request.GET.get('date_from'))
+    date_to = parse_date(request.GET.get('date_to'))
     
     if student_id and request.user.role in ['staff', 'admin']:
         records = records.filter(student__student_profile__student_id__icontains=student_id)
-    
     if date_from:
-        try:
-            from datetime import datetime
-            date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
-            records = records.filter(created_at__date__gte=date_from)
-        except ValueError:
-            pass
-    
+        records = records.filter(created_at__date__gte=date_from)
     if date_to:
-        try:
-            from datetime import datetime
-            date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
-            records = records.filter(created_at__date__lte=date_to)
-        except ValueError:
-            pass
+        records = records.filter(created_at__date__lte=date_to)
     
     records = records.select_related('student', 'doctor', 'appointment').order_by('-created_at')
-    
-    paginator = Paginator(records, 10)
-    page = request.GET.get('page')
-    records = paginator.get_page(page)
+    records = paginate_queryset(records, request)
     
     context = {
         'records': records,
@@ -364,7 +424,7 @@ def medical_record_detail(request, record_id):
     # Check permissions
     if request.user.role == 'student' and record.student != request.user:
         return JsonResponse({'error': 'Access denied'}, status=403)
-    elif request.user.role == 'staff' and record.doctor != request.user and request.user.role != 'admin':
+    elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user and request.user.role != 'admin':
         return JsonResponse({'error': 'Access denied'}, status=403)
     
     # Format vital signs for display
@@ -646,9 +706,18 @@ def request_certificate(request):
         purpose = request.POST.get('purpose')
         additional_info = request.POST.get('additional_info', '')
         
-        # Validation
-        if not certificate_type or not purpose:
-            messages.error(request, 'Please fill in all required fields.')
+        # Validation with enhanced messages
+        validation_errors = []
+        
+        if not certificate_type:
+            validation_errors.append('Certificate type is required')
+        if not purpose:
+            validation_errors.append('Purpose is required')
+        
+        if validation_errors:
+            # Add multiple error messages
+            for error in validation_errors:
+                messages.error(request, error)
             return render(request, 'management/request_certificate.html')
         
         # Check if certificate type is valid
@@ -666,29 +735,39 @@ def request_certificate(request):
         ).first()
         
         if recent_request:
-            messages.warning(request, 'You already have a recent request for this certificate type. Please wait for it to be processed.')
+            messages.warning(request, f'You already have a recent request for this certificate type (submitted {recent_request.created_at.strftime("%B %d, %Y")}). Please wait for it to be processed.')
             return redirect('management:certificate_requests')
         
-        # Create the certificate request
-        cert_request = CertificateRequest.objects.create(
-            student=request.user,
-            certificate_type=certificate_type,
-            purpose=purpose,
-            additional_info=additional_info
-        )
-        
-        # Create notification for staff/admin
-        staff_users = User.objects.filter(role__in=['staff', 'admin'])
-        for staff in staff_users:
-            Notification.objects.create(
-                user=staff,
-                title='New Certificate Request',
-                message=f'{request.user.get_full_name()} has requested a {dict(CertificateRequest.CERTIFICATE_TYPES)[certificate_type]}',
-                notification_type='certificate'
+        try:
+            # Create the certificate request
+            cert_request = CertificateRequest.objects.create(
+                student=request.user,
+                certificate_type=certificate_type,
+                purpose=purpose,
+                additional_info=additional_info
             )
-        
-        messages.success(request, 'Certificate request submitted successfully! You will be notified when it\'s processed.')
-        return redirect('management:certificate_requests')
+            
+            # Create notification for staff/admin
+            staff_users = User.objects.filter(role__in=['staff', 'admin'])
+            notification_count = 0
+            for staff in staff_users:
+                Notification.objects.create(
+                    user=staff,
+                    title='New Certificate Request',
+                    message=f'{request.user.get_full_name()} has requested a {dict(CertificateRequest.CERTIFICATE_TYPES)[certificate_type]}',
+                    notification_type='certificate'
+                )
+                notification_count += 1
+            
+            # Success message with additional info
+            messages.success(request, f'Certificate request submitted successfully! Request ID: {cert_request.id}')
+            messages.info(request, f'Notifications sent to {notification_count} staff members. You will be notified when your request is processed.')
+            
+            return redirect('management:certificate_requests')
+            
+        except Exception as e:
+            messages.error(request, 'An error occurred while submitting your request. Please try again.')
+            return render(request, 'management/request_certificate.html')
     
     context = {
         'certificate_types': CertificateRequest.CERTIFICATE_TYPES,
@@ -813,7 +892,7 @@ def print_certificate(request, request_id):
 @login_required
 def health_tips(request):
     # Show active tips to all users, but also show drafts to their creators
-    if request.user.role == 'staff':
+    if request.user.role in ['staff', 'doctor']:
         tips = HealthTip.objects.filter(
             Q(is_active=True) | Q(created_by=request.user)
         ).select_related('created_by').distinct()
@@ -1085,9 +1164,9 @@ def create_system_notification(request):
         if recipient_type == 'students':
             recipients = User.objects.filter(role='student')
         elif recipient_type == 'staff':
-            recipients = User.objects.filter(role='staff')
+            recipients = User.objects.filter(role__in=['staff', 'doctor'])
         else:  # all
-            recipients = User.objects.filter(role__in=['student', 'staff'])
+            recipients = User.objects.filter(role__in=['student', 'staff', 'doctor'])
         
         # Create notifications
         from .utils import create_bulk_notifications
@@ -1115,40 +1194,258 @@ def feedback_list(request):
 @login_required
 def submit_feedback(request, appointment_id=None):
     if request.user.role != 'student':
-        messages.error(request, 'Only students can submit feedback')
+        messages.error(request, 'Only students can submit feedback.')
         return redirect('management:dashboard')
-
+    
     appointment = None
     if appointment_id:
         appointment = get_object_or_404(Appointment, id=appointment_id, student=request.user)
-
+    
     if request.method == 'POST':
         rating = request.POST.get('rating')
-        comments = request.POST.get('comments', '').strip()
-        suggestions = request.POST.get('suggestions', '').strip()
+        comments = request.POST.get('comments')
+        suggestions = request.POST.get('suggestions', '')
         is_anonymous = request.POST.get('is_anonymous') == 'on'
-
-        # Validate rating
-        try:
-            rating_int = int(rating)
-        except (TypeError, ValueError):
-            rating_int = None
-
-        if rating_int is None or rating_int < 1 or rating_int > 5:
-            messages.error(request, 'Please provide a valid rating between 1 and 5.')
-        elif not comments:
-            messages.error(request, 'Comments are required.')
-        else:
+        
+        if rating and comments:
             Feedback.objects.create(
                 student=request.user,
                 appointment=appointment,
-                rating=rating_int,
+                rating=int(rating),
                 comments=comments,
                 suggestions=suggestions,
                 is_anonymous=is_anonymous
             )
-
-            messages.success(request, 'Feedback submitted successfully!')
+            messages.success(request, 'Thank you for your feedback!')
             return redirect('management:feedback_list')
-
+        else:
+            messages.error(request, 'Please provide both rating and comments.')
+    
     return render(request, 'management/submit_feedback.html', {'appointment': appointment})
+
+# Profile Views
+@login_required
+def profile_view(request):
+    """Display user profile information with related dental and medical records"""
+    from dental_records.models import DentalRecord
+    
+    profile = get_user_profile(request.user)
+    
+    # Get the latest dental record for the user
+    dental_record = None
+    try:
+        dental_record = DentalRecord.objects.filter(patient=request.user).select_related(
+            'vital_signs', 'health_questionnaire', 'systems_review'
+        ).latest('created_at')
+    except DentalRecord.DoesNotExist:
+        pass
+    
+    # Calculate profile completion percentage
+    completion_percentage = 0
+    if profile:
+        if request.user.role == 'student':
+            required_fields = [
+                'student_id', 'date_of_birth', 'phone', 
+                'emergency_contact', 'emergency_phone', 'blood_type',
+                'gender', 'civil_status', 'address'
+            ]
+        else:
+            required_fields = [
+                'staff_id', 'department', 'phone',
+                'date_of_birth', 'gender'
+            ]
+        
+        filled_count = 0
+        for field in required_fields:
+            value = getattr(profile, field, None)
+            if value and (not isinstance(value, str) or value.strip()):
+                filled_count += 1
+        completion_percentage = int((filled_count / len(required_fields)) * 100)
+    
+    context = {
+        'user': request.user,
+        'profile': profile,
+        'dental_record': dental_record,
+        'completion_percentage': completion_percentage,
+    }
+    
+    return render(request, 'management/profile.html', context)
+
+@login_required
+def quick_edit_profile(request):
+    """Quick edit a single profile field via AJAX/form submission"""
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('management:profile')
+    
+    profile = get_user_profile(request.user)
+    if not profile:
+        messages.error(request, 'Profile not found. Please complete your profile first.')
+        return redirect('management:edit_profile')
+    
+    field_name = request.POST.get('field_name')
+    field_value = request.POST.get('field_value', '').strip()
+    
+    # Define allowed fields for quick edit (security measure)
+    allowed_fields = [
+        'phone', 'telephone_number', 'emergency_contact', 'emergency_phone',
+        'address', 'allergies', 'medical_conditions', 'middle_name',
+        'place_of_birth', 'course', 'year_level', 'department', 'position',
+        'specialization'
+    ]
+    
+    # Fields that need special handling
+    date_fields = ['date_of_birth']
+    select_fields = ['gender', 'civil_status', 'blood_type']
+    
+    all_allowed = allowed_fields + date_fields + select_fields
+    
+    if field_name not in all_allowed:
+        messages.error(request, 'This field cannot be edited via quick edit.')
+        return redirect('management:profile')
+    
+    # Validate the field exists on the profile model
+    if not hasattr(profile, field_name):
+        messages.error(request, 'Invalid field.')
+        return redirect('management:profile')
+    
+    try:
+        # Handle date fields
+        if field_name in date_fields:
+            if field_value:
+                from datetime import datetime
+                field_value = datetime.strptime(field_value, '%Y-%m-%d').date()
+            else:
+                field_value = None
+        
+        # Set the value
+        setattr(profile, field_name, field_value)
+        profile.save()
+        
+        # Clear profile completion cache
+        session_key = f'profile_complete_{request.user.id}'
+        if session_key in request.session:
+            del request.session[session_key]
+        
+        messages.success(request, f'Successfully updated your {field_name.replace("_", " ").title()}.')
+    except Exception as e:
+        messages.error(request, f'Error updating field: {str(e)}')
+    
+    return redirect('management:profile')
+
+@login_required
+def edit_profile(request):
+    """Edit user profile information"""
+    from .models import DentalRecord
+    
+    profile = get_user_profile(request.user)
+    is_first_time = profile is None
+    
+    if request.user.role == 'student':
+        form_class = StudentProfileForm
+    elif request.user.role in ['staff', 'doctor']:
+        form_class = StaffProfileForm
+    else:
+        messages.error(request, 'Profile editing not available for your role.')
+        return redirect('management:dashboard')
+    
+    # Check for dental record to auto-fill data
+    dental_record = None
+    try:
+        dental_record = DentalRecord.objects.filter(patient=request.user).latest('created_at')
+    except DentalRecord.DoesNotExist:
+        pass
+    
+    if request.method == 'POST':
+        # Handle auto-fill request
+        if 'autofill_from_dental' in request.POST and dental_record:
+            # Create initial data from dental record
+            initial_data = {}
+            
+            if dental_record.middle_name:
+                initial_data['middle_name'] = dental_record.middle_name
+            if dental_record.gender:
+                initial_data['gender'] = dental_record.gender
+            if dental_record.civil_status:
+                initial_data['civil_status'] = dental_record.civil_status
+            if dental_record.date_of_birth:
+                initial_data['date_of_birth'] = dental_record.date_of_birth
+            if dental_record.place_of_birth:
+                initial_data['place_of_birth'] = dental_record.place_of_birth
+            if dental_record.age:
+                initial_data['age'] = dental_record.age
+            if dental_record.address:
+                initial_data['address'] = dental_record.address
+            if dental_record.contact_number:
+                initial_data['phone'] = dental_record.contact_number
+            if dental_record.telephone_number:
+                initial_data['telephone_number'] = dental_record.telephone_number
+            if dental_record.guardian_name:
+                initial_data['emergency_contact'] = dental_record.guardian_name
+            if dental_record.guardian_contact:
+                initial_data['emergency_phone'] = dental_record.guardian_contact
+            if dental_record.department_college_office:
+                if request.user.role == 'student':
+                    # Try to parse as course
+                    initial_data['course'] = dental_record.department_college_office
+                else:
+                    initial_data['department'] = dental_record.department_college_office
+            
+            # Merge with existing profile data if available
+            if profile:
+                form = form_class(initial=initial_data, instance=profile)
+                # Update form with autofilled values
+                for key, value in initial_data.items():
+                    if key in form.fields:
+                        form.initial[key] = value
+            else:
+                form = form_class(initial=initial_data)
+            
+            messages.success(request, 'Profile auto-filled from your dental record. Please review and save.')
+            
+        else:
+            # Normal form submission
+            form = form_class(request.POST, request.FILES, instance=profile)
+            if form.is_valid():
+                profile = form.save(commit=False)
+                if not profile.user_id:
+                    profile.user = request.user
+                profile.save()
+                
+                # Clear profile completion cache
+                session_key = f'profile_complete_{request.user.id}'
+                if session_key in request.session:
+                    del request.session[session_key]
+                
+                if is_first_time:
+                    messages.success(request, 'Welcome! Your profile has been created successfully!')
+                    # Clear the welcome shown flag
+                    request.session.pop('profile_welcome_shown', None)
+                else:
+                    messages.success(request, 'Profile updated successfully!')
+                
+                # Redirect to dashboard after profile completion
+                return redirect('management:dashboard')
+            else:
+                if is_first_time:
+                    messages.error(request, 'Please complete all required fields to set up your profile.')
+                else:
+                    messages.error(request, 'Please correct the errors below.')
+    else:
+        form = form_class(instance=profile)
+        
+        # Only show welcome message for first-time users, and only once per session
+        if is_first_time and not request.session.get('profile_welcome_shown'):
+            messages.info(request, 
+                f'Welcome to JMCFI Clinic! Please complete your profile to get started.')
+            request.session['profile_welcome_shown'] = True
+    
+    context = {
+        'form': form,
+        'profile': profile,
+        'user': request.user,
+        'is_first_time': is_first_time,
+        'dental_record': dental_record,
+    }
+    
+    return render(request, 'management/edit_profile.html', context)

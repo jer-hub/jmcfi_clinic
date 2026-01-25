@@ -116,6 +116,87 @@
   </div>
 </div>
 
+<!-- Quick Actions for Admin -->
+<div class="bg-white rounded-lg shadow mb-6 sm:mb-8">
+  <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Quick Actions</h3>
+  </div>
+  <div class="p-4 sm:p-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <a href="{% url 'management:user_management' %}" class="flex items-center p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Manage Users</p>
+          <p class="text-xs text-gray-600">View and manage all users</p>
+        </div>
+      </a>
+
+      <a href="{% url 'management:appointment_list' %}" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">View Appointments</p>
+          <p class="text-xs text-gray-600">Manage all appointments</p>
+        </div>
+      </a>
+
+      <a href="{% url 'management:health_tips' %}" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Health Tips</p>
+          <p class="text-xs text-gray-600">Manage health information</p>
+        </div>
+      </a>
+
+      <a href="{% url 'management:certificate_requests' %}" class="flex items-center p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Certificates</p>
+          <p class="text-xs text-gray-600">Process certificate requests</p>
+        </div>
+      </a>
+
+      <a href="{% url 'management:appointment_type_settings' %}" class="flex items-center p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Appointment Settings</p>
+          <p class="text-xs text-gray-600">Configure default doctors</p>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
 <!-- Recent Activity -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
   <!-- Today's Appointments -->
@@ -135,9 +216,7 @@
                   <p class="text-xs sm:text-sm text-gray-500 break-words">{{ appointment.time }} - {{ appointment.get_appointment_type_display }}</p>
                 </div>
                 <span class="px-2 py-1 text-xs font-medium rounded-full break-words
-                                              {% if appointment.status == 'confirmed' %}
-                    bg-green-100 text-green-800
-                  {% elif appointment.status == 'pending' %}
+                                              {% if appointment.status == 'pending' %}
                     bg-yellow-100 text-yellow-800
                 {% else %}
                   bg-gray-100 text-gray-800

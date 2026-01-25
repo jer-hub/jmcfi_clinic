@@ -1,0 +1,100 @@
+{% if messages %}
+<div class="messages-container mb-4" id="messages-container">
+    {% for message in messages %}
+        {% if message.tags == 'debug' %}
+            <div class="message-alert bg-slate-50 border-l-4 border-slate-400 text-slate-700 px-4 py-3 rounded-r-lg mb-3 flex items-center relative shadow-sm" role="alert">
+                <svg class="w-5 h-5 mr-3 flex-shrink-0 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="flex-1 font-medium">{{ message }}</span>
+                <button type="button" class="ml-4 text-slate-400 hover:text-slate-600 transition-colors" onclick="this.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        {% elif message.tags == 'info' %}
+            <div class="message-alert bg-primary-50 border-l-4 border-primary-400 text-primary-800 px-4 py-3 rounded-r-lg mb-3 flex items-center relative shadow-sm" role="alert">
+                <svg class="w-5 h-5 mr-3 flex-shrink-0 text-primary-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="flex-1 font-medium">{{ message }}</span>
+                <button type="button" class="ml-4 text-primary-400 hover:text-primary-600 transition-colors" onclick="this.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        {% elif message.tags == 'success' %}
+            <div class="message-alert bg-emerald-50 border-l-4 border-emerald-400 text-emerald-800 px-4 py-3 rounded-r-lg mb-3 flex items-center relative shadow-sm" role="alert">
+                <svg class="w-5 h-5 mr-3 flex-shrink-0 text-emerald-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="flex-1 font-medium">{{ message }}</span>
+                <button type="button" class="ml-4 text-emerald-400 hover:text-emerald-600 transition-colors" onclick="this.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        {% elif message.tags == 'warning' %}
+            <div class="message-alert bg-amber-50 border-l-4 border-amber-400 text-amber-800 px-4 py-3 rounded-r-lg mb-3 flex items-center relative shadow-sm" role="alert">
+                <svg class="w-5 h-5 mr-3 flex-shrink-0 text-amber-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="flex-1 font-medium">{{ message }}</span>
+                <button type="button" class="ml-4 text-amber-400 hover:text-amber-600 transition-colors" onclick="this.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        {% elif message.tags == 'error' %}
+            <div class="message-alert bg-red-50 border-l-4 border-red-400 text-red-800 px-4 py-3 rounded-r-lg mb-3 flex items-center relative shadow-sm" role="alert">
+                <svg class="w-5 h-5 mr-3 flex-shrink-0 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="flex-1 font-medium">{{ message }}</span>
+                <button type="button" class="ml-4 text-red-400 hover:text-red-600 transition-colors" onclick="this.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        {% else %}
+            <!-- Default styling for any other message types -->
+            <div class="message-alert bg-slate-50 border-l-4 border-slate-400 text-slate-700 px-4 py-3 rounded-r-lg mb-3 flex items-center relative shadow-sm" role="alert">
+                <svg class="w-5 h-5 mr-3 flex-shrink-0 text-slate-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="flex-1 font-medium">{{ message }}</span>
+                <button type="button" class="ml-4 text-slate-400 hover:text-slate-600 transition-colors" onclick="this.parentElement.remove()">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+<script>
+// Auto-dismiss success messages after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const successMessages = document.querySelectorAll('.message-alert.bg-emerald-50');
+    successMessages.forEach(function(message) {
+        setTimeout(function() {
+            if (message.parentNode) {
+                message.style.transition = 'opacity 0.5s ease-out';
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    if (message.parentNode) {
+                        message.remove();
+                    }
+                }, 500);
+            }
+        }, 5000); // 5 seconds
+    });
+});
+</script>
+{% endif %}

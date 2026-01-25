@@ -9,7 +9,7 @@
         </svg>
       </div>
       <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600">Upcoming Appointments</p>
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Upcoming Appointments</p>
         <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ upcoming_appointments.count }}</p>
       </div>
     </div>
@@ -23,7 +23,7 @@
         </svg>
       </div>
       <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600">Medical Records</p>
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Medical Records</p>
         <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_records }}</p>
       </div>
     </div>
@@ -37,7 +37,7 @@
         </svg>
       </div>
       <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600">Pending Certificates</p>
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Pending Certificates</p>
         <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ pending_certificates }}</p>
       </div>
     </div>
@@ -45,13 +45,13 @@
 
   <div class="bg-white rounded-lg shadow p-4 sm:p-6">
     <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600">
+      <div class="p-2 sm:p-3 bg-purple-100 rounded-full">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600">
           <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
         </svg>
       </div>
       <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600">Notifications</p>
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Notifications</p>
         <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ unread_notifications }}</p>
       </div>
     </div>
@@ -59,48 +59,69 @@
 </div>
 
 <!-- Quick Actions -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-  <a href="{% url 'management:schedule_appointment' %}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4">
-        <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">Schedule Appointment</h3>
-        <p class="text-xs sm:text-sm text-gray-600">Book a new appointment with a doctor</p>
-      </div>
-    </div>
-  </a>
+<div class="bg-white rounded-lg shadow mb-6 sm:mb-8">
+  <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Quick Actions</h3>
+  </div>
+  <div class="p-4 sm:p-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <a href="{% url 'management:schedule_appointment' %}" class="flex items-center p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Book Appointment</p>
+          <p class="text-xs text-gray-600">Schedule with a doctor</p>
+        </div>
+      </a>
 
-  <a href="{% url 'management:request_certificate' %}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-green-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4">
-        <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">Request Certificate</h3>
-        <p class="text-xs sm:text-sm text-gray-600">Apply for medical certificates</p>
-      </div>
-    </div>
-  </a>
+      <a href="{% url 'management:request_certificate' %}" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Request Certificate</p>
+          <p class="text-xs text-gray-600">Apply for medical cert</p>
+        </div>
+      </a>
 
-  <a href="{% url 'management:health_tips' %}" class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4">
-        <h3 class="text-sm sm:text-base lg:text-lg font-semibold text-gray-900">Health Tips</h3>
-        <p class="text-xs sm:text-sm text-gray-600">Browse health tips and advice</p>
-      </div>
+      <a href="{% url 'management:health_tips' %}" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Health Tips</p>
+          <p class="text-xs text-gray-600">Browse health advice</p>
+        </div>
+      </a>
+
+      <a href="{% url 'management:medical_records' %}" class="flex items-center p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Medical Records</p>
+          <p class="text-xs text-gray-600">View your records</p>
+        </div>
+      </a>
     </div>
-  </a>
+  </div>
 </div>
 
 <!-- Recent Activity -->
@@ -122,8 +143,8 @@
               </div>
               <div class="flex-shrink-0">
                 <span class="px-2 py-1 text-xs font-medium rounded-full 
-                  {% if appointment.status == 'confirmed' %}bg-green-100 text-green-800
-                  {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                  {% if appointment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                  {% else %}bg-green-100 text-green-800{% endif %}">
                   {{ appointment.get_status_display }}
                 </span>
               </div>

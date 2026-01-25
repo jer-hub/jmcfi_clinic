@@ -1,0 +1,1185 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                        <span class="text-primary-600">
+                            <i class="fas fa-tooth"></i> {{ title }}
+                        </span>
+                    </h1>
+                    <p class="mt-2 text-gray-600">Complete dental health record management</p>
+                </div>
+                <a href="{% url 'dental_records:dental_record_list' %}" 
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="bg-white rounded-t-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div class="border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
+                <nav class="flex flex-wrap -mb-px px-6" aria-label="Tabs">
+                    <button onclick="switchTab('demographics')" id="tab-demographics" class="tab-button active whitespace-nowrap py-4 px-6 border-b-2 border-primary-600 font-medium text-sm text-primary-600 focus:outline-none">
+                        <i class="fas fa-user mr-2"></i> Demographics
+                    </button>
+                    <button onclick="switchTab('health-questionnaire')" id="tab-health-questionnaire" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
+                        <i class="fas fa-clipboard-list mr-2"></i> Health Questionnaire
+                    </button>
+                    <button onclick="switchTab('systems-review')" id="tab-systems-review" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
+                        <i class="fas fa-heartbeat mr-2"></i> Systems Review
+                    </button>
+                    <button onclick="switchTab('dental-history')" id="tab-dental-history" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
+                        <i class="fas fa-history mr-2"></i> Dental History
+                    </button>
+                    {% if is_pediatric %}
+                    <button onclick="switchTab('pediatric')" id="tab-pediatric" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
+                        <i class="fas fa-child mr-2"></i> Pediatric Info
+                    </button>
+                    {% endif %}
+                    <button onclick="switchTab('examination')" id="tab-examination" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
+                        <i class="fas fa-stethoscope mr-2"></i> Examination
+                    </button>
+                    <button onclick="switchTab('vital-signs')" id="tab-vital-signs" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
+                        <i class="fas fa-thermometer mr-2"></i> Vital Signs
+                    </button>
+                    <button onclick="switchTab('dental-chart')" id="tab-dental-chart" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
+                        <i class="fas fa-teeth mr-2"></i> Dental Chart
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab Panels -->
+            <div class="p-6 sm:p-8">
+                <!-- Demographics Tab -->
+                <div id="panel-demographics" class="tab-panel">
+                    <form method="post" class="space-y-6"
+                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+                          hx-swap="none"
+                          hx-on::after-request="handleFormResponse(event, 'Demographics')">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="demographics">
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-user-circle text-primary-600"></i> Patient Demographics
+                            </h3>
+                        </div>
+
+                        <!-- Patient Information Section -->
+                        <div class="bg-primary-50 rounded-lg p-4 mb-6">
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                <i class="fas fa-id-card text-primary-600"></i> Patient Information
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Patient Name</label>
+                                    <input type="text" value="{{ dental_record.patient.get_full_name }}" readonly 
+                                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                    <input type="text" value="{{ dental_record.patient.email }}" readonly 
+                                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
+                                    <input type="text" value="{{ dental_record.patient.get_role_display }}" readonly 
+                                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Personal Details Section -->
+                        <div class="mb-6">
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                <i class="fas fa-address-card text-primary-600"></i> Personal Details
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.middle_name.label }}</label>
+                                    {{ demographics_form.middle_name }}
+                                    {% if demographics_form.middle_name.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.middle_name.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.age.label }}</label>
+                                    {{ demographics_form.age }}
+                                    {% if demographics_form.age.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.age.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.gender.label }}</label>
+                                    {{ demographics_form.gender }}
+                                    {% if demographics_form.gender.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.gender.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.civil_status.label }}</label>
+                                    {{ demographics_form.civil_status }}
+                                    {% if demographics_form.civil_status.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.civil_status.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.date_of_birth.label }}</label>
+                                    {{ demographics_form.date_of_birth }}
+                                    {% if demographics_form.date_of_birth.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.date_of_birth.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.place_of_birth.label }}</label>
+                                    {{ demographics_form.place_of_birth }}
+                                    {% if demographics_form.place_of_birth.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.place_of_birth.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact Information Section -->
+                        <div class="mb-6">
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                <i class="fas fa-phone text-primary-600"></i> Contact Information
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="md:col-span-2">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.address.label }}</label>
+                                    {{ demographics_form.address }}
+                                    {% if demographics_form.address.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.address.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.email.label }}</label>
+                                    {{ demographics_form.email }}
+                                    {% if demographics_form.email.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.email.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.contact_number.label }}</label>
+                                    {{ demographics_form.contact_number }}
+                                    {% if demographics_form.contact_number.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.contact_number.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.telephone_number.label }}</label>
+                                    {{ demographics_form.telephone_number }}
+                                    {% if demographics_form.telephone_number.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.telephone_number.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Institutional Information Section -->
+                        <div class="mb-6">
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                <i class="fas fa-building text-primary-600"></i> Institutional Information
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.designation.label }}</label>
+                                    {{ demographics_form.designation }}
+                                    {% if demographics_form.designation.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.designation.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.department_college_office.label }}</label>
+                                    {{ demographics_form.department_college_office }}
+                                    {% if demographics_form.department_college_office.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.department_college_office.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Guardian/Emergency Contact Section -->
+                        <div class="mb-6">
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                <i class="fas fa-user-shield text-primary-600"></i> Guardian/Emergency Contact
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.guardian_name.label }}</label>
+                                    {{ demographics_form.guardian_name }}
+                                    {% if demographics_form.guardian_name.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.guardian_name.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.guardian_contact.label }}</label>
+                                    {{ demographics_form.guardian_contact }}
+                                    {% if demographics_form.guardian_contact.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.guardian_contact.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Examination Details Section -->
+                        <div class="mb-6">
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                <i class="fas fa-calendar-check text-primary-600"></i> Examination Details
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.date_of_examination.label }}</label>
+                                    {{ demographics_form.date_of_examination }}
+                                    {% if demographics_form.date_of_examination.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.date_of_examination.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.examined_by.label }}</label>
+                                    {{ demographics_form.examined_by }}
+                                    {% if demographics_form.examined_by.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.examined_by.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.consent_date.label }}</label>
+                                    {{ demographics_form.consent_date }}
+                                    {% if demographics_form.consent_date.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.consent_date.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="flex items-center">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        {{ demographics_form.consent_signed }}
+                                        <span class="text-sm font-medium text-gray-700">{{ demographics_form.consent_signed.label }}</span>
+                                    </label>
+                                    {% if demographics_form.consent_signed.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.consent_signed.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden patient field -->
+                        {{ demographics_form.patient }}
+
+                        <div class="flex justify-end pt-6 border-t border-gray-200">
+                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
+                                <i class="fas fa-save"></i> Save Demographics
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Health Questionnaire Tab -->
+                <div id="panel-health-questionnaire" class="tab-panel hidden">
+                    <form method="post" class="space-y-6"
+                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+                          hx-swap="none"
+                          hx-on::after-request="handleFormResponse(event, 'Health Questionnaire')">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="health_questionnaire">
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-clipboard-list text-primary-600"></i> Section A: Health Questionnaire
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for field in health_questionnaire_form %}
+                            <div>
+                                {% if field.field.widget.input_type == 'checkbox' %}
+                                    <div class="flex items-center">
+                                        {{ field }}
+                                        <label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label>
+                                    </div>
+                                {% else %}
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
+                                    {{ field }}
+                                {% endif %}
+                                {% if field.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="flex justify-end pt-6 border-t border-gray-200">
+                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
+                                <i class="fas fa-save"></i> Save Health Questionnaire
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Systems Review Tab -->
+                <div id="panel-systems-review" class="tab-panel hidden">
+                    <form method="post" class="space-y-6"
+                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+                          hx-swap="none"
+                          hx-on::after-request="handleFormResponse(event, 'Systems Review')">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="systems_review">
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-heartbeat text-primary-600"></i> Section B: Systems Review - Medical Conditions
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {% for field in systems_review_form %}
+                                {% if field.field.widget.input_type == 'checkbox' %}
+                                <div class="flex items-center">
+                                    {{ field }}
+                                    <label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label>
+                                </div>
+                                {% elif field.name == 'allergies' or field.name == 'other_conditions' %}
+                                <div class="col-span-3">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
+                                    {{ field }}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+
+                        <div class="flex justify-end pt-6 border-t border-gray-200">
+                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
+                                <i class="fas fa-save"></i> Save Systems Review
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Dental History Tab -->
+                <div id="panel-dental-history" class="tab-panel hidden">
+                    <form method="post" class="space-y-6"
+                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+                          hx-swap="none"
+                          hx-on::after-request="handleFormResponse(event, 'Dental History')">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="dental_history">
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-history text-primary-600"></i> Section C: Dental History
+                            </h3>
+                        </div>
+
+                        <!-- Previous Dental Visits -->
+                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
+                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
+                                <i class="fas fa-calendar-check text-primary-500"></i>
+                                Previous Dental Visits
+                            </h4>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- First Dental Visit Checkbox -->
+                                <div class="md:col-span-2">
+                                    <div class="flex items-start">
+                                        {{ dental_history_form.first_dental_visit }}
+                                        <label for="{{ dental_history_form.first_dental_visit.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
+                                            {{ dental_history_form.first_dental_visit.label }}
+                                        </label>
+                                    </div>
+                                    {% if dental_history_form.first_dental_visit.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.first_dental_visit.errors }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Last Dental Visit Date -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ dental_history_form.last_dental_visit.label }}
+                                    </label>
+                                    {{ dental_history_form.last_dental_visit }}
+                                    {% if dental_history_form.last_dental_visit.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.last_dental_visit.errors }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Last Visit Reason -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ dental_history_form.last_visit_reason.label }}
+                                    </label>
+                                    {{ dental_history_form.last_visit_reason }}
+                                    {% if dental_history_form.last_visit_reason.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.last_visit_reason.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Teeth Extraction History -->
+                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
+                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
+                                <i class="fas fa-tooth text-primary-500"></i>
+                                Teeth Extraction History
+                            </h4>
+                            
+                            <div class="space-y-4">
+                                <!-- Teeth Extracted Checkbox -->
+                                <div class="flex items-start">
+                                    {{ dental_history_form.teeth_extracted }}
+                                    <label for="{{ dental_history_form.teeth_extracted.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
+                                        {{ dental_history_form.teeth_extracted.label }}
+                                    </label>
+                                </div>
+                                {% if dental_history_form.teeth_extracted.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ dental_history_form.teeth_extracted.errors }}</p>
+                                {% endif %}
+
+                                <!-- When Extraction Occurred -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ dental_history_form.extraction_when.label }}
+                                    </label>
+                                    {{ dental_history_form.extraction_when }}
+                                    {% if dental_history_form.extraction_when.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.extraction_when.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Anesthesia Allergy -->
+                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
+                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
+                                <i class="fas fa-syringe text-primary-500"></i>
+                                Anesthesia Allergy
+                            </h4>
+                            
+                            <div class="space-y-4">
+                                <!-- Anesthesia Allergy Checkbox -->
+                                <div class="flex items-start">
+                                    {{ dental_history_form.anesthesia_allergy }}
+                                    <label for="{{ dental_history_form.anesthesia_allergy.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
+                                        {{ dental_history_form.anesthesia_allergy.label }}
+                                    </label>
+                                </div>
+                                {% if dental_history_form.anesthesia_allergy.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ dental_history_form.anesthesia_allergy.errors }}</p>
+                                {% endif %}
+
+                                <!-- When Allergy Occurred -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ dental_history_form.anesthesia_allergy_when.label }}
+                                    </label>
+                                    {{ dental_history_form.anesthesia_allergy_when }}
+                                    {% if dental_history_form.anesthesia_allergy_when.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.anesthesia_allergy_when.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dental Appliances -->
+                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
+                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
+                                <i class="fas fa-prescription text-primary-500"></i>
+                                Dental Appliances
+                            </h4>
+                            
+                            <div class="space-y-4">
+                                <!-- Dental Appliance Checkbox -->
+                                <div class="flex items-start">
+                                    {{ dental_history_form.dental_appliance }}
+                                    <label for="{{ dental_history_form.dental_appliance.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
+                                        {{ dental_history_form.dental_appliance.label }}
+                                    </label>
+                                </div>
+                                {% if dental_history_form.dental_appliance.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ dental_history_form.dental_appliance.errors }}</p>
+                                {% endif %}
+
+                                <!-- Appliance Type -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ dental_history_form.appliance_type.label }}
+                                    </label>
+                                    {{ dental_history_form.appliance_type }}
+                                    {% if dental_history_form.appliance_type.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.appliance_type.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pain and Discomfort -->
+                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
+                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
+                                <i class="fas fa-exclamation-triangle text-primary-500"></i>
+                                Pain and Discomfort
+                            </h4>
+                            
+                            <div class="space-y-4">
+                                <!-- Pain/Discomfort Checkbox -->
+                                <div class="flex items-start">
+                                    {{ dental_history_form.pain_discomfort }}
+                                    <label for="{{ dental_history_form.pain_discomfort.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
+                                        {{ dental_history_form.pain_discomfort.label }}
+                                    </label>
+                                </div>
+                                {% if dental_history_form.pain_discomfort.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ dental_history_form.pain_discomfort.errors }}</p>
+                                {% endif %}
+
+                                <!-- Pain Location -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ dental_history_form.pain_location.label }}
+                                    </label>
+                                    {{ dental_history_form.pain_location }}
+                                    {% if dental_history_form.pain_location.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.pain_location.errors }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end pt-6 border-t border-gray-200">
+                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
+                                <i class="fas fa-save"></i> Save Dental History
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Pediatric History Tab -->
+                {% if is_pediatric %}
+                <div id="panel-pediatric" class="tab-panel hidden">
+                    <form method="post" class="space-y-6"
+                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+                          hx-swap="none"
+                          hx-on::after-request="handleFormResponse(event, 'Pediatric History')">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="pediatric_history">
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-child text-primary-600"></i> Pediatric Dental History
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for field in pediatric_history_form %}
+                            <div>
+                                {% if field.field.widget.input_type == 'checkbox' %}
+                                    <div class="flex items-center">
+                                        {{ field }}
+                                        <label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label>
+                                    </div>
+                                {% else %}
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
+                                    {{ field }}
+                                {% endif %}
+                                {% if field.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="flex justify-end pt-6 border-t border-gray-200">
+                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
+                                <i class="fas fa-save"></i> Save Pediatric History
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Examination Tab -->
+                <div id="panel-examination" class="tab-panel hidden">
+                    <form method="post" class="space-y-6"
+                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+                          hx-swap="none"
+                          hx-on::after-request="handleFormResponse(event, 'Examination')">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="examination">
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-stethoscope text-primary-600"></i> Dental Examination
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for field in examination_form %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="flex justify-end pt-6 border-t border-gray-200">
+                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
+                                <i class="fas fa-save"></i> Save Examination Findings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Vital Signs Tab -->
+                <div id="panel-vital-signs" class="tab-panel hidden">
+                    <form method="post" class="space-y-6"
+                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+                          hx-swap="none"
+                          hx-on::after-request="handleFormResponse(event, 'Vital Signs')">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="vital_signs">
+                        
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-thermometer text-primary-600"></i> Vital Signs
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {% for field in vital_signs_form %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="flex justify-end pt-6 border-t border-gray-200">
+                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
+                                <i class="fas fa-save"></i> Save Vital Signs
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Dental Chart Tab -->
+                <div id="panel-dental-chart" class="tab-panel hidden">
+                    <div class="space-y-6">
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-teeth text-primary-600"></i> Dental Chart - Universal Numbering System
+                            </h3>
+                        </div>
+
+                        <div id="dental-chart-container">
+                        {% if dental_chart %}
+                        <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                            <table class="min-w-full divide-y divide-gray-200" id="dental-chart-table">
+                                <thead class="bg-gradient-to-r from-primary-50 to-primary-100">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Tooth #</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Type</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Condition</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Notes</th>
+                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for tooth in dental_chart %}
+                                    <tr class="hover:bg-primary-50 transition-colors duration-150">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ tooth.tooth_number }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ tooth.get_tooth_type_display }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ tooth.get_condition_display }}</td>
+                                        <td class="px-6 py-4 text-sm text-gray-700">{{ tooth.notes|truncatewords:10 }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div class="flex items-center gap-2">
+                                                <button type="button" onclick="editTooth({{ tooth.tooth_number }}, '{{ tooth.tooth_type }}', '{{ tooth.condition }}', '{{ tooth.notes|escapejs }}')"
+                                                    class="inline-flex items-center px-3 py-1.5 bg-primary-600 text-white text-xs font-medium rounded-lg hover:bg-primary-700 transition-colors shadow-sm">
+                                                    <i class="fas fa-edit mr-1"></i> Edit
+                                                </button>
+                                                <button type="button"
+                                                    onclick="confirmDeleteTooth({{ dental_record.id }}, {{ tooth.id }}, {{ tooth.tooth_number }})"
+                                                    class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">
+                                                    <i class="fas fa-trash mr-1"></i> Delete
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-12 bg-gray-50 rounded-lg border border-gray-200" id="dental-chart-empty">
+                            <i class="fas fa-teeth text-4xl text-gray-300 mb-3"></i>
+                            <p class="text-gray-500">No teeth recorded in chart yet.</p>
+                        </div>
+                        {% endif %}
+                        </div>
+
+                        <!-- Add Tooth Form -->
+                        <form method="post" 
+                              action="{% url 'dental_records:dental_chart_add_tooth' dental_record.id %}" 
+                              class="bg-gray-50 p-6 rounded-lg border border-gray-200"
+                              hx-post="{% url 'dental_records:dental_chart_add_tooth' dental_record.id %}"
+                              hx-target="#dental-chart-container"
+                              hx-swap="outerHTML"
+                              hx-on::after-request="handleToothFormResponse(event)">
+                            {% csrf_token %}
+                            <h4 class="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2" id="tooth-form-heading">
+                                <i class="fas fa-plus-circle text-primary-600"></i> Add Tooth to Chart
+                            </h4>
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tooth Number</label>
+                                    <input type="number" name="tooth_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" min="1" max="85" required>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                                    <select name="tooth_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                        <option value="permanent">Permanent</option>
+                                        <option value="primary">Primary</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                                    <select name="condition" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                        <option value="healthy">Healthy</option>
+                                        <option value="cavity">Cavity</option>
+                                        <option value="filled">Filled</option>
+                                        <option value="missing">Missing</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
+                                    <button type="submit" class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
+                                        <i class="fas fa-plus mr-2"></i> Add Tooth
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                                <textarea name="notes" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" rows="2"></textarea>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Confirmation Modal -->
+<div id="confirmationModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4 transition-opacity duration-300">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95">
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-gray-200">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0">
+                    <div id="modalIcon" class="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300">
+                        <!-- Icon will be inserted by JS -->
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h3 id="modalTitle" class="text-xl font-bold text-gray-900">
+                        <!-- Title will be inserted by JS -->
+                    </h3>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="px-6 py-5">
+            <p id="modalMessage" class="text-gray-600 leading-relaxed">
+                <!-- Message will be inserted by JS -->
+            </p>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex gap-3 justify-end">
+            <button onclick="closeConfirmModal()" 
+                    class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium shadow-sm hover:shadow">
+                <i class="fas fa-times mr-2"></i> Cancel
+            </button>
+            <button id="modalConfirmBtn" 
+                    class="px-5 py-2.5 rounded-lg transition-all font-medium shadow-sm hover:shadow-lg">
+                <!-- Button will be styled by JS -->
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Toast Message for Dental Chart Actions -->
+<div id="tooth-message" class="hidden fixed top-20 right-4 z-50 max-w-md animate-slide-in-right"></div>
+
+<script>
+// Custom Confirmation Modal Functions
+let confirmCallback = null;
+
+function showConfirmModal(config) {
+    const modal = document.getElementById('confirmationModal');
+    const modalIcon = document.getElementById('modalIcon');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+    
+    // Set icon and colors based on type
+    const types = {
+        delete: {
+            icon: 'fa-trash-alt',
+            iconBg: 'bg-red-100',
+            iconColor: 'text-red-600',
+            btnBg: 'bg-red-600 hover:bg-red-700 text-white',
+            btnText: '<i class="fas fa-trash mr-2"></i> Delete'
+        },
+        edit: {
+            icon: 'fa-edit',
+            iconBg: 'bg-blue-100',
+            iconColor: 'text-blue-600',
+            btnBg: 'bg-blue-600 hover:bg-blue-700 text-white',
+            btnText: '<i class="fas fa-save mr-2"></i> Update'
+        },
+        warning: {
+            icon: 'fa-exclamation-triangle',
+            iconBg: 'bg-yellow-100',
+            iconColor: 'text-yellow-600',
+            btnBg: 'bg-yellow-600 hover:bg-yellow-700 text-white',
+            btnText: '<i class="fas fa-check mr-2"></i> Confirm'
+        }
+    };
+    
+    const typeConfig = types[config.type] || types.warning;
+    
+    // Set icon
+    modalIcon.className = `w-12 h-12 rounded-full flex items-center justify-center ${typeConfig.iconBg}`;
+    modalIcon.innerHTML = `<i class="fas ${typeConfig.icon} text-2xl ${typeConfig.iconColor}"></i>`;
+    
+    // Set content
+    modalTitle.textContent = config.title;
+    modalMessage.textContent = config.message;
+    
+    // Set confirm button
+    confirmBtn.className = `px-5 py-2.5 rounded-lg transition-all font-medium shadow-sm ${typeConfig.btnBg}`;
+    confirmBtn.innerHTML = config.btnText || typeConfig.btnText;
+    
+    // Set callback
+    confirmCallback = config.onConfirm;
+    
+    // Show modal with smooth animation
+    modal.classList.remove('hidden');
+    requestAnimationFrame(() => {
+        modal.classList.add('opacity-100');
+        modal.querySelector('.bg-white').classList.remove('scale-95');
+        modal.querySelector('.bg-white').classList.add('scale-100');
+    });
+}
+
+function closeConfirmModal() {
+    const modal = document.getElementById('confirmationModal');
+    modal.classList.remove('opacity-100');
+    modal.querySelector('.bg-white').classList.remove('scale-100');
+    modal.querySelector('.bg-white').classList.add('scale-95');
+    
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        confirmCallback = null;
+    }, 300);
+}
+
+function confirmAction() {
+    if (confirmCallback) {
+        confirmCallback();
+    }
+    closeConfirmModal();
+}
+
+// Attach confirm action to button
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+    if (confirmBtn) {
+        confirmBtn.onclick = confirmAction;
+    }
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('confirmationModal');
+            if (!modal.classList.contains('hidden')) {
+                closeConfirmModal();
+            }
+        }
+    });
+    
+    // Close modal when clicking outside
+    const modal = document.getElementById('confirmationModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeConfirmModal();
+            }
+        });
+    }
+});
+
+function switchTab(tabName) {
+    // Hide all panels
+    const panels = document.querySelectorAll('.tab-panel');
+    panels.forEach(panel => panel.classList.add('hidden'));
+    
+    // Remove active state from all buttons
+    const buttons = document.querySelectorAll('.tab-button');
+    buttons.forEach(button => {
+        button.classList.remove('border-primary-600', 'text-primary-600');
+        button.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // Show selected panel
+    const selectedPanel = document.getElementById('panel-' + tabName);
+    if (selectedPanel) {
+        selectedPanel.classList.remove('hidden');
+    }
+    
+    // Activate selected button
+    const selectedButton = document.getElementById('tab-' + tabName);
+    if (selectedButton) {
+        selectedButton.classList.remove('border-transparent', 'text-gray-500');
+        selectedButton.classList.add('border-primary-600', 'text-primary-600');
+    }
+}
+
+function confirmDeleteTooth(recordId, toothId, toothNumber) {
+    showConfirmModal({
+        type: 'delete',
+        title: 'Delete Tooth Record',
+        message: `Are you sure you want to remove tooth #${toothNumber} from the dental chart? This action cannot be undone.`,
+        onConfirm: function() {
+            // Use HTMX to delete the tooth
+            htmx.ajax('POST', `/dental-records/${recordId}/chart/${toothId}/delete/`, {
+                target: '#dental-chart-container',
+                swap: 'outerHTML',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            }).then(() => {
+                showToothMessage(`Tooth #${toothNumber} successfully removed!`, 'success');
+            });
+        }
+    });
+}
+
+function editTooth(toothNumber, toothType, condition, notes) {
+    showConfirmModal({
+        type: 'edit',
+        title: 'Edit Tooth Record',
+        message: `Do you want to edit tooth #${toothNumber}? The form will be pre-filled with the current data.`,
+        btnText: '<i class="fas fa-edit mr-2"></i> Edit Tooth',
+        onConfirm: function() {
+            // Pre-fill the add tooth form with existing data
+            document.querySelector('input[name="tooth_number"]').value = toothNumber;
+            document.querySelector('select[name="tooth_type"]').value = toothType;
+            document.querySelector('select[name="condition"]').value = condition;
+            document.querySelector('textarea[name="notes"]').value = notes;
+            
+            // Update form heading
+            const formHeading = document.querySelector('#tooth-form-heading');
+            formHeading.innerHTML = '<i class="fas fa-edit text-primary-600"></i> Update Tooth #' + toothNumber;
+            
+            // Update button text
+            const submitBtn = document.querySelector('#panel-dental-chart button[type="submit"]');
+            submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Update Tooth';
+            
+            // Scroll to form
+            document.querySelector('#panel-dental-chart form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Disable tooth number field when editing
+            document.querySelector('input[name="tooth_number"]').setAttribute('readonly', true);
+            document.querySelector('input[name="tooth_number"]').classList.add('bg-gray-100');
+        }
+    });
+}
+
+// Reset form when adding new tooth
+function resetToothForm() {
+    document.querySelector('input[name="tooth_number"]').value = '';
+    document.querySelector('select[name="tooth_type"]').value = 'permanent';
+    document.querySelector('select[name="condition"]').value = 'healthy';
+    document.querySelector('textarea[name="notes"]').value = '';
+    
+    const formHeading = document.querySelector('#tooth-form-heading');
+    formHeading.innerHTML = '<i class="fas fa-plus-circle text-primary-600"></i> Add Tooth to Chart';
+    
+    const submitBtn = document.querySelector('#panel-dental-chart button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-plus mr-2"></i> Add Tooth';
+    
+    document.querySelector('input[name="tooth_number"]').removeAttribute('readonly');
+    document.querySelector('input[name="tooth_number"]').classList.remove('bg-gray-100');
+    
+    // Hide any success messages
+    const messageDiv = document.getElementById('tooth-message');
+    if (messageDiv) {
+        messageDiv.classList.add('hidden');
+    }
+}
+
+// Handle HTMX response after adding/updating tooth
+function handleToothFormResponse(event) {
+    if (event.detail.successful) {
+        // Reset the form
+        resetToothForm();
+        
+        // Show success message
+        showToothMessage('Tooth successfully added/updated!', 'success');
+    } else {
+        showToothMessage('Error updating tooth. Please try again.', 'error');
+    }
+}
+
+// Handle HTMX response for all dental record forms
+function handleFormResponse(event, formName) {
+    if (event.detail.successful) {
+        showToothMessage(`${formName} updated successfully!`, 'success');
+    } else {
+        showToothMessage(`Error updating ${formName}. Please check the form and try again.`, 'error');
+    }
+}
+
+// Show success/error messages
+function showToothMessage(message, type) {
+    const messageDiv = document.getElementById('tooth-message');
+    if (messageDiv) {
+        messageDiv.className = type === 'success' 
+            ? 'fixed top-20 right-4 z-50 max-w-md p-4 bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 rounded-r-lg shadow-lg backdrop-blur-sm flex items-center gap-3'
+            : 'fixed top-20 right-4 z-50 max-w-md p-4 bg-red-50 border-l-4 border-red-500 text-red-800 rounded-r-lg shadow-lg backdrop-blur-sm flex items-center gap-3';
+        
+        const icon = type === 'success' 
+            ? '<div class="flex-shrink-0 w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center"><i class="fas fa-check-circle text-emerald-600 text-lg"></i></div>'
+            : '<div class="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center"><i class="fas fa-exclamation-circle text-red-600 text-lg"></i></div>';
+        
+        messageDiv.innerHTML = `
+            ${icon}
+            <span class="flex-1 font-medium">${message}</span>
+            <button onclick="hideToothMessage()" class="ml-2 text-gray-500 hover:text-gray-700 transition-colors">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        messageDiv.classList.remove('hidden');
+        
+        // Trigger animation
+        setTimeout(() => {
+            messageDiv.style.transform = 'translateX(0)';
+            messageDiv.style.opacity = '1';
+        }, 10);
+        
+        // Auto-hide after 4 seconds
+        setTimeout(() => {
+            hideToothMessage();
+        }, 4000);
+    }
+}
+
+function hideToothMessage() {
+    const messageDiv = document.getElementById('tooth-message');
+    if (messageDiv) {
+        messageDiv.style.transform = 'translateX(100%)';
+        messageDiv.style.opacity = '0';
+        setTimeout(() => {
+            messageDiv.classList.add('hidden');
+        }, 300);
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    switchTab('demographics');
+    
+    // Add reset button functionality
+    const toothForm = document.querySelector('#panel-dental-chart form');
+    if (toothForm) {
+        // Add a reset button next to the submit button
+        const submitBtnDiv = toothForm.querySelector('.grid.grid-cols-1.md\\:grid-cols-4 > div:last-child');
+        if (submitBtnDiv) {
+            const resetBtn = document.createElement('button');
+            resetBtn.type = 'button';
+            resetBtn.className = 'mt-2 w-full px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm';
+            resetBtn.innerHTML = '<i class="fas fa-redo mr-2"></i> Reset Form';
+            resetBtn.onclick = resetToothForm;
+            submitBtnDiv.appendChild(resetBtn);
+        }
+    }
+    
+    // Auto-dismiss messages from base template after 5 seconds
+    setTimeout(function() {
+        const messages = document.querySelectorAll('.messages-container .message-alert');
+        messages.forEach(msg => {
+            const closeBtn = msg.querySelector('button');
+            if (closeBtn) {
+                closeBtn.click();
+            }
+        });
+    }, 5000);
+});
+
+// Dismiss message with animation (for base template messages)
+function dismissMessage(btn) {
+    if (btn && btn.parentElement) {
+        const messageEl = btn.parentElement;
+        messageEl.style.opacity = '0';
+        messageEl.style.transform = 'translateY(-20px)';
+        messageEl.style.transition = 'all 0.3s ease-out';
+        setTimeout(() => {
+            messageEl.remove();
+        }, 300);
+    }
+}
+</script>
+
+<style>
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-slide-down {
+        animation: slideDown 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+    }
+    
+    .animate-slide-up {
+        animation: slideUp 0.3s ease-out;
+    }
+    
+    /* Toast notification styles */
+    #tooth-message {
+        transform: translateX(100%);
+        opacity: 0;
+        transition: all 0.3s ease-out;
+    }
+</style>
+{% endblock %}

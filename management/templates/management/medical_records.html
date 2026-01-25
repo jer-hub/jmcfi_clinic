@@ -19,13 +19,13 @@
                         <div>
                             <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">
                                 {% if user.role == 'student' %}My Medical Records
-                                {% elif user.role == 'staff' %}Patient Medical Records
+                                {% elif user.role == 'staff' or user.role == 'doctor' %}Patient Medical Records
                                 {% else %}All Medical Records{% endif %}
                             </h2>
                             <p class="mt-1 text-sm text-gray-600">
                                 {% if user.role == 'student' %}
                                     View your complete medical history and health records
-                                {% elif user.role == 'staff' %}
+                                {% elif user.role == 'staff' or user.role == 'doctor' %}
                                     Manage and review patient medical records
                                 {% else %}
                                     Comprehensive medical records management system
@@ -55,7 +55,7 @@
             </div>
 
             <!-- Advanced Filters -->
-            {% if user.role == 'admin' or user.role == 'staff' %}
+            {% if user.role == 'admin' or user.role == 'staff' or user.role == 'doctor' %}
             <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gray-50/50">
                 <div class="mb-4">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center">

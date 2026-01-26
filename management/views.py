@@ -10,8 +10,9 @@ from datetime import datetime, timedelta
 import json
 from .models import (
     Appointment, MedicalRecord, CertificateRequest, 
-    HealthTip, Notification, Feedback, StudentProfile, StaffProfile
+    Notification, Feedback, StudentProfile, StaffProfile
 )
+from health_tips.models import HealthTip
 from .forms import StudentProfileForm, StaffProfileForm
 from .utils import (
     create_notification, get_dashboard_stats, get_recent_activity,
@@ -569,16 +570,7 @@ def create_medical_record(request, appointment_id):
         
         temperature = request.POST.get('temperature', '').strip()
         if temperature:
-            try:
-                temp_value = float(temperature)
-                if 90.0 <= temp_value <= 110.0:  # Reasonable range for temperature in Fahrenheit
-                    vital_signs['temperature'] = temperature
-                else:
-                    messages.error(request, 'Temperature must be between 90°F and 110°F.')
-                    return render(request, 'management/create_medical_record.html', {'appointment': appointment})
-            except ValueError:
-                messages.error(request, 'Temperature must be a valid number.')
-                return render(request, 'management/create_medical_record.html', {'appointment': appointment})
+            vital_signs['temperature'] = temperature
         
         heart_rate = request.POST.get('heart_rate', '').strip()
         if heart_rate:
@@ -888,198 +880,7 @@ def print_certificate(request, request_id):
     
     return render(request, 'management/print_certificate.html', context)
 
-# Health Tips Views
-@login_required
-def health_tips(request):
-    # Show active tips to all users, but also show drafts to their creators
-    if request.user.role in ['staff', 'doctor']:
-        tips = HealthTip.objects.filter(
-            Q(is_active=True) | Q(created_by=request.user)
-        ).select_related('created_by').distinct()
-    else:
-        tips = HealthTip.objects.filter(is_active=True).select_related('created_by')
-    
-    category = request.GET.get('category')
-    search = request.GET.get('search')
-    
-    if category:
-        tips = tips.filter(category=category)
-    
-    if search:
-        tips = tips.filter(
-            Q(title__icontains=search) | 
-            Q(content__icontains=search)
-        )
-    
-    tips = tips.order_by('-created_at')
-    
-    paginator = Paginator(tips, 9)
-    page = request.GET.get('page')
-    tips = paginator.get_page(page)
-    
-    context = {
-        'tips': tips,
-        'categories': HealthTip.CATEGORY_CHOICES,
-        'current_category': category,
-        'search_query': search,
-        'total_count': tips.paginator.count if tips else 0,
-    }
-    
-    return render(request, 'management/health_tips.html', context)
-
-@login_required
-def create_health_tip(request):
-    if request.user.role != 'staff':
-        messages.error(request, 'Only staff members can create health tips')
-        return redirect('management:dashboard')
-    
-    if request.method == 'POST':
-        title = request.POST.get('title', '').strip()
-        content = request.POST.get('content', '').strip()
-        category = request.POST.get('category', '').strip()
-        status = request.POST.get('status', 'published')  # published or draft
-        
-        # Validation
-        errors = []
-        if not title:
-            errors.append('Title is required')
-        elif len(title) > 200:
-            errors.append('Title must be less than 200 characters')
-        
-        if not content:
-            errors.append('Content is required')
-        elif len(content) < 50:
-            errors.append('Content must be at least 50 characters')
-        
-        if not category:
-            errors.append('Category is required')
-        elif category not in [choice[0] for choice in HealthTip.CATEGORY_CHOICES]:
-            errors.append('Invalid category selected')
-        
-        if errors:
-            for error in errors:
-                messages.error(request, error)
-            return render(request, 'management/create_health_tip.html', {
-                'title': title,
-                'content': content,
-                'category': category,
-            })
-        
-        # Create health tip
-        health_tip = HealthTip.objects.create(
-            title=title,
-            content=content,
-            category=category,
-            created_by=request.user,
-            is_active=(status == 'published')
-        )
-        
-        if status == 'published':
-            messages.success(request, f'Health tip "{title}" has been published successfully!')
-        else:
-            messages.success(request, f'Health tip "{title}" has been saved as draft.')
-        
-        return redirect('management:health_tips')
-    
-    return render(request, 'management/create_health_tip.html')
-
-@login_required
-def edit_health_tip(request, tip_id):
-    if request.user.role != 'staff':
-        messages.error(request, 'Only staff members can edit health tips')
-        return redirect('management:dashboard')
-    
-    health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
-    
-    if request.method == 'POST':
-        title = request.POST.get('title', '').strip()
-        content = request.POST.get('content', '').strip()
-        category = request.POST.get('category', '').strip()
-        status = request.POST.get('status', 'published')  # published or draft
-        
-        # Validation
-        errors = []
-        if not title:
-            errors.append('Title is required')
-        elif len(title) > 200:
-            errors.append('Title must be less than 200 characters')
-        
-        if not content:
-            errors.append('Content is required')
-        elif len(content) < 50:
-            errors.append('Content must be at least 50 characters')
-        
-        if not category:
-            errors.append('Category is required')
-        elif category not in [choice[0] for choice in HealthTip.CATEGORY_CHOICES]:
-            errors.append('Invalid category selected')
-        
-        if errors:
-            for error in errors:
-                messages.error(request, error)
-            return render(request, 'management/edit_health_tip.html', {
-                'health_tip': health_tip,
-                'title': title,
-                'content': content,
-                'category': category,
-            })
-        
-        # Update health tip
-        health_tip.title = title
-        health_tip.content = content
-        health_tip.category = category
-        health_tip.is_active = (status == 'published')
-        health_tip.save()
-        
-        if status == 'published':
-            messages.success(request, f'Health tip "{title}" has been updated and published successfully!')
-        else:
-            messages.success(request, f'Health tip "{title}" has been updated and saved as draft.')
-        
-        return redirect('management:health_tips')
-    
-    return render(request, 'management/edit_health_tip.html', {'health_tip': health_tip})
-
-@login_required
-def delete_health_tip(request, tip_id):
-    if request.user.role != 'staff':
-        messages.error(request, 'Only staff members can delete health tips')
-        return redirect('management:dashboard')
-    
-    health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
-    
-    if request.method == 'POST':
-        title = health_tip.title
-        health_tip.delete()
-        messages.success(request, f'Health tip "{title}" has been deleted successfully.')
-        return redirect('management:health_tips')
-    
-    return render(request, 'management/delete_health_tip.html', {'health_tip': health_tip})
-
-@login_required
-def toggle_health_tip_status(request, tip_id):
-    if request.user.role != 'staff':
-        return JsonResponse({'error': 'Access denied'}, status=403)
-    
-    health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
-    
-    if request.method == 'POST':
-        health_tip.is_active = not health_tip.is_active
-        health_tip.save()
-        
-        status_text = 'published' if health_tip.is_active else 'unpublished'
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': True,
-                'is_active': health_tip.is_active,
-                'status_text': status_text,
-                'message': f'Health tip has been {status_text}'
-            })
-        messages.success(request, f'Health tip "{health_tip.title}" has been {status_text}.')
-    
-    return redirect('management:health_tips')
-
- 
+# Note: Health Tips views have been moved to health_tips app
 
 # Notification Views
 @login_required

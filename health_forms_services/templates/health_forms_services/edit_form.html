@@ -1,0 +1,378 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Edit Health Profile - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <a href="{% url 'health_forms_services:form_detail' health_form.pk %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Form Details
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900 mt-2">Edit Health Profile Form</h1>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <nav class="flex border-b border-gray-200" id="form-tabs">
+                <button type="button" data-tab="personal" class="tab-btn active px-6 py-3 text-sm font-medium text-primary-600 border-b-2 border-primary-600">
+                    Personal Info
+                </button>
+                <button type="button" data-tab="medical" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Medical History
+                </button>
+                <button type="button" data-tab="physical" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Physical Exam
+                </button>
+                <button type="button" data-tab="clinical" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Clinical Summary
+                </button>
+            </nav>
+        </div>
+
+        <!-- Personal Information Form -->
+        <div id="personal-section" class="tab-content">
+            <form method="post" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="personal">
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                        <input type="text" name="last_name" value="{{ health_form.last_name }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                        <input type="text" name="first_name" value="{{ health_form.first_name }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
+                        <input type="text" name="middle_name" value="{{ health_form.middle_name }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                        <input type="date" name="date_of_birth" value="{{ health_form.date_of_birth|date:'Y-m-d' }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                            <input type="number" name="age" value="{{ health_form.age }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                            <select name="gender" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                                <option value="">Select</option>
+                                <option value="male" {% if health_form.gender == 'male' %}selected{% endif %}>Male</option>
+                                <option value="female" {% if health_form.gender == 'female' %}selected{% endif %}>Female</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Civil Status</label>
+                        <select name="civil_status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                            <option value="">Select</option>
+                            <option value="single" {% if health_form.civil_status == 'single' %}selected{% endif %}>Single</option>
+                            <option value="married" {% if health_form.civil_status == 'married' %}selected{% endif %}>Married</option>
+                            <option value="widowed" {% if health_form.civil_status == 'widowed' %}selected{% endif %}>Widowed</option>
+                            <option value="separated" {% if health_form.civil_status == 'separated' %}selected{% endif %}>Separated</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Citizenship</label>
+                        <input type="text" name="citizenship" value="{{ health_form.citizenship }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Religion</label>
+                        <input type="text" name="religion" value="{{ health_form.religion }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Permanent Address</label>
+                    <textarea name="permanent_address" rows="2"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">{{ health_form.permanent_address }}</textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
+                        <input type="text" name="zip_code" value="{{ health_form.zip_code }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+                        <input type="text" name="mobile_number" value="{{ health_form.mobile_number }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" name="email_address" value="{{ health_form.email_address }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Designation</label>
+                        <select name="designation" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                            <option value="">Select</option>
+                            <option value="student" {% if health_form.designation == 'student' %}selected{% endif %}>Student</option>
+                            <option value="employee" {% if health_form.designation == 'employee' %}selected{% endif %}>Employee</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Department/College/Office</label>
+                        <input type="text" name="department_college_office" value="{{ health_form.department_college_office }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Guardian/Emergency Contact Name</label>
+                        <input type="text" name="guardian_name" value="{{ health_form.guardian_name }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Guardian Contact Number</label>
+                        <input type="text" name="guardian_contact" value="{{ health_form.guardian_contact }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                        Save Personal Info
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Medical History Form -->
+        <div id="medical-section" class="tab-content hidden">
+            <form method="post" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="medical">
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Allergies</label>
+                        <textarea name="allergies" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="List all known allergies...">{{ health_form.allergies }}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Current Medications</label>
+                        <textarea name="current_medications" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="List all current medications with dosages...">{{ health_form.current_medications }}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Present Illness / History of Current Medical Conditions</label>
+                        <textarea name="present_illness" rows="4"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Describe any current medical conditions...">{{ health_form.present_illness }}</textarea>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                        Save Medical History
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Physical Examination Form -->
+        <div id="physical-section" class="tab-content hidden">
+            <form method="post" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="physical">
+                
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Vital Signs</h3>
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Blood Pressure</label>
+                        <input type="text" name="blood_pressure" value="{{ health_form.blood_pressure }}" placeholder="120/80"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Heart Rate (bpm)</label>
+                        <input type="number" name="heart_rate" value="{{ health_form.heart_rate }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Resp. Rate (/min)</label>
+                        <input type="number" name="respiratory_rate" value="{{ health_form.respiratory_rate }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Temperature (°C)</label>
+                        <input type="number" step="0.1" name="temperature" value="{{ health_form.temperature }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">SpO2 (%)</label>
+                        <input type="number" step="0.1" name="spo2" value="{{ health_form.spo2 }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-medium text-gray-900 mt-8 mb-4">Anthropometrics</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Height (m)</label>
+                        <input type="number" step="0.01" name="height" value="{{ health_form.height }}" id="height-input"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Weight (kg)</label>
+                        <input type="number" step="0.1" name="weight" value="{{ health_form.weight }}" id="weight-input"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">BMI</label>
+                        <input type="number" step="0.01" name="bmi" value="{{ health_form.bmi }}" id="bmi-input" readonly
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">BMI Remarks</label>
+                        <input type="text" name="bmi_remarks" value="{{ health_form.bmi_remarks }}" id="bmi-remarks" readonly
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50">
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Other Findings</label>
+                    <textarea name="other_findings" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">{{ health_form.other_findings }}</textarea>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                        Save Physical Exam
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Clinical Summary Form -->
+        <div id="clinical-section" class="tab-content hidden">
+            <form method="post" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="clinical">
+                
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Physician's Impression</label>
+                        <textarea name="physician_impression" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">{{ health_form.physician_impression }}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Final Remarks</label>
+                        <textarea name="final_remarks" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">{{ health_form.final_remarks }}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Recommendations</label>
+                        <textarea name="recommendations" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">{{ health_form.recommendations }}</textarea>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Examining Physician</label>
+                            <input type="text" name="examining_physician" value="{{ health_form.examining_physician }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Examination Date</label>
+                            <input type="date" name="examination_date" value="{{ health_form.examination_date|date:'Y-m-d' }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                        Save Clinical Summary
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const target = this.dataset.tab;
+            
+            // Update tab styles
+            tabs.forEach(t => {
+                t.classList.remove('active', 'text-primary-600', 'border-b-2', 'border-primary-600');
+                t.classList.add('text-gray-500');
+            });
+            this.classList.add('active', 'text-primary-600', 'border-b-2', 'border-primary-600');
+            this.classList.remove('text-gray-500');
+            
+            // Show/hide content
+            contents.forEach(c => c.classList.add('hidden'));
+            document.getElementById(target + '-section').classList.remove('hidden');
+        });
+    });
+    
+    // Auto-calculate BMI
+    const heightInput = document.getElementById('height-input');
+    const weightInput = document.getElementById('weight-input');
+    const bmiInput = document.getElementById('bmi-input');
+    const bmiRemarks = document.getElementById('bmi-remarks');
+    
+    function calculateBMI() {
+        const height = parseFloat(heightInput.value);
+        const weight = parseFloat(weightInput.value);
+        
+        if (height > 0 && weight > 0) {
+            const bmi = weight / (height * height);
+            bmiInput.value = bmi.toFixed(2);
+            
+            if (bmi < 18.5) {
+                bmiRemarks.value = 'Underweight';
+            } else if (bmi < 25) {
+                bmiRemarks.value = 'Normal';
+            } else if (bmi < 30) {
+                bmiRemarks.value = 'Overweight';
+            } else {
+                bmiRemarks.value = 'Obese';
+            }
+        }
+    }
+    
+    if (heightInput && weightInput) {
+        heightInput.addEventListener('input', calculateBMI);
+        weightInput.addEventListener('input', calculateBMI);
+    }
+});
+</script>
+{% endblock %}

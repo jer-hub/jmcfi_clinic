@@ -1,0 +1,238 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Process Document Request - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center space-x-3">
+                <a href="{% url 'document_request:document_requests' %}" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                </a>
+                <h1 class="text-3xl font-bold text-gray-900">Process Document Request</h1>
+            </div>
+            <p class="mt-1 text-sm text-gray-600">Review and process the document request</p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Certificate Request Details -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-lg shadow-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-xl font-semibold text-gray-900">Request Details</h2>
+                    </div>
+                    
+                    <div class="p-6 space-y-6">
+                        <!-- Student Information -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Student Name</label>
+                                <div class="mt-1 text-sm text-gray-900 font-medium">{{ cert_request.student.get_full_name }}</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Email</label>
+                                <div class="mt-1 text-sm text-gray-900">{{ cert_request.student.email }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Certificate Details -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Document Type</label>
+                                <div class="mt-1 text-sm text-gray-900 font-medium">{{ cert_request.get_document_type_display }}</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Current Status</label>
+                                <div class="mt-1">
+                                    {% if cert_request.status == 'pending' %}
+                                    <span class="px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                        Pending Review
+                                    </span>
+                                    {% elif cert_request.status == 'approved' %}
+                                    <span class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">
+                                        Approved
+                                    </span>
+                                    {% elif cert_request.status == 'rejected' %}
+                                    <span class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">
+                                        Rejected
+                                    </span>
+                                    {% elif cert_request.status == 'ready' %}
+                                    <span class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
+                                        Ready for Collection
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Purpose -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Purpose</label>
+                            <div class="mt-1 p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-900">{{ cert_request.purpose }}</p>
+                            </div>
+                        </div>
+
+                        <!-- Additional Information -->
+                        {% if cert_request.additional_info %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Additional Information</label>
+                            <div class="mt-1 p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-900">{{ cert_request.additional_info }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Previous Rejection Reason -->
+                        {% if cert_request.rejection_reason %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Previous Rejection Reason</label>
+                            <div class="mt-1 p-3 bg-red-50 border border-red-200 rounded-md">
+                                <p class="text-sm text-red-800">{{ cert_request.rejection_reason }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Request Timeline -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Timeline</label>
+                            <div class="mt-1 space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Requested:</span>
+                                    <span class="text-gray-900">{{ cert_request.created_at|date:"M d, Y g:i A" }}</span>
+                                </div>
+                                {% if cert_request.updated_at != cert_request.created_at %}
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Last Updated:</span>
+                                    <span class="text-gray-900">{{ cert_request.updated_at|date:"M d, Y g:i A" }}</span>
+                                </div>
+                                {% endif %}
+                                {% if cert_request.processed_by %}
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Processed By:</span>
+                                    <span class="text-gray-900">{{ cert_request.processed_by.get_full_name }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions Panel -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-lg shadow-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Actions</h3>
+                    </div>
+                    
+                    <div class="p-6">
+                        <form method="POST" id="processForm" class="space-y-4">
+                            {% csrf_token %}
+                            
+                            {% if cert_request.status == 'pending' %}
+                            <!-- Approve -->
+                            <button type="button" 
+                                    onclick="processRequest('approve')"
+                                    class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg flex items-center justify-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                </svg>
+                                <span>Approve Request</span>
+                            </button>
+
+                            <!-- Reject -->
+                            <button type="button" 
+                                    onclick="showRejectForm()"
+                                    class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg flex items-center justify-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                <span>Reject Request</span>
+                            </button>
+                            
+                            {% elif cert_request.status == 'approved' %}
+                            <!-- Mark as Ready -->
+                            <button type="button" 
+                                    onclick="processRequest('ready')"
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg flex items-center justify-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                <span>Mark as Ready</span>
+                            </button>
+                            
+                            {% else %}
+                            <div class="text-center text-gray-500">
+                                <p class="text-sm">No actions available for this request.</p>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Hidden inputs -->
+                            <input type="hidden" name="action" id="actionInput">
+                            
+                            <!-- Rejection reason textarea (hidden by default) -->
+                            <div id="rejectForm" class="hidden space-y-4 pt-4 border-t">
+                                <div>
+                                    <label for="rejection_reason" class="block text-sm font-medium text-gray-700">Rejection Reason *</label>
+                                    <textarea name="rejection_reason" 
+                                              id="rejection_reason" 
+                                              rows="4" 
+                                              required
+                                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                              placeholder="Please provide a detailed reason for rejection..."></textarea>
+                                </div>
+                                <div class="flex space-x-3">
+                                    <button type="submit" 
+                                            class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                        Confirm Rejection
+                                    </button>
+                                    <button type="button" 
+                                            onclick="hideRejectForm()"
+                                            class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Additional Information -->
+                        <div class="mt-6 pt-6 border-t border-gray-200">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Processing Notes</h4>
+                            <div class="text-xs text-gray-600 space-y-1">
+                                <p>• Approved documents are prepared within 1-2 business days</p>
+                                <p>• Students are notified of status changes</p>
+                                <p>• Ready documents can be collected during clinic hours</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function processRequest(action) {
+    if (confirm(`Are you sure you want to ${action} this document request?`)) {
+        document.getElementById('actionInput').value = action;
+        document.getElementById('processForm').submit();
+    }
+}
+
+function showRejectForm() {
+    document.getElementById('rejectForm').classList.remove('hidden');
+    document.getElementById('actionInput').value = 'reject';
+}
+
+function hideRejectForm() {
+    document.getElementById('rejectForm').classList.add('hidden');
+    document.getElementById('actionInput').value = '';
+    document.getElementById('rejection_reason').value = '';
+}
+</script>
+{% endblock content %}

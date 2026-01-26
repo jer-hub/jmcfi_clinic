@@ -1,3 +1,20 @@
 from django.contrib import admin
+from .models import Appointment, AppointmentTypeDefault
 
-# Register your models here.
+
+@admin.register(Appointment)
+class AppointmentAdmin(admin.ModelAdmin):
+    list_display = ['id', 'student', 'doctor', 'appointment_type', 'date', 'time', 'status', 'created_at']
+    list_filter = ['status', 'appointment_type', 'date']
+    search_fields = ['student__first_name', 'student__last_name', 'student__email', 
+                     'doctor__first_name', 'doctor__last_name', 'reason']
+    ordering = ['-date', '-time']
+    date_hierarchy = 'date'
+
+
+@admin.register(AppointmentTypeDefault)
+class AppointmentTypeDefaultAdmin(admin.ModelAdmin):
+    list_display = ['appointment_type', 'default_doctor', 'is_active', 'updated_at', 'updated_by']
+    list_filter = ['is_active', 'appointment_type']
+    search_fields = ['default_doctor__first_name', 'default_doctor__last_name']
+    ordering = ['appointment_type']

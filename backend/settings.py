@@ -37,9 +37,10 @@ INSTALLED_APPS = [
     "appointments",
     "medical_records",
     "dental_records",
-    "certificates",
+    "document_request",
     "feedback",
     "health_tips",
+    "health_forms_services",
 ]
 
 MIDDLEWARE = [

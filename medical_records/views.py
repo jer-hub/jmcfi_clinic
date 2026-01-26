@@ -6,7 +6,10 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-from management.models import MedicalRecord, Appointment, Notification
+from .models import MedicalRecord
+from management.models import Notification
+from appointments.models import Appointment
+from core.decorators import role_required
 
 
 def paginate_queryset(queryset, request, per_page=10):
@@ -58,6 +61,26 @@ def medical_records(request):
     }
     
     return render(request, 'medical_records/medical_records.html', context)
+
+
+@login_required
+def medical_record_detail_page(request, record_id):
+    """View detailed medical record page - similar to dental record detail"""
+    record = get_object_or_404(MedicalRecord, id=record_id)
+    
+    # Check permissions
+    if request.user.role == 'student' and record.student != request.user:
+        messages.error(request, 'Access denied')
+        return redirect('medical_records:medical_records')
+    elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user and request.user.role != 'admin':
+        messages.error(request, 'Access denied')
+        return redirect('medical_records:medical_records')
+    
+    context = {
+        'record': record,
+    }
+    
+    return render(request, 'medical_records/medical_record_detail.html', context)
 
 
 @login_required
@@ -214,16 +237,7 @@ def create_medical_record(request, appointment_id):
         
         temperature = request.POST.get('temperature', '').strip()
         if temperature:
-            try:
-                temp_value = float(temperature)
-                if 90.0 <= temp_value <= 110.0:
-                    vital_signs['temperature'] = temperature
-                else:
-                    messages.error(request, 'Temperature must be between 90°F and 110°F.')
-                    return render(request, 'medical_records/create_medical_record.html', {'appointment': appointment})
-            except ValueError:
-                messages.error(request, 'Temperature must be a valid number.')
-                return render(request, 'medical_records/create_medical_record.html', {'appointment': appointment})
+            vital_signs['temperature'] = temperature
         
         heart_rate = request.POST.get('heart_rate', '').strip()
         if heart_rate:

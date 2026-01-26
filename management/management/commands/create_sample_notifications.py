@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from management.models import Notification, Appointment, CertificateRequest
+from management.models import Notification, CertificateRequest
+from appointments.models import Appointment
 from management.utils import notify_all_students, notify_all_staff, create_notification
 import random
 from datetime import datetime, timedelta

@@ -1,0 +1,197 @@
+{% extends 'management/base.html' %}
+
+{% block title %}Edit Health Tip - JMCFI Clinic{% endblock title %}
+
+{% block head %}
+<!-- Toast UI Editor -->
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css">
+<style>
+    .toastui-editor-defaultUI {
+        border-radius: 0.5rem;
+        border-color: #d1d5db;
+    }
+    .toastui-editor-defaultUI-toolbar {
+        border-radius: 0.5rem 0.5rem 0 0;
+    }
+    .toastui-editor-md-container,
+    .toastui-editor-ww-container {
+        background: #fff;
+    }
+    .toastui-editor-defaultUI .toastui-editor-md-splitter {
+        background-color: #e5e7eb;
+    }
+    /* Toast notifications */
+    .toast-notification {
+        position: fixed;
+        bottom: 1rem;
+        right: 1rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        animation: slideIn 0.3s ease;
+    }
+    .toast-success { background: #10b981; color: white; }
+    .toast-error { background: #ef4444; color: white; }
+    @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-primary-50">
+                <h1 class="text-2xl font-bold text-gray-900">Edit Health Tip</h1>
+                <p class="text-sm text-gray-600 mt-1">Update your health tip content</p>
+            </div>
+
+            <form method="post" id="healthTipForm" class="p-6 space-y-6">
+                {% csrf_token %}
+                
+                <!-- Title Field -->
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                    <input type="text" id="title" name="title" required 
+                           value="{{ title|default:health_tip.title }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="Enter a catchy title for your health tip">
+                </div>
+
+                <!-- Category Field -->
+                <div>
+                    <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select id="category" name="category" required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Select a category</option>
+                        <option value="nutrition" {% if category|default:health_tip.category == 'nutrition' %}selected{% endif %}>Nutrition</option>
+                        <option value="exercise" {% if category|default:health_tip.category == 'exercise' %}selected{% endif %}>Exercise</option>
+                        <option value="mental_health" {% if category|default:health_tip.category == 'mental_health' %}selected{% endif %}>Mental Health</option>
+                        <option value="hygiene" {% if category|default:health_tip.category == 'hygiene' %}selected{% endif %}>Hygiene</option>
+                        <option value="prevention" {% if category|default:health_tip.category == 'prevention' %}selected{% endif %}>Disease Prevention</option>
+                        <option value="first_aid" {% if category|default:health_tip.category == 'first_aid' %}selected{% endif %}>First Aid</option>
+                    </select>
+                </div>
+
+                <!-- Content Editor -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                    <div id="editor"></div>
+                    <input type="hidden" id="content" name="content">
+                    <p class="text-sm text-gray-500 mt-2">
+                        <strong>Tip:</strong> Use the toolbar to format text. Drag & drop or paste images directly into the editor!
+                    </p>
+                </div>
+
+                <!-- Current Status -->
+                <div class="bg-gray-50 p-4 rounded-md">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Current Status</p>
+                    <p class="text-sm text-gray-600">
+                        This health tip is currently 
+                        <span class="font-medium {% if health_tip.is_active %}text-green-600{% else %}text-yellow-600{% endif %}">
+                            {% if health_tip.is_active %}Published{% else %}Draft{% endif %}
+                        </span>
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Created on {{ health_tip.created_at|date:"M d, Y" }} • 
+                        Last updated {{ health_tip.updated_at|date:"M d, Y" }}
+                    </p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <div class="flex space-x-3">
+                        <a href="{% url 'health_tips:health_tips_list' %}" 
+                           class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
+                            Cancel
+                        </a>
+                        <a href="{% url 'health_tips:delete_health_tip' health_tip.id %}" 
+                           class="px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md shadow-sm hover:bg-red-50"
+                           onclick="return confirm('Are you sure you want to delete this health tip?')">
+                            Delete
+                        </a>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button type="submit" name="status" value="draft"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50">
+                            Save as Draft
+                        </button>
+                        <button type="submit" name="status" value="published"
+                                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700">
+                            Update & Publish
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+<script>
+const Editor = toastui.Editor;
+
+const editor = new Editor({
+    el: document.querySelector('#editor'),
+    height: '450px',
+    initialEditType: 'wysiwyg',
+    previewStyle: 'vertical',
+    initialValue: `{{ content|default:health_tip.content|escapejs }}`,
+    toolbarItems: [
+        ['heading', 'bold', 'italic', 'strike'],
+        ['hr', 'quote'],
+        ['ul', 'ol', 'task'],
+        ['table', 'image', 'link'],
+        ['code', 'codeblock'],
+        ['scrollSync']
+    ],
+    hooks: {
+        addImageBlobHook: async (blob, callback) => {
+            const formData = new FormData();
+            formData.append('image', blob);
+            
+            try {
+                const response = await fetch('{% url "health_tips:upload_image" %}', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: formData
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    showToast(data.error, 'error');
+                    return;
+                }
+                
+                callback(data.data.filePath, 'Image');
+                showToast('Image uploaded successfully!', 'success');
+            } catch (error) {
+                showToast('Upload failed: ' + error.message, 'error');
+            }
+        }
+    }
+});
+
+// Sync content to hidden input before form submit
+document.getElementById('healthTipForm').addEventListener('submit', function(e) {
+    const content = editor.getMarkdown();
+    if (!content.trim()) {
+        e.preventDefault();
+        showToast('Please add some content', 'error');
+        return;
+    }
+    document.getElementById('content').value = content;
+});
+
+function showToast(message, type) {
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>
+{% endblock content %}

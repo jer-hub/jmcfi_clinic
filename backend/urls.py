@@ -26,6 +26,10 @@ urlpatterns = [
     path('appointments/', include('appointments.urls')),
     path('medical-records/', include('medical_records.urls')),
     path('dental-records/', include('dental_records.urls')),
+    path('documents/', include('document_request.urls')),
+    path('feedback/', include('feedback.urls')),
+    path('health-tips/', include('health_tips.urls')),
+    path('health-forms/', include('health_forms_services.urls')),
     # Management (core functionality and dashboard)
     path('', include('management.urls')),
 ]

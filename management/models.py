@@ -131,102 +131,24 @@ class StaffProfile(models.Model):
             return self.profile_image.url
         return None
 
-# Appointment Model
-class Appointment(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-    ]
-    
-    APPOINTMENT_TYPE_CHOICES = [
-        ('consultation', 'General Consultation'),
-        ('checkup', 'Health Checkup'),
-        ('vaccination', 'Vaccination'),
-        ('emergency', 'Emergency'),
-        ('followup', 'Follow-up'),
-    ]
 
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments')
-    doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='doctor_appointments', limit_choices_to={'role__in': ['staff', 'doctor']})
-    appointment_type = models.CharField(max_length=20, choices=APPOINTMENT_TYPE_CHOICES)
-    date = models.DateField()
-    time = models.TimeField()
-    reason = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    notes = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+# Import Appointment from appointments app for backwards compatibility
+# The actual model is now in appointments.models
+from appointments.models import Appointment, AppointmentTypeDefault
 
-    class Meta:
-        ordering = ['-date', '-time']
+# Import MedicalRecord from medical_records app for backwards compatibility
+# The actual model is now in medical_records.models
+from medical_records.models import MedicalRecord
 
-    def __str__(self):
-        name = f"{self.student.first_name} {self.student.last_name}".strip()
-        if not name:
-            name = self.student.email or self.student.username
-        return f"{name} - {self.date} {self.time}"
+# Import CertificateRequest from document_request app for backwards compatibility
+# The actual model is now in document_request.models as DocumentRequest
+from document_request.models import DocumentRequest as CertificateRequest
 
-# Medical Record Model
-class MedicalRecord(models.Model):
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='medical_records')
-    doctor = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_records')
-    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, null=True, blank=True)
-    diagnosis = models.TextField()
-    treatment = models.TextField()
-    prescription = models.TextField(blank=True)
-    vital_signs = models.JSONField(default=dict, blank=True)  # Store BP, temperature, etc.
-    lab_results = models.TextField(blank=True)
-    follow_up_required = models.BooleanField(default=False)
-    follow_up_date = models.DateField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        name = f"{self.student.first_name} {self.student.last_name}".strip()
-        if not name:
-            name = self.student.email or self.student.username
-        return f"{name} - {self.created_at.date()}"
-
-# Certificate Request Model
-class CertificateRequest(models.Model):
-    CERTIFICATE_TYPES = [
-        ('fitness', 'Medical Fitness Certificate'),
-        ('absence', 'Medical Leave Certificate'),
-        ('vaccination', 'Vaccination Certificate'),
-        ('health_record', 'Health Record Certificate'),
-    ]
-    
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
-        ('ready', 'Ready for Collection'),
-    ]
-
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='certificate_requests')
-    certificate_type = models.CharField(max_length=20, choices=CERTIFICATE_TYPES)
-    purpose = models.CharField(max_length=200)
-    additional_info = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='processed_certificates')
-    rejection_reason = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        name = f"{self.student.first_name} {self.student.last_name}".strip()
-        if not name:
-            name = self.student.email or self.student.username
-        return f"{name} - {self.get_certificate_type_display()}"
-
-# Health Tips Model
+# Health Tips Model - DEPRECATED: This model is kept for migration purposes only.
+# The active HealthTip model is now in health_tips.models
+# TODO: Create a data migration to move data from this model to health_tips.HealthTip
+# and then remove this model in a future release.
 class HealthTip(models.Model):
     CATEGORY_CHOICES = [
         ('nutrition', 'Nutrition'),
@@ -247,6 +169,8 @@ class HealthTip(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        # Keep the original table name to maintain existing data
+        db_table = 'management_healthtip'
 
     def __str__(self):
         return self.title
@@ -307,104 +231,10 @@ class Notification(models.Model):
             name = self.user.email or self.user.username
         return f"{name} - {self.title}"
 
-# Feedback Model
-class Feedback(models.Model):
-    RATING_CHOICES = [
-        (1, '1 - Poor'),
-        (2, '2 - Fair'),
-        (3, '3 - Good'),
-        (4, '4 - Very Good'),
-        (5, '5 - Excellent'),
-    ]
-
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name='feedbacks')
-    appointment = models.ForeignKey(Appointment, on_delete=models.CASCADE, null=True, blank=True)
-    rating = models.IntegerField(choices=RATING_CHOICES, validators=[MinValueValidator(1), MaxValueValidator(5)])
-    comments = models.TextField()
-    suggestions = models.TextField(blank=True)
-    is_anonymous = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-created_at']
-
-    def __str__(self):
-        name = f"{self.student.first_name} {self.student.last_name}".strip()
-        if not name:
-            name = self.student.email or self.student.username
-        return f"Feedback from {name} - {self.rating}/5"
+# Feedback model has been moved to feedback app
+# Import for backwards compatibility
+from feedback.models import Feedback
 
 
-# Appointment Type Default In-Charge Model
-class AppointmentTypeDefault(models.Model):
-    """
-    Stores default in-charge doctor for each appointment type.
-    Admin users can configure these defaults.
-    """
-    APPOINTMENT_TYPE_CHOICES = [
-        ('consultation', 'General Consultation'),
-        ('checkup', 'Health Checkup'),
-        ('vaccination', 'Vaccination'),
-        ('emergency', 'Emergency'),
-        ('followup', 'Follow-up'),
-    ]
-
-    appointment_type = models.CharField(
-        max_length=20, 
-        choices=APPOINTMENT_TYPE_CHOICES, 
-        unique=True,
-        help_text="Type of appointment"
-    )
-    default_doctor = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        related_name='default_appointments',
-        limit_choices_to={'role__in': ['staff', 'doctor']},
-        help_text="Default in-charge doctor for this appointment type"
-    )
-    is_active = models.BooleanField(
-        default=True,
-        help_text="Whether this default is active"
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    updated_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='appointment_type_updates',
-        help_text="Admin user who last updated this setting"
-    )
-
-    class Meta:
-        ordering = ['appointment_type']
-        verbose_name = 'Appointment Type Default'
-        verbose_name_plural = 'Appointment Type Defaults'
-
-    def __str__(self):
-        if self.default_doctor:
-            doctor_name = f"{self.default_doctor.first_name} {self.default_doctor.last_name}".strip()
-            if not doctor_name:
-                doctor_name = self.default_doctor.email or self.default_doctor.username
-            doctor_display = f"Dr. {doctor_name}"
-        else:
-            doctor_display = "Not Set"
-        return f"{self.get_appointment_type_display()} → {doctor_display}"
-
-    @classmethod
-    def get_default_doctor(cls, appointment_type):
-        """
-        Get the default doctor for a specific appointment type.
-        Returns None if no default is set or if the default is inactive.
-        """
-        try:
-            default = cls.objects.get(
-                appointment_type=appointment_type,
-                is_active=True
-            )
-            return default.default_doctor
-        except cls.DoesNotExist:
-            return None
+# Note: Appointment and AppointmentTypeDefault models have been moved to appointments app
+# They are imported at the top of this file for backwards compatibility

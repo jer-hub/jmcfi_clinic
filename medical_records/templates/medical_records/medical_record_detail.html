@@ -1,0 +1,262 @@
+{% extends 'management/base.html' %}
+{% load static %}
+
+{% block title %}Medical Record Details - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                        <span class="text-primary-600">
+                            <i class="fas fa-file-medical"></i> Medical Record Details
+                        </span>
+                    </h1>
+                    <p class="mt-2 text-gray-600">Comprehensive medical health record</p>
+                </div>
+                <div class="flex gap-2 flex-wrap">
+                    <a href="{% url 'medical_records:medical_records' %}" 
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                        <i class="fas fa-arrow-left"></i> Back to Records
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient Information -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-primary-500 to-primary-700 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-user"></i> Patient Information
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Patient Name</span>
+                            <p class="text-gray-900 font-semibold text-lg">{{ record.student.get_full_name }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Student ID</span>
+                            <p class="text-gray-900">
+                                {% if record.student.student_profile %}
+                                    {{ record.student.student_profile.student_id }}
+                                {% else %}
+                                    <span class="text-gray-400 italic">N/A</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Email</span>
+                            <p class="text-gray-900">{{ record.student.email }}</p>
+                        </div>
+                        {% if record.student.student_profile %}
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Course / Department</span>
+                            <p class="text-gray-900">{{ record.student.student_profile.course|default:"N/A" }} - {{ record.student.student_profile.department|default:"N/A" }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Record Date</span>
+                            <p class="text-gray-900 font-semibold">{{ record.created_at|date:"F d, Y" }}</p>
+                            <p class="text-gray-500 text-sm">{{ record.created_at|time:"g:i A" }}</p>
+                        </div>
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Attending Doctor</span>
+                            <p class="text-gray-900 font-semibold">Dr. {{ record.doctor.get_full_name }}</p>
+                            {% if record.doctor.staff_profile %}
+                            <p class="text-gray-500 text-sm">{{ record.doctor.staff_profile.department|default:"" }} {% if record.doctor.staff_profile.specialization %}- {{ record.doctor.staff_profile.specialization }}{% endif %}</p>
+                            {% endif %}
+                        </div>
+                        {% if record.appointment %}
+                        <div>
+                            <span class="text-sm font-medium text-gray-500">Related Appointment</span>
+                            <p class="text-gray-900">{{ record.appointment.date|date:"F d, Y" }} at {{ record.appointment.time|time:"g:i A" }}</p>
+                            <p class="text-gray-500 text-sm">{{ record.appointment.get_appointment_type_display }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vital Signs -->
+        {% if record.vital_signs %}
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-cyan-500 to-teal-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-heartbeat"></i> Vital Signs
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    {% if record.vital_signs.blood_pressure %}
+                    <div class="bg-red-50 rounded-xl p-4 text-center">
+                        <div class="text-red-600 mb-2">
+                            <i class="fas fa-tint text-2xl"></i>
+                        </div>
+                        <span class="text-sm font-medium text-red-900">Blood Pressure</span>
+                        <p class="text-red-800 text-xl font-bold mt-1">{{ record.vital_signs.blood_pressure }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.vital_signs.temperature %}
+                    <div class="bg-orange-50 rounded-xl p-4 text-center">
+                        <div class="text-orange-600 mb-2">
+                            <i class="fas fa-thermometer-half text-2xl"></i>
+                        </div>
+                        <span class="text-sm font-medium text-orange-900">Temperature</span>
+                        <p class="text-orange-800 text-xl font-bold mt-1">{{ record.vital_signs.temperature }}°</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.vital_signs.heart_rate %}
+                    <div class="bg-pink-50 rounded-xl p-4 text-center">
+                        <div class="text-pink-600 mb-2">
+                            <i class="fas fa-heart text-2xl"></i>
+                        </div>
+                        <span class="text-sm font-medium text-pink-900">Heart Rate</span>
+                        <p class="text-pink-800 text-xl font-bold mt-1">{{ record.vital_signs.heart_rate }} bpm</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if record.vital_signs.weight %}
+                    <div class="bg-blue-50 rounded-xl p-4 text-center">
+                        <div class="text-blue-600 mb-2">
+                            <i class="fas fa-weight text-2xl"></i>
+                        </div>
+                        <span class="text-sm font-medium text-blue-900">Weight</span>
+                        <p class="text-blue-800 text-xl font-bold mt-1">{{ record.vital_signs.weight }} kg</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Diagnosis -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-stethoscope"></i> Diagnosis
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-lg">
+                    <p class="text-gray-800 whitespace-pre-line">{{ record.diagnosis }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Treatment -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-green-500 to-emerald-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-notes-medical"></i> Treatment
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                    <p class="text-gray-800 whitespace-pre-line">{{ record.treatment }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prescription -->
+        {% if record.prescription %}
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-purple-500 to-violet-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-prescription-bottle-alt"></i> Prescription
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="bg-purple-50 border-l-4 border-purple-500 p-4 rounded-r-lg">
+                    <p class="text-gray-800 whitespace-pre-line">{{ record.prescription }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Lab Results -->
+        {% if record.lab_results %}
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-indigo-500 to-blue-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-flask"></i> Lab Results
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="bg-indigo-50 border-l-4 border-indigo-500 p-4 rounded-r-lg">
+                    <p class="text-gray-800 whitespace-pre-line">{{ record.lab_results }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Follow-up Information -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden mb-6">
+            <div class="bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-4">
+                <h2 class="text-xl font-semibold text-white flex items-center gap-2">
+                    <i class="fas fa-calendar-check"></i> Follow-up Information
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center gap-4">
+                    {% if record.follow_up_required %}
+                    <div class="flex-1">
+                        <div class="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-lg">
+                            <div class="flex items-center gap-3">
+                                <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full bg-rose-100 text-rose-800">
+                                    <i class="fas fa-exclamation-circle mr-2"></i> Follow-up Required
+                                </span>
+                                {% if record.follow_up_date %}
+                                <span class="text-gray-700">
+                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                    Scheduled: <strong>{{ record.follow_up_date|date:"F d, Y" }}</strong>
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex-1">
+                        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
+                            <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full bg-green-100 text-green-800">
+                                <i class="fas fa-check-circle mr-2"></i> No Follow-up Required
+                            </span>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Record Metadata -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Record ID</span>
+                        <p class="text-gray-900 font-semibold mt-1">#{{ record.id }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Created</span>
+                        <p class="text-gray-900 font-semibold mt-1">{{ record.created_at|date:"M d, Y g:i A" }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Last Updated</span>
+                        <p class="text-gray-900 font-semibold mt-1">{{ record.updated_at|date:"M d, Y g:i A" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

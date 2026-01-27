@@ -13,7 +13,44 @@
                 </svg>
                 Back to Form Details
             </a>
-            <h1 class="text-2xl font-bold text-gray-900 mt-2">Edit Health Profile Form</h1>
+                    <!-- OB-GYN History (for females) -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">OB-GYN History (for females)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Age at Menarche</label>
+                                <input type="number" name="menarche_age" value="{{ health_form.menarche_age }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" min="0">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Menstrual Duration</label>
+                                <input type="text" name="menstrual_duration" value="{{ health_form.menstrual_duration }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="e.g., 3-5 days">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Menstrual Interval</label>
+                                <input type="text" name="menstrual_interval" value="{{ health_form.menstrual_interval }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="e.g., every 28 days">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Menstrual Amount</label>
+                                <input type="text" name="menstrual_amount" value="{{ health_form.menstrual_amount }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="light / moderate / heavy">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Menstrual Symptoms</label>
+                                <textarea name="menstrual_symptoms" rows="2"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="e.g., dysmenorrhea, PMS">{{ health_form.menstrual_symptoms }}</textarea>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Obstetric History</label>
+                            <textarea name="obstetric_history" rows="3"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" placeholder="GPAL, pregnancies, deliveries, complications">{{ health_form.obstetric_history }}</textarea>
+                        </div>
+                    </div>
         </div>
 
         <!-- Tab Navigation -->
@@ -27,6 +64,9 @@
                 </button>
                 <button type="button" data-tab="physical" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
                     Physical Exam
+                </button>
+                <button type="button" data-tab="diagnostic" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Diagnostic Tests
                 </button>
                 <button type="button" data-tab="clinical" class="tab-btn px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
                     Clinical Summary
@@ -171,7 +211,178 @@
                 {% csrf_token %}
                 <input type="hidden" name="section" value="medical">
                 
-                <div class="space-y-6">
+                <!-- Immunization Records -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Immunization Records</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_covid19" id="id_immunization_covid19" 
+                                   {% if health_form.immunization_covid19 %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_covid19" class="flex-1 text-sm font-medium text-gray-700">COVID-19</label>
+                            <input type="date" name="immunization_covid19_date" value="{{ health_form.immunization_covid19_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_influenza" id="id_immunization_influenza"
+                                   {% if health_form.immunization_influenza %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_influenza" class="flex-1 text-sm font-medium text-gray-700">Influenza</label>
+                            <input type="date" name="immunization_influenza_date" value="{{ health_form.immunization_influenza_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_pneumonia" id="id_immunization_pneumonia"
+                                   {% if health_form.immunization_pneumonia %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_pneumonia" class="flex-1 text-sm font-medium text-gray-700">Pneumonia</label>
+                            <input type="date" name="immunization_pneumonia_date" value="{{ health_form.immunization_pneumonia_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_polio" id="id_immunization_polio"
+                                   {% if health_form.immunization_polio %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_polio" class="flex-1 text-sm font-medium text-gray-700">Polio</label>
+                            <input type="date" name="immunization_polio_date" value="{{ health_form.immunization_polio_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_hepatitis_b" id="id_immunization_hepatitis_b"
+                                   {% if health_form.immunization_hepatitis_b %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_hepatitis_b" class="flex-1 text-sm font-medium text-gray-700">Hepatitis B</label>
+                            <input type="date" name="immunization_hepatitis_b_date" value="{{ health_form.immunization_hepatitis_b_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_bcg" id="id_immunization_bcg"
+                                   {% if health_form.immunization_bcg %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_bcg" class="flex-1 text-sm font-medium text-gray-700">BCG</label>
+                            <input type="date" name="immunization_bcg_date" value="{{ health_form.immunization_bcg_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_dpt_tetanus" id="id_immunization_dpt_tetanus"
+                                   {% if health_form.immunization_dpt_tetanus %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_dpt_tetanus" class="flex-1 text-sm font-medium text-gray-700">DPT/Tetanus</label>
+                            <input type="date" name="immunization_dpt_tetanus_date" value="{{ health_form.immunization_dpt_tetanus_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_rotavirus" id="id_immunization_rotavirus"
+                                   {% if health_form.immunization_rotavirus %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_rotavirus" class="flex-1 text-sm font-medium text-gray-700">Rotavirus</label>
+                            <input type="date" name="immunization_rotavirus_date" value="{{ health_form.immunization_rotavirus_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_hib" id="id_immunization_hib"
+                                   {% if health_form.immunization_hib %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_hib" class="flex-1 text-sm font-medium text-gray-700">Hib</label>
+                            <input type="date" name="immunization_hib_date" value="{{ health_form.immunization_hib_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        
+                        <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                            <input type="checkbox" name="immunization_measles_mmr" id="id_immunization_measles_mmr"
+                                   {% if health_form.immunization_measles_mmr %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_immunization_measles_mmr" class="flex-1 text-sm font-medium text-gray-700">Measles/MMR</label>
+                            <input type="date" name="immunization_measles_mmr_date" value="{{ health_form.immunization_measles_mmr_date|date:'Y-m-d' }}"
+                                   class="px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Other Immunizations</label>
+                        <textarea name="immunization_others" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Specify other vaccines...">{{ health_form.immunization_others }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Illnesses/Medical Conditions -->
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Illnesses/Medical Conditions</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <input type="checkbox" name="illness_measles" id="id_illness_measles"
+                                   {% if health_form.illness_measles %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_illness_measles" class="text-sm font-medium text-gray-700">Measles</label>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <input type="checkbox" name="illness_mumps" id="id_illness_mumps"
+                                   {% if health_form.illness_mumps %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_illness_mumps" class="text-sm font-medium text-gray-700">Mumps</label>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <input type="checkbox" name="illness_rubella" id="id_illness_rubella"
+                                   {% if health_form.illness_rubella %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_illness_rubella" class="text-sm font-medium text-gray-700">Rubella</label>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <input type="checkbox" name="illness_chickenpox" id="id_illness_chickenpox"
+                                   {% if health_form.illness_chickenpox %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_illness_chickenpox" class="text-sm font-medium text-gray-700">Chickenpox</label>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <input type="checkbox" name="illness_ptb_pki" id="id_illness_ptb_pki"
+                                   {% if health_form.illness_ptb_pki %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_illness_ptb_pki" class="text-sm font-medium text-gray-700">PTB/PKI</label>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <input type="checkbox" name="illness_hypertension" id="id_illness_hypertension"
+                                   {% if health_form.illness_hypertension %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_illness_hypertension" class="text-sm font-medium text-gray-700">Hypertension</label>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <input type="checkbox" name="illness_diabetes" id="id_illness_diabetes"
+                                   {% if health_form.illness_diabetes %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_illness_diabetes" class="text-sm font-medium text-gray-700">Diabetes Mellitus</label>
+                        </div>
+                        
+                        <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
+                            <input type="checkbox" name="illness_asthma" id="id_illness_asthma"
+                                   {% if health_form.illness_asthma %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_illness_asthma" class="text-sm font-medium text-gray-700">Asthma</label>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Other Illnesses/Conditions</label>
+                        <textarea name="illness_others" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Specify other illnesses or medical conditions...">{{ health_form.illness_others }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Additional Medical Information -->
+                <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Allergies</label>
                         <textarea name="allergies" rows="3"
@@ -273,6 +484,152 @@
             </form>
         </div>
 
+        <!-- Diagnostic Tests Form -->
+        <div id="diagnostic-section" class="tab-content hidden">
+            <form method="post" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="diagnostic">
+                
+                <h3 class="text-lg font-semibold text-gray-900 mb-4 border-b pb-2">Diagnostic Tests</h3>
+                
+                <div class="space-y-6">
+                    <!-- Chest X-ray -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <input type="checkbox" name="test_chest_xray" id="id_test_chest_xray"
+                                   {% if health_form.test_chest_xray %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_test_chest_xray" class="text-sm font-semibold text-gray-900">Chest X-ray</label>
+                            <input type="date" name="test_chest_xray_date" value="{{ health_form.test_chest_xray_date|date:'Y-m-d' }}"
+                                   class="ml-auto px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        <textarea name="test_chest_xray_findings" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Findings...">{{ health_form.test_chest_xray_findings }}</textarea>
+                    </div>
+
+                    <!-- CBC -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <input type="checkbox" name="test_cbc" id="id_test_cbc"
+                                   {% if health_form.test_cbc %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_test_cbc" class="text-sm font-semibold text-gray-900">CBC (Complete Blood Count)</label>
+                            <input type="date" name="test_cbc_date" value="{{ health_form.test_cbc_date|date:'Y-m-d' }}"
+                                   class="ml-auto px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        <textarea name="test_cbc_findings" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Findings...">{{ health_form.test_cbc_findings }}</textarea>
+                    </div>
+
+                    <!-- Urinalysis -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <input type="checkbox" name="test_urinalysis" id="id_test_urinalysis"
+                                   {% if health_form.test_urinalysis %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_test_urinalysis" class="text-sm font-semibold text-gray-900">Urinalysis</label>
+                            <input type="date" name="test_urinalysis_date" value="{{ health_form.test_urinalysis_date|date:'Y-m-d' }}"
+                                   class="ml-auto px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        <textarea name="test_urinalysis_findings" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Findings...">{{ health_form.test_urinalysis_findings }}</textarea>
+                    </div>
+
+                    <!-- Drug Test -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <input type="checkbox" name="test_drug_test" id="id_test_drug_test"
+                                   {% if health_form.test_drug_test %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_test_drug_test" class="text-sm font-semibold text-gray-900">Drug Test</label>
+                            <input type="date" name="test_drug_test_date" value="{{ health_form.test_drug_test_date|date:'Y-m-d' }}"
+                                   class="ml-auto px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        <textarea name="test_drug_test_findings" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Findings...">{{ health_form.test_drug_test_findings }}</textarea>
+                    </div>
+
+                    <!-- Psychological Test -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <input type="checkbox" name="test_psychological" id="id_test_psychological"
+                                   {% if health_form.test_psychological %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_test_psychological" class="text-sm font-semibold text-gray-900">Psychological Test</label>
+                            <input type="date" name="test_psychological_date" value="{{ health_form.test_psychological_date|date:'Y-m-d' }}"
+                                   class="ml-auto px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        <textarea name="test_psychological_findings" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Findings...">{{ health_form.test_psychological_findings }}</textarea>
+                    </div>
+
+                    <!-- HBsAg -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <input type="checkbox" name="test_hbsag" id="id_test_hbsag"
+                                   {% if health_form.test_hbsag %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_test_hbsag" class="text-sm font-semibold text-gray-900">HBsAg (Hepatitis B Surface Antigen)</label>
+                            <input type="date" name="test_hbsag_date" value="{{ health_form.test_hbsag_date|date:'Y-m-d' }}"
+                                   class="ml-auto px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        <textarea name="test_hbsag_findings" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Findings...">{{ health_form.test_hbsag_findings }}</textarea>
+                    </div>
+
+                    <!-- Anti-HBs Titer -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <input type="checkbox" name="test_anti_hbs_titer" id="id_test_anti_hbs_titer"
+                                   {% if health_form.test_anti_hbs_titer %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_test_anti_hbs_titer" class="text-sm font-semibold text-gray-900">Anti-HBs Titer</label>
+                            <input type="date" name="test_anti_hbs_titer_date" value="{{ health_form.test_anti_hbs_titer_date|date:'Y-m-d' }}"
+                                   class="ml-auto px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        <textarea name="test_anti_hbs_titer_findings" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Findings...">{{ health_form.test_anti_hbs_titer_findings }}</textarea>
+                    </div>
+
+                    <!-- Fecalysis -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <input type="checkbox" name="test_fecalysis" id="id_test_fecalysis"
+                                   {% if health_form.test_fecalysis %}checked{% endif %}
+                                   class="w-4 h-4 text-primary-600 rounded focus:ring-primary-500">
+                            <label for="id_test_fecalysis" class="text-sm font-semibold text-gray-900">Fecalysis</label>
+                            <input type="date" name="test_fecalysis_date" value="{{ health_form.test_fecalysis_date|date:'Y-m-d' }}"
+                                   class="ml-auto px-2 py-1 text-sm border border-gray-300 rounded">
+                        </div>
+                        <textarea name="test_fecalysis_findings" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Findings...">{{ health_form.test_fecalysis_findings }}</textarea>
+                    </div>
+
+                    <!-- Other Tests -->
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <label class="block text-sm font-semibold text-gray-900 mb-2">Other Diagnostic Tests</label>
+                        <textarea name="test_others" rows="3"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Specify other tests and findings...">{{ health_form.test_others }}</textarea>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                        Save Diagnostic Tests
+                    </button>
+                </div>
+            </form>
+        </div>
+
         <!-- Clinical Summary Form -->
         <div id="clinical-section" class="tab-content hidden">
             <form method="post" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -342,6 +699,58 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById(target + '-section').classList.remove('hidden');
         });
     });
+
+    // Helper to toggle related date/findings inputs based on a checkbox
+    function bindToggle(checkboxName, dateName, findingsName) {
+        const cb = document.querySelector(`[name="${checkboxName}"]`);
+        const date = dateName ? document.querySelector(`[name="${dateName}"]`) : null;
+        const findings = findingsName ? document.querySelector(`[name="${findingsName}"]`) : null;
+        const update = () => {
+            const enabled = cb && cb.checked;
+            if (date) date.disabled = !enabled;
+            if (findings) findings.disabled = !enabled;
+        };
+        if (cb) {
+            cb.addEventListener('change', update);
+            update();
+        }
+    }
+
+    // Immunization dates depend on checkbox
+    bindToggle('immunization_covid19', 'immunization_covid19_date');
+    bindToggle('immunization_influenza', 'immunization_influenza_date');
+    bindToggle('immunization_pneumonia', 'immunization_pneumonia_date');
+    bindToggle('immunization_polio', 'immunization_polio_date');
+    bindToggle('immunization_hepatitis_b', 'immunization_hepatitis_b_date');
+    bindToggle('immunization_bcg', 'immunization_bcg_date');
+    bindToggle('immunization_dpt_tetanus', 'immunization_dpt_tetanus_date');
+    bindToggle('immunization_rotavirus', 'immunization_rotavirus_date');
+    bindToggle('immunization_hib', 'immunization_hib_date');
+    bindToggle('immunization_measles_mmr', 'immunization_measles_mmr_date');
+
+    // Diagnostic tests: enable date and findings only when checked
+    bindToggle('test_chest_xray', 'test_chest_xray_date', 'test_chest_xray_findings');
+    bindToggle('test_cbc', 'test_cbc_date', 'test_cbc_findings');
+    bindToggle('test_urinalysis', 'test_urinalysis_date', 'test_urinalysis_findings');
+    bindToggle('test_drug_test', 'test_drug_test_date', 'test_drug_test_findings');
+    bindToggle('test_psychological', 'test_psychological_date', 'test_psychological_findings');
+    bindToggle('test_hbsag', 'test_hbsag_date', 'test_hbsag_findings');
+    bindToggle('test_anti_hbs_titer', 'test_anti_hbs_titer_date', 'test_anti_hbs_titer_findings');
+    bindToggle('test_fecalysis', 'test_fecalysis_date', 'test_fecalysis_findings');
+
+    // OB-GYN fields enabled only when gender is female
+    const gender = document.querySelector('[name="gender"]');
+    const obgynFields = document.querySelectorAll('[name="menarche_age"], [name="menstrual_duration"], [name="menstrual_interval"], [name="menstrual_amount"], [name="menstrual_symptoms"], [name="obstetric_history"]');
+    function toggleObgyn() {
+        const enabled = gender && gender.value === 'female';
+        obgynFields.forEach(el => {
+            el.disabled = !enabled;
+        });
+    }
+    if (gender) {
+        gender.addEventListener('change', toggleObgyn);
+        toggleObgyn();
+    }
     
     // Auto-calculate BMI
     const heightInput = document.getElementById('height-input');

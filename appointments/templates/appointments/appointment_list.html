@@ -129,6 +129,10 @@
                                                                 </svg>
                                                                 Completed
                                                             </span>
+                                                            {% elif appointment.status == 'confirmed' %}
+                                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                                                                    Confirmed
+                                                                </span>
                                                         {% elif appointment.status == 'cancelled' %}
                                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
                                                                 <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -58,6 +58,7 @@ urlpatterns = [
     path('notifications/', views.notifications, name='notifications'),
     path('notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('notifications/clear-all/', views.clear_all_notifications, name='clear_all_notifications'),
     path('notifications/create-system/', views.create_system_notification, name='create_system_notification'),
     
     # Feedback - Redirecting to feedback app

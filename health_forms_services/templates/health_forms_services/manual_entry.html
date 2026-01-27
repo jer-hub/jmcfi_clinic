@@ -19,9 +19,29 @@
 
         <form method="post">
             {% csrf_token %}
+            <!-- Tab Navigation -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <nav class="flex flex-wrap border-b border-gray-200" id="form-tabs">
+                    <button type="button" data-tab="personal" class="tab-btn active px-4 md:px-6 py-3 text-sm font-medium text-primary-600 border-b-2 border-primary-600">
+                        Personal Info
+                    </button>
+                    <button type="button" data-tab="medical" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                        Medical History
+                    </button>
+                    <button type="button" data-tab="physical" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                        Physical Exam
+                    </button>
+                    <button type="button" data-tab="diagnostic" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                        Diagnostic Tests
+                    </button>
+                    <button type="button" data-tab="clinical" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                        Clinical Summary
+                    </button>
+                </nav>
+            </div>
             
             <!-- Personal Information -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div id="personal-section" class="tab-content bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
                 </div>
@@ -116,7 +136,7 @@
             </div>
 
             <!-- Medical History -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div id="medical-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-900">Medical History</h2>
                 </div>
@@ -325,7 +345,7 @@
             </div>
 
             <!-- Physical Examination -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div id="physical-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-900">Physical Examination</h2>
                 </div>
@@ -413,7 +433,7 @@
             </div>
 
             <!-- Diagnostic Tests -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div id="diagnostic-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-900">Diagnostic Tests</h2>
                 </div>
@@ -539,7 +559,7 @@
             </div>
 
             <!-- Clinical Summary -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div id="clinical-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <h2 class="text-lg font-semibold text-gray-900">Clinical Summary</h2>
                 </div>
@@ -600,6 +620,22 @@
 </style>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // Tab switching
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const target = tab.dataset.tab;
+            tabs.forEach(t => t.classList.remove('active', 'text-primary-600', 'border-primary-600', 'border-b-2'));
+            tabs.forEach(t => t.classList.add('text-gray-500'));
+            tab.classList.add('active', 'text-primary-600', 'border-primary-600', 'border-b-2');
+            tab.classList.remove('text-gray-500');
+            contents.forEach(c => c.classList.add('hidden'));
+            const section = document.getElementById(`${target}-section`);
+            if (section) section.classList.remove('hidden');
+        });
+    });
+
     // Helper to toggle related date/findings inputs based on a checkbox
     function bindToggle(checkboxName, dateName, findingsName) {
         const cb = document.querySelector(`[name="${checkboxName}"]`);

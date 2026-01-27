@@ -26,6 +26,14 @@
                             Mark all as read
                         </a>
                         {% endif %}
+                        {% if total_count > 0 %}
+                        <button onclick="showClearAllModal()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Clear All
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -63,18 +71,26 @@
             <div class="divide-y divide-gray-200">
                 {% for notification in notifications %}
                     {% comment %}Determine the appropriate URL based on transaction_type and notification_type{% endcomment %}
-                    {% if notification.transaction_type %}
+                        {% if notification.transaction_type %}
                         {% comment %}Use specific transaction_type for precise routing{% endcomment %}
                         {% if notification.transaction_type == 'appointment_reminder' or notification.transaction_type == 'appointment_confirmed' or notification.transaction_type == 'appointment_completed' %}
                             {% if notification.related_id %}
-                                {% url 'management:appointment_detail' notification.related_id as notification_url %}
+                                {% url 'appointments:appointment_detail' notification.related_id as notification_url %}
                             {% else %}
-                                {% url 'management:appointment_list' as notification_url %}
+                                {% url 'appointments:appointment_list' as notification_url %}
                             {% endif %}
                         {% elif notification.transaction_type == 'appointment_scheduled' %}
-                            {% url 'management:schedule_appointment' as notification_url %}
+                            {% if notification.related_id %}
+                                {% url 'appointments:appointment_detail' notification.related_id as notification_url %}
+                            {% else %}
+                                {% url 'appointments:appointment_list' as notification_url %}
+                            {% endif %}
                         {% elif notification.transaction_type == 'appointment_cancelled' %}
-                            {% url 'management:appointment_list' as notification_url %}
+                            {% if notification.related_id %}
+                                {% url 'appointments:appointment_detail' notification.related_id as notification_url %}
+                            {% else %}
+                                {% url 'appointments:appointment_list' as notification_url %}
+                            {% endif %}
                         {% elif notification.transaction_type == 'certificate_requested' or notification.transaction_type == 'certificate_processing' %}
                             {% url 'management:certificate_requests' as notification_url %}
                         {% elif notification.transaction_type == 'certificate_approved' or notification.transaction_type == 'certificate_ready' %}
@@ -104,9 +120,9 @@
                         {% comment %}Fallback to original logic for notifications without transaction_type{% endcomment %}
                         {% if notification.notification_type == 'appointment' and notification.related_id %}
                             {% if 'schedule' in notification.title|lower or 'book' in notification.title|lower %}
-                                {% url 'management:schedule_appointment' as notification_url %}
+                                {% url 'appointments:schedule_appointment' as notification_url %}
                             {% else %}
-                                {% url 'management:appointment_detail' notification.related_id as notification_url %}
+                                {% url 'appointments:appointment_detail' notification.related_id as notification_url %}
                             {% endif %}
                         {% elif notification.notification_type == 'certificate' and notification.related_id %}
                             {% if 'ready' in notification.title|lower or 'approved' in notification.title|lower or 'completed' in notification.title|lower %}
@@ -126,7 +142,7 @@
                             {% elif 'medical record' in notification.title|lower %}
                                 {% url 'management:medical_records' as notification_url %}
                             {% elif 'appointment' in notification.title|lower %}
-                                {% url 'management:appointment_list' as notification_url %}
+                                {% url 'appointments:appointment_list' as notification_url %}
                             {% else %}
                                 {% url 'management:dashboard' as notification_url %}
                             {% endif %}
@@ -135,44 +151,129 @@
                         {% endif %}
                     {% endif %}
                     
-                    <a href="{{ notification_url }}" class="block p-6 {% if not notification.is_read %}bg-primary-50{% endif %} hover:bg-gray-50 transition-colors" onclick="{% if not notification.is_read %}markNotificationRead(event, {{ notification.id }});{% endif %}">
+                    <a href="{{ notification_url }}" class="block p-6 border-l-4 
+                        {% if notification.notification_type == 'appointment' %}
+                            {% if notification.transaction_type == 'appointment_confirmed' %}
+                                border-green-500 {% if not notification.is_read %}bg-green-50{% endif %}
+                            {% elif notification.transaction_type == 'appointment_cancelled' %}
+                                border-red-500 {% if not notification.is_read %}bg-red-50{% endif %}
+                            {% elif notification.transaction_type == 'appointment_completed' %}
+                                border-blue-500 {% if not notification.is_read %}bg-blue-50{% endif %}
+                            {% else %}
+                                border-primary-500 {% if not notification.is_read %}bg-primary-50{% endif %}
+                            {% endif %}
+                        {% elif notification.notification_type == 'certificate' %}
+                            {% if 'approved' in notification.title|lower or 'ready' in notification.title|lower %}
+                                border-green-500 {% if not notification.is_read %}bg-green-50{% endif %}
+                            {% elif 'rejected' in notification.title|lower %}
+                                border-red-500 {% if not notification.is_read %}bg-red-50{% endif %}
+                            {% else %}
+                                border-emerald-500 {% if not notification.is_read %}bg-emerald-50{% endif %}
+                            {% endif %}
+                        {% elif notification.notification_type == 'health_tip' %}
+                            border-purple-500 {% if not notification.is_read %}bg-purple-50{% endif %}
+                        {% else %}
+                            border-gray-400 {% if not notification.is_read %}bg-gray-50{% endif %}
+                        {% endif %}
+                        hover:bg-gray-50 transition-all duration-200" onclick="{% if not notification.is_read %}markNotificationRead(event, {{ notification.id }});{% endif %}">
                         <div class="flex items-start justify-between">
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center">
                                     <div class="flex-shrink-0">
                                         {% if notification.notification_type == 'appointment' %}
-                                            <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                                                <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                                </svg>
-                                            </div>
+                                            {% if notification.transaction_type == 'appointment_confirmed' %}
+                                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center ring-2 ring-green-200">
+                                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                </div>
+                                            {% elif notification.transaction_type == 'appointment_cancelled' %}
+                                                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center ring-2 ring-red-200">
+                                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                    </svg>
+                                                </div>
+                                            {% elif notification.transaction_type == 'appointment_completed' %}
+                                                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center ring-2 ring-blue-200">
+                                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                                    </svg>
+                                                </div>
+                                            {% else %}
+                                                <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center ring-2 ring-primary-200">
+                                                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                    </svg>
+                                                </div>
+                                            {% endif %}
                                         {% elif notification.notification_type == 'certificate' %}
-                                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                                <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                                </svg>
-                                            </div>
+                                            {% if 'approved' in notification.title|lower or 'ready' in notification.title|lower %}
+                                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center ring-2 ring-green-200">
+                                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                                                    </svg>
+                                                </div>
+                                            {% elif 'rejected' in notification.title|lower %}
+                                                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center ring-2 ring-red-200">
+                                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                                    </svg>
+                                                </div>
+                                            {% else %}
+                                                <div class="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center ring-2 ring-emerald-200">
+                                                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                    </svg>
+                                                </div>
+                                            {% endif %}
                                         {% elif notification.notification_type == 'health_tip' %}
-                                            <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                                                <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center ring-2 ring-purple-200">
+                                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                                                 </svg>
                                             </div>
                                         {% else %}
-                                            <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                                                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-3.6-3.6a1 1 0 00-.7-.3h-3.4a1 1 0 00-.7.3L15 17zm-5-8a3 3 0 016 0v6l2 2v1H8v-1l2-2V9z"></path>
+                                            <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center ring-2 ring-gray-200">
+                                                <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                                                 </svg>
                                             </div>
                                         {% endif %}
                                     </div>
                                     <div class="ml-4 flex-1">
-                                        <div class="flex items-center">
-                                            <h3 class="text-sm font-medium text-gray-900">{{ notification.title }}</h3>
+                                        <div class="flex items-center flex-wrap gap-2">
+                                            <h3 class="text-sm font-semibold text-gray-900">{{ notification.title }}</h3>
                                             {% if not notification.is_read %}
-                                                <span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                                                    New
+                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary-100 text-primary-800 ring-1 ring-primary-200">
+                                                    NEW
                                                 </span>
+                                            {% endif %}
+                                            {% if notification.transaction_type %}
+                                                {% if notification.transaction_type == 'appointment_confirmed' %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                                        Confirmed
+                                                    </span>
+                                                {% elif notification.transaction_type == 'appointment_cancelled' %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                                                        Cancelled
+                                                    </span>
+                                                {% elif notification.transaction_type == 'appointment_completed' %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                                                        Completed
+                                                    </span>
+                                                {% elif notification.transaction_type == 'appointment_scheduled' %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                                                        Scheduled
+                                                    </span>
+                                                {% elif 'certificate' in notification.transaction_type %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                                        Certificate
+                                                    </span>
+                                                {% elif 'health_tip' in notification.transaction_type %}
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-purple-100 text-purple-800 border border-purple-200">
+                                                        Health Tip
+                                                    </span>
+                                                {% endif %}
                                             {% endif %}
                                         </div>
                                         <p class="mt-1 text-sm text-gray-600">{{ notification.message }}</p>
@@ -193,7 +294,7 @@
                 {% empty %}
                     <div class="p-12 text-center">
                         <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-3.6-3.6a1 1 0 00-.7-.3h-3.4a1 1 0 00-.7.3L15 17zm-5-8a3 3 0 016 0v6l2 2v1H8v-1l2-2V9z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                         </svg>
                         <h3 class="text-lg font-medium text-gray-900 mb-2">No notifications</h3>
                         <p class="text-gray-600">You're all caught up! New notifications will appear here.</p>
@@ -318,5 +419,79 @@ function updateNotificationCount() {
     // This function can be enhanced to update the notification count in the navigation
     // For now, it's a placeholder for future enhancement
 }
+
+function showClearAllModal() {
+    document.getElementById('clearAllModal').classList.remove('hidden');
+}
+
+function hideClearAllModal() {
+    document.getElementById('clearAllModal').classList.add('hidden');
+}
+
+function clearAllNotifications() {
+    const csrftoken = getCookie('csrftoken');
+    
+    fetch('{% url "management:clear_all_notifications" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            hideClearAllModal();
+            // Reload the page to show empty state
+            window.location.reload();
+        } else {
+            alert('Failed to clear notifications. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to clear notifications. Please try again.');
+    });
+}
 </script>
+
+<!-- Clear All Confirmation Modal -->
+<div id="clearAllModal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="hideClearAllModal()"></div>
+
+        <!-- Center modal -->
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+        <div class="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div class="sm:flex sm:items-start">
+                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="modal-title">
+                        Clear All Notifications
+                    </h3>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-500">
+                            Are you sure you want to clear all notifications? This action cannot be undone and all notifications will be permanently deleted.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                <button type="button" onclick="clearAllNotifications()" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm">
+                    Clear All
+                </button>
+                <button type="button" onclick="hideClearAllModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock content %}

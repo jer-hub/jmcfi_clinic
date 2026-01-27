@@ -182,7 +182,14 @@ class HealthProfileForm(models.Model):
     physician_impression = models.TextField(blank=True)
     final_remarks = models.TextField(blank=True)
     recommendations = models.TextField(blank=True)
-    examining_physician = models.CharField(max_length=200, blank=True)
+    examining_physician = models.ForeignKey(
+        'core.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='examined_health_forms',
+        limit_choices_to={'role__in': ['doctor', 'staff']}
+    )
     examination_date = models.DateField(blank=True, null=True)
     
     class Meta:

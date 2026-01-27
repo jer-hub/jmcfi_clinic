@@ -132,7 +132,9 @@ def schedule_appointment(request):
                 user=doctor,
                 title='New Appointment Request',
                 message=f'New appointment request from {request.user.get_full_name()} for {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}',
-                notification_type='appointment'
+                notification_type='appointment',
+                transaction_type='appointment_scheduled',
+                related_id=appointment.id
             )
             
             # Create notification for student
@@ -140,7 +142,9 @@ def schedule_appointment(request):
                 user=request.user,
                 title='Appointment Scheduled',
                 message=f'Your appointment with Dr. {doctor.get_full_name()} has been scheduled for {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}',
-                notification_type='appointment'
+                notification_type='appointment',
+                transaction_type='appointment_scheduled',
+                related_id=appointment.id
             )
             
             messages.success(request, 'Appointment scheduled successfully!')
@@ -178,7 +182,8 @@ def _get_appointment_context(doctors):
         'checkup': ['General Medicine', 'Internal Medicine', 'Family Medicine'],
         'vaccination': ['Immunology', 'Pediatrics', 'General Medicine'],
         'emergency': ['Emergency Medicine', 'General Medicine'],
-        'followup': ['General Medicine', 'Internal Medicine', 'Family Medicine']
+        'followup': ['General Medicine', 'Internal Medicine', 'Family Medicine'],
+        'dental': ['Dent', 'Dental', 'Dentistry', 'Dental Medicine', 'Oral Medicine', 'Dental Clinic']
     }
     
     # Create a dictionary to store default doctor IDs for each appointment type
@@ -249,11 +254,20 @@ def appointment_detail(request, appointment_id):
             appointment.save()
             
             # Create notification for student
+            # Map status to transaction_type
+            status_to_transaction = {
+                'pending': 'appointment_reminder',
+                'confirmed': 'appointment_confirmed',
+                'completed': 'appointment_completed',
+                'cancelled': 'appointment_cancelled',
+            }
             Notification.objects.create(
                 user=appointment.student,
                 title='Appointment Update',
                 message=f'Your appointment status has been updated to {appointment.get_status_display()}',
-                notification_type='appointment'
+                notification_type='appointment',
+                transaction_type=status_to_transaction.get(appointment.status, 'appointment_reminder'),
+                related_id=appointment.id
             )
             
             messages.success(request, 'Appointment updated successfully!')

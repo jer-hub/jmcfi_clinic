@@ -528,7 +528,13 @@
                         <div class="flex justify-between text-sm">
                             <div>
                                 <span class="text-gray-500">Examining Physician:</span>
-                                <span class="font-medium text-gray-900">{{ health_form.examining_physician|default:"-" }}</span>
+                                <span class="font-medium text-gray-900">
+                                    {% if health_form.examining_physician %}
+                                        Dr. {{ health_form.examining_physician.get_full_name }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </span>
                             </div>
                             <div>
                                 <span class="text-gray-500">Date:</span>

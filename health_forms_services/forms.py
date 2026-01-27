@@ -1,6 +1,9 @@
 from django import forms
 from django.core.exceptions import ValidationError
+from django.contrib.auth import get_user_model
 from .models import HealthProfileForm
+
+User = get_user_model()
 
 
 class HealthProfilePersonalInfoForm(forms.ModelForm):
@@ -194,9 +197,17 @@ class HealthProfileClinicalSummaryForm(forms.ModelForm):
             'physician_impression': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 3}),
             'final_remarks': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 3}),
             'recommendations': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 3}),
-            'examining_physician': forms.TextInput(attrs={'class': 'form-input'}),
+            'examining_physician': forms.Select(attrs={'class': 'form-select'}),
             'examination_date': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Populate examining_physician with doctor users
+        doctors = User.objects.filter(role__in=['doctor', 'staff']).order_by('first_name', 'last_name')
+        self.fields['examining_physician'].choices = [('', '---------')] + [
+            (doctor.id, f"Dr. {doctor.get_full_name()}") for doctor in doctors
+        ]
 
 
 class HealthProfileDiagnosticTestsForm(forms.ModelForm):

@@ -232,7 +232,9 @@ def schedule_appointment(request):
                 user=doctor,
                 title='New Appointment Request',
                 message=f'New appointment request from {request.user.get_full_name()} for {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}',
-                notification_type='appointment'
+                notification_type='appointment',
+                transaction_type='appointment_scheduled',
+                related_id=appointment.id
             )
             
             # Create notification for student
@@ -240,7 +242,9 @@ def schedule_appointment(request):
                 user=request.user,
                 title='Appointment Scheduled',
                 message=f'Your appointment with Dr. {doctor.get_full_name()} has been scheduled for {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}',
-                notification_type='appointment'
+                notification_type='appointment',
+                transaction_type='appointment_scheduled',
+                related_id=appointment.id
             )
             
             messages.success(request, 'Appointment scheduled successfully!')
@@ -348,12 +352,20 @@ def appointment_detail(request, appointment_id):
                 appointment.notes = notes
             appointment.save()
             
-            # Create notification for student
+            # Create notification for student with routing metadata
+            status_to_transaction = {
+                'pending': 'appointment_reminder',
+                'confirmed': 'appointment_confirmed',
+                'completed': 'appointment_completed',
+                'cancelled': 'appointment_cancelled',
+            }
             Notification.objects.create(
                 user=appointment.student,
                 title='Appointment Update',
                 message=f'Your appointment status has been updated to {appointment.get_status_display()}',
-                notification_type='appointment'
+                notification_type='appointment',
+                transaction_type=status_to_transaction.get(appointment.status, 'appointment_reminder'),
+                related_id=appointment.id
             )
             
             messages.success(request, 'Appointment updated successfully!')
@@ -370,7 +382,9 @@ def appointment_detail(request, appointment_id):
                     user=appointment.doctor,
                     title='Appointment Cancelled',
                     message=f'Appointment with {request.user.get_full_name()} has been cancelled',
-                    notification_type='appointment'
+                    notification_type='appointment',
+                    transaction_type='appointment_cancelled',
+                    related_id=appointment.id
                 )
                 
                 messages.success(request, 'Appointment cancelled successfully!')
@@ -945,6 +959,19 @@ def mark_all_notifications_read(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 @login_required
+def clear_all_notifications(request):
+    """Delete all notifications for the current user"""
+    if request.method == 'POST':
+        deleted_count = Notification.objects.filter(user=request.user).count()
+        Notification.objects.filter(user=request.user).delete()
+        return JsonResponse({
+            'status': 'success', 
+            'message': f'{deleted_count} notifications cleared',
+            'count': deleted_count
+        })
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
 def create_system_notification(request):
     """Allow admins to create system-wide notifications"""
     if request.user.role != 'admin':
@@ -1137,7 +1164,7 @@ def quick_edit_profile(request):
 @login_required
 def edit_profile(request):
     """Edit user profile information"""
-    from .models import DentalRecord
+    from dental_records.models import DentalRecord
     
     profile = get_user_profile(request.user)
     is_first_time = profile is None

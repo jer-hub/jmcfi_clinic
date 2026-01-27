@@ -9,6 +9,7 @@ class Appointment(models.Model):
     
     STATUS_CHOICES = [
         ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     ]
@@ -19,6 +20,7 @@ class Appointment(models.Model):
         ('vaccination', 'Vaccination'),
         ('emergency', 'Emergency'),
         ('followup', 'Follow-up'),
+        ('dental', 'Dental'),
     ]
 
     student = models.ForeignKey(
@@ -63,6 +65,7 @@ class AppointmentTypeDefault(models.Model):
         ('vaccination', 'Vaccination'),
         ('emergency', 'Emergency'),
         ('followup', 'Follow-up'),
+        ('dental', 'Dental'),
     ]
 
     appointment_type = models.CharField(

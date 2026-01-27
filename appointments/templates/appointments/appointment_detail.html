@@ -31,6 +31,8 @@
                             <span class="px-3 py-1 text-sm font-medium rounded-full inline-flex items-center justify-center
                                 {% if appointment.status == 'pending' %}
                                     bg-yellow-100 text-yellow-800
+                                {% elif appointment.status == 'confirmed' %}
+                                    bg-green-100 text-green-800
                                 {% elif appointment.status == 'completed' %}
                                     bg-blue-100 text-blue-800
                                 {% elif appointment.status == 'cancelled' %}
@@ -98,6 +100,7 @@
                                 <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
                                 <select name="status" id="status" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm">
                                     <option value="pending" {% if appointment.status == 'pending' %}selected{% endif %}>Pending</option>
+                                    <option value="confirmed" {% if appointment.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
                                     <option value="completed" {% if appointment.status == 'completed' %}selected{% endif %}>Completed</option>
                                     <option value="cancelled" {% if appointment.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
                                 </select>
@@ -131,9 +134,18 @@
                         {% if user.role == 'staff' or user.role == 'doctor' %}
                             {% if appointment.status == 'pending' %}
                                 {% if appointment.doctor == user %}
+                                    {% if appointment.appointment_type == 'dental' %}
+                            <a href="{% url 'dental_records:dental_record_create' %}?patient={{ appointment.student.id }}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                                Create Dental Record
+                            </a>
+                            <a href="{% url 'dental_records:dental_record_list' %}" class="block w-full text-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md shadow-sm text-sm font-medium hover:bg-blue-50">
+                                Dental Records
+                            </a>
+                                    {% else %}
                             <a href="{% url 'management:create_medical_record' appointment.id %}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
                                 Create Medical Record
                             </a>
+                                    {% endif %}
                                 {% endif %}
                             {% endif %}
                         {% endif %}

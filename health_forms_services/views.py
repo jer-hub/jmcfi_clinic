@@ -87,6 +87,11 @@ def edit_form(request, pk):
     else:
         health_form = get_object_or_404(HealthProfileForm, pk=pk, user=user)
     
+    # Get all doctors for the examining_physician dropdown
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    doctors = User.objects.filter(role__in=['doctor', 'staff']).order_by('first_name', 'last_name')
+    
     if request.method == 'POST':
         section = request.POST.get('section', 'personal')
         
@@ -114,6 +119,7 @@ def edit_form(request, pk):
     
     context = {
         'health_form': health_form,
+        'doctors': doctors,
         'personal_form': HealthProfilePersonalInfoForm(instance=health_form),
         'medical_form': HealthProfileMedicalHistoryForm(instance=health_form),
         'physical_form': HealthProfilePhysicalExamForm(instance=health_form),

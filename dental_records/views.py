@@ -125,6 +125,14 @@ def dental_record_detail(request, record_id):
 @role_required('admin', 'staff', 'doctor')
 def dental_record_create(request):
     """Create a new dental record with all sections"""
+    preselected_patient_id = request.GET.get('patient')
+    preselected_patient = None
+    if preselected_patient_id:
+        try:
+            preselected_patient = User.objects.get(id=preselected_patient_id)
+        except User.DoesNotExist:
+            preselected_patient = None
+
     if request.method == 'POST':
         form = DentalRecordForm(request.POST)
         
@@ -148,14 +156,18 @@ def dental_record_create(request):
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = DentalRecordForm(initial={
+        initial_data = {
             'date_of_examination': timezone.now().date(),
             'examined_by': request.user if request.user.role in ['staff', 'doctor'] else None
-        })
+        }
+        if preselected_patient:
+            initial_data['patient'] = preselected_patient
+        form = DentalRecordForm(initial=initial_data)
     
     context = {
         'form': form,
         'title': 'Create New Dental Record',
+        'preselected_patient': preselected_patient,
     }
     
     return render(request, 'dental_records/dental_record_form.html', context)

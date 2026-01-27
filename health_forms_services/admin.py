@@ -25,8 +25,31 @@ class HealthProfileFormAdmin(admin.ModelAdmin):
                 ('guardian_name', 'guardian_contact'),
             )
         }),
-        ('Medical History', {
-            'fields': ('immunization_records', 'illness_history', 'allergies', 'current_medications'),
+        ('Immunization Records', {
+            'fields': (
+                ('immunization_covid19', 'immunization_covid19_date'),
+                ('immunization_influenza', 'immunization_influenza_date'),
+                ('immunization_pneumonia', 'immunization_pneumonia_date'),
+                ('immunization_polio', 'immunization_polio_date'),
+                ('immunization_hepatitis_b', 'immunization_hepatitis_b_date'),
+                ('immunization_bcg', 'immunization_bcg_date'),
+                ('immunization_dpt_tetanus', 'immunization_dpt_tetanus_date'),
+                ('immunization_rotavirus', 'immunization_rotavirus_date'),
+                ('immunization_hib', 'immunization_hib_date'),
+                ('immunization_measles_mmr', 'immunization_measles_mmr_date'),
+                'immunization_others',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Illnesses/Medical Conditions', {
+            'fields': (
+                ('illness_measles', 'illness_mumps', 'illness_rubella'),
+                ('illness_chickenpox', 'illness_ptb_pki'),
+                ('illness_hypertension', 'illness_diabetes', 'illness_asthma'),
+                'illness_others',
+                'allergies',
+                'current_medications',
+            ),
             'classes': ('collapse',)
         }),
         ('OB-GYN History', {
@@ -40,17 +63,47 @@ class HealthProfileFormAdmin(admin.ModelAdmin):
             'fields': ('present_illness',),
             'classes': ('collapse',)
         }),
-        ('Physical Examination', {
+        ('Vital Signs & Anthropometrics', {
             'fields': (
                 ('blood_pressure', 'heart_rate', 'respiratory_rate'),
                 ('temperature', 'spo2'),
                 ('height', 'weight', 'bmi', 'bmi_remarks'),
-                'physical_exam_findings', 'other_findings'
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Physical Examination Findings', {
+            'fields': (
+                'exam_general',
+                'exam_heent',
+                'exam_chest_lungs',
+                'exam_abdomen',
+                'exam_genitourinary',
+                'exam_extremities',
+                'exam_neurologic',
+                'exam_other_findings',
             ),
             'classes': ('collapse',)
         }),
         ('Diagnostic Tests', {
-            'fields': ('diagnostic_tests',),
+            'fields': (
+                ('test_chest_xray', 'test_chest_xray_date'),
+                'test_chest_xray_findings',
+                ('test_cbc', 'test_cbc_date'),
+                'test_cbc_findings',
+                ('test_urinalysis', 'test_urinalysis_date'),
+                'test_urinalysis_findings',
+                ('test_drug_test', 'test_drug_test_date'),
+                'test_drug_test_findings',
+                ('test_psychological', 'test_psychological_date'),
+                'test_psychological_findings',
+                ('test_hbsag', 'test_hbsag_date'),
+                'test_hbsag_findings',
+                ('test_anti_hbs_titer', 'test_anti_hbs_titer_date'),
+                'test_anti_hbs_titer_findings',
+                ('test_fecalysis', 'test_fecalysis_date'),
+                'test_fecalysis_findings',
+                'test_others',
+            ),
             'classes': ('collapse',)
         }),
         ('Clinical Summary', {

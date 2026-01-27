@@ -159,7 +159,193 @@
                     <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                         <h2 class="text-lg font-semibold text-gray-900">Medical History</h2>
                     </div>
-                    <div class="p-6 space-y-4">
+                    <div class="p-6 space-y-6">
+                        <!-- Immunization Records -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">Immunization Records</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                                {% if health_form.immunization_covid19 %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">COVID-19 <span class="text-xs text-gray-500">({{ health_form.immunization_covid19_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.immunization_influenza %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Influenza <span class="text-xs text-gray-500">({{ health_form.immunization_influenza_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.immunization_pneumonia %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Pneumonia <span class="text-xs text-gray-500">({{ health_form.immunization_pneumonia_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.immunization_polio %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Polio <span class="text-xs text-gray-500">({{ health_form.immunization_polio_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.immunization_hepatitis_b %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Hepatitis B <span class="text-xs text-gray-500">({{ health_form.immunization_hepatitis_b_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.immunization_bcg %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">BCG <span class="text-xs text-gray-500">({{ health_form.immunization_bcg_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.immunization_dpt_tetanus %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">DPT/Tetanus <span class="text-xs text-gray-500">({{ health_form.immunization_dpt_tetanus_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.immunization_rotavirus %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Rotavirus <span class="text-xs text-gray-500">({{ health_form.immunization_rotavirus_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.immunization_hib %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Hib <span class="text-xs text-gray-500">({{ health_form.immunization_hib_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.immunization_measles_mmr %}
+                                <div class="flex items-center space-x-2 p-2 bg-green-50 rounded">
+                                    <svg class="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Measles/MMR <span class="text-xs text-gray-500">({{ health_form.immunization_measles_mmr_date|date:"M d, Y"|default:"" }})</span></span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if health_form.immunization_others %}
+                            <div class="mt-2 text-sm text-gray-600">
+                                <strong>Others:</strong> {{ health_form.immunization_others }}
+                            </div>
+                            {% endif %}
+                            {% if not health_form.immunization_covid19 and not health_form.immunization_influenza and not health_form.immunization_pneumonia and not health_form.immunization_polio and not health_form.immunization_hepatitis_b and not health_form.immunization_bcg and not health_form.immunization_dpt_tetanus and not health_form.immunization_rotavirus and not health_form.immunization_hib and not health_form.immunization_measles_mmr and not health_form.immunization_others %}
+                            <p class="text-sm text-gray-500 italic">No immunization records</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Illnesses/Medical Conditions -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">Illnesses/Medical Conditions</h3>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                {% if health_form.illness_measles %}
+                                <div class="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
+                                    <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Measles</span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.illness_mumps %}
+                                <div class="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
+                                    <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Mumps</span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.illness_rubella %}
+                                <div class="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
+                                    <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Rubella</span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.illness_chickenpox %}
+                                <div class="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
+                                    <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Chickenpox</span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.illness_ptb_pki %}
+                                <div class="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
+                                    <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">PTB/PKI</span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.illness_hypertension %}
+                                <div class="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
+                                    <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Hypertension</span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.illness_diabetes %}
+                                <div class="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
+                                    <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Diabetes</span>
+                                </div>
+                                {% endif %}
+                                {% if health_form.illness_asthma %}
+                                <div class="flex items-center space-x-2 p-2 bg-yellow-50 rounded">
+                                    <svg class="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
+                                    <span class="text-gray-700">Asthma</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if health_form.illness_others %}
+                            <div class="mt-2 text-sm text-gray-600">
+                                <strong>Others:</strong> {{ health_form.illness_others }}
+                            </div>
+                            {% endif %}
+                            {% if not health_form.illness_measles and not health_form.illness_mumps and not health_form.illness_rubella and not health_form.illness_chickenpox and not health_form.illness_ptb_pki and not health_form.illness_hypertension and not health_form.illness_diabetes and not health_form.illness_asthma and not health_form.illness_others %}
+                            <p class="text-sm text-gray-500 italic">No medical conditions reported</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- OB-GYN History (for females) -->
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">OB-GYN History (for females)</h3>
+                            {% if health_form.menarche_age or health_form.menstrual_duration or health_form.menstrual_interval or health_form.menstrual_amount or health_form.menstrual_symptoms or health_form.obstetric_history %}
+                            <dl class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                {% if health_form.menarche_age %}
+                                <div>
+                                    <dt class="text-gray-500">Age at Menarche</dt>
+                                    <dd class="font-medium text-gray-900">{{ health_form.menarche_age }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if health_form.menstrual_duration %}
+                                <div>
+                                    <dt class="text-gray-500">Menstrual Duration</dt>
+                                    <dd class="font-medium text-gray-900">{{ health_form.menstrual_duration }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if health_form.menstrual_interval %}
+                                <div>
+                                    <dt class="text-gray-500">Menstrual Interval</dt>
+                                    <dd class="font-medium text-gray-900">{{ health_form.menstrual_interval }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if health_form.menstrual_amount %}
+                                <div>
+                                    <dt class="text-gray-500">Menstrual Amount</dt>
+                                    <dd class="font-medium text-gray-900">{{ health_form.menstrual_amount }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if health_form.menstrual_symptoms %}
+                                <div class="md:col-span-2">
+                                    <dt class="text-gray-500">Menstrual Symptoms</dt>
+                                    <dd class="font-medium text-gray-900">{{ health_form.menstrual_symptoms }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if health_form.obstetric_history %}
+                                <div class="md:col-span-2">
+                                    <dt class="text-gray-500">Obstetric History</dt>
+                                    <dd class="font-medium text-gray-900">{{ health_form.obstetric_history }}</dd>
+                                </div>
+                                {% endif %}
+                            </dl>
+                            {% else %}
+                            <p class="text-sm text-gray-500 italic">No OB-GYN history provided</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Additional Medical Info -->
                         <div>
                             <h3 class="text-sm font-medium text-gray-700 mb-2">Allergies</h3>
                             <p class="text-sm text-gray-600">{{ health_form.allergies|default:"None reported" }}</p>
@@ -172,6 +358,156 @@
                             <h3 class="text-sm font-medium text-gray-700 mb-2">Present Illness</h3>
                             <p class="text-sm text-gray-600">{{ health_form.present_illness|default:"None" }}</p>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Physical Exam Findings -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900">Physical Examination Findings</h2>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        {% if health_form.exam_general %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">General</h3>
+                            <p class="text-sm text-gray-600">{{ health_form.exam_general }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.exam_heent %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">HEENT</h3>
+                            <p class="text-sm text-gray-600">{{ health_form.exam_heent }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.exam_chest_lungs %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Chest & Lungs</h3>
+                            <p class="text-sm text-gray-600">{{ health_form.exam_chest_lungs }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.exam_abdomen %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Abdomen</h3>
+                            <p class="text-sm text-gray-600">{{ health_form.exam_abdomen }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.exam_genitourinary %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Genitourinary</h3>
+                            <p class="text-sm text-gray-600">{{ health_form.exam_genitourinary }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.exam_extremities %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Extremities</h3>
+                            <p class="text-sm text-gray-600">{{ health_form.exam_extremities }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.exam_neurologic %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Neurologic</h3>
+                            <p class="text-sm text-gray-600">{{ health_form.exam_neurologic }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.exam_other_findings %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-1">Other Findings</h3>
+                            <p class="text-sm text-gray-600">{{ health_form.exam_other_findings }}</p>
+                        </div>
+                        {% endif %}
+                        {% if not health_form.exam_general and not health_form.exam_heent and not health_form.exam_chest_lungs and not health_form.exam_abdomen and not health_form.exam_genitourinary and not health_form.exam_extremities and not health_form.exam_neurologic and not health_form.exam_other_findings %}
+                        <p class="text-sm text-gray-500 italic">No physical examination findings recorded</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Diagnostic Tests -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900">Diagnostic Tests</h2>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        {% if health_form.test_chest_xray %}
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="text-sm font-semibold text-gray-900">Chest X-ray</h3>
+                                {% if health_form.test_chest_xray_date %}<span class="text-xs text-gray-500">{{ health_form.test_chest_xray_date|date:"M d, Y" }}</span>{% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">{{ health_form.test_chest_xray_findings|default:"Pending results" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.test_cbc %}
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="text-sm font-semibold text-gray-900">CBC</h3>
+                                {% if health_form.test_cbc_date %}<span class="text-xs text-gray-500">{{ health_form.test_cbc_date|date:"M d, Y" }}</span>{% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">{{ health_form.test_cbc_findings|default:"Pending results" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.test_urinalysis %}
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="text-sm font-semibold text-gray-900">Urinalysis</h3>
+                                {% if health_form.test_urinalysis_date %}<span class="text-xs text-gray-500">{{ health_form.test_urinalysis_date|date:"M d, Y" }}</span>{% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">{{ health_form.test_urinalysis_findings|default:"Pending results" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.test_drug_test %}
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="text-sm font-semibold text-gray-900">Drug Test</h3>
+                                {% if health_form.test_drug_test_date %}<span class="text-xs text-gray-500">{{ health_form.test_drug_test_date|date:"M d, Y" }}</span>{% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">{{ health_form.test_drug_test_findings|default:"Pending results" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.test_psychological %}
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="text-sm font-semibold text-gray-900">Psychological Test</h3>
+                                {% if health_form.test_psychological_date %}<span class="text-xs text-gray-500">{{ health_form.test_psychological_date|date:"M d, Y" }}</span>{% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">{{ health_form.test_psychological_findings|default:"Pending results" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.test_hbsag %}
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="text-sm font-semibold text-gray-900">HBsAg</h3>
+                                {% if health_form.test_hbsag_date %}<span class="text-xs text-gray-500">{{ health_form.test_hbsag_date|date:"M d, Y" }}</span>{% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">{{ health_form.test_hbsag_findings|default:"Pending results" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.test_anti_hbs_titer %}
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="text-sm font-semibold text-gray-900">Anti-HBs Titer</h3>
+                                {% if health_form.test_anti_hbs_titer_date %}<span class="text-xs text-gray-500">{{ health_form.test_anti_hbs_titer_date|date:"M d, Y" }}</span>{% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">{{ health_form.test_anti_hbs_titer_findings|default:"Pending results" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.test_fecalysis %}
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="text-sm font-semibold text-gray-900">Fecalysis</h3>
+                                {% if health_form.test_fecalysis_date %}<span class="text-xs text-gray-500">{{ health_form.test_fecalysis_date|date:"M d, Y" }}</span>{% endif %}
+                            </div>
+                            <p class="text-sm text-gray-600">{{ health_form.test_fecalysis_findings|default:"Pending results" }}</p>
+                        </div>
+                        {% endif %}
+                        {% if health_form.test_others %}
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <h3 class="text-sm font-semibold text-gray-900 mb-1">Other Tests</h3>
+                            <p class="text-sm text-gray-600">{{ health_form.test_others }}</p>
+                        </div>
+                        {% endif %}
+                        {% if not health_form.test_chest_xray and not health_form.test_cbc and not health_form.test_urinalysis and not health_form.test_drug_test and not health_form.test_psychological and not health_form.test_hbsag and not health_form.test_anti_hbs_titer and not health_form.test_fecalysis and not health_form.test_others %}
+                        <p class="text-sm text-gray-500 italic">No diagnostic tests recorded</p>
+                        {% endif %}
                     </div>
                 </div>
 

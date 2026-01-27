@@ -12,6 +12,7 @@ from .forms import (
     HealthProfilePersonalInfoForm,
     HealthProfileMedicalHistoryForm,
     HealthProfilePhysicalExamForm,
+    HealthProfileDiagnosticTestsForm,
     HealthProfileClinicalSummaryForm,
     HealthFormReviewForm,
 )
@@ -99,6 +100,8 @@ def edit_form(request, pk):
                 # Auto-calculate BMI
                 health_form = form.save(commit=False)
                 health_form.calculate_bmi()
+        elif section == 'diagnostic':
+            form = HealthProfileDiagnosticTestsForm(request.POST, instance=health_form)
         elif section == 'clinical':
             form = HealthProfileClinicalSummaryForm(request.POST, instance=health_form)
         else:
@@ -114,6 +117,7 @@ def edit_form(request, pk):
         'personal_form': HealthProfilePersonalInfoForm(instance=health_form),
         'medical_form': HealthProfileMedicalHistoryForm(instance=health_form),
         'physical_form': HealthProfilePhysicalExamForm(instance=health_form),
+        'diagnostic_form': HealthProfileDiagnosticTestsForm(instance=health_form),
         'clinical_form': HealthProfileClinicalSummaryForm(instance=health_form),
     }
     
@@ -173,16 +177,17 @@ def manual_entry(request):
         personal_form = HealthProfilePersonalInfoForm(request.POST)
         medical_form = HealthProfileMedicalHistoryForm(request.POST)
         physical_form = HealthProfilePhysicalExamForm(request.POST)
+        diagnostic_form = HealthProfileDiagnosticTestsForm(request.POST)
         clinical_form = HealthProfileClinicalSummaryForm(request.POST)
         
         if all([personal_form.is_valid(), medical_form.is_valid(), 
-                physical_form.is_valid(), clinical_form.is_valid()]):
+                physical_form.is_valid(), diagnostic_form.is_valid(), clinical_form.is_valid()]):
             
             # Create the health form
             health_form = HealthProfileForm(user=request.user)
             
             # Apply all form data
-            for form in [personal_form, medical_form, physical_form, clinical_form]:
+            for form in [personal_form, medical_form, physical_form, diagnostic_form, clinical_form]:
                 for field in form.cleaned_data:
                     setattr(health_form, field, form.cleaned_data[field])
             
@@ -197,12 +202,14 @@ def manual_entry(request):
         personal_form = HealthProfilePersonalInfoForm()
         medical_form = HealthProfileMedicalHistoryForm()
         physical_form = HealthProfilePhysicalExamForm()
+        diagnostic_form = HealthProfileDiagnosticTestsForm()
         clinical_form = HealthProfileClinicalSummaryForm()
     
     context = {
         'personal_form': personal_form,
         'medical_form': medical_form,
         'physical_form': physical_form,
+        'diagnostic_form': diagnostic_form,
         'clinical_form': clinical_form,
     }
     

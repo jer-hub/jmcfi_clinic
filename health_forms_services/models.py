@@ -68,8 +68,40 @@ class HealthProfileForm(models.Model):
     guardian_contact = models.CharField(max_length=20, blank=True)
     
     # ========== MEDICAL HISTORY ==========
-    immunization_records = models.JSONField(default=dict, blank=True)
-    illness_history = models.JSONField(default=list, blank=True)
+    # Immunization Records (Checkboxes)
+    immunization_covid19 = models.BooleanField(default=False)
+    immunization_covid19_date = models.DateField(blank=True, null=True)
+    immunization_influenza = models.BooleanField(default=False)
+    immunization_influenza_date = models.DateField(blank=True, null=True)
+    immunization_pneumonia = models.BooleanField(default=False)
+    immunization_pneumonia_date = models.DateField(blank=True, null=True)
+    immunization_polio = models.BooleanField(default=False)
+    immunization_polio_date = models.DateField(blank=True, null=True)
+    immunization_hepatitis_b = models.BooleanField(default=False)
+    immunization_hepatitis_b_date = models.DateField(blank=True, null=True)
+    immunization_bcg = models.BooleanField(default=False)
+    immunization_bcg_date = models.DateField(blank=True, null=True)
+    immunization_dpt_tetanus = models.BooleanField(default=False)
+    immunization_dpt_tetanus_date = models.DateField(blank=True, null=True)
+    immunization_rotavirus = models.BooleanField(default=False)
+    immunization_rotavirus_date = models.DateField(blank=True, null=True)
+    immunization_hib = models.BooleanField(default=False)
+    immunization_hib_date = models.DateField(blank=True, null=True)
+    immunization_measles_mmr = models.BooleanField(default=False)
+    immunization_measles_mmr_date = models.DateField(blank=True, null=True)
+    immunization_others = models.TextField(blank=True, help_text="Other immunizations")
+    
+    # Illnesses/Medical Conditions (Checkboxes)
+    illness_measles = models.BooleanField(default=False)
+    illness_mumps = models.BooleanField(default=False)
+    illness_rubella = models.BooleanField(default=False)
+    illness_chickenpox = models.BooleanField(default=False)
+    illness_ptb_pki = models.BooleanField(default=False)
+    illness_hypertension = models.BooleanField(default=False)
+    illness_diabetes = models.BooleanField(default=False)
+    illness_asthma = models.BooleanField(default=False)
+    illness_others = models.TextField(blank=True, help_text="Other illnesses/conditions")
+    
     allergies = models.TextField(blank=True)
     current_medications = models.TextField(blank=True)
     
@@ -100,12 +132,51 @@ class HealthProfileForm(models.Model):
     bmi = models.DecimalField(max_digits=5, decimal_places=2, blank=True, null=True)
     bmi_remarks = models.CharField(max_length=50, blank=True)
     
-    # System Review
-    physical_exam_findings = models.JSONField(default=dict, blank=True)
-    other_findings = models.TextField(blank=True)
+    # Physical Exam Findings (Text Fields)
+    exam_general = models.TextField(blank=True, help_text="General examination findings")
+    exam_heent = models.TextField(blank=True, help_text="Head, Eyes, Ears, Nose, Throat findings")
+    exam_chest_lungs = models.TextField(blank=True, help_text="Chest and lungs findings")
+    exam_abdomen = models.TextField(blank=True, help_text="Abdomen findings")
+    exam_genitourinary = models.TextField(blank=True, help_text="Genitourinary findings")
+    exam_extremities = models.TextField(blank=True, help_text="Extremities findings")
+    exam_neurologic = models.TextField(blank=True, help_text="Neurologic findings")
+    exam_other_findings = models.TextField(blank=True, help_text="Other significant findings")
     
     # ========== DIAGNOSTIC TESTS ==========
-    diagnostic_tests = models.JSONField(default=dict, blank=True)
+    # Diagnostic Test Checkboxes
+    test_chest_xray = models.BooleanField(default=False)
+    test_chest_xray_findings = models.TextField(blank=True)
+    test_chest_xray_date = models.DateField(blank=True, null=True)
+    
+    test_cbc = models.BooleanField(default=False)
+    test_cbc_findings = models.TextField(blank=True)
+    test_cbc_date = models.DateField(blank=True, null=True)
+    
+    test_urinalysis = models.BooleanField(default=False)
+    test_urinalysis_findings = models.TextField(blank=True)
+    test_urinalysis_date = models.DateField(blank=True, null=True)
+    
+    test_drug_test = models.BooleanField(default=False)
+    test_drug_test_findings = models.TextField(blank=True)
+    test_drug_test_date = models.DateField(blank=True, null=True)
+    
+    test_psychological = models.BooleanField(default=False)
+    test_psychological_findings = models.TextField(blank=True)
+    test_psychological_date = models.DateField(blank=True, null=True)
+    
+    test_hbsag = models.BooleanField(default=False)
+    test_hbsag_findings = models.TextField(blank=True)
+    test_hbsag_date = models.DateField(blank=True, null=True)
+    
+    test_anti_hbs_titer = models.BooleanField(default=False)
+    test_anti_hbs_titer_findings = models.TextField(blank=True)
+    test_anti_hbs_titer_date = models.DateField(blank=True, null=True)
+    
+    test_fecalysis = models.BooleanField(default=False)
+    test_fecalysis_findings = models.TextField(blank=True)
+    test_fecalysis_date = models.DateField(blank=True, null=True)
+    
+    test_others = models.TextField(blank=True, help_text="Other diagnostic tests")
     
     # ========== CLINICAL SUMMARY ==========
     physician_impression = models.TextField(blank=True)

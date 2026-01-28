@@ -4,7 +4,7 @@ from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
 from django.conf import settings
-from management.utils import get_user_profile
+from .utils import get_user_profile
 
 
 class SessionTimeoutMiddleware:
@@ -110,7 +110,7 @@ class ProfileCompleteMiddleware:
                 return None
             
             # Silent redirect - the banner will handle the messaging
-            return redirect('management:edit_profile')
+            return redirect('core:edit_profile')
 
         return None
 

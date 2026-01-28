@@ -1,0 +1,289 @@
+<!-- Admin Dashboard -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Total Students</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_students }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-green-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Medical Staff</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_staff }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-yellow-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Today's Appointments</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_appointments }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Pending Certificates</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ pending_certificates }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- System Overview -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-purple-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Total Appointments</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ system_stats.total_appointments_all }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Medical Records</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ system_stats.total_records }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-pink-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Certificates</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ system_stats.total_certificates }}</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+    <div class="flex items-center">
+      <div class="p-2 sm:p-3 bg-teal-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <div class="ml-3 sm:ml-4">
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Health Tips</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ system_stats.total_health_tips }}</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Actions for Admin -->
+<div class="bg-white rounded-lg shadow mb-6 sm:mb-8">
+  <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Quick Actions</h3>
+  </div>
+  <div class="p-4 sm:p-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <a href="{% url 'core:user_management' %}" class="flex items-center p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Manage Users</p>
+          <p class="text-xs text-gray-600">View and manage all users</p>
+        </div>
+      </a>
+
+      <a href="{% url 'appointments:appointment_list' %}" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">View Appointments</p>
+          <p class="text-xs text-gray-600">Manage all appointments</p>
+        </div>
+      </a>
+
+      <a href="{% url 'health_tips:health_tips_list' %}" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Health Tips</p>
+          <p class="text-xs text-gray-600">Manage health information</p>
+        </div>
+      </a>
+
+      <a href="{% url 'document_request:certificate_requests' %}" class="flex items-center p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Certificates</p>
+          <p class="text-xs text-gray-600">Process certificate requests</p>
+        </div>
+      </a>
+
+      <a href="{% url 'appointments:appointment_type_settings' %}" class="flex items-center p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+        <div class="flex-shrink-0">
+          <div class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-semibold text-gray-900">Appointment Settings</p>
+          <p class="text-xs text-gray-600">Configure default doctors</p>
+        </div>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+  <!-- Today's Appointments -->
+  <div class="bg-white rounded-lg shadow h-96">
+    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+      <h3 class="text-base sm:text-lg font-semibold text-gray-900">Today's Appointments</h3>
+    </div>
+    <div class="p-4 sm:p-6 h-80 flex flex-col">
+      {% if recent_appointments %}
+        <div class="space-y-3 sm:space-y-4 flex-1 overflow-y-auto">
+          {% for appointment in recent_appointments %}
+            <div class="p-3 sm:p-4 bg-gray-50 rounded-lg">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex-1 min-w-0 mb-2 sm:mb-0">
+                  <p class="font-medium text-gray-900 break-words">{{ appointment.student.get_full_name }}</p>
+                  <p class="text-xs sm:text-sm text-gray-600 break-words">Dr. {{ appointment.doctor.get_full_name }}</p>
+                  <p class="text-xs sm:text-sm text-gray-500 break-words">{{ appointment.time }} - {{ appointment.get_appointment_type_display }}</p>
+                </div>
+                <span class="px-2 py-1 text-xs font-medium rounded-full break-words
+                                              {% if appointment.status == 'pending' %}
+                    bg-yellow-100 text-yellow-800
+                {% else %}
+                  bg-gray-100 text-gray-800
+                {% endif %}">
+                {{ appointment.get_status_display }}
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="flex-1 flex items-center justify-center">
+          <p class="text-gray-500">No appointments scheduled for today</p>
+        </div>
+      {% endif %}
+      <div class="mt-4 pt-2 border-t border-gray-100">
+        <a href="{% url 'appointments:appointment_list' %}" class="text-primary-600 hover:text-primary-500 text-sm font-medium">View all appointments →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Feedbacks -->
+  <div class="bg-white rounded-lg shadow h-96">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h3 class="text-lg font-semibold text-gray-900">Recent Feedback</h3>
+    </div>
+    <div class="p-6 h-80 flex flex-col">
+      {% if recent_feedbacks %}
+        <div class="space-y-4 flex-1 overflow-y-auto">
+          {% for feedback in recent_feedbacks %}
+            <div class="p-4 bg-gray-50 rounded-lg">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="font-medium text-gray-900">
+                    {% if feedback.is_anonymous %}
+                      Anonymous
+                    {% else %}
+                      {{ feedback.student.get_full_name }}
+                    {% endif %}
+                  </p>
+                  <p class="text-sm text-gray-600">{{ feedback.comments|truncatewords:10 }}</p>
+                  <p class="text-sm text-gray-500">{{ feedback.created_at|date:'M d, Y' }}</p>
+                </div>
+                <div class="flex items-center">
+                    {% for i in '12345'|make_list %}
+                    <svg class="w-4 h-4 {% if feedback.rating >= i|add:0 %}
+                        text-yellow-400
+                      {% else %}
+                        text-gray-300
+                      {% endif %}"
+                      fill="currentColor"
+                      viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="flex-1 flex items-center justify-center">
+          <p class="text-gray-500">No recent feedback</p>
+        </div>
+      {% endif %}
+      <div class="mt-4 pt-2 border-t border-gray-100">
+        <a href="{% url 'feedback:feedback_list' %}" class="text-primary-600 hover:text-primary-500 text-sm font-medium">View all feedback →</a>
+      </div>
+    </div>
+  </div>
+</div>

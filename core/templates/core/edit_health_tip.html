@@ -1,0 +1,173 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Edit Health Tip - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200 bg-primary-50">
+                <h1 class="text-2xl font-bold text-gray-900">Edit Health Tip</h1>
+                <p class="text-sm text-gray-600 mt-1">Update your health tip content</p>
+            </div>
+
+            <form method="post" class="p-6 space-y-6">
+                {% csrf_token %}
+                
+                <!-- Title Field -->
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                    <input type="text" id="title" name="title" required 
+                           value="{{ title|default:health_tip.title }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                           placeholder="Enter a catchy title for your health tip">
+                </div>
+
+                <!-- Category Field -->
+                <div>
+                    <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select id="category" name="category" required 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Select a category</option>
+                        <option value="nutrition" {% if category|default:health_tip.category == 'nutrition' %}selected{% endif %}>Nutrition</option>
+                        <option value="exercise" {% if category|default:health_tip.category == 'exercise' %}selected{% endif %}>Exercise</option>
+                        <option value="mental_health" {% if category|default:health_tip.category == 'mental_health' %}selected{% endif %}>Mental Health</option>
+                        <option value="hygiene" {% if category|default:health_tip.category == 'hygiene' %}selected{% endif %}>Hygiene</option>
+                        <option value="prevention" {% if category|default:health_tip.category == 'prevention' %}selected{% endif %}>Disease Prevention</option>
+                        <option value="first_aid" {% if category|default:health_tip.category == 'first_aid' %}selected{% endif %}>First Aid</option>
+                    </select>
+                </div>
+
+                <!-- Content Field -->
+                <div>
+                    <label for="content" class="block text-sm font-medium text-gray-700 mb-2">Content</label>
+                    <textarea id="content" name="content" rows="12" required
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                              placeholder="Write your health tip content here. Provide detailed, helpful advice that students can easily follow.">{{ content|default:health_tip.content }}</textarea>
+                    <p class="text-sm text-gray-500 mt-1">Provide clear, actionable advice. Use simple language and include examples where helpful.</p>
+                </div>
+
+                <!-- Current Status -->
+                <div class="bg-gray-50 p-4 rounded-md">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Current Status</p>
+                    <p class="text-sm text-gray-600">
+                        This health tip is currently 
+                        <span class="font-medium {% if health_tip.is_active %}text-green-600{% else %}text-yellow-600{% endif %}">
+                            {% if health_tip.is_active %}Published{% else %}Draft{% endif %}
+                        </span>
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">
+                        Created on {{ health_tip.created_at|date:"M d, Y" }} • 
+                        Last updated {{ health_tip.updated_at|date:"M d, Y" }}
+                    </p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <div class="flex space-x-3">
+                        <a href="{% url 'health_tips:health_tips_list' %}" 
+                           class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            Cancel
+                        </a>
+                        <a href="{% url 'health_tips:delete_health_tip' health_tip.id %}" 
+                           class="px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-md shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                           onclick="return confirm('Are you sure you want to delete this health tip? This action cannot be undone.')">
+                            Delete
+                        </a>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button type="submit" name="status" value="draft"
+                                class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            Save as Draft
+                        </button>
+                        <button type="submit" name="status" value="published"
+                                class="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            Update & Publish
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Health Tip Guidelines -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h3 class="text-lg font-medium text-blue-900 mb-4">Health Tip Guidelines</h3>
+            <ul class="text-sm text-blue-800 space-y-2">
+                <li class="flex items-start">
+                    <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Keep advice practical and actionable for students</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Use simple, easy-to-understand language</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Include evidence-based information when possible</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Focus on prevention and wellness</span>
+                </li>
+                <li class="flex items-start">
+                    <svg class="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span>Always recommend consulting healthcare professionals for serious concerns</span>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-resize textarea
+document.getElementById('content').addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = this.scrollHeight + 'px';
+});
+
+// Character counter for title
+document.getElementById('title').addEventListener('input', function() {
+    const maxLength = 200;
+    const currentLength = this.value.length;
+    
+    // Remove existing counter
+    const existingCounter = document.getElementById('title-counter');
+    if (existingCounter) {
+        existingCounter.remove();
+    }
+    
+    // Add counter
+    const counter = document.createElement('p');
+    counter.id = 'title-counter';
+    counter.className = `text-sm mt-1 ${currentLength > maxLength ? 'text-red-500' : 'text-gray-500'}`;
+    counter.textContent = `${currentLength}/${maxLength} characters`;
+    
+    this.parentNode.appendChild(counter);
+    
+    if (currentLength > maxLength) {
+        this.classList.add('border-red-500');
+        this.classList.remove('border-gray-300');
+    } else {
+        this.classList.remove('border-red-500');
+        this.classList.add('border-gray-300');
+    }
+});
+
+// Auto-resize textarea on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('content');
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + 'px';
+});
+</script>
+{% endblock content %}

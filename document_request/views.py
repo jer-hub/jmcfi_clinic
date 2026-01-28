@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from datetime import timedelta
 
 from .models import DocumentRequest
-from management.models import Notification
+from core.models import Notification
 
 User = get_user_model()
 
@@ -64,7 +64,7 @@ def request_document(request):
     """Submit a new document/certificate request."""
     if request.user.role != 'student':
         messages.error(request, 'Only students can request certificates')
-        return redirect('management:dashboard')
+        return redirect('core:dashboard')
     
     if request.method == 'POST':
         document_type = request.POST.get('certificate_type') or request.POST.get('document_type')
@@ -155,7 +155,7 @@ def process_document(request, request_id):
     """Process a document/certificate request (staff/admin only)."""
     if request.user.role not in ['staff', 'admin']:
         messages.error(request, 'Access denied')
-        return redirect('management:dashboard')
+        return redirect('core:dashboard')
     
     doc_request = get_object_or_404(DocumentRequest, id=request_id)
     

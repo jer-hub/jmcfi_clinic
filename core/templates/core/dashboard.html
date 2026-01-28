@@ -1,0 +1,22 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Dashboard - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <!-- Page Header -->
+        <div class="mb-6 sm:mb-8">
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+        </div>
+        {% if user.role == 'student' %}
+            {% include 'core/dashboard_student.html' %}
+        {% elif user.role == 'staff' or user.role == 'doctor' %}
+            {% include 'core/dashboard_staff.html' %}
+        {% elif user.role == 'admin' %}
+            {% include 'core/dashboard_admin.html' %}
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

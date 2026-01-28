@@ -9,7 +9,7 @@ import json
 
 from .models import Appointment, AppointmentTypeDefault
 from .forms import AppointmentTypeDefaultForm
-from management.models import Notification
+from core.models import Notification
 from core.decorators import role_required, admin_required
 
 User = get_user_model()
@@ -67,7 +67,7 @@ def appointment_list(request):
 def schedule_appointment(request):
     if request.user.role != 'student':
         messages.error(request, 'Only students can schedule appointments')
-        return redirect('management:dashboard')
+        return redirect('core:dashboard')
     
     if request.method == 'POST':
         doctor_id = request.POST.get('doctor')

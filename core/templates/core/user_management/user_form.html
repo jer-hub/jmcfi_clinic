@@ -1,0 +1,137 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ action }} User - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
+                <h2 class="text-2xl font-bold text-gray-900">{{ action }} User</h2>
+                <p class="mt-1 text-sm text-gray-600">{% if action == 'Create' %}Add a new user to the system{% else %}Update user information{% endif %}</p>
+            </div>
+
+            <form method="POST" class="p-6 space-y-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Username -->
+                    <div>
+                        <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Username <span class="text-gray-400">(Optional)</span>
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Email -->
+                    <div>
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Email <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- First Name -->
+                    <div>
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            First Name <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Last Name -->
+                    <div>
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Last Name <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Role -->
+                    <div>
+                        <label for="{{ form.role.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Role <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.role }}
+                        {% if form.role.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.role.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Active Status (Edit only) -->
+                    {% if action == 'Edit' %}
+                    <div>
+                        <label for="{{ form.is_active.id_for_label }}" class="flex items-center space-x-2 mt-8">
+                            {{ form.is_active }}
+                            <span class="text-sm font-medium text-gray-700">Account Active</span>
+                        </label>
+                        {% if form.is_active.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Passwords (Create only) -->
+                {% if action == 'Create' %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-200">
+                    <div>
+                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Password <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.password1.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">Minimum 8 characters</p>
+                    </div>
+
+                    <div>
+                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Confirm Password <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.password2.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Form Actions -->
+                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                    <a href="{% if viewed_user %}{% url 'core:user_detail' viewed_user.id %}{% else %}{% url 'core:user_management' %}{% endif %}" class="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors">
+                        {{ action }} User
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        {% if action == 'Create' %}
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-blue-800 mb-2">📝 Note:</h3>
+            <ul class="text-sm text-blue-700 space-y-1">
+                <li>• A temporary profile will be created for the user</li>
+                <li>• The user should complete their profile after first login</li>
+                <li>• A welcome notification will be sent to the user</li>
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock content %}

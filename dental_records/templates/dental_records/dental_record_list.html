@@ -1,4 +1,4 @@
-{% extends 'management/base.html' %}
+{% extends 'core/base.html' %}
 {% load static %}
 {% load role_tags %}
 
@@ -349,7 +349,7 @@
                                 Create First Dental Record
                             </a>
                             <div class="text-sm text-gray-500">
-                                Or <a href="{% url 'management:dashboard' %}" class="text-primary-600 hover:text-primary-800 font-medium">return to dashboard</a>
+                                Or <a href="{% url 'core:dashboard' %}" class="text-primary-600 hover:text-primary-800 font-medium">return to dashboard</a>
                             </div>
                         </div>
                         {% elif user.role == 'student' %}
@@ -361,7 +361,7 @@
                                 Schedule Your First Appointment
                             </a>
                             <div class="text-sm text-gray-500">
-                                Or <a href="{% url 'management:dashboard' %}" class="text-primary-600 hover:text-primary-800 font-medium">return to dashboard</a>
+                                Or <a href="{% url 'core:dashboard' %}" class="text-primary-600 hover:text-primary-800 font-medium">return to dashboard</a>
                             </div>
                         </div>
                         {% endif %}

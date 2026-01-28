@@ -1,0 +1,159 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Patient Feedback - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Patient Feedback</h2>
+                        <p class="mt-1 text-sm text-gray-600">
+                            View patient experiences and feedback about our healthcare services
+                        </p>
+                        {% if feedbacks.paginator.count %}
+                            <p class="text-xs text-gray-500 mt-1">{{ feedbacks.paginator.count }} review{{ feedbacks.paginator.count|pluralize }} total</p>
+                        {% endif %}
+                    </div>
+                    {% if user.role == 'student' %}
+                        <a href="{% url 'feedback:submit_feedback' %}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            <span class="hidden sm:inline">Share Feedback</span>
+                            <span class="sm:hidden">Feedback</span>
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="overflow-hidden">
+                {% if feedbacks %}
+                    <div class="divide-y divide-gray-200">
+                        {% for fb in feedbacks %}
+                            <div class="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
+                                <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-4 sm:space-y-0">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex flex-col sm:flex-row sm:items-center">
+                                            <div class="flex-shrink-0 mb-3 sm:mb-0 sm:mr-4">
+                                                <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                                                    {% if fb.is_anonymous %}
+                                                        <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                                        </svg>
+                                                    {% else %}
+                                                        <span class="text-primary-600 font-semibold">{{ fb.student.first_name.0 }}{{ fb.student.last_name.0 }}</span>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex flex-col sm:flex-row sm:items-center mb-2">
+                                                    <h3 class="text-lg font-medium text-gray-900">
+                                                        {% if fb.is_anonymous %}
+                                                            Anonymous Patient
+                                                        {% else %}
+                                                            {{ fb.student.get_full_name }}
+                                                        {% endif %}
+                                                    </h3>
+                                                    <div class="mt-2 sm:mt-0 sm:ml-3 flex items-center space-x-2">
+                                                        <div class="flex items-center space-x-1">
+                                                            {% for star in "12345" %}
+                                                                {% if forloop.counter <= fb.rating %}
+                                                                    <svg class="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                                    </svg>
+                                                                {% else %}
+                                                                    <svg class="h-4 w-4 text-gray-300" viewBox="0 0 20 20" fill="currentColor">
+                                                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                                    </svg>
+                                                                {% endif %}
+                                                            {% endfor %}
+                                                        </div>
+                                                        <span class="px-2 py-1 text-xs font-medium rounded-full
+                                                            {% if fb.rating >= 4 %}bg-green-100 text-green-800{% elif fb.rating >= 3 %}bg-yellow-100 text-yellow-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                                            {{ fb.rating }}/5
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div class="text-sm text-gray-600 space-y-1">
+                                                    <p><strong>Date:</strong> {{ fb.created_at|date:"M d, Y" }} at {{ fb.created_at|time:"h:i A" }}</p>
+                                                    <p><strong>Comments:</strong> <span class="break-words">{{ fb.comments|truncatewords:20 }}</span></p>
+                                                    {% if fb.suggestions %}
+                                                        <p><strong>Suggestions:</strong> <span class="break-words">{{ fb.suggestions|truncatewords:15 }}</span></p>
+                                                    {% endif %}
+                                                    {% if fb.appointment %}
+                                                        <p><strong>Appointment:</strong> {{ fb.appointment.date|date:'M d, Y' }} at {{ fb.appointment.time|time:'h:i A' }}{% if fb.appointment.doctor %} • Dr. {{ fb.appointment.doctor.get_full_name }}{% endif %}</p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <!-- Pagination -->
+                    {% if feedbacks.has_other_pages %}
+                        <div class="px-4 sm:px-6 py-4 border-t border-gray-200">
+                            <div class="flex flex-col sm:flex-row sm:justify-between items-center space-y-3 sm:space-y-0">
+                                <div class="flex space-x-2">
+                                    {% if feedbacks.has_previous %}
+                                        <a href="?page={{ feedbacks.previous_page_number }}" class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                            Previous
+                                        </a>
+                                    {% else %}
+                                        <span class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+                                            Previous
+                                        </span>
+                                    {% endif %}
+                                    
+                                    {% if feedbacks.has_next %}
+                                        <a href="?page={{ feedbacks.next_page_number }}" class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                            Next
+                                        </a>
+                                    {% else %}
+                                        <span class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
+                                            Next
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <span class="relative inline-flex items-center px-3 sm:px-4 py-2 text-sm font-medium text-gray-700">
+                                    Page {{ feedbacks.number }} of {{ feedbacks.paginator.num_pages }}
+                                </span>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="p-8 sm:p-12 text-center">
+                        <svg class="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10m0 0V6a2 2 0 00-2-2H9a2 2 0 00-2 2v2m10 0v10a2 2 0 01-2 2H9a2 2 0 01-2-2V8m0 0V6a2 2 0 012-2h6a2 2 0 012 2v2"></path>
+                        </svg>
+                        <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-2">No feedback found</h3>
+                        <p class="text-sm sm:text-base text-gray-600 mb-4">
+                            No patient feedback available at this time.
+                        </p>
+                        {% if user.role == 'student' %}
+                            <a href="{% url 'feedback:submit_feedback' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                                Share Your Feedback
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Back to Dashboard -->
+        <div class="mt-6 text-center">
+            <a href="{% url 'core:dashboard' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

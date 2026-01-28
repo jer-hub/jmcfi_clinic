@@ -1,0 +1,1010 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Edit Profile - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    {% if is_first_time %}
+                        <h1 class="text-3xl font-bold text-gray-900">Complete Your Profile</h1>
+                        <p class="text-gray-600 mt-1">Please fill in all required information to get started</p>
+                    {% else %}
+                        <h1 class="text-3xl font-bold text-gray-900">Edit Profile</h1>
+                        <p class="text-gray-600 mt-1">Update your personal information</p>
+                    {% endif %}
+                </div>
+                {% if not is_first_time %}
+                <a href="{% url 'core:profile' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    Back to Profile
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            <!-- Progress Indicator for First Time Users -->
+            {% if is_first_time %}
+            <div class="px-8 py-4 bg-gradient-to-r from-primary-50 to-primary-100 border-b">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-medium text-primary-800">Profile Completion</h3>
+                    <div class="flex items-center text-sm text-primary-600">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        Required fields marked with *
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <form method="post" enctype="multipart/form-data" class="space-y-8">
+                {% csrf_token %}
+                
+                <!-- Profile Image Section -->
+                <div class="px-8 py-6 bg-gradient-to-r from-primary-50 to-primary-100">
+                    <div class="flex flex-col lg:flex-row items-center space-y-6 lg:space-y-0 lg:space-x-8">
+                        <!-- Current Image Preview -->
+                        <div class="flex-shrink-0">
+                            <div class="relative group">
+                                {% if profile and profile.profile_image %}
+                                    <img id="current-image" src="{{ profile.profile_image.url }}" 
+                                         alt="Current profile picture"
+                                         class="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg transition-all duration-300 group-hover:shadow-xl">
+                                {% else %}
+                                    <div id="current-image" class="w-32 h-32 rounded-full bg-primary-200 border-4 border-white shadow-lg flex items-center justify-center transition-all duration-300 group-hover:shadow-xl">
+                                        <span class="text-primary-600 text-4xl font-bold">
+                                            {{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}
+                                        </span>
+                                    </div>
+                                {% endif %}
+                                <div class="absolute inset-0 rounded-full bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-pointer"
+                                     onclick="document.getElementById('profile-image-input').click()">
+                                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Image Upload Controls -->
+                        <div class="flex-1">
+                            <div class="text-center lg:text-left">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-2">Profile Photo</h3>
+                                <p class="text-sm text-gray-600 mb-4">Upload a professional photo. JPG, PNG or GIF. Max 5MB.</p>
+                                
+                                <div class="space-y-3">
+                                    <!-- Hidden File Input -->
+                                    {{ form.profile_image }}
+                                    
+                                    <!-- Custom Upload Button -->
+                                    <div class="flex flex-col sm:flex-row gap-3">
+                                        <button type="button" onclick="document.getElementById('profile-image-input').click()"
+                                                class="inline-flex items-center justify-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-sm">
+                                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                            </svg>
+                                            Upload Photo
+                                        </button>
+                                        
+                                        {% if profile and profile.profile_image %}
+                                            <button type="button" id="remove-image" onclick="removeImage()"
+                                                    class="inline-flex items-center justify-center px-4 py-2 bg-red-100 text-red-700 text-sm font-medium rounded-lg hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                                </svg>
+                                                Remove Photo
+                                            </button>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- File Name Display -->
+                                    <div id="file-name" class="text-sm text-gray-500 hidden"></div>
+                                    
+                                    <!-- Upload Progress -->
+                                    <div id="upload-progress" class="hidden">
+                                        <div class="w-full bg-gray-200 rounded-full h-2">
+                                            <div class="bg-primary-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if form.profile_image.errors %}
+                                <div class="mt-3">
+                                    {% for error in form.profile_image.errors %}
+                                        <p class="text-sm text-red-600 flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                            </svg>
+                                            {{ error }}
+                                        </p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Fields -->
+                <div class="px-8 py-6">
+                    {% if user.role == 'student' %}
+                        <!-- Student Form Fields -->
+                        <div class="space-y-6">
+                            <!-- Personal Information Section -->
+                            <div class="border-b border-gray-200 pb-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Personal Information
+                                </h3>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Student ID -->
+                                    <div class="form-group">
+                                        <label for="{{ form.student_id.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Student ID <span class="text-red-500">*</span>
+                                            </span>
+                                        </label>
+                                        {{ form.student_id }}
+                                        {% if form.student_id.errors %}
+                                            {% for error in form.student_id.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Date of Birth -->
+                                    <div class="form-group">
+                                        <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Date of Birth <span class="text-red-500">*</span>
+                                            </span>
+                                        </label>
+                                        {{ form.date_of_birth }}
+                                        {% if form.date_of_birth.errors %}
+                                            {% for error in form.date_of_birth.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Blood Type -->
+                                    <div class="form-group">
+                                        <label for="{{ form.blood_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                </svg>
+                                                Blood Type <span class="text-red-500">*</span>
+                                            </span>
+                                        </label>
+                                        {{ form.blood_type }}
+                                        {% if form.blood_type.errors %}
+                                            {% for error in form.blood_type.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-b border-gray-200 pb-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                                    </svg>
+                                    Contact Information
+                                </h3>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Phone -->
+                                    <div class="form-group">
+                                        <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                                                </svg>
+                                                Phone Number <span class="text-red-500">*</span>
+                                            </span>
+                                        </label>
+                                        {{ form.phone }}
+                                        {% if form.phone.errors %}
+                                            {% for error in form.phone.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Emergency Contact -->
+                                    <div class="form-group">
+                                        <label for="{{ form.emergency_contact.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Emergency Contact <span class="text-red-500">*</span>
+                                            </span>
+                                        </label>
+                                        {{ form.emergency_contact }}
+                                        {% if form.emergency_contact.errors %}
+                                            {% for error in form.emergency_contact.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Emergency Phone -->
+                                    <div class="form-group md:col-span-2">
+                                        <label for="{{ form.emergency_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                                                </svg>
+                                                Emergency Phone Number <span class="text-red-500">*</span>
+                                            </span>
+                                        </label>
+                                        {{ form.emergency_phone }}
+                                        {% if form.emergency_phone.errors %}
+                                            {% for error in form.emergency_phone.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15.586 13H14a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Medical Information
+                                </h3>
+                                
+                                <div class="space-y-6">
+                                    <!-- Allergies -->
+                                    <div class="form-group">
+                                        <label for="{{ form.allergies.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Allergies
+                                            </span>
+                                        </label>
+                                        {{ form.allergies }}
+                                        <p class="mt-1 text-sm text-gray-500">List any allergies you have (food, medication, environmental, etc.)</p>
+                                        {% if form.allergies.errors %}
+                                            {% for error in form.allergies.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Medical Conditions -->
+                                    <div class="form-group">
+                                        <label for="{{ form.medical_conditions.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                Medical Conditions
+                                            </span>
+                                        </label>
+                                        {{ form.medical_conditions }}
+                                        <p class="mt-1 text-sm text-gray-500">List any existing medical conditions or chronic illnesses</p>
+                                        {% if form.medical_conditions.errors %}
+                                            {% for error in form.medical_conditions.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    {% elif user.role == 'staff' or user.role == 'doctor' %}
+                        <!-- Staff Form Fields -->
+                        <div class="space-y-6">
+                            <!-- Professional Information -->
+                            <div class="border-b border-gray-200 pb-6">
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                                        <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z"/>
+                                    </svg>
+                                    Professional Information
+                                </h3>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <!-- Staff ID -->
+                                    <div class="form-group">
+                                        <label for="{{ form.staff_id.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v8H4V6z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Staff ID <span class="text-red-500">*</span>
+                                            </span>
+                                        </label>
+                                        {{ form.staff_id }}
+                                        {% if form.staff_id.errors %}
+                                            {% for error in form.staff_id.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Department -->
+                                    <div class="form-group">
+                                        <label for="{{ form.department.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
+                                                    <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Department <span class="text-red-500">*</span>
+                                            </span>
+                                        </label>
+                                        {{ form.department }}
+                                        {% if form.department.errors %}
+                                            {% for error in form.department.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Specialization -->
+                                    <div class="form-group">
+                                        <label for="{{ form.specialization.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                Specialization
+                                            </span>
+                                        </label>
+                                        {{ form.specialization }}
+                                        {% if form.specialization.errors %}
+                                            {% for error in form.specialization.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- License Number -->
+                                    <div class="form-group">
+                                        <label for="{{ form.license_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-1a1 1 0 00-1-1H9a1 1 0 00-1 1v1a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/>
+                                                </svg>
+                                                License Number
+                                            </span>
+                                        </label>
+                                        {{ form.license_number }}
+                                        {% if form.license_number.errors %}
+                                            {% for error in form.license_number.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Phone -->
+                                    <div class="form-group">
+                                        <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                                                </svg>
+                                                Professional Phone <span class="text-red-500">*</span>
+                                            </span>
+                                        </label>
+                                        {{ form.phone }}
+                                        {% if form.phone.errors %}
+                                            {% for error in form.phone.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Date of Birth -->
+                                    <div class="form-group">
+                                        <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Date of Birth
+                                            </span>
+                                        </label>
+                                        {{ form.date_of_birth }}
+                                        {% if form.date_of_birth.errors %}
+                                            {% for error in form.date_of_birth.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Blood Type -->
+                                    <div class="form-group">
+                                        <label for="{{ form.blood_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                                </svg>
+                                                Blood Type
+                                            </span>
+                                        </label>
+                                        {{ form.blood_type }}
+                                        {% if form.blood_type.errors %}
+                                            {% for error in form.blood_type.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Emergency Contact -->
+                                    <div class="form-group">
+                                        <label for="{{ form.emergency_contact.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Emergency Contact
+                                            </span>
+                                        </label>
+                                        {{ form.emergency_contact }}
+                                        {% if form.emergency_contact.errors %}
+                                            {% for error in form.emergency_contact.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Emergency Phone -->
+                                    <div class="form-group">
+                                        <label for="{{ form.emergency_phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                                    <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                                                </svg>
+                                                Emergency Phone Number
+                                            </span>
+                                        </label>
+                                        {{ form.emergency_phone }}
+                                        {% if form.emergency_phone.errors %}
+                                            {% for error in form.emergency_phone.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Medical Information Section -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                    <svg class="w-5 h-5 mr-2 text-primary-600" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15.586 13H14a1 1 0 01-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Medical Information
+                                </h3>
+                                
+                                <div class="space-y-6">
+                                    <!-- Allergies -->
+                                    <div class="form-group">
+                                        <label for="{{ form.allergies.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                </svg>
+                                                Allergies
+                                            </span>
+                                        </label>
+                                        {{ form.allergies }}
+                                        <p class="mt-1 text-sm text-gray-500">List any allergies you have (food, medication, environmental, etc.)</p>
+                                        {% if form.allergies.errors %}
+                                            {% for error in form.allergies.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Medical Conditions -->
+                                    <div class="form-group">
+                                        <label for="{{ form.medical_conditions.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                Medical Conditions
+                                            </span>
+                                        </label>
+                                        {{ form.medical_conditions }}
+                                        <p class="mt-1 text-sm text-gray-500">List any existing medical conditions or chronic illnesses</p>
+                                        {% if form.medical_conditions.errors %}
+                                            {% for error in form.medical_conditions.errors %}
+                                                <p class="mt-2 text-sm text-red-600 flex items-center">
+                                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                                    </svg>
+                                                    {{ error }}
+                                                </p>
+                                            {% endfor %}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Form Actions -->
+                <div class="px-8 py-6 bg-gray-50 border-t">
+                    <div class="flex flex-col sm:flex-row justify-end gap-3">
+                        {% if not is_first_time %}
+                        <a href="{% url 'core:profile' %}" 
+                           class="inline-flex items-center justify-center px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-sm hover:shadow-md">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                            Cancel
+                        </a>
+                        {% endif %}
+                        <button type="submit" 
+                                class="inline-flex items-center justify-center px-6 py-3 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200 shadow-sm hover:shadow-md transform hover:scale-105 active:scale-95">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            {% if is_first_time %}Complete Profile{% else %}Save Changes{% endif %}
+                        </button>
+                    </div>
+                    {% if is_first_time %}
+                    <p class="text-xs text-gray-500 text-center mt-4">
+                        All fields marked with <span class="text-red-500">*</span> are required to complete your profile setup.
+                    </p>
+                    {% else %}
+                    <p class="text-xs text-gray-500 text-center mt-4">
+                        Your information is kept secure and private. Only authorized medical staff can access your medical records.
+                    </p>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('profile-image-input');
+    const currentImage = document.getElementById('current-image');
+    const fileName = document.getElementById('file-name');
+    const uploadProgress = document.getElementById('upload-progress');
+    const removeButton = document.getElementById('remove-image');
+    
+    // File input change handler
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        handleFileSelection(file);
+    });
+    
+    // Drag and drop functionality
+    const imageContainer = currentImage.closest('.group');
+    if (imageContainer) {
+        imageContainer.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            imageContainer.classList.add('ring-2', 'ring-primary-400', 'ring-opacity-50');
+        });
+        
+        imageContainer.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            imageContainer.classList.remove('ring-2', 'ring-primary-400', 'ring-opacity-50');
+        });
+        
+        imageContainer.addEventListener('drop', function(e) {
+            e.preventDefault();
+            imageContainer.classList.remove('ring-2', 'ring-primary-400', 'ring-opacity-50');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type.startsWith('image/')) {
+                    fileInput.files = files;
+                    handleFileSelection(file);
+                } else {
+                    showError('Please select a valid image file.');
+                }
+            }
+        });
+    }
+    
+    function handleFileSelection(file) {
+        if (!file) return;
+        
+        // Validate file size (5MB max)
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (file.size > maxSize) {
+            showError('File size must be less than 5MB.');
+            return;
+        }
+        
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            showError('Please select a JPG, PNG, GIF, or WebP image.');
+            return;
+        }
+        
+        // Show file name
+        if (fileName) {
+            fileName.textContent = `Selected: ${file.name}`;
+            fileName.classList.remove('hidden');
+        }
+        
+        // Preview the image
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            if (currentImage.tagName === 'IMG') {
+                currentImage.src = e.target.result;
+            } else {
+                // Replace div with img element
+                const img = document.createElement('img');
+                img.id = 'current-image';
+                img.src = e.target.result;
+                img.alt = 'Profile preview';
+                img.className = 'w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg transition-all duration-300 group-hover:shadow-xl';
+                
+                currentImage.parentNode.replaceChild(img, currentImage);
+            }
+            
+            // Show remove button if it exists
+            if (removeButton) {
+                removeButton.classList.remove('hidden');
+            }
+        };
+        
+        // Simulate upload progress
+        if (uploadProgress) {
+            uploadProgress.classList.remove('hidden');
+            const progressBar = uploadProgress.querySelector('div');
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                progressBar.style.width = progress + '%';
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        uploadProgress.classList.add('hidden');
+                        progressBar.style.width = '0%';
+                    }, 500);
+                }
+            }, 50);
+        }
+        
+        reader.readAsDataURL(file);
+    }
+    
+    function showError(message) {
+        // Create or update error message
+        let errorDiv = document.querySelector('.image-error');
+        if (!errorDiv) {
+            errorDiv = document.createElement('div');
+            errorDiv.className = 'image-error mt-3 p-3 bg-red-50 border border-red-200 rounded-lg';
+            currentImage.closest('.flex-1').appendChild(errorDiv);
+        }
+        
+        errorDiv.innerHTML = `
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span class="text-sm text-red-600">${message}</span>
+            </div>
+        `;
+        
+        // Auto-hide error after 5 seconds
+        setTimeout(() => {
+            if (errorDiv) {
+                errorDiv.remove();
+            }
+        }, 5000);
+        
+        // Clear file input
+        fileInput.value = '';
+    }
+});
+
+// Remove image function
+function removeImage() {
+    const currentImage = document.getElementById('current-image');
+    const fileInput = document.getElementById('profile-image-input');
+    const fileName = document.getElementById('file-name');
+    const removeButton = document.getElementById('remove-image');
+    
+    // Clear file input
+    fileInput.value = '';
+    
+    // Hide file name
+    if (fileName) {
+        fileName.classList.add('hidden');
+    }
+    
+    // Replace image with initials
+    if (currentImage) {
+        const initials = '{{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}';
+        const div = document.createElement('div');
+        div.id = 'current-image';
+        div.className = 'w-32 h-32 rounded-full bg-primary-200 border-4 border-white shadow-lg flex items-center justify-center transition-all duration-300 group-hover:shadow-xl';
+        div.innerHTML = `<span class="text-primary-600 text-4xl font-bold">${initials}</span>`;
+        
+        currentImage.parentNode.replaceChild(div, currentImage);
+    }
+    
+    // Hide remove button
+    if (removeButton) {
+        removeButton.classList.add('hidden');
+    }
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    let isValid = true;
+    const requiredFields = document.querySelectorAll('[required]');
+    
+    requiredFields.forEach(field => {
+        const formGroup = field.closest('.form-group');
+        const existingError = formGroup.querySelector('.validation-error');
+        
+        if (existingError) {
+            existingError.remove();
+        }
+        
+        if (!field.value.trim()) {
+            isValid = false;
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'validation-error mt-2 text-sm text-red-600 flex items-center';
+            errorDiv.innerHTML = `
+                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                This field is required.
+            `;
+            formGroup.appendChild(errorDiv);
+            field.focus();
+        }
+    });
+    
+    if (!isValid) {
+        e.preventDefault();
+        // Scroll to first error
+        const firstError = document.querySelector('.validation-error');
+        if (firstError) {
+            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+});
+
+// Philippine phone number formatting
+const phoneInputs = document.querySelectorAll('input[data-phone-input="true"]');
+phoneInputs.forEach(input => {
+    input.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+        let formattedValue = '';
+        
+        if (value.startsWith('63')) {
+            // Handle +63 format
+            if (value.length <= 12) {
+                formattedValue = '+' + value;
+            } else {
+                formattedValue = '+' + value.slice(0, 12);
+            }
+        } else if (value.startsWith('0')) {
+            // Handle 0 prefix format (e.g., 09171234567)
+            if (value.length <= 11) {
+                formattedValue = value;
+                // Add formatting for better readability
+                if (value.length >= 4) {
+                    formattedValue = value.slice(0, 4) + ' ' + value.slice(4);
+                }
+                if (value.length >= 7) {
+                    formattedValue = value.slice(0, 4) + ' ' + value.slice(4, 7) + ' ' + value.slice(7);
+                }
+            } else {
+                formattedValue = value.slice(0, 11);
+                formattedValue = formattedValue.slice(0, 4) + ' ' + formattedValue.slice(4, 7) + ' ' + formattedValue.slice(7);
+            }
+        } else if (value.length > 0) {
+            // Handle format without country code or 0 prefix
+            if (value.length <= 10) {
+                formattedValue = value;
+                // Add formatting for better readability
+                if (value.length >= 3) {
+                    formattedValue = value.slice(0, 3) + ' ' + value.slice(3);
+                }
+                if (value.length >= 6) {
+                    formattedValue = value.slice(0, 3) + ' ' + value.slice(3, 6) + ' ' + value.slice(6);
+                }
+            } else {
+                formattedValue = value.slice(0, 10);
+                formattedValue = formattedValue.slice(0, 3) + ' ' + formattedValue.slice(3, 6) + ' ' + formattedValue.slice(6);
+            }
+        }
+        
+        e.target.value = formattedValue;
+    });
+    
+    // Add placeholder examples on focus
+    input.addEventListener('focus', function(e) {
+        if (!e.target.value) {
+            e.target.placeholder = '+639171234567 or 09171234567';
+        }
+    });
+    
+    // Validate on blur
+    input.addEventListener('blur', function(e) {
+        const value = e.target.value.replace(/\D/g, '');
+        const isValid = validatePhilippinePhoneNumber(value);
+        
+        if (value && !isValid) {
+            e.target.classList.add('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+            e.target.classList.remove('border-gray-300', 'focus:ring-primary-500', 'focus:border-primary-500');
+            
+            // Show error message
+            let errorElement = e.target.parentNode.querySelector('.phone-error');
+            if (!errorElement) {
+                errorElement = document.createElement('div');
+                errorElement.className = 'phone-error mt-2 text-sm text-red-600 flex items-center';
+                errorElement.innerHTML = `
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    Please enter a valid Philippine phone number
+                `;
+                e.target.parentNode.appendChild(errorElement);
+            }
+        } else {
+            e.target.classList.remove('border-red-500', 'focus:ring-red-500', 'focus:border-red-500');
+            e.target.classList.add('border-gray-300', 'focus:ring-primary-500', 'focus:border-primary-500');
+            
+            // Remove error message
+            const errorElement = e.target.parentNode.querySelector('.phone-error');
+            if (errorElement) {
+                errorElement.remove();
+            }
+        }
+    });
+});
+
+function validatePhilippinePhoneNumber(value) {
+    if (!value) return false;
+    
+    // Remove all non-digit characters
+    const cleaned = value.replace(/\D/g, '');
+    
+    // Check different Philippine phone number formats
+    if (cleaned.startsWith('63')) {
+        // +63 format: should be 12 digits total
+        return cleaned.length === 12;
+    } else if (cleaned.startsWith('0')) {
+        // 0 prefix format: should be 11 digits total
+        return cleaned.length === 11;
+    } else {
+        // Without country code or 0 prefix: should be 10 digits
+        return cleaned.length === 10;
+    }
+}
+
+// Phone number formatting (old implementation - replaced with Philippine format above)
+const oldPhoneInputs = document.querySelectorAll('input[type="text"][placeholder*="phone"]');
+// Remove the old phone formatting as we now use data-phone-input attribute
+</script>
+{% endblock content %}

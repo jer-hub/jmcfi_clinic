@@ -31,7 +31,7 @@ def submit_feedback(request, appointment_id=None):
     """Submit new feedback with enhanced form."""
     if request.user.role != 'student':
         messages.error(request, 'Only students can submit feedback.')
-        return redirect('management:dashboard')
+        return redirect('core:dashboard')
     
     appointment = None
     if appointment_id:

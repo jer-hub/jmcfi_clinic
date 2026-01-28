@@ -1,4 +1,4 @@
-{% extends 'management/base.html' %}
+{% extends 'core/base.html' %}
 
 {% block title %}Request Certificate - JMCFI Clinic{% endblock title %}
 
@@ -119,7 +119,7 @@
 
                 <!-- Enhanced Submit Button -->
                 <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
-                    <a href="{% url 'management:dashboard' %}" 
+                    <a href="{% url 'core:dashboard' %}" 
                        class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />

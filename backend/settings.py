@@ -32,7 +32,6 @@ INSTALLED_APPS = [
     'allauth.socialaccount.providers.google',
     # Core apps
     "core",
-    "management",
     # Service apps
     "appointments",
     "medical_records",
@@ -54,7 +53,7 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     "core.middleware.SessionTimeoutMiddleware",  # Role-based session timeout
     "core.middleware.RoleMiddleware",
-    "core.middleware.ProfileCompleteMiddleware",
+    # "core.middleware.ProfileCompleteMiddleware",  # Disabled - users can access services without complete profile
 ]
 
 # Provider specific settings
@@ -103,8 +102,8 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "management.context_processors.notification_context",
-                "management.context_processors.profile_context",
+                "core.context_processors.notification_context",
+                "core.context_processors.profile_context",
             ],
         },
     },
@@ -152,7 +151,7 @@ AUTH_USER_MODEL = "core.User"
 
 SITE_ID = 1
 LOGIN_URL = 'account_login'  # Redirect to login page if not authenticated
-LOGIN_REDIRECT_URL = 'management:dashboard' 
+LOGIN_REDIRECT_URL = 'core:dashboard' 
 LOGOUT_REDIRECT_URL = 'account_login'  # Redirect to login page after logout
 
 # Session Configuration

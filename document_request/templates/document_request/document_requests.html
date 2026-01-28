@@ -1,4 +1,4 @@
-{% extends 'management/base.html' %}
+{% extends 'core/base.html' %}
 
 {% block title %}Document Requests - JMCFI Clinic{% endblock title %}
 
@@ -400,7 +400,7 @@
                             Request Certificate
                         </a>
                         <div class="text-sm text-gray-500">
-                            Or <a href="{% url 'management:dashboard' %}" class="text-blue-600 hover:text-blue-800 font-medium">return to dashboard</a>
+                            Or <a href="{% url 'core:dashboard' %}" class="text-blue-600 hover:text-blue-800 font-medium">return to dashboard</a>
                         </div>
                     </div>
                     {% endif %}

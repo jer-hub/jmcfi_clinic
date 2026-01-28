@@ -7,7 +7,7 @@ from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from .models import MedicalRecord
-from management.models import Notification
+from core.models import Notification
 from appointments.models import Appointment
 from core.decorators import role_required
 
@@ -198,7 +198,7 @@ def medical_record_detail(request, record_id):
 def create_medical_record(request, appointment_id):
     if request.user.role not in ['staff', 'doctor']:
         messages.error(request, 'Access denied')
-        return redirect('management:dashboard')
+        return redirect('core:dashboard')
     
     appointment = get_object_or_404(Appointment, id=appointment_id, doctor=request.user)
     

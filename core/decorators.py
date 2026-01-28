@@ -3,7 +3,7 @@ from functools import wraps
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.contrib import messages
-from management.utils import get_user_profile
+from .utils import get_user_profile
 
 def role_required(*roles):
     def decorator(view_func):
@@ -15,7 +15,7 @@ def role_required(*roles):
             
             if request.user.role not in roles:
                 messages.error(request, f'Access denied. This page requires one of the following roles: {", ".join(roles)}. Your current role is: {request.user.role}.')
-                return redirect('management:dashboard')
+                return redirect('core:dashboard')
             return view_func(request, *args, **kwargs)
         wrapped_view.required_roles = roles
         return wrapped_view
@@ -33,7 +33,7 @@ def admin_required(view_func):
         
         if request.user.role != 'admin':
             messages.error(request, 'You do not have permission to access this page.')
-            return redirect('management:dashboard')
+            return redirect('core:dashboard')
         
         return view_func(request, *args, **kwargs)
     return wrapped_view
@@ -55,7 +55,7 @@ def profile_required(view_func):
         # Check if profile is complete
         if not _is_profile_complete(request.user):
             messages.warning(request, 'Please complete your profile before accessing this page.')
-            return redirect('management:edit_profile')
+            return redirect('core:edit_profile')
         
         return view_func(request, *args, **kwargs)
     return wrapped_view

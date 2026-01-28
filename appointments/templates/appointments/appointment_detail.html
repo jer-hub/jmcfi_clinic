@@ -1,4 +1,4 @@
-{% extends 'management/base.html' %}
+{% extends 'core/base.html' %}
 
 {% block title %}Appointment Details - JMCFI Clinic{% endblock title %}
 
@@ -142,7 +142,7 @@
                                 Dental Records
                             </a>
                                     {% else %}
-                            <a href="{% url 'management:create_medical_record' appointment.id %}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                            <a href="{% url 'medical_records:create_medical_record' appointment.id %}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
                                 Create Medical Record
                             </a>
                                     {% endif %}
@@ -151,7 +151,7 @@
                         {% endif %}
                         
                         {% if user.role == 'student' and appointment.status == 'completed' %}
-                            <a href="{% url 'management:submit_feedback_appointment' appointment.id %}" class="block w-full text-center px-4 py-2 border border-primary-600 text-primary-600 rounded-md shadow-sm text-sm font-medium hover:bg-primary-50">
+                            <a href="{% url 'feedback:submit_feedback_appointment' appointment.id %}" class="block w-full text-center px-4 py-2 border border-primary-600 text-primary-600 rounded-md shadow-sm text-sm font-medium hover:bg-primary-50">
                                 Submit Feedback
                             </a>
                         {% endif %}

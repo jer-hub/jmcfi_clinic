@@ -23,7 +23,7 @@ class NoPasswordAdapter(DefaultAccountAdapter):
         """
         Redirect to dashboard after login
         """
-        return reverse('management:dashboard')
+        return reverse('core:dashboard')
     
     def add_message(self, request, level, message_template, message_context=None, extra_tags=''):
         """

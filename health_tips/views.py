@@ -123,7 +123,7 @@ def create_health_tip(request):
     """Create a new health tip - staff only"""
     if request.user.role != 'staff':
         messages.error(request, 'Only staff members can create health tips')
-        return redirect('management:dashboard')
+        return redirect('core:dashboard')
     
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
@@ -181,7 +181,7 @@ def edit_health_tip(request, tip_id):
     """Edit an existing health tip - staff only, own tips only"""
     if request.user.role != 'staff':
         messages.error(request, 'Only staff members can edit health tips')
-        return redirect('management:dashboard')
+        return redirect('core:dashboard')
     
     health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
     
@@ -240,7 +240,7 @@ def delete_health_tip(request, tip_id):
     """Delete a health tip - staff only, own tips only"""
     if request.user.role != 'staff':
         messages.error(request, 'Only staff members can delete health tips')
-        return redirect('management:dashboard')
+        return redirect('core:dashboard')
     
     health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
     

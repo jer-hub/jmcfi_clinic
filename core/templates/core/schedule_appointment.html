@@ -1,0 +1,308 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Schedule Appointment - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-900">Schedule Appointment</h2>
+                <p class="mt-1 text-sm text-gray-600">Book an appointment with our medical staff</p>
+            </div>
+
+            <form method="POST" class="p-6 space-y-6" id="appointment-form">
+                {% csrf_token %}
+                
+                <!-- Appointment Type -->
+                <div>
+                    <label for="appointment_type" class="block text-sm font-medium text-gray-700">Appointment Type</label>
+                    <select id="appointment_type" name="appointment_type" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Select type</option>
+                        <option value="consultation">General Consultation</option>
+                        <option value="checkup">Health Checkup</option>
+                        <option value="vaccination">Vaccination</option>
+                        <option value="emergency">Emergency</option>
+                        <option value="followup">Follow-up</option>
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500">A recommended doctor will be selected based on your appointment type</p>
+                </div>
+
+                <!-- Doctor Selection -->
+                <div>
+                    <label for="doctor" class="block text-sm font-medium text-gray-700">
+                        Select Doctor
+                        <span id="recommended-badge" class="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 hidden">
+                            Recommended
+                        </span>
+                        <span id="default-assigned-badge" class="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 hidden">
+                            Default Assigned
+                        </span>
+                    </label>
+                    <select id="doctor" name="doctor" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Choose a doctor</option>
+                        {% for doctor in doctors %}
+                            <option value="{{ doctor.id }}" data-specialization="{{ doctor.staff_profile.specialization|default:'' }}" data-department="{{ doctor.staff_profile.department|default:'' }}">
+                                Dr. {{ doctor.get_full_name }}
+                                {% if doctor.staff_profile.specialization %}
+                                    - {{ doctor.staff_profile.specialization }}
+                                {% endif %}
+                                {% if doctor.staff_profile.department %}
+                                    ({{ doctor.staff_profile.department }})
+                                {% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <p id="doctor-info" class="mt-1 text-xs text-gray-500"></p>
+                </div>
+
+                <!-- Date and Time -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="date" class="block text-sm font-medium text-gray-700">Preferred Date</label>
+                        <input type="date" id="date" name="date" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        <p class="mt-1 text-xs text-gray-500">Select a date from today onwards</p>
+                    </div>
+                    <div>
+                        <label for="time" class="block text-sm font-medium text-gray-700">Preferred Time</label>
+                        <select id="time" name="time" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                            <option value="">Select time</option>
+                            <optgroup label="Morning">
+                                <option value="09:00">9:00 AM</option>
+                                <option value="09:30">9:30 AM</option>
+                                <option value="10:00">10:00 AM</option>
+                                <option value="10:30">10:30 AM</option>
+                                <option value="11:00">11:00 AM</option>
+                                <option value="11:30">11:30 AM</option>
+                            </optgroup>
+                            <optgroup label="Afternoon">
+                                <option value="14:00">2:00 PM</option>
+                                <option value="14:30">2:30 PM</option>
+                                <option value="15:00">3:00 PM</option>
+                                <option value="15:30">3:30 PM</option>
+                                <option value="16:00">4:00 PM</option>
+                                <option value="16:30">4:30 PM</option>
+                            </optgroup>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Clinic hours: 9:00 AM - 5:00 PM</p>
+                    </div>
+                </div>
+
+                <!-- Reason -->
+                <div>
+                    <label for="reason" class="block text-sm font-medium text-gray-700">Reason for Visit</label>
+                    <textarea id="reason" name="reason" rows="4" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Please describe your symptoms or reason for the appointment..."></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="flex justify-end space-x-3">
+                    <a href="{% url 'core:dashboard' %}" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancel
+                    </a>
+                    <button type="submit" id="submit-btn" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        Schedule Appointment
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Appointment Guidelines -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="text-sm font-medium text-blue-800 mb-2">Appointment Guidelines:</h3>
+            <ul class="text-sm text-blue-700 space-y-1">
+                <li>• Please arrive 10 minutes before your scheduled time</li>
+                <li>• Bring your student ID and any relevant medical documents</li>
+                <li>• If you need to cancel, please do so at least 24 hours in advance</li>
+                <li>• Emergency cases will be prioritized regardless of appointment time</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const dateInput = document.getElementById('date');
+        const timeSelect = document.getElementById('time');
+        const appointmentForm = document.getElementById('appointment-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const appointmentTypeSelect = document.getElementById('appointment_type');
+        const doctorSelect = document.getElementById('doctor');
+        const recommendedBadge = document.getElementById('recommended-badge');
+        const defaultAssignedBadge = document.getElementById('default-assigned-badge');
+        const doctorInfo = document.getElementById('doctor-info');
+        
+        // Default doctor mapping from backend (legacy)
+        const defaultDoctors = {{ default_doctors|safe }};
+        
+        // Appointment type defaults from backend (new system)
+        const appointmentDefaults = {{ appointment_defaults|safe }};
+        
+        // Auto-select default/recommended doctor when appointment type changes
+        appointmentTypeSelect.addEventListener('change', function() {
+            const selectedType = this.value;
+            
+            // Reset badges and styling
+            recommendedBadge.classList.add('hidden');
+            defaultAssignedBadge.classList.add('hidden');
+            doctorSelect.classList.remove('border-green-500', 'ring-2', 'ring-green-200', 'border-blue-500', 'ring-blue-200', 'bg-gray-100');
+            doctorInfo.classList.remove('text-green-600', 'text-blue-600');
+            doctorInfo.classList.add('text-gray-500');
+            
+            // Check if there's a configured default for this appointment type
+            if (selectedType && appointmentDefaults[selectedType]) {
+                const defaultConfig = appointmentDefaults[selectedType];
+                const defaultDoctorId = defaultConfig.doctor_id;
+                
+                // Auto-select the default doctor
+                doctorSelect.value = defaultDoctorId;
+                
+                // Disable the doctor field
+                doctorSelect.disabled = true;
+                
+                // Show default assigned badge
+                defaultAssignedBadge.classList.remove('hidden');
+                
+                // Update doctor info
+                let infoText = 'Default in-charge for ' + getAppointmentTypeName(selectedType) + ': ' + defaultConfig.doctor_name;
+                if (defaultConfig.department) {
+                    infoText += ' (' + defaultConfig.department + ')';
+                }
+                infoText += ' - This field is locked by administrator.';
+                doctorInfo.textContent = infoText;
+                doctorInfo.classList.remove('text-gray-500');
+                doctorInfo.classList.add('text-blue-600');
+                
+                // Add visual styling for disabled state
+                doctorSelect.classList.add('bg-gray-100', 'border-blue-500', 'ring-2', 'ring-blue-200');
+                
+            } else if (selectedType && defaultDoctors[selectedType]) {
+                // Fallback to legacy recommendation system
+                const recommendedDoctorId = defaultDoctors[selectedType];
+                doctorSelect.value = recommendedDoctorId;
+                doctorSelect.disabled = false;
+                
+                // Show recommended badge
+                recommendedBadge.classList.remove('hidden');
+                
+                // Get selected doctor info
+                const selectedOption = doctorSelect.options[doctorSelect.selectedIndex];
+                const specialization = selectedOption.getAttribute('data-specialization');
+                const department = selectedOption.getAttribute('data-department');
+                
+                // Update doctor info text
+                let infoText = 'This doctor is recommended for ' + getAppointmentTypeName(selectedType);
+                if (specialization) {
+                    infoText += ' (Specialization: ' + specialization + ')';
+                }
+                doctorInfo.textContent = infoText;
+                doctorInfo.classList.add('text-green-600');
+                doctorInfo.classList.remove('text-gray-500');
+                
+                // Highlight the select box
+                doctorSelect.classList.add('border-green-500', 'ring-2', 'ring-green-200');
+            } else {
+                // No default or recommendation - enable manual selection
+                doctorSelect.disabled = false;
+                doctorInfo.textContent = '';
+            }
+        });
+        
+        // Prevent manual changes when doctor field is disabled (extra safeguard)
+        doctorSelect.addEventListener('change', function() {
+            if (this.disabled) {
+                return; // Don't process changes on disabled field
+            }
+            
+            const selectedType = appointmentTypeSelect.value;
+            const selectedDoctorId = parseInt(this.value);
+            
+            // Only check legacy recommendations if no default is configured
+            if (selectedType && !appointmentDefaults[selectedType] && defaultDoctors[selectedType]) {
+                const recommendedDoctorId = defaultDoctors[selectedType];
+                
+                if (selectedDoctorId === recommendedDoctorId) {
+                    recommendedBadge.classList.remove('hidden');
+                    doctorInfo.classList.add('text-green-600');
+                    doctorInfo.classList.remove('text-gray-500');
+                    doctorSelect.classList.add('border-green-500', 'ring-2', 'ring-green-200');
+                } else {
+                    recommendedBadge.classList.add('hidden');
+                    doctorInfo.textContent = 'You have selected a different doctor than recommended';
+                    doctorInfo.classList.remove('text-green-600');
+                    doctorInfo.classList.add('text-gray-500');
+                    doctorSelect.classList.remove('border-green-500', 'ring-2', 'ring-green-200');
+                }
+            }
+        });
+        
+        function getAppointmentTypeName(type) {
+            const types = {
+                'consultation': 'General Consultation',
+                'checkup': 'Health Checkup',
+                'vaccination': 'Vaccination',
+                'emergency': 'Emergency',
+                'followup': 'Follow-up'
+            };
+            return types[type] || type;
+        }
+        
+        // Set minimum date to today
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        const todayString = `${year}-${month}-${day}`;
+        
+        dateInput.min = todayString;
+        
+        // Set maximum date to 3 months from today
+        const maxDate = new Date(today);
+        maxDate.setMonth(maxDate.getMonth() + 3);
+        const maxYear = maxDate.getFullYear();
+        const maxMonth = String(maxDate.getMonth() + 1).padStart(2, '0');
+        const maxDay = String(maxDate.getDate()).padStart(2, '0');
+        const maxDateString = `${maxYear}-${maxMonth}-${maxDay}`;
+        dateInput.max = maxDateString;
+        
+        // Disable weekends
+        dateInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const dayOfWeek = selectedDate.getDay();
+            
+            if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday or Saturday
+                alert('Please select a weekday. The clinic is closed on weekends.');
+                this.value = '';
+                return;
+            }
+        });
+        
+        // Form submission with loading state
+        appointmentForm.addEventListener('submit', function() {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = 'Scheduling...';
+        });
+        
+        // Form validation
+        const requiredFields = ['doctor', 'appointment_type', 'date', 'time', 'reason'];
+        requiredFields.forEach(fieldName => {
+            const field = document.querySelector(`[name="${fieldName}"]`);
+            if (field) {
+                field.addEventListener('blur', validateField);
+                field.addEventListener('change', validateField);
+            }
+        });
+        
+        function validateField(e) {
+            const field = e.target;
+            const value = field.value.trim();
+            
+            // Remove existing error styling
+            field.classList.remove('border-red-500');
+            
+            if (field.hasAttribute('required') && !value) {
+                field.classList.add('border-red-500');
+            }
+        }
+    });
+</script>
+{% endblock content %}

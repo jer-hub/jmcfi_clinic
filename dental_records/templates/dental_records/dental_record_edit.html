@@ -17,10 +17,22 @@
                     </h1>
                     <p class="mt-2 text-gray-600">Complete dental health record management</p>
                 </div>
-                <a href="{% url 'dental_records:dental_record_list' %}" 
-                   class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
-                    <i class="fas fa-arrow-left"></i> Back to List
-                </a>
+                <div class="flex items-center gap-3">
+                    {% if appointment and appointment.status != 'completed' %}
+                    <form method="post" action="{% url 'dental_records:complete_appointment' dental_record.id %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
+                                onclick="return confirm('Are you sure you want to mark this appointment as completed?')">
+                            <i class="fas fa-check"></i> Mark Appointment Completed
+                        </button>
+                    </form>
+                    {% endif %}
+                    <a href="{% url 'dental_records:dental_record_list' %}" 
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -273,6 +285,7 @@
 
                         <!-- Hidden patient field -->
                         {{ demographics_form.patient }}
+                        {{ demographics_form.appointment }}
 
                         <div class="flex justify-end pt-6 border-t border-gray-200">
                             <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">

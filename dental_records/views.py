@@ -23,6 +23,7 @@ from .forms import (
     DentalHistoryForm, PediatricDentalHistoryForm, DentalChartForm
 )
 from core.decorators import role_required
+from appointments.models import Appointment
 
 User = get_user_model()
 
@@ -126,12 +127,23 @@ def dental_record_detail(request, record_id):
 def dental_record_create(request):
     """Create a new dental record with all sections"""
     preselected_patient_id = request.GET.get('patient')
+    appointment_id = request.GET.get('appointment')
     preselected_patient = None
+    appointment = None
+    
     if preselected_patient_id:
         try:
             preselected_patient = User.objects.get(id=preselected_patient_id)
         except User.DoesNotExist:
             preselected_patient = None
+    
+    if appointment_id:
+        try:
+            appointment = Appointment.objects.get(id=appointment_id)
+            # If we have an appointment, use its patient
+            preselected_patient = appointment.student
+        except:
+            appointment = None
 
     if request.method == 'POST':
         form = DentalRecordForm(request.POST)
@@ -141,6 +153,11 @@ def dental_record_create(request):
                 with transaction.atomic():
                     # Create dental record
                     dental_record = form.save()
+                    
+                    # Set appointment if provided
+                    if appointment:
+                        dental_record.appointment = appointment
+                        dental_record.save()
                     
                     # Create related records (empty initially)
                     DentalExamination.objects.create(dental_record=dental_record)
@@ -158,16 +175,57 @@ def dental_record_create(request):
     else:
         initial_data = {
             'date_of_examination': timezone.now().date(),
-            'examined_by': request.user if request.user.role in ['staff', 'doctor'] else None
+            'examined_by': request.user if request.user.role in ['staff', 'doctor'] else None,
+            'appointment': appointment,
         }
+        
         if preselected_patient:
             initial_data['patient'] = preselected_patient
+            # Pre-fill patient data if available
+            if hasattr(preselected_patient, 'student_profile') and preselected_patient.student_profile:
+                profile = preselected_patient.student_profile
+                initial_data.update({
+                    'middle_name': profile.middle_name or '',
+                    'age': profile.age,
+                    'gender': profile.gender,
+                    'civil_status': profile.civil_status or 'single',
+                    'address': profile.address or '',
+                    'date_of_birth': profile.date_of_birth,
+                    'place_of_birth': profile.place_of_birth or '',
+                    'email': preselected_patient.email,
+                    'contact_number': profile.phone or '',
+                    'telephone_number': profile.telephone_number or '',
+                    'designation': 'student',
+                    'department_college_office': profile.department or '',
+                    'guardian_name': profile.emergency_contact or '',
+                    'guardian_contact': profile.emergency_phone or '',
+                })
+            elif hasattr(preselected_patient, 'staff_profile') and preselected_patient.staff_profile:
+                profile = preselected_patient.staff_profile
+                initial_data.update({
+                    'middle_name': profile.middle_name or '',
+                    'age': profile.age,
+                    'gender': profile.gender,
+                    'civil_status': profile.civil_status or 'single',
+                    'address': profile.address or '',
+                    'date_of_birth': profile.date_of_birth,
+                    'place_of_birth': profile.place_of_birth or '',
+                    'email': preselected_patient.email,
+                    'contact_number': profile.phone or '',
+                    'telephone_number': profile.telephone_number or '',
+                    'designation': 'employee',
+                    'department_college_office': profile.department or '',
+                    'guardian_name': profile.emergency_contact or '',
+                    'guardian_contact': profile.emergency_phone or '',
+                })
+        
         form = DentalRecordForm(initial=initial_data)
     
     context = {
         'form': form,
         'title': 'Create New Dental Record',
         'preselected_patient': preselected_patient,
+        'appointment': appointment,
     }
     
     return render(request, 'dental_records/dental_record_form.html', context)
@@ -292,6 +350,7 @@ def dental_record_edit(request, record_id):
     
     context = {
         'dental_record': dental_record,
+        'appointment': dental_record.appointment,
         'demographics_form': demographics_form,
         'examination_form': examination_form,
         'vital_signs_form': vital_signs_form,
@@ -305,6 +364,26 @@ def dental_record_edit(request, record_id):
     }
     
     return render(request, 'dental_records/dental_record_edit.html', context)
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def complete_appointment(request, record_id):
+    """Mark the associated appointment as completed"""
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    if not dental_record.appointment:
+        messages.error(request, 'No appointment associated with this dental record.')
+        return redirect('dental_records:dental_record_edit', record_id=record_id)
+    
+    if dental_record.appointment.status != 'completed':
+        dental_record.appointment.status = 'completed'
+        dental_record.appointment.save()
+        messages.success(request, 'Appointment marked as completed successfully.')
+    else:
+        messages.info(request, 'Appointment is already completed.')
+    
+    return redirect('dental_records:dental_record_edit', record_id=record_id)
 
 
 @login_required
@@ -392,8 +471,15 @@ def my_dental_records(request):
     """View dental records for the logged-in patient"""
     dental_records = DentalRecord.objects.filter(patient=request.user).order_by('-date_of_examination')
     
+    # Filter out records where appointment is not completed
+    accessible_records = []
+    for record in dental_records:
+        if record.appointment and record.appointment.status != 'completed':
+            continue  # Skip this record
+        accessible_records.append(record)
+    
     context = {
-        'dental_records': dental_records,
+        'dental_records': accessible_records,
     }
     
     return render(request, 'dental_records/my_dental_records.html', context)
@@ -403,6 +489,11 @@ def my_dental_records(request):
 def my_dental_record_detail(request, record_id):
     """View detailed dental record for the logged-in patient"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id, patient=request.user)
+    
+    # Check if appointment is completed (if exists)
+    if dental_record.appointment and dental_record.appointment.status != 'completed':
+        messages.error(request, 'You can only view dental records for completed appointments.')
+        return redirect('dental_records:my_dental_records')
     
     # Get related records
     try:

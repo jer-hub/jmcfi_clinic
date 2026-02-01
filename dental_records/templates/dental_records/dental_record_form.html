@@ -62,7 +62,7 @@
                             </div>
                                 
                             <!-- Selected Patient Display -->
-                            <div id="selected-patient-display" class="hidden mb-6">
+                            <div id="selected-patient-display" class="{% if not preselected_patient %}hidden{% endif %} mb-6">
                                 <div class="p-5 bg-white border-2 border-primary-300 rounded-lg shadow-sm">
                                     <div class="flex items-start justify-between">
                                         <div class="flex items-start gap-3 flex-1">
@@ -73,8 +73,9 @@
                                                 <p class="text-xs text-primary-600 font-semibold uppercase tracking-wide mb-1">
                                                     <i class="fas fa-check-circle mr-1"></i>Selected Patient
                                                 </p>
-                                                <p class="text-xl font-bold text-gray-900" id="selected-patient-name"></p>
-                                                <p class="text-sm text-gray-600 mt-1" id="selected-patient-info"></p>
+                                                <p class="text-xl font-bold text-gray-900" id="selected-patient-name">
+                                                    {% if preselected_patient %}{{ preselected_patient.get_full_name }}{% endif %}
+                                                </p>
                                                 <p class="text-xs text-green-600 mt-2">
                                                     <i class="fas fa-magic mr-1"></i>Form fields will be auto-filled below
                                                 </p>
@@ -108,10 +109,14 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.student_id.label }}</label>
-                                    {{ form.student_id }}
-                                    {% if form.student_id.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.student_id.errors }}</p>
-                                    {% endif %}
+                                    <input type="text" id="student-id-display" readonly class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-semibold" value="{% if preselected_patient %}{% if preselected_patient.student_profile %}{{ preselected_patient.student_profile.student_id }}{% elif preselected_patient.staff_profile %}{{ preselected_patient.staff_profile.staff_id }}{% endif %}{% endif %}">
+                                    <!-- Hidden form field for submission -->
+                                    <div class="hidden">
+                                        {{ form.student_id }}
+                                        {% if form.student_id.errors %}
+                                            <p class="text-sm text-red-600">{{ form.student_id.errors }}</p>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.middle_name.label }}</label>
@@ -380,6 +385,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const clearBtn = document.getElementById('clear-patient-selection');
     const patientSelect = document.getElementById('patient-select-field');
     const searchSpinner = document.getElementById('search-spinner');
+    const isPreselected = {{ preselected_patient|yesno:"true,false" }};
     
     console.log('Elements found:', {
         searchInput: !!searchInput,
@@ -394,6 +400,63 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Available form elements:', document.querySelectorAll('select[name="patient"]'));
         console.log('All selects:', document.querySelectorAll('select'));
     }
+    
+    // Handle preselected patient from appointment
+    {% if preselected_patient %}
+    console.log('Preselected patient found, setting up display');
+    
+    // Disable search input since patient is preselected
+    searchInput.disabled = true;
+    searchInput.classList.add('opacity-50');
+    searchInput.placeholder = 'Patient preselected from appointment';
+    
+    // Show selected patient display
+    selectedDisplay.classList.remove('hidden');
+    
+    // Set patient select field value
+    patientSelect.value = '{{ preselected_patient.id }}';
+    
+    // Auto-fill all form fields
+    {% if preselected_patient.student_profile %}
+    {% with profile=preselected_patient.student_profile %}
+    setFieldValue('id_student_id', '{{ profile.student_id }}');
+    setFieldValue('id_middle_name', '{{ profile.middle_name }}');
+    setFieldValue('id_email', '{{ preselected_patient.email }}');
+    setFieldValue('id_age', '{{ profile.age }}');
+    setFieldValue('id_gender', '{{ profile.gender }}');
+    setFieldValue('id_civil_status', '{{ profile.civil_status }}');
+    setFieldValue('id_date_of_birth', '{{ profile.date_of_birth }}');
+    setFieldValue('id_place_of_birth', '{{ profile.place_of_birth }}');
+    setFieldValue('id_address', '{{ profile.address }}');
+    setFieldValue('id_contact_number', '{{ profile.phone }}');
+    setFieldValue('id_telephone_number', '{{ profile.telephone_number }}');
+    setFieldValue('id_designation', 'student');
+    setFieldValue('id_department_college_office', '{{ profile.department }}');
+    setFieldValue('id_guardian_name', '{{ profile.emergency_contact }}');
+    setFieldValue('id_guardian_contact', '{{ profile.emergency_phone }}');
+    {% endwith %}
+    {% elif preselected_patient.staff_profile %}
+    {% with profile=preselected_patient.staff_profile %}
+    setFieldValue('id_student_id', '{{ profile.staff_id }}');
+    setFieldValue('id_middle_name', '{{ profile.middle_name }}');
+    setFieldValue('id_email', '{{ preselected_patient.email }}');
+    setFieldValue('id_age', '{{ profile.age }}');
+    setFieldValue('id_gender', '{{ profile.gender }}');
+    setFieldValue('id_civil_status', '{{ profile.civil_status }}');
+    setFieldValue('id_date_of_birth', '{{ profile.date_of_birth }}');
+    setFieldValue('id_place_of_birth', '{{ profile.place_of_birth }}');
+    setFieldValue('id_address', '{{ profile.address }}');
+    setFieldValue('id_contact_number', '{{ profile.phone }}');
+    setFieldValue('id_telephone_number', '{{ profile.telephone_number }}');
+    setFieldValue('id_designation', 'employee');
+    setFieldValue('id_department_college_office', '{{ profile.department }}');
+    setFieldValue('id_guardian_name', '{{ profile.emergency_contact }}');
+    setFieldValue('id_guardian_contact', '{{ profile.emergency_phone }}');
+    {% endwith %}
+    {% endif %}
+    
+    console.log('Preselected patient setup complete');
+    {% endif %}
     
     let searchTimeout;
     let currentPatients = [];
@@ -765,6 +828,12 @@ document.addEventListener('DOMContentLoaded', function() {
         setFieldValue('id_guardian_name', profile.guardian_name);
         setFieldValue('id_guardian_contact', profile.guardian_contact);
         
+        // Set student ID display (profile ID)
+        const studentIdDisplay = document.getElementById('student-id-display');
+        if (studentIdDisplay) {
+            studentIdDisplay.value = profile.student_id || profile.staff_id || '';
+        }
+        
         console.log(`All fields processed. ${fieldsPopulated} fields populated with data.`);
         
         // Show a success message
@@ -805,32 +874,45 @@ document.addEventListener('DOMContentLoaded', function() {
     clearBtn.addEventListener('click', function() {
         console.log('✓ Clearing patient selection');
         
-        // Clear all auto-filled fields
-        const fieldsToClear = ['student_id', 'middle_name', 'email', 'age', 'gender', 'civil_status', 
-                                'date_of_birth', 'place_of_birth', 'address', 'contact_number',
-                                'telephone_number', 'designation', 'department_college_office',
-                                'guardian_name', 'guardian_contact'];
-        
-        fieldsToClear.forEach(fieldName => {
-            const field = document.getElementById(`id_${fieldName}`);
-            if (field) {
-                field.value = '';
-            }
-        });
-        
-        // Reset UI
-        patientSelect.value = '';
-        selectedDisplay.classList.add('hidden');
-        searchInput.value = '';
-        searchInput.disabled = false;
-        searchInput.classList.remove('opacity-50');
-        searchInput.focus();
-        
-        // Show confirmation
-        searchInput.placeholder = 'Patient cleared. Start typing to search again...';
-        setTimeout(() => {
-            searchInput.placeholder = 'Start typing patient name, email, or ID...';
-        }, 3000);
+        if (isPreselected) {
+            // For preselected patients, enable search to change patient without clearing current data
+            searchInput.disabled = false;
+            searchInput.classList.remove('opacity-50');
+            searchInput.placeholder = 'Search for a different patient...';
+            searchInput.focus();
+            // Don't clear the selected display or form fields - let user select new patient to replace
+        } else {
+            // For manually selected patients, clear everything
+            // Clear all auto-filled fields
+            const fieldsToClear = ['student_id', 'middle_name', 'email', 'age', 'gender', 'civil_status', 
+                                    'date_of_birth', 'place_of_birth', 'address', 'contact_number',
+                                    'telephone_number', 'designation', 'department_college_office',
+                                    'guardian_name', 'guardian_contact'];
+            
+            fieldsToClear.forEach(fieldName => {
+                const field = document.getElementById(`id_${fieldName}`);
+                if (field) {
+                    field.value = '';
+                }
+            });
+            
+            // Clear student ID display
+            document.getElementById('student-id-display').value = '';
+            
+            // Reset UI
+            patientSelect.value = '';
+            selectedDisplay.classList.add('hidden');
+            searchInput.value = '';
+            searchInput.disabled = false;
+            searchInput.classList.remove('opacity-50');
+            searchInput.focus();
+            
+            // Show confirmation
+            searchInput.placeholder = 'Patient cleared. Start typing to search again...';
+            setTimeout(() => {
+                searchInput.placeholder = 'Start typing patient name, email, or ID...';
+            }, 3000);
+        }
     });
     
     // Close results when clicking outside

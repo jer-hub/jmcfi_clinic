@@ -33,7 +33,7 @@ class DentalRecordForm(forms.ModelForm):
     student_id = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
-            'class': 'form-control bg-gray-50',
+            'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-gray-50',
             'placeholder': 'Auto-filled from selected patient',
             'id': 'id_student_id',
             'readonly': 'readonly'
@@ -48,7 +48,7 @@ class DentalRecordForm(forms.ModelForm):
             'address', 'date_of_birth', 'place_of_birth', 'email',
             'contact_number', 'telephone_number', 'designation',
             'department_college_office', 'guardian_name', 'guardian_contact',
-            'date_of_examination', 'examined_by', 'consent_signed', 'consent_date'
+            'date_of_examination', 'examined_by', 'appointment', 'consent_signed', 'consent_date'
         ]
         widgets = {
             'patient': forms.Select(attrs={
@@ -116,6 +116,10 @@ class DentalRecordForm(forms.ModelForm):
             }),
             'examined_by': forms.Select(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+            }),
+            'appointment': forms.Select(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50',
+                'readonly': 'readonly'
             }),
             'consent_signed': forms.CheckboxInput(attrs={
                 'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'

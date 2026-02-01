@@ -132,10 +132,14 @@
                     </div>
                     <div class="p-4 sm:p-6 space-y-3">
                         {% if user.role == 'staff' or user.role == 'doctor' %}
-                            {% if appointment.status == 'pending' %}
-                                {% if appointment.doctor == user %}
+                            {% if appointment.doctor == user %}
+                                {% if appointment.status == 'pending' %}
+                                    <button onclick="confirmAppointment()" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
+                                        Confirm Appointment
+                                    </button>
+                                {% elif appointment.status == 'confirmed' %}
                                     {% if appointment.appointment_type == 'dental' %}
-                            <a href="{% url 'dental_records:dental_record_create' %}?patient={{ appointment.student.id }}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                            <a href="{% url 'dental_records:dental_record_create' %}?patient={{ appointment.student.id }}&appointment={{ appointment.id }}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
                                 Create Dental Record
                             </a>
                             <a href="{% url 'dental_records:dental_record_list' %}" class="block w-full text-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md shadow-sm text-sm font-medium hover:bg-blue-50">
@@ -256,6 +260,20 @@ function cancelAppointment() {
         form.innerHTML = `
             {% csrf_token %}
             <input type="hidden" name="status" value="cancelled">
+        `;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function confirmAppointment() {
+    if (confirm('Are you sure you want to confirm this appointment?')) {
+        // Create a form to confirm the appointment
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.innerHTML = `
+            {% csrf_token %}
+            <input type="hidden" name="status" value="confirmed">
         `;
         document.body.appendChild(form);
         form.submit();

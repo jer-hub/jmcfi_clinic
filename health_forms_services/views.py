@@ -7,6 +7,8 @@ from django.core.paginator import Paginator
 from django.utils import timezone
 from django.db.models import Q
 
+from core.decorators import role_required
+
 from .models import HealthProfileForm
 from .forms import (
     HealthProfilePersonalInfoForm,
@@ -19,6 +21,7 @@ from .forms import (
 
 
 @login_required
+@role_required('staff', 'doctor')
 def health_forms_list(request):
     """List health profile forms - filtered by user role"""
     user = request.user
@@ -59,6 +62,7 @@ def health_forms_list(request):
 
 
 @login_required
+@role_required('staff', 'doctor')
 def form_detail(request, pk):
     """View health profile form details"""
     user = request.user
@@ -78,6 +82,7 @@ def form_detail(request, pk):
 
 
 @login_required
+@role_required('staff', 'doctor')
 def edit_form(request, pk):
     """Edit health profile form data"""
     user = request.user
@@ -155,7 +160,7 @@ def review_form(request, pk):
 
 
 @login_required
-@require_POST
+@role_required('staff', 'doctor')
 def delete_form(request, pk):
     """Delete a health profile form"""
     user = request.user
@@ -177,6 +182,7 @@ def delete_form(request, pk):
 
 
 @login_required
+@role_required('staff', 'doctor')
 def manual_entry(request):
     """Create a new health profile form via manual data entry"""
     if request.method == 'POST':
@@ -224,6 +230,7 @@ def manual_entry(request):
 
 @login_required
 @require_GET
+@role_required('staff', 'doctor')
 def export_form_json(request, pk):
     """Export form data as JSON"""
     user = request.user

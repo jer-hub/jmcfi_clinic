@@ -45,6 +45,7 @@ class DentalRecord(models.Model):
     # Examination Info
     date_of_examination = models.DateField(default=timezone.now)
     examined_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='dental_examinations')
+    appointment = models.ForeignKey('appointments.Appointment', on_delete=models.SET_NULL, null=True, blank=True, related_name='dental_records')
     
     # Consent
     consent_signed = models.BooleanField(default=False)

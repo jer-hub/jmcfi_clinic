@@ -1,608 +1,8 @@
 {% extends 'core/base.html' %}
 
-{% block title %}New Health Profile - Manual Entry - JMCFI Clinic{% endblock %}
+{% block title %}New Health Profile - JMCFI Clinic{% endblock %}
 
-{% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="mb-6">
-            <a href="{% url 'health_forms_services:forms_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-                Back to Forms
-            </a>
-            <h1 class="text-2xl font-bold text-gray-900 mt-2">New Health Profile Form</h1>
-            <p class="text-gray-600 mt-1">Enter health profile information manually</p>
-        </div>
-
-        <form method="post">
-            {% csrf_token %}
-            <!-- Tab Navigation -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <nav class="flex flex-wrap border-b border-gray-200" id="form-tabs">
-                    <button type="button" data-tab="personal" class="tab-btn active px-4 md:px-6 py-3 text-sm font-medium text-primary-600 border-b-2 border-primary-600">
-                        Personal Info
-                    </button>
-                    <button type="button" data-tab="medical" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
-                        Medical History
-                    </button>
-                    <button type="button" data-tab="physical" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
-                        Physical Exam
-                    </button>
-                    <button type="button" data-tab="diagnostic" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
-                        Diagnostic Tests
-                    </button>
-                    <button type="button" data-tab="clinical" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
-                        Clinical Summary
-                    </button>
-                </nav>
-            </div>
-            
-            <!-- Personal Information -->
-            <div id="personal-section" class="tab-content bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-                            {{ personal_form.last_name }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                            {{ personal_form.first_name }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Middle Name</label>
-                            {{ personal_form.middle_name }}
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Date of Birth *</label>
-                            {{ personal_form.date_of_birth }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Age</label>
-                            {{ personal_form.age }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Gender *</label>
-                            {{ personal_form.gender }}
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Civil Status</label>
-                            {{ personal_form.civil_status }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Citizenship</label>
-                            {{ personal_form.citizenship }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Religion</label>
-                            {{ personal_form.religion }}
-                        </div>
-                    </div>
-
-                    <div class="mt-6">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Permanent Address</label>
-                        {{ personal_form.permanent_address }}
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
-                            {{ personal_form.zip_code }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-                            {{ personal_form.mobile_number }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                            {{ personal_form.email_address }}
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Designation</label>
-                            {{ personal_form.designation }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Department/College/Office</label>
-                            {{ personal_form.department_college_office }}
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Emergency Contact Name</label>
-                            {{ personal_form.guardian_name }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Emergency Contact Number</label>
-                            {{ personal_form.guardian_contact }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Medical History -->
-            <div id="medical-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Medical History</h2>
-                </div>
-                <div class="p-6 space-y-6">
-                    <!-- Immunization Records -->
-                    <div>
-                        <h3 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">Immunization Records</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_covid19 }}
-                                    <label for="id_immunization_covid19" class="text-sm font-medium text-gray-700">COVID-19</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_covid19_date }}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_influenza }}
-                                    <label for="id_immunization_influenza" class="text-sm font-medium text-gray-700">Influenza</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_influenza_date }}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_pneumonia }}
-                                    <label for="id_immunization_pneumonia" class="text-sm font-medium text-gray-700">Pneumonia</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_pneumonia_date }}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_polio }}
-                                    <label for="id_immunization_polio" class="text-sm font-medium text-gray-700">Polio</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_polio_date }}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_hepatitis_b }}
-                                    <label for="id_immunization_hepatitis_b" class="text-sm font-medium text-gray-700">Hepatitis B</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_hepatitis_b_date }}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_bcg }}
-                                    <label for="id_immunization_bcg" class="text-sm font-medium text-gray-700">BCG</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_bcg_date }}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_dpt_tetanus }}
-                                    <label for="id_immunization_dpt_tetanus" class="text-sm font-medium text-gray-700">DPT/Tetanus</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_dpt_tetanus_date }}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_rotavirus }}
-                                    <label for="id_immunization_rotavirus" class="text-sm font-medium text-gray-700">Rotavirus</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_rotavirus_date }}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_hib }}
-                                    <label for="id_immunization_hib" class="text-sm font-medium text-gray-700">Hib</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_hib_date }}
-                                </div>
-                            </div>
-                            <div class="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                                <div class="flex items-center space-x-2">
-                                    {{ medical_form.immunization_measles_mmr }}
-                                    <label for="id_immunization_measles_mmr" class="text-sm font-medium text-gray-700">Measles/MMR</label>
-                                </div>
-                                <div class="ml-auto">
-                                    <label class="text-xs text-gray-500">Date:</label>
-                                    {{ medical_form.immunization_measles_mmr_date }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Other Immunizations</label>
-                            {{ medical_form.immunization_others }}
-                        </div>
-                    </div>
-
-                    <!-- Illnesses/Medical Conditions -->
-                    <div>
-                        <h3 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">Illnesses/Medical Conditions</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                                {{ medical_form.illness_measles }}
-                                <label for="id_illness_measles" class="text-sm font-medium text-gray-700">Measles</label>
-                            </div>
-                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                                {{ medical_form.illness_mumps }}
-                                <label for="id_illness_mumps" class="text-sm font-medium text-gray-700">Mumps</label>
-                            </div>
-                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                                {{ medical_form.illness_rubella }}
-                                <label for="id_illness_rubella" class="text-sm font-medium text-gray-700">Rubella</label>
-                            </div>
-                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                                {{ medical_form.illness_chickenpox }}
-                                <label for="id_illness_chickenpox" class="text-sm font-medium text-gray-700">Chickenpox</label>
-                            </div>
-                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                                {{ medical_form.illness_ptb_pki }}
-                                <label for="id_illness_ptb_pki" class="text-sm font-medium text-gray-700">PTB/PKI</label>
-                            </div>
-                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                                {{ medical_form.illness_hypertension }}
-                                <label for="id_illness_hypertension" class="text-sm font-medium text-gray-700">Hypertension</label>
-                            </div>
-                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                                {{ medical_form.illness_diabetes }}
-                                <label for="id_illness_diabetes" class="text-sm font-medium text-gray-700">Diabetes</label>
-                            </div>
-                            <div class="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                                {{ medical_form.illness_asthma }}
-                                <label for="id_illness_asthma" class="text-sm font-medium text-gray-700">Asthma</label>
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Other Illnesses/Conditions</label>
-                            {{ medical_form.illness_others }}
-                        </div>
-                    </div>
-
-                    <!-- OB-GYN History (for females) -->
-                    <div>
-                        <h3 class="text-sm font-semibold text-gray-700 mb-3 border-b pb-2">OB-GYN History (for females)</h3>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Age at Menarche</label>
-                                {{ medical_form.menarche_age }}
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Menstrual Duration</label>
-                                {{ medical_form.menstrual_duration }}
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Menstrual Interval</label>
-                                {{ medical_form.menstrual_interval }}
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Menstrual Amount</label>
-                                {{ medical_form.menstrual_amount }}
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Menstrual Symptoms</label>
-                                {{ medical_form.menstrual_symptoms }}
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Obstetric History</label>
-                            {{ medical_form.obstetric_history }}
-                        </div>
-                    </div>
-
-                    <!-- Additional Medical Info -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Allergies</label>
-                        {{ medical_form.allergies }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Current Medications</label>
-                        {{ medical_form.current_medications }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Present Illness</label>
-                        {{ medical_form.present_illness }}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Physical Examination -->
-            <div id="physical-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Physical Examination</h2>
-                </div>
-                <div class="p-6">
-                    <h3 class="text-sm font-medium text-gray-700 mb-4">Vital Signs</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Blood Pressure</label>
-                            {{ physical_form.blood_pressure }}
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Heart Rate (bpm)</label>
-                            {{ physical_form.heart_rate }}
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Resp. Rate (/min)</label>
-                            {{ physical_form.respiratory_rate }}
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Temperature (°C)</label>
-                            {{ physical_form.temperature }}
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">SpO2 (%)</label>
-                            {{ physical_form.spo2 }}
-                        </div>
-                    </div>
-
-                    <h3 class="text-sm font-medium text-gray-700 mt-6 mb-4">Anthropometrics</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Height (m)</label>
-                            {{ physical_form.height }}
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">Weight (kg)</label>
-                            {{ physical_form.weight }}
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">BMI</label>
-                            {{ physical_form.bmi }}
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-500 mb-1">BMI Remarks</label>
-                            {{ physical_form.bmi_remarks }}
-                        </div>
-                    </div>
-
-                    <h3 class="text-sm font-medium text-gray-700 mt-6 mb-4">Physical Examination Findings</h3>
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">General</label>
-                            {{ physical_form.exam_general }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">HEENT</label>
-                            {{ physical_form.exam_heent }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Chest & Lungs</label>
-                            {{ physical_form.exam_chest_lungs }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Abdomen</label>
-                            {{ physical_form.exam_abdomen }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Genitourinary</label>
-                            {{ physical_form.exam_genitourinary }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Extremities</label>
-                            {{ physical_form.exam_extremities }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Neurologic</label>
-                            {{ physical_form.exam_neurologic }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Other Findings</label>
-                            {{ physical_form.exam_other_findings }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Diagnostic Tests -->
-            <div id="diagnostic-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Diagnostic Tests</h2>
-                </div>
-                <div class="p-6 space-y-4">
-                    <!-- Chest X-ray -->
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-3 mb-3">
-                            {{ diagnostic_form.test_chest_xray }}
-                            <label for="id_test_chest_xray" class="text-sm font-semibold text-gray-900">Chest X-ray</label>
-                            <div class="ml-auto">
-                                <label class="text-xs text-gray-500 mr-2">Date:</label>
-                                {{ diagnostic_form.test_chest_xray_date }}
-                            </div>
-                        </div>
-                        <label class="block text-xs text-gray-500 mb-1">Findings:</label>
-                        {{ diagnostic_form.test_chest_xray_findings }}
-                    </div>
-
-                    <!-- CBC -->
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-3 mb-3">
-                            {{ diagnostic_form.test_cbc }}
-                            <label for="id_test_cbc" class="text-sm font-semibold text-gray-900">CBC (Complete Blood Count)</label>
-                            <div class="ml-auto">
-                                <label class="text-xs text-gray-500 mr-2">Date:</label>
-                                {{ diagnostic_form.test_cbc_date }}
-                            </div>
-                        </div>
-                        <label class="block text-xs text-gray-500 mb-1">Findings:</label>
-                        {{ diagnostic_form.test_cbc_findings }}
-                    </div>
-
-                    <!-- Urinalysis -->
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-3 mb-3">
-                            {{ diagnostic_form.test_urinalysis }}
-                            <label for="id_test_urinalysis" class="text-sm font-semibold text-gray-900">Urinalysis</label>
-                            <div class="ml-auto">
-                                <label class="text-xs text-gray-500 mr-2">Date:</label>
-                                {{ diagnostic_form.test_urinalysis_date }}
-                            </div>
-                        </div>
-                        <label class="block text-xs text-gray-500 mb-1">Findings:</label>
-                        {{ diagnostic_form.test_urinalysis_findings }}
-                    </div>
-
-                    <!-- Drug Test -->
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-3 mb-3">
-                            {{ diagnostic_form.test_drug_test }}
-                            <label for="id_test_drug_test" class="text-sm font-semibold text-gray-900">Drug Test</label>
-                            <div class="ml-auto">
-                                <label class="text-xs text-gray-500 mr-2">Date:</label>
-                                {{ diagnostic_form.test_drug_test_date }}
-                            </div>
-                        </div>
-                        <label class="block text-xs text-gray-500 mb-1">Findings:</label>
-                        {{ diagnostic_form.test_drug_test_findings }}
-                    </div>
-
-                    <!-- Psychological Test -->
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-3 mb-3">
-                            {{ diagnostic_form.test_psychological }}
-                            <label for="id_test_psychological" class="text-sm font-semibold text-gray-900">Psychological Test</label>
-                            <div class="ml-auto">
-                                <label class="text-xs text-gray-500 mr-2">Date:</label>
-                                {{ diagnostic_form.test_psychological_date }}
-                            </div>
-                        </div>
-                        <label class="block text-xs text-gray-500 mb-1">Findings:</label>
-                        {{ diagnostic_form.test_psychological_findings }}
-                    </div>
-
-                    <!-- HBsAg -->
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-3 mb-3">
-                            {{ diagnostic_form.test_hbsag }}
-                            <label for="id_test_hbsag" class="text-sm font-semibold text-gray-900">HBsAg (Hepatitis B Surface Antigen)</label>
-                            <div class="ml-auto">
-                                <label class="text-xs text-gray-500 mr-2">Date:</label>
-                                {{ diagnostic_form.test_hbsag_date }}
-                            </div>
-                        </div>
-                        <label class="block text-xs text-gray-500 mb-1">Findings:</label>
-                        {{ diagnostic_form.test_hbsag_findings }}
-                    </div>
-
-                    <!-- Anti-HBs Titer -->
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-3 mb-3">
-                            {{ diagnostic_form.test_anti_hbs_titer }}
-                            <label for="id_test_anti_hbs_titer" class="text-sm font-semibold text-gray-900">Anti-HBs Titer</label>
-                            <div class="ml-auto">
-                                <label class="text-xs text-gray-500 mr-2">Date:</label>
-                                {{ diagnostic_form.test_anti_hbs_titer_date }}
-                            </div>
-                        </div>
-                        <label class="block text-xs text-gray-500 mb-1">Findings:</label>
-                        {{ diagnostic_form.test_anti_hbs_titer_findings }}
-                    </div>
-
-                    <!-- Fecalysis -->
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <div class="flex items-center space-x-3 mb-3">
-                            {{ diagnostic_form.test_fecalysis }}
-                            <label for="id_test_fecalysis" class="text-sm font-semibold text-gray-900">Fecalysis</label>
-                            <div class="ml-auto">
-                                <label class="text-xs text-gray-500 mr-2">Date:</label>
-                                {{ diagnostic_form.test_fecalysis_date }}
-                            </div>
-                        </div>
-                        <label class="block text-xs text-gray-500 mb-1">Findings:</label>
-                        {{ diagnostic_form.test_fecalysis_findings }}
-                    </div>
-
-                    <!-- Other Tests -->
-                    <div class="p-4 bg-gray-50 rounded-lg">
-                        <label class="block text-sm font-semibold text-gray-900 mb-2">Other Diagnostic Tests</label>
-                        {{ diagnostic_form.test_others }}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Clinical Summary -->
-            <div id="clinical-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Clinical Summary</h2>
-                </div>
-                <div class="p-6 space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Physician's Impression</label>
-                        {{ clinical_form.physician_impression }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Final Remarks</label>
-                        {{ clinical_form.final_remarks }}
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Recommendations</label>
-                        {{ clinical_form.recommendations }}
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Examining Physician</label>
-                            {{ clinical_form.examining_physician }}
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Examination Date</label>
-                            {{ clinical_form.examination_date }}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Submit -->
-            <div class="flex justify-end space-x-4">
-                <a href="{% url 'health_forms_services:forms_list' %}" 
-                   class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium">
-                    Cancel
-                </a>
-                <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
-                    Create Health Profile
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
+{% block head %}
 <style>
     .form-input, .form-textarea, .form-select {
         width: 100%;
@@ -614,79 +14,76 @@
     .form-input:focus, .form-textarea:focus, .form-select:focus {
         outline: none;
         ring: 2px;
-        ring-color: #3b82f6;
-        border-color: #3b82f6;
+        ring-color: #a855f7;
+        border-color: #a855f7;
     }
 </style>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Tab switching
-    const tabs = document.querySelectorAll('.tab-btn');
-    const contents = document.querySelectorAll('.tab-content');
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const target = tab.dataset.tab;
-            tabs.forEach(t => t.classList.remove('active', 'text-primary-600', 'border-primary-600', 'border-b-2'));
-            tabs.forEach(t => t.classList.add('text-gray-500'));
-            tab.classList.add('active', 'text-primary-600', 'border-primary-600', 'border-b-2');
-            tab.classList.remove('text-gray-500');
-            contents.forEach(c => c.classList.add('hidden'));
-            const section = document.getElementById(`${target}-section`);
-            if (section) section.classList.remove('hidden');
-        });
-    });
+{% endblock %}
 
-    // Helper to toggle related date/findings inputs based on a checkbox
-    function bindToggle(checkboxName, dateName, findingsName) {
-        const cb = document.querySelector(`[name="${checkboxName}"]`);
-        const date = dateName ? document.querySelector(`[name="${dateName}"]`) : null;
-        const findings = findingsName ? document.querySelector(`[name="${findingsName}"]`) : null;
-        const update = () => {
-            const enabled = cb && cb.checked;
-            if (date) date.disabled = !enabled;
-            if (findings) findings.disabled = !enabled;
-        };
-        if (cb) {
-            cb.addEventListener('change', update);
-            update();
-        }
-    }
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <a href="{% url 'health_forms_services:forms_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Health Forms
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900 mt-2">New Health Profile Form</h1>
+            <p class="text-gray-600 mt-1">Create a new health profile form (F-HSS-20-0001)</p>
+        </div>
 
-    // Immunization dates depend on checkbox
-    bindToggle('immunization_covid19', 'immunization_covid19_date');
-    bindToggle('immunization_influenza', 'immunization_influenza_date');
-    bindToggle('immunization_pneumonia', 'immunization_pneumonia_date');
-    bindToggle('immunization_polio', 'immunization_polio_date');
-    bindToggle('immunization_hepatitis_b', 'immunization_hepatitis_b_date');
-    bindToggle('immunization_bcg', 'immunization_bcg_date');
-    bindToggle('immunization_dpt_tetanus', 'immunization_dpt_tetanus_date');
-    bindToggle('immunization_rotavirus', 'immunization_rotavirus_date');
-    bindToggle('immunization_hib', 'immunization_hib_date');
-    bindToggle('immunization_measles_mmr', 'immunization_measles_mmr_date');
+        <form method="post">
+            {% csrf_token %}
 
-    // Diagnostic tests: enable date and findings only when checked
-    bindToggle('test_chest_xray', 'test_chest_xray_date', 'test_chest_xray_findings');
-    bindToggle('test_cbc', 'test_cbc_date', 'test_cbc_findings');
-    bindToggle('test_urinalysis', 'test_urinalysis_date', 'test_urinalysis_findings');
-    bindToggle('test_drug_test', 'test_drug_test_date', 'test_drug_test_findings');
-    bindToggle('test_psychological', 'test_psychological_date', 'test_psychological_findings');
-    bindToggle('test_hbsag', 'test_hbsag_date', 'test_hbsag_findings');
-    bindToggle('test_anti_hbs_titer', 'test_anti_hbs_titer_date', 'test_anti_hbs_titer_findings');
-    bindToggle('test_fecalysis', 'test_fecalysis_date', 'test_fecalysis_findings');
+            <!-- Personal Information -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {% for field in personal_form %}
+                            <div{% if field.name == 'permanent_address' or field.name == 'current_address' %} class="md:col-span-3"{% endif %}>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    {{ field.label }}{% if field.field.required %} *{% endif %}
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
 
-    // OB-GYN fields enabled only when gender is female
-    const gender = document.querySelector('[name="gender"]');
-    const obgynFields = document.querySelectorAll('[name="menarche_age"], [name="menstrual_duration"], [name="menstrual_interval"], [name="menstrual_amount"], [name="menstrual_symptoms"], [name="obstetric_history"]');
-    function toggleObgyn() {
-        const enabled = gender && gender.value === 'female';
-        obgynFields.forEach(el => {
-            el.disabled = !enabled;
-        });
-    }
-    if (gender) {
-        gender.addEventListener('change', toggleObgyn);
-        toggleObgyn();
-    }
-});
-</script>
+            <!-- Info Note -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <p class="text-sm text-blue-800">
+                        After creating the form, you'll be redirected to fill in Medical History, Physical Exam, Diagnostic Tests, and Clinical Summary.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex justify-end gap-4">
+                <a href="{% url 'health_forms_services:forms_list' %}"
+                   class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                    Create Health Form
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

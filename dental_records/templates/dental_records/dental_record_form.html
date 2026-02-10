@@ -76,6 +76,7 @@
                                                 <p class="text-xl font-bold text-gray-900" id="selected-patient-name">
                                                     {% if preselected_patient %}{{ preselected_patient.get_full_name }}{% endif %}
                                                 </p>
+                                                <p class="text-sm text-gray-600 mt-1" id="selected-patient-info"></p>
                                                 <p class="text-xs text-green-600 mt-2">
                                                     <i class="fas fa-magic mr-1"></i>Form fields will be auto-filled below
                                                 </p>
@@ -282,7 +283,32 @@
                             </div>
                         </div>
 
-                        <!-- Consent Section -->
+                        <!-- ============================================== -->
+                        <!-- Next Steps Note -->
+                        <!-- ============================================== -->
+                        <div class="mb-8 p-5 bg-blue-50 border border-blue-200 rounded-xl">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-info-circle text-blue-600 text-xl mt-0.5"></i>
+                                <div>
+                                    <p class="text-sm font-semibold text-blue-900">What happens next?</p>
+                                    <p class="text-sm text-blue-800 mt-1">After creating the record you will be taken to the <strong>Edit page</strong> where you can fill in:</p>
+                                    <ul class="text-sm text-blue-700 mt-2 space-y-1 list-disc list-inside">
+                                        <li>Extraoral &amp; Intraoral Examination</li>
+                                        <li>Vital Signs</li>
+                                        <li>Health Questionnaire (Section A)</li>
+                                        <li>Systems Review (Section B)</li>
+                                        <li>Dental History (Section C)</li>
+                                        <li>Pediatric Patient History (if applicable)</li>
+                                        <li>Interactive Dental Chart</li>
+                                        <li>Progress Notes</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ============================================== -->
+                        <!-- Consent Section (Data Accuracy) -->
+                        <!-- ============================================== -->
                         <div class="mb-8">
                             <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
                                 <i class="fas fa-file-signature text-primary-600"></i> Patient Consent
@@ -309,6 +335,39 @@
                                 {{ form.consent_date }}
                                 {% if form.consent_date.errors %}
                                     <p class="mt-1 text-sm text-red-600">{{ form.consent_date.errors }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- ============================================== -->
+                        <!-- Informed Consent Section -->
+                        <!-- ============================================== -->
+                        <div class="mb-8">
+                            <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-shield-alt text-primary-600"></i> Informed Consent
+                            </h2>
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-6 mb-6">
+                                <h3 class="font-semibold text-amber-900 mb-2">Authorization for Dental Procedures</h3>
+                                <p class="text-amber-800 text-sm leading-relaxed">
+                                    "I acknowledge that the information I provided is true and correct. I hereby authorize any dental procedures, intervention or management or treatment to be performed, which is deemed necessary to improve his/her/my dental health. I will not hold the dentist liable with unforeseen unusualties. I trust whatever dental intervention performed on me will serve my best interest. I will follow the verbal post-operative instructions by my dentist and recalls prescribed. I understand that I will be referred to another healthcare provider which is beyond the scope of my dentist. I was given the opportunity to ask and discussed procedures and interventions to be done in my oral cavity."
+                                </p>
+                            </div>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="flex items-center">
+                                    {{ form.informed_consent_signed }}
+                                    <label for="{{ form.informed_consent_signed.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                                        {{ form.informed_consent_signed.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% if form.informed_consent_signed.errors %}
+                                <p class="text-sm text-red-600 mb-4">{{ form.informed_consent_signed.errors }}</p>
+                            {% endif %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.informed_consent_date.label }}</label>
+                                {{ form.informed_consent_date }}
+                                {% if form.informed_consent_date.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.informed_consent_date.errors }}</p>
                                 {% endif %}
                             </div>
                         </div>
@@ -386,6 +445,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const patientSelect = document.getElementById('patient-select-field');
     const searchSpinner = document.getElementById('search-spinner');
     const isPreselected = {{ preselected_patient|yesno:"true,false" }};
+    
+    // Helper function to set field value (used by both preselected and search flows)
+    function setFieldValue(fieldId, value) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.value = value || '';
+        }
+    }
     
     console.log('Elements found:', {
         searchInput: !!searchInput,
@@ -667,7 +734,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Show loading state
         selectedDisplay.classList.remove('hidden');
         selectedName.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading patient data...';
-        selectedInfo.textContent = 'Please wait...';
+        if (selectedInfo) selectedInfo.textContent = 'Please wait...';
         
         // Set the hidden select field
         try {
@@ -725,7 +792,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Update display with loaded data
                 selectedName.textContent = patient.name;
-                selectedInfo.innerHTML = `<i class="fas fa-envelope mr-1"></i>${patient.email} <span class="mx-2">•</span> <i class="fas fa-id-badge mr-1"></i>${patient.role}`;
+                if (selectedInfo) selectedInfo.innerHTML = `<i class="fas fa-envelope mr-1"></i>${patient.email} <span class="mx-2">•</span> <i class="fas fa-id-badge mr-1"></i>${patient.role}`;
                 
                 // Re-enable search
                 searchInput.disabled = false;
@@ -746,7 +813,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Show error state
                 selectedName.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Error loading patient';
-                selectedInfo.textContent = errorMessage;
+                if (selectedInfo) selectedInfo.textContent = errorMessage;
                 
                 // Re-enable search
                 searchInput.disabled = false;

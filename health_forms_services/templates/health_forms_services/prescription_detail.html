@@ -1,0 +1,380 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Prescription - {{ prescription.patient_name }} - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8" x-data="prescriptionItems()">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <a href="{% url 'health_forms_services:prescription_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Prescriptions
+            </a>
+        </div>
+
+        <!-- Status & Actions Bar -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <span class="px-3 py-1 text-sm font-medium rounded-full
+                    {% if prescription.status == 'completed' %}bg-green-100 text-green-700
+                    {% elif prescription.status == 'rejected' %}bg-red-100 text-red-700
+                    {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                    {{ prescription.get_status_display }}
+                </span>
+                <span class="text-sm text-gray-500">
+                    Created {{ prescription.created_at|date:"M d, Y" }}
+                </span>
+                <span class="text-xs text-gray-400 font-mono">F-HSS-20-0004</span>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                {% if can_edit %}
+                <a href="{% url 'health_forms_services:edit_prescription' prescription.pk %}"
+                   class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm">
+                    Edit
+                </a>
+                {% endif %}
+
+                <a href="{% url 'health_forms_services:export_prescription_docx' prescription.pk %}" target="_blank" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm inline-flex items-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    <span>Print Prescription</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Patient Information -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Patient Information</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <dt class="text-gray-500">Patient Name</dt>
+                            <dd class="font-medium text-gray-900">{{ prescription.patient_name|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Age / Gender</dt>
+                            <dd class="font-medium text-gray-900">{{ prescription.age|default:"-" }} / {{ prescription.get_gender_display|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Date</dt>
+                            <dd class="font-medium text-gray-900">{{ prescription.date|date:"F d, Y"|default:"-" }}</dd>
+                        </div>
+                        <div class="sm:col-span-2 lg:col-span-3">
+                            <dt class="text-gray-500">Address</dt>
+                            <dd class="font-medium text-gray-900">{{ prescription.address|default:"-" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Prescription Body -->
+            {% if prescription.prescription_body %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Prescription Notes</h2>
+                </div>
+                <div class="p-6">
+                    <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ prescription.prescription_body }}</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Medication Items -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Medication Items</h2>
+                    {% if can_edit %}
+                    <button @click="showAddForm = !showAddForm"
+                            class="no-print px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 font-medium">
+                        <span x-text="showAddForm ? 'Cancel' : 'Add Item'"></span>
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Add Item Form -->
+                {% if can_edit %}
+                <div x-show="showAddForm" x-transition class="p-6 border-b border-gray-200 bg-blue-50 no-print">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-4">New Medication Item</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Medication Name *</label>
+                            <input type="text" x-model="newItem.medication_name"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="Drug name / brand">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Dosage</label>
+                            <input type="text" x-model="newItem.dosage"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="e.g. 500mg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                            <input type="text" x-model="newItem.frequency"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="e.g. 3x a day">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration</label>
+                            <input type="text" x-model="newItem.duration"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="e.g. 7 days">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                            <input type="text" x-model="newItem.quantity"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                   placeholder="e.g. #21">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
+                            <textarea x-model="newItem.instructions" rows="2"
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                      placeholder="Special instructions..."></textarea>
+                        </div>
+                        <div class="md:col-span-2 flex justify-end">
+                            <button @click="addItem()" :disabled="saving"
+                                    class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm disabled:opacity-50">
+                                <span x-show="!saving">Save Item</span>
+                                <span x-show="saving">Saving...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Items Table -->
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Medication</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dosage</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frequency</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Instructions</th>
+                                {% if can_edit %}
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase no-print" style="width:80px;">Actions</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="item in items" :key="item.id">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-4 text-sm font-medium text-gray-900" x-text="item.medication_name"></td>
+                                    <td class="px-6 py-4 text-sm text-gray-500" x-text="item.dosage || '-'"></td>
+                                    <td class="px-6 py-4 text-sm text-gray-500" x-text="item.frequency || '-'"></td>
+                                    <td class="px-6 py-4 text-sm text-gray-500" x-text="item.duration || '-'"></td>
+                                    <td class="px-6 py-4 text-sm text-gray-500" x-text="item.quantity || '-'"></td>
+                                    <td class="px-6 py-4 text-sm text-gray-500 whitespace-pre-wrap" x-text="item.instructions || '-'"></td>
+                                    {% if can_edit %}
+                                    <td class="px-6 py-4 text-sm no-print">
+                                        <button @click="deleteItem(item.id)"
+                                                class="text-red-600 hover:text-red-800 font-medium text-xs">
+                                            Delete
+                                        </button>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                            </template>
+                            <tr x-show="items.length === 0">
+                                <td colspan="{% if can_edit %}7{% else %}6{% endif %}" class="px-6 py-8 text-center text-gray-500 text-sm">
+                                    No medication items yet. Click "Add Item" to add a medication.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Physician Information -->
+            {% if prescription.physician_name or prescription.license_no %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Physician Information</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <dt class="text-gray-500">Physician Name</dt>
+                            <dd class="font-medium text-gray-900">{{ prescription.physician_name|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">License No.</dt>
+                            <dd class="font-medium text-gray-900">{{ prescription.license_no|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">PTR No.</dt>
+                            <dd class="font-medium text-gray-900">{{ prescription.ptr_no|default:"-" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Review Section -->
+            {% if can_review %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden no-print">
+                </div>
+                <div class="p-6">
+                    {% if prescription.reviewed_by %}
+                    <div class="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
+                        <p class="text-gray-600">
+                            Reviewed by <span class="font-medium text-gray-900">{{ prescription.reviewed_by.get_full_name }}</span>
+                            on {{ prescription.reviewed_at|date:"M d, Y h:i A" }}
+                        </p>
+                        {% if prescription.review_notes %}
+                            <p class="mt-2 text-gray-700">{{ prescription.review_notes }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <form method="post" action="{% url 'health_forms_services:review_prescription' prescription.pk %}">
+                        {% csrf_token %}
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                                    {% for value, label in prescription.Status.choices %}
+                                        <option value="{{ value }}" {% if prescription.status == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
+                                <input type="text" name="review_notes" value="{{ prescription.review_notes }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+                                       placeholder="Optional notes...">
+                            </div>
+                            <div class="flex items-end">
+                                <button type="submit"
+                                        class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm">
+                                    Update Status
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Delete Button -->
+            {% if can_edit and prescription.status == 'pending' or prescription.status == 'rejected' %}
+            <div class="flex justify-end no-print">
+                <form method="post" action="{% url 'health_forms_services:delete_prescription' prescription.pk %}"
+                      onsubmit="return confirm('Are you sure you want to delete this prescription?');">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium text-sm border border-red-200">
+                        Delete Prescription
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function prescriptionItems() {
+    return {
+        showAddForm: false,
+        saving: false,
+        newItem: {
+            medication_name: '',
+            dosage: '',
+            frequency: '',
+            duration: '',
+            quantity: '',
+            instructions: ''
+        },
+        items: [
+            {% for item in items %}
+            {
+                id: {{ item.id }},
+                medication_name: '{{ item.medication_name|escapejs }}',
+                dosage: '{{ item.dosage|escapejs }}',
+                frequency: '{{ item.frequency|escapejs }}',
+                duration: '{{ item.duration|escapejs }}',
+                quantity: '{{ item.quantity|escapejs }}',
+                instructions: '{{ item.instructions|escapejs }}'
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+
+        async addItem() {
+            if (!this.newItem.medication_name) {
+                alert('Please enter a medication name.');
+                return;
+            }
+            this.saving = true;
+            try {
+                const formData = new FormData();
+                formData.append('medication_name', this.newItem.medication_name);
+                formData.append('dosage', this.newItem.dosage);
+                formData.append('frequency', this.newItem.frequency);
+                formData.append('duration', this.newItem.duration);
+                formData.append('quantity', this.newItem.quantity);
+                formData.append('instructions', this.newItem.instructions);
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                const response = await fetch('{% url "health_forms_services:add_prescription_item" prescription.pk %}', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    this.items.push(data.item);
+                    this.newItem = {
+                        medication_name: '',
+                        dosage: '',
+                        frequency: '',
+                        duration: '',
+                        quantity: '',
+                        instructions: ''
+                    };
+                    this.showAddForm = false;
+                } else {
+                    alert('Error saving item. Please check the form.');
+                }
+            } catch (err) {
+                alert('Error saving item.');
+                console.error(err);
+            }
+            this.saving = false;
+        },
+
+        async deleteItem(itemId) {
+            if (!confirm('Delete this medication item?')) return;
+            try {
+                const formData = new FormData();
+                formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                const deleteUrl = '{% url "health_forms_services:delete_prescription_item" prescription.pk 0 %}'.replace('/0/delete/', '/' + itemId + '/delete/');
+                const resp = await fetch(deleteUrl, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await resp.json();
+                if (data.success) {
+                    this.items = this.items.filter(i => i.id !== itemId);
+                }
+            } catch (err) {
+                alert('Error deleting item.');
+                console.error(err);
+            }
+        }
+    };
+}
+</script>
+
+{% endblock %}

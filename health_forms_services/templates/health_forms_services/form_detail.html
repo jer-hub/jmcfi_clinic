@@ -41,6 +41,11 @@
                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm">
                     Export JSON
                 </a>
+
+                <a href="{% url 'health_forms_services:export_health_profile_docx' health_form.pk %}" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm inline-flex items-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span>Download .docx</span>
+                </a>
             </div>
         </div>
 
@@ -587,7 +592,7 @@
 
                 <!-- Review Form (Staff/Doctor) -->
                 {% if can_review and health_form.status != 'completed' %}
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 no-print">
                     <h3 class="text-sm font-semibold text-gray-900 mb-4">Update Status</h3>
                     <form method="post" action="{% url 'health_forms_services:review_form' health_form.pk %}">
                         {% csrf_token %}
@@ -615,7 +620,7 @@
 
                 <!-- Delete Option -->
                 {% if can_edit and health_form.status in 'pending,rejected' %}
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 no-print">
                     <h3 class="text-sm font-semibold text-gray-900 mb-4">Danger Zone</h3>
                     <form method="post" action="{% url 'health_forms_services:delete_form' health_form.pk %}"
                           onsubmit="return confirm('Are you sure you want to delete this form? This action cannot be undone.');">
@@ -628,6 +633,7 @@
                 {% endif %}
             </div>
         </div>
+
     </div>
 </div>
 {% endblock %}

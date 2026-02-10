@@ -15,24 +15,29 @@ from django.contrib.auth import get_user_model
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
     DentalHealthQuestionnaire, DentalSystemsReview,
-    DentalHistory, PediatricDentalHistory, DentalChart
+    DentalHistory, PediatricDentalHistory, DentalChart,
+    ToothSurface, DentalChartSnapshot, ProgressNote
 )
 from .forms import (
     DentalRecordForm, DentalExaminationForm, DentalVitalSignsForm,
     DentalHealthQuestionnaireForm, DentalSystemsReviewForm,
-    DentalHistoryForm, PediatricDentalHistoryForm, DentalChartForm
+    DentalHistoryForm, PediatricDentalHistoryForm, ProgressNoteForm
 )
+import json
 from core.decorators import role_required
 from appointments.models import Appointment
 
 User = get_user_model()
 
-
 @login_required
-@role_required('admin', 'staff', 'doctor')
 def dental_record_list(request):
     """List all dental records with search and filtering"""
-    dental_records = DentalRecord.objects.select_related('patient', 'examined_by').all()
+    # Students can only see their own records
+    if request.user.role == 'student':
+        dental_records = DentalRecord.objects.filter(patient=request.user).select_related('patient', 'examined_by')
+    else:
+        # Staff, doctors, and admins can see all records
+        dental_records = DentalRecord.objects.select_related('patient', 'examined_by').all()
     
     # Search functionality
     search_query = request.GET.get('search', '')
@@ -69,10 +74,19 @@ def dental_record_list(request):
 
 
 @login_required
-@role_required('admin', 'staff', 'doctor')
 def dental_record_detail(request, record_id):
     """View detailed dental record"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    # Check if user has permission to view this record
+    # Students can only view their own records
+    if request.user.role == 'student' and dental_record.patient != request.user:
+        return HttpResponseForbidden("You do not have permission to view this dental record.")
+    
+    # Students cannot view pending records
+    if request.user.role == 'student' and dental_record.status != 'completed':
+        messages.warning(request, 'This dental record is still being processed. You will be able to view it once it is marked as completed by the clinic staff.')
+        return redirect('dental_records:my_dental_records')
     
     # Get related records if they exist
     try:
@@ -106,7 +120,29 @@ def dental_record_detail(request, record_id):
         pediatric_history = None
     
     # Get dental chart
-    dental_chart = dental_record.dental_chart.all()
+    dental_chart = dental_record.dental_chart.all().prefetch_related('surfaces')
+    
+    # Serialize dental chart data as JSON for interactive chart display
+    dental_chart_json = []
+    for tooth in dental_chart:
+        surfaces_data = []
+        for surface in tooth.surfaces.all():
+            surfaces_data.append({
+                'id': surface.id,
+                'surface': surface.surface,
+                'condition': surface.condition,
+                'notes': surface.notes,
+            })
+        dental_chart_json.append({
+            'id': tooth.id,
+            'tooth_number': tooth.tooth_number,
+            'tooth_type': tooth.tooth_type,
+            'condition': tooth.condition,
+            'notes': tooth.notes,
+            'quadrant': tooth.fdi_quadrant,
+            'quadrant_name': tooth.quadrant_name,
+            'surfaces': surfaces_data,
+        })
     
     context = {
         'dental_record': dental_record,
@@ -117,6 +153,7 @@ def dental_record_detail(request, record_id):
         'dental_history': dental_history,
         'pediatric_history': pediatric_history,
         'dental_chart': dental_chart,
+        'dental_chart_json': json.dumps(dental_chart_json),
     }
     
     return render(request, 'dental_records/dental_record_detail.html', context)
@@ -125,7 +162,12 @@ def dental_record_detail(request, record_id):
 @login_required
 @role_required('admin', 'staff', 'doctor')
 def dental_record_create(request):
-    """Create a new dental record with all sections"""
+    """Create a new dental record (patient info + consent only).
+    
+    Clinical details (examination, vital signs, health questionnaire,
+    systems review, dental history, pediatric, dental chart, progress notes)
+    are filled in on the edit page after creation.
+    """
     preselected_patient_id = request.GET.get('patient')
     appointment_id = request.GET.get('appointment')
     preselected_patient = None
@@ -151,7 +193,6 @@ def dental_record_create(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Create dental record
                     dental_record = form.save()
                     
                     # Set appointment if provided
@@ -159,14 +200,14 @@ def dental_record_create(request):
                         dental_record.appointment = appointment
                         dental_record.save()
                     
-                    # Create related records (empty initially)
+                    # Create empty related records so the edit page can populate them
                     DentalExamination.objects.create(dental_record=dental_record)
                     DentalVitalSigns.objects.create(dental_record=dental_record)
                     DentalHealthQuestionnaire.objects.create(dental_record=dental_record)
                     DentalSystemsReview.objects.create(dental_record=dental_record)
                     DentalHistory.objects.create(dental_record=dental_record)
                     
-                    messages.success(request, 'Dental record created successfully. You can now fill in the detailed information.')
+                    messages.success(request, 'Dental record created successfully. You can now fill in the clinical details.')
                     return redirect('dental_records:dental_record_edit', record_id=dental_record.id)
             except Exception as e:
                 messages.error(request, f'Error creating dental record: {str(e)}')
@@ -259,82 +300,47 @@ def dental_record_edit(request, record_id):
         form_type = request.POST.get('form_type')
         is_htmx = request.headers.get('HX-Request')
         
-        if form_type == 'demographics':
-            form = DentalRecordForm(request.POST, instance=dental_record)
+        # Mapping of form_type → (FormClass, instance, success_message)
+        form_map = {
+            'demographics': (DentalRecordForm, dental_record, 'Patient demographics updated successfully.'),
+            'examination': (DentalExaminationForm, examination, 'Examination findings updated successfully.'),
+            'vital_signs': (DentalVitalSignsForm, vital_signs, 'Vital signs updated successfully.'),
+            'health_questionnaire': (DentalHealthQuestionnaireForm, health_questionnaire, 'Health questionnaire updated successfully.'),
+            'systems_review': (DentalSystemsReviewForm, systems_review, 'Systems review updated successfully.'),
+            'dental_history': (DentalHistoryForm, dental_history, 'Dental history updated successfully.'),
+        }
+        if is_pediatric:
+            form_map['pediatric_history'] = (PediatricDentalHistoryForm, pediatric_history, 'Pediatric history updated successfully.')
+        
+        if form_type in form_map:
+            FormClass, instance, success_msg = form_map[form_type]
+            form = FormClass(request.POST, instance=instance)
             if form.is_valid():
                 form.save()
                 if is_htmx:
-                    return JsonResponse({'success': True, 'message': 'Patient demographics updated successfully.'})
-                messages.success(request, 'Patient demographics updated successfully.')
+                    return JsonResponse({'success': True, 'message': success_msg})
+                messages.success(request, success_msg)
                 return redirect('dental_records:dental_record_edit', record_id=record_id)
             elif is_htmx:
                 return JsonResponse({'success': False, 'errors': form.errors}, status=400)
         
-        elif form_type == 'examination':
-            form = DentalExaminationForm(request.POST, instance=examination)
-            if form.is_valid():
-                form.save()
-                if is_htmx:
-                    return JsonResponse({'success': True, 'message': 'Examination findings updated successfully.'})
-                messages.success(request, 'Examination findings updated successfully.')
-                return redirect('dental_records:dental_record_edit', record_id=record_id)
-            elif is_htmx:
-                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
-        
-        elif form_type == 'vital_signs':
-            form = DentalVitalSignsForm(request.POST, instance=vital_signs)
-            if form.is_valid():
-                form.save()
-                if is_htmx:
-                    return JsonResponse({'success': True, 'message': 'Vital signs updated successfully.'})
-                messages.success(request, 'Vital signs updated successfully.')
-                return redirect('dental_records:dental_record_edit', record_id=record_id)
-            elif is_htmx:
-                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
-        
-        elif form_type == 'health_questionnaire':
-            form = DentalHealthQuestionnaireForm(request.POST, instance=health_questionnaire)
-            if form.is_valid():
-                form.save()
-                if is_htmx:
-                    return JsonResponse({'success': True, 'message': 'Health questionnaire updated successfully.'})
-                messages.success(request, 'Health questionnaire updated successfully.')
-                return redirect('dental_records:dental_record_edit', record_id=record_id)
-            elif is_htmx:
-                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
-        
-        elif form_type == 'systems_review':
-            form = DentalSystemsReviewForm(request.POST, instance=systems_review)
-            if form.is_valid():
-                form.save()
-                if is_htmx:
-                    return JsonResponse({'success': True, 'message': 'Systems review updated successfully.'})
-                messages.success(request, 'Systems review updated successfully.')
-                return redirect('dental_records:dental_record_edit', record_id=record_id)
-            elif is_htmx:
-                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
-        
-        elif form_type == 'dental_history':
-            form = DentalHistoryForm(request.POST, instance=dental_history)
-            if form.is_valid():
-                form.save()
-                if is_htmx:
-                    return JsonResponse({'success': True, 'message': 'Dental history updated successfully.'})
-                messages.success(request, 'Dental history updated successfully.')
-                return redirect('dental_records:dental_record_edit', record_id=record_id)
-            elif is_htmx:
-                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
-        
-        elif form_type == 'pediatric_history' and is_pediatric:
-            form = PediatricDentalHistoryForm(request.POST, instance=pediatric_history)
-            if form.is_valid():
-                form.save()
-                if is_htmx:
-                    return JsonResponse({'success': True, 'message': 'Pediatric history updated successfully.'})
-                messages.success(request, 'Pediatric history updated successfully.')
-                return redirect('dental_records:dental_record_edit', record_id=record_id)
-            elif is_htmx:
-                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+        elif form_type == 'progress_note':
+            progress_date = request.POST.get('progress_date')
+            progress_procedure = request.POST.get('progress_procedure', '').strip()
+            progress_remarks = request.POST.get('progress_remarks', '').strip()
+            
+            if progress_procedure:
+                ProgressNote.objects.create(
+                    dental_record=dental_record,
+                    date=progress_date or timezone.now().date(),
+                    procedure_done=progress_procedure,
+                    dentist=request.user,
+                    remarks=progress_remarks,
+                )
+                messages.success(request, 'Progress note added successfully.')
+            else:
+                messages.error(request, 'Please enter the procedure done.')
+            return redirect('dental_records:dental_record_edit', record_id=record_id)
     
     # Initialize all forms for GET request
     demographics_form = DentalRecordForm(instance=dental_record)
@@ -348,9 +354,24 @@ def dental_record_edit(request, record_id):
     # Get dental chart
     dental_chart = dental_record.dental_chart.all().order_by('tooth_number')
     
+    # Serialize progress notes for Alpine.js
+    progress_notes_qs = dental_record.progress_notes.select_related('dentist').all()
+    progress_notes_json = json.dumps([
+        {
+            'id': n.id,
+            'date': n.date.strftime('%Y-%m-%d'),
+            'date_display': n.date.strftime('%b %d, %Y'),
+            'procedure_done': n.procedure_done,
+            'dentist': n.dentist.get_full_name() if n.dentist else '\u2014',
+            'remarks': n.remarks or '\u2014',
+        }
+        for n in progress_notes_qs
+    ])
+    
     context = {
         'dental_record': dental_record,
         'appointment': dental_record.appointment,
+        'progress_notes_json': progress_notes_json,
         'demographics_form': demographics_form,
         'examination_form': examination_form,
         'vital_signs_form': vital_signs_form,
@@ -388,6 +409,25 @@ def complete_appointment(request, record_id):
 
 @login_required
 @role_required('admin', 'staff', 'doctor')
+def mark_record_completed(request, record_id):
+    """Toggle dental record status between pending and completed"""
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    if request.method == 'POST':
+        new_status = request.POST.get('status', 'completed')
+        if new_status in ('pending', 'completed'):
+            dental_record.status = new_status
+            dental_record.save(update_fields=['status', 'updated_at'])
+            if new_status == 'completed':
+                messages.success(request, 'Dental record marked as completed. The patient can now view their record.')
+            else:
+                messages.info(request, 'Dental record reverted to pending. The patient will not be able to view details.')
+    
+    return redirect('dental_records:dental_record_edit', record_id=record_id)
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
 def dental_chart_add_tooth(request, record_id):
     """Add or update a tooth in the dental chart"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -415,7 +455,7 @@ def dental_chart_add_tooth(request, record_id):
         
         # If HTMX request, return partial template without adding Django messages
         if request.headers.get('HX-Request'):
-            dental_chart = dental_record.dental_chart.all().order_by('tooth_number')
+            dental_chart = dental_record.dental_chart.prefetch_related('surfaces').order_by('tooth_number')
             return render(request, 'dental_records/partials/dental_chart_table.html', {
                 'dental_chart': dental_chart,
                 'dental_record': dental_record,
@@ -438,13 +478,32 @@ def dental_chart_delete_tooth(request, record_id, tooth_id):
     tooth_number = tooth.tooth_number
     tooth.delete()
     
-    # If HTMX request, return partial template without adding Django messages
+    # If HTMX request, return the HTMX response template
     if request.headers.get('HX-Request'):
-        dental_chart = dental_record.dental_chart.all().order_by('tooth_number')
-        return render(request, 'dental_records/partials/dental_chart_table.html', {
-            'dental_chart': dental_chart,
+        teeth = DentalChart.objects.filter(dental_record=dental_record).prefetch_related('surfaces').order_by('tooth_number')
+        
+        # Build chart_data for JavaScript
+        chart_data = {}
+        for t in teeth:
+            chart_data[str(t.tooth_number)] = {
+                'id': t.id,
+                'condition': t.condition,
+                'notes': t.notes or '',
+                'tooth_type': t.tooth_type,
+            }
+        
+        response = render(request, 'dental_records/partials/dental_chart_htmx_response.html', {
             'dental_record': dental_record,
+            'teeth': teeth,
+            'chart_data': json.dumps(chart_data),
+            'message': f'Tooth #{tooth_number} removed from chart.',
         })
+        # Add HX-Trigger header to show message and update chart
+        response['HX-Trigger'] = json.dumps({
+            'showToothMessage': f'Tooth #{tooth_number} removed from chart.',
+            'updateChartData': chart_data
+        })
+        return response
     
     # Only add messages for non-HTMX requests
     messages.success(request, f'Tooth #{tooth_number} removed from chart.')
@@ -468,18 +527,12 @@ def dental_record_delete(request, record_id):
 
 @login_required
 def my_dental_records(request):
-    """View dental records for the logged-in patient"""
-    dental_records = DentalRecord.objects.filter(patient=request.user).order_by('-date_of_examination')
-    
-    # Filter out records where appointment is not completed
-    accessible_records = []
-    for record in dental_records:
-        if record.appointment and record.appointment.status != 'completed':
-            continue  # Skip this record
-        accessible_records.append(record)
+    """List all dental records for the logged-in patient"""
+    # Get all dental records for the current user, ordered by most recent first
+    dental_records = DentalRecord.objects.filter(patient=request.user).select_related('examined_by', 'appointment').order_by('-date_of_examination')
     
     context = {
-        'dental_records': accessible_records,
+        'dental_records': dental_records,
     }
     
     return render(request, 'dental_records/my_dental_records.html', context)
@@ -490,9 +543,9 @@ def my_dental_record_detail(request, record_id):
     """View detailed dental record for the logged-in patient"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id, patient=request.user)
     
-    # Check if appointment is completed (if exists)
-    if dental_record.appointment and dental_record.appointment.status != 'completed':
-        messages.error(request, 'You can only view dental records for completed appointments.')
+    # Block access if the record is still pending
+    if dental_record.status != 'completed':
+        messages.warning(request, 'This dental record is still being processed. You will be able to view it once it is marked as completed by the clinic staff.')
         return redirect('dental_records:my_dental_records')
     
     # Get related records
@@ -526,7 +579,29 @@ def my_dental_record_detail(request, record_id):
     except PediatricDentalHistory.DoesNotExist:
         pediatric_history = None
     
-    dental_chart = dental_record.dental_chart.all()
+    dental_chart = dental_record.dental_chart.all().prefetch_related('surfaces')
+    
+    # Serialize dental chart data as JSON for interactive chart display
+    dental_chart_json = []
+    for tooth in dental_chart:
+        surfaces_data = []
+        for surface in tooth.surfaces.all():
+            surfaces_data.append({
+                'id': surface.id,
+                'surface': surface.surface,
+                'condition': surface.condition,
+                'notes': surface.notes,
+            })
+        dental_chart_json.append({
+            'id': tooth.id,
+            'tooth_number': tooth.tooth_number,
+            'tooth_type': tooth.tooth_type,
+            'condition': tooth.condition,
+            'notes': tooth.notes,
+            'quadrant': tooth.fdi_quadrant,
+            'quadrant_name': tooth.quadrant_name,
+            'surfaces': surfaces_data,
+        })
     
     context = {
         'dental_record': dental_record,
@@ -537,9 +612,94 @@ def my_dental_record_detail(request, record_id):
         'dental_history': dental_history,
         'pediatric_history': pediatric_history,
         'dental_chart': dental_chart,
+        'dental_chart_json': json.dumps(dental_chart_json),
     }
     
     return render(request, 'dental_records/my_dental_record_detail.html', context)
+
+
+# ============================================
+# Progress Notes API
+# ============================================
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def progress_note_list(request, record_id):
+    """Return all progress notes for a dental record as JSON."""
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    notes = dental_record.progress_notes.select_related('dentist').all()
+    data = [
+        {
+            'id': n.id,
+            'date': n.date.strftime('%Y-%m-%d'),
+            'date_display': n.date.strftime('%b %d, %Y'),
+            'procedure_done': n.procedure_done,
+            'dentist': n.dentist.get_full_name() if n.dentist else '—',
+            'remarks': n.remarks or '—',
+        }
+        for n in notes
+    ]
+    return JsonResponse({'notes': data})
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def progress_note_create(request, record_id):
+    """Create a progress note via JSON POST. Returns the new note."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+
+    # Accept both form-encoded and JSON body
+    if request.content_type and 'json' in request.content_type:
+        import json as _json
+        try:
+            body = _json.loads(request.body)
+        except _json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        date_val = body.get('date', '')
+        procedure = body.get('procedure_done', '').strip()
+        remarks = body.get('remarks', '').strip()
+    else:
+        date_val = request.POST.get('date', '')
+        procedure = request.POST.get('procedure_done', '').strip()
+        remarks = request.POST.get('remarks', '').strip()
+
+    if not procedure:
+        return JsonResponse({'success': False, 'error': 'Procedure done is required.'}, status=400)
+
+    note = ProgressNote.objects.create(
+        dental_record=dental_record,
+        date=date_val or timezone.now().date(),
+        procedure_done=procedure,
+        dentist=request.user,
+        remarks=remarks,
+    )
+    return JsonResponse({
+        'success': True,
+        'note': {
+            'id': note.id,
+            'date': note.date.strftime('%Y-%m-%d'),
+            'date_display': note.date.strftime('%b %d, %Y'),
+            'procedure_done': note.procedure_done,
+            'dentist': request.user.get_full_name(),
+            'remarks': note.remarks or '—',
+        }
+    })
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def progress_note_delete(request, record_id, note_id):
+    """Delete a progress note. Returns JSON."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    note = get_object_or_404(ProgressNote, pk=note_id, dental_record=dental_record)
+    note.delete()
+    return JsonResponse({'success': True})
 
 
 @login_required
@@ -788,3 +948,607 @@ def get_patient_profile(request, patient_id):
         logger.error(f"Error fetching profile for patient {patient_id}: {str(e)}")
     
     return JsonResponse(data)
+
+
+# =====================================
+# Interactive Dental Chart API Views
+# =====================================
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_get(request, record_id):
+    """Get all teeth data for the dental chart as JSON"""
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    teeth = dental_record.dental_chart.all().prefetch_related('surfaces')
+    
+    teeth_data = []
+    for tooth in teeth:
+        surfaces_data = []
+        for surface in tooth.surfaces.all():
+            surfaces_data.append({
+                'id': surface.id,
+                'surface': surface.surface,
+                'condition': surface.condition,
+                'notes': surface.notes,
+            })
+        
+        teeth_data.append({
+            'id': tooth.id,
+            'tooth_number': tooth.tooth_number,
+            'tooth_type': tooth.tooth_type,
+            'condition': tooth.condition,
+            'notes': tooth.notes,
+            'quadrant': tooth.fdi_quadrant,
+            'quadrant_name': tooth.quadrant_name,
+            'surfaces': surfaces_data,
+        })
+    
+    return JsonResponse({
+        'teeth': teeth_data,
+        'record_id': record_id,
+        'patient_name': dental_record.patient.get_full_name(),
+    })
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_update_tooth(request, record_id):
+    """Add or update a tooth in the dental chart via HTMX or AJAX"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    is_htmx = request.headers.get('HX-Request')
+    
+    # Parse data from either JSON or form data
+    if request.content_type == 'application/json':
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            if is_htmx:
+                return render(request, 'dental_records/partials/dental_chart_message.html', {
+                    'message': 'Invalid JSON data',
+                    'message_type': 'error'
+                })
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    else:
+        data = request.POST
+    
+    tooth_number = data.get('tooth_number')
+    tooth_type = data.get('tooth_type', 'permanent')
+    condition = data.get('condition', 'healthy')
+    notes = data.get('notes', '')
+    
+    if not tooth_number:
+        if is_htmx:
+            return render(request, 'dental_records/partials/dental_chart_message.html', {
+                'message': 'Tooth number is required',
+                'message_type': 'error'
+            })
+        return JsonResponse({'success': False, 'error': 'Tooth number is required'}, status=400)
+    
+    # Validate tooth number for FDI notation
+    try:
+        tooth_number = int(tooth_number)
+        quadrant = tooth_number // 10
+        position = tooth_number % 10
+        
+        # Permanent teeth: quadrants 1-4, positions 1-8
+        # Primary teeth: quadrants 5-8, positions 1-5
+        if quadrant in [1, 2, 3, 4]:
+            if position < 1 or position > 8:
+                error_msg = 'Invalid tooth position for permanent teeth (1-8)'
+                if is_htmx:
+                    return render(request, 'dental_records/partials/dental_chart_message.html', {
+                        'message': error_msg,
+                        'message_type': 'error'
+                    })
+                return JsonResponse({'success': False, 'error': error_msg}, status=400)
+            tooth_type = 'permanent'
+        elif quadrant in [5, 6, 7, 8]:
+            if position < 1 or position > 5:
+                error_msg = 'Invalid tooth position for primary teeth (1-5)'
+                if is_htmx:
+                    return render(request, 'dental_records/partials/dental_chart_message.html', {
+                        'message': error_msg,
+                        'message_type': 'error'
+                    })
+                return JsonResponse({'success': False, 'error': error_msg}, status=400)
+            tooth_type = 'primary'
+        else:
+            error_msg = 'Invalid quadrant (1-4 for permanent, 5-8 for primary)'
+            if is_htmx:
+                return render(request, 'dental_records/partials/dental_chart_message.html', {
+                    'message': error_msg,
+                    'message_type': 'error'
+                })
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
+    except (ValueError, TypeError):
+        error_msg = 'Invalid tooth number format'
+        if is_htmx:
+            return render(request, 'dental_records/partials/dental_chart_message.html', {
+                'message': error_msg,
+                'message_type': 'error'
+            })
+        return JsonResponse({'success': False, 'error': error_msg}, status=400)
+    
+    # Create or update the tooth
+    tooth, created = DentalChart.objects.update_or_create(
+        dental_record=dental_record,
+        tooth_number=tooth_number,
+        defaults={
+            'tooth_type': tooth_type,
+            'condition': condition,
+            'notes': notes,
+        }
+    )
+    
+    # Handle surface conditions if provided
+    surfaces = ['mesial', 'distal', 'buccal', 'lingual', 'occlusal']
+    for surface_name in surfaces:
+        surface_value = data.get(f'surface_{surface_name}')
+        if surface_value:
+            ToothSurface.objects.update_or_create(
+                tooth=tooth,
+                surface=surface_name,
+                defaults={'condition': surface_value}
+            )
+        else:
+            # Remove surface if not set
+            ToothSurface.objects.filter(tooth=tooth, surface=surface_name).delete()
+    
+    # Return HTMX response with updated table and chart data
+    if is_htmx:
+        teeth = DentalChart.objects.filter(dental_record=dental_record).prefetch_related('surfaces').order_by('tooth_number')
+        
+        # Build chart_data for JavaScript
+        chart_data = {}
+        for t in teeth:
+            chart_data[str(t.tooth_number)] = {
+                'id': t.id,
+                'condition': t.condition,
+                'notes': t.notes or '',
+                'tooth_type': t.tooth_type,
+            }
+        
+        response = render(request, 'dental_records/partials/dental_chart_htmx_response.html', {
+            'dental_record': dental_record,
+            'teeth': teeth,
+            'chart_data': json.dumps(chart_data),
+            'message': f'Tooth #{tooth_number} {"added" if created else "updated"} successfully!',
+        })
+        # Add HX-Trigger header to close modal and show message
+        response['HX-Trigger'] = json.dumps({
+            'closeToothModal': True,
+            'showToothMessage': f'Tooth #{tooth_number} {"added" if created else "updated"} successfully!',
+            'updateChartData': chart_data
+        })
+        return response
+    
+    return JsonResponse({
+        'success': True,
+        'created': created,
+        'tooth': {
+            'id': tooth.id,
+            'tooth_number': tooth.tooth_number,
+            'tooth_type': tooth.tooth_type,
+            'condition': tooth.condition,
+            'notes': tooth.notes,
+            'quadrant': tooth.fdi_quadrant,
+            'quadrant_name': tooth.quadrant_name,
+        }
+    })
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_delete_tooth(request, record_id, tooth_id):
+    """Delete a tooth from the dental chart via HTMX or AJAX (supports DELETE method)"""
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    tooth = get_object_or_404(DentalChart, pk=tooth_id, dental_record=dental_record)
+    is_htmx = request.headers.get('HX-Request')
+    
+    tooth_number = tooth.tooth_number
+    tooth.delete()
+    
+    if is_htmx:
+        teeth = DentalChart.objects.filter(dental_record=dental_record).prefetch_related('surfaces').order_by('tooth_number')
+        
+        # Build chart_data for JavaScript
+        chart_data = {}
+        for t in teeth:
+            chart_data[str(t.tooth_number)] = {
+                'id': t.id,
+                'condition': t.condition,
+                'notes': t.notes or '',
+                'tooth_type': t.tooth_type,
+            }
+        
+        response = render(request, 'dental_records/partials/dental_chart_htmx_response.html', {
+            'dental_record': dental_record,
+            'teeth': teeth,
+            'chart_data': json.dumps(chart_data),
+            'message': f'Tooth #{tooth_number} deleted successfully.',
+        })
+        # Add HX-Trigger header to show message and update chart
+        response['HX-Trigger'] = json.dumps({
+            'showToothMessage': f'Tooth #{tooth_number} deleted successfully.',
+            'updateChartData': chart_data
+        })
+        return response
+    
+    return JsonResponse({
+        'success': True,
+        'message': f'Tooth #{tooth_number} deleted successfully.'
+    })
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_update_surface(request, record_id, tooth_id):
+    """Update surface condition for a specific tooth"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    tooth = get_object_or_404(DentalChart, pk=tooth_id, dental_record=dental_record)
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+    
+    surface_name = data.get('surface')
+    condition = data.get('condition', 'healthy')
+    notes = data.get('notes', '')
+    
+    if not surface_name:
+        return JsonResponse({'success': False, 'error': 'Surface name is required'}, status=400)
+    
+    valid_surfaces = ['mesial', 'distal', 'buccal', 'lingual', 'occlusal', 'incisal']
+    if surface_name not in valid_surfaces:
+        return JsonResponse({'success': False, 'error': f'Invalid surface. Must be one of: {", ".join(valid_surfaces)}'}, status=400)
+    
+    # Create or update the surface
+    surface, created = ToothSurface.objects.update_or_create(
+        tooth=tooth,
+        surface=surface_name,
+        defaults={
+            'condition': condition,
+            'notes': notes,
+        }
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'created': created,
+        'surface': {
+            'id': surface.id,
+            'surface': surface.surface,
+            'condition': surface.condition,
+            'notes': surface.notes,
+        }
+    })
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_delete_surface(request, record_id, tooth_id, surface_id):
+    """Delete a surface marking from a tooth"""
+    if request.method != 'DELETE':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    tooth = get_object_or_404(DentalChart, pk=tooth_id, dental_record=dental_record)
+    surface = get_object_or_404(ToothSurface, pk=surface_id, tooth=tooth)
+    
+    surface.delete()
+    
+    return JsonResponse({'success': True})
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_bulk_update(request, record_id):
+    """Bulk update multiple teeth at once (for multi-select feature)"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    is_htmx = request.headers.get('HX-Request')
+    
+    # Parse data from either JSON or form data
+    if request.content_type == 'application/json':
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            if is_htmx:
+                return render(request, 'dental_records/partials/dental_chart_message.html', {
+                    'message': 'Invalid JSON data',
+                    'message_type': 'error'
+                })
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        tooth_numbers = data.get('tooth_numbers', [])
+        condition = data.get('condition', 'healthy')
+        notes = data.get('notes', '')
+    else:
+        # Form data - tooth_numbers_json is a JSON string of selected teeth
+        tooth_numbers_json = request.POST.get('tooth_numbers_json', '[]')
+        try:
+            tooth_numbers = json.loads(tooth_numbers_json)
+        except json.JSONDecodeError:
+            tooth_numbers = []
+        condition = request.POST.get('condition', 'healthy')
+        notes = request.POST.get('notes', '')
+    
+    if not tooth_numbers:
+        if is_htmx:
+            return render(request, 'dental_records/partials/dental_chart_message.html', {
+                'message': 'No teeth selected',
+                'message_type': 'error'
+            })
+        return JsonResponse({'success': False, 'error': 'No teeth selected'}, status=400)
+    
+    updated_teeth = []
+    errors = []
+    
+    for tooth_number in tooth_numbers:
+        try:
+            tooth_number = int(tooth_number)
+            quadrant = tooth_number // 10
+            position = tooth_number % 10
+            
+            # Determine tooth type
+            if quadrant in [1, 2, 3, 4]:
+                if position < 1 or position > 8:
+                    errors.append(f'Invalid position for tooth {tooth_number}')
+                    continue
+                tooth_type = 'permanent'
+            elif quadrant in [5, 6, 7, 8]:
+                if position < 1 or position > 5:
+                    errors.append(f'Invalid position for tooth {tooth_number}')
+                    continue
+                tooth_type = 'primary'
+            else:
+                errors.append(f'Invalid quadrant for tooth {tooth_number}')
+                continue
+            
+            tooth, _ = DentalChart.objects.update_or_create(
+                dental_record=dental_record,
+                tooth_number=tooth_number,
+                defaults={
+                    'tooth_type': tooth_type,
+                    'condition': condition,
+                    'notes': notes,
+                }
+            )
+            updated_teeth.append(tooth_number)
+        except (ValueError, TypeError):
+            errors.append(f'Invalid tooth number: {tooth_number}')
+    
+    if is_htmx:
+        # Return HTMX response with updated teeth table and chart data
+        teeth = DentalChart.objects.filter(dental_record=dental_record).order_by('tooth_number')
+        
+        # Build chart_data for JavaScript
+        chart_data = {}
+        for tooth in teeth:
+            chart_data[str(tooth.tooth_number)] = {
+                'id': tooth.id,
+                'condition': tooth.condition,
+                'notes': tooth.notes or '',
+                'tooth_type': tooth.tooth_type,
+            }
+        
+        response = render(request, 'dental_records/partials/dental_chart_htmx_response.html', {
+            'dental_record': dental_record,
+            'teeth': teeth,
+            'chart_data': json.dumps(chart_data),
+            'message': f'Successfully updated {len(updated_teeth)} teeth',
+        })
+        # Add HX-Trigger header to close modal and show message
+        response['HX-Trigger'] = json.dumps({
+            'closeBulkModal': True,
+            'showToothMessage': f'Successfully updated {len(updated_teeth)} teeth',
+            'updateChartData': chart_data
+        })
+        return response
+    
+    return JsonResponse({
+        'success': True,
+        'updated_count': len(updated_teeth),
+        'updated_teeth': updated_teeth,
+        'errors': errors,
+    })
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_save_snapshot(request, record_id):
+    """Save a snapshot of the current dental chart for comparison"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        data = {}
+    
+    notes = data.get('notes', '')
+    
+    # Build snapshot data
+    teeth = dental_record.dental_chart.all().prefetch_related('surfaces')
+    chart_data = []
+    
+    for tooth in teeth:
+        tooth_data = {
+            'tooth_number': tooth.tooth_number,
+            'tooth_type': tooth.tooth_type,
+            'condition': tooth.condition,
+            'notes': tooth.notes,
+            'surfaces': []
+        }
+        for surface in tooth.surfaces.all():
+            tooth_data['surfaces'].append({
+                'surface': surface.surface,
+                'condition': surface.condition,
+                'notes': surface.notes,
+            })
+        chart_data.append(tooth_data)
+    
+    # Create snapshot
+    snapshot = DentalChartSnapshot.objects.create(
+        dental_record=dental_record,
+        notes=notes,
+        chart_data=chart_data,
+        created_by=request.user,
+    )
+    
+    return JsonResponse({
+        'success': True,
+        'snapshot_id': snapshot.id,
+        'snapshot_date': snapshot.snapshot_date.isoformat(),
+    })
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_get_snapshots(request, record_id):
+    """Get list of all snapshots for a dental record"""
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    snapshots = dental_record.chart_snapshots.all()
+    
+    snapshots_data = []
+    for snapshot in snapshots:
+        snapshots_data.append({
+            'id': snapshot.id,
+            'date': snapshot.snapshot_date.isoformat(),
+            'notes': snapshot.notes,
+            'created_by': snapshot.created_by.get_full_name() if snapshot.created_by else 'Unknown',
+            'teeth_count': len(snapshot.chart_data) if snapshot.chart_data else 0,
+        })
+    
+    return JsonResponse({'snapshots': snapshots_data})
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_get_snapshot(request, record_id, snapshot_id):
+    """Get a specific snapshot's data for comparison"""
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    snapshot = get_object_or_404(DentalChartSnapshot, pk=snapshot_id, dental_record=dental_record)
+    
+    return JsonResponse({
+        'id': snapshot.id,
+        'date': snapshot.snapshot_date.isoformat(),
+        'notes': snapshot.notes,
+        'created_by': snapshot.created_by.get_full_name() if snapshot.created_by else 'Unknown',
+        'chart_data': snapshot.chart_data,
+    })
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_compare_snapshots(request, record_id):
+    """Compare two snapshots to see changes over time"""
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    snapshot1_id = request.GET.get('snapshot1')
+    snapshot2_id = request.GET.get('snapshot2')
+    
+    if not snapshot1_id or not snapshot2_id:
+        return JsonResponse({'success': False, 'error': 'Both snapshot IDs are required'}, status=400)
+    
+    snapshot1 = get_object_or_404(DentalChartSnapshot, pk=snapshot1_id, dental_record=dental_record)
+    snapshot2 = get_object_or_404(DentalChartSnapshot, pk=snapshot2_id, dental_record=dental_record)
+    
+    # Build comparison data
+    teeth1 = {t['tooth_number']: t for t in snapshot1.chart_data or []}
+    teeth2 = {t['tooth_number']: t for t in snapshot2.chart_data or []}
+    
+    all_teeth = set(teeth1.keys()) | set(teeth2.keys())
+    
+    changes = []
+    for tooth_num in sorted(all_teeth):
+        tooth1 = teeth1.get(tooth_num)
+        tooth2 = teeth2.get(tooth_num)
+        
+        if tooth1 and tooth2:
+            if tooth1['condition'] != tooth2['condition']:
+                changes.append({
+                    'tooth_number': tooth_num,
+                    'type': 'condition_changed',
+                    'from': tooth1['condition'],
+                    'to': tooth2['condition'],
+                })
+        elif tooth1 and not tooth2:
+            changes.append({
+                'tooth_number': tooth_num,
+                'type': 'removed',
+                'condition': tooth1['condition'],
+            })
+        elif not tooth1 and tooth2:
+            changes.append({
+                'tooth_number': tooth_num,
+                'type': 'added',
+                'condition': tooth2['condition'],
+            })
+    
+    return JsonResponse({
+        'snapshot1': {
+            'id': snapshot1.id,
+            'date': snapshot1.snapshot_date.isoformat(),
+        },
+        'snapshot2': {
+            'id': snapshot2.id,
+            'date': snapshot2.snapshot_date.isoformat(),
+        },
+        'changes': changes,
+        'total_changes': len(changes),
+    })
+
+
+@login_required
+@role_required('admin', 'staff', 'doctor')
+def dental_chart_api_export(request, record_id):
+    """Export the dental chart data as JSON"""
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    teeth = dental_record.dental_chart.all().prefetch_related('surfaces')
+    
+    export_data = {
+        'record_id': record_id,
+        'patient_name': dental_record.patient.get_full_name(),
+        'examination_date': dental_record.date_of_examination.isoformat() if dental_record.date_of_examination else None,
+        'exported_at': timezone.now().isoformat(),
+        'teeth': []
+    }
+    
+    for tooth in teeth:
+        tooth_data = {
+            'tooth_number': tooth.tooth_number,
+            'fdi_notation': f"Q{tooth.fdi_quadrant}-{tooth.fdi_tooth_position}",
+            'quadrant_name': tooth.quadrant_name,
+            'tooth_type': tooth.tooth_type,
+            'condition': tooth.condition,
+            'condition_display': tooth.get_condition_display(),
+            'notes': tooth.notes,
+            'surfaces': []
+        }
+        
+        for surface in tooth.surfaces.all():
+            tooth_data['surfaces'].append({
+                'surface': surface.surface,
+                'surface_display': surface.get_surface_display(),
+                'condition': surface.condition,
+                'condition_display': surface.get_condition_display(),
+                'notes': surface.notes,
+            })
+        
+        export_data['teeth'].append(tooth_data)
+    
+    return JsonResponse(export_data, json_dumps_params={'indent': 2})

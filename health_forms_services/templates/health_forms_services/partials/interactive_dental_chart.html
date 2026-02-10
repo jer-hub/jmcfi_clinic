@@ -1,0 +1,744 @@
+<!-- Interactive Dental Chart Component for Health Forms Services (Alpine.js) -->
+<!-- Adapted from dental_records FDI chart - uses health_forms_services API endpoints -->
+
+<div x-data="dentalFormChartApp()" x-init="init()" class="dental-chart-container" id="interactive-dental-chart">
+    <!-- Toast Notifications -->
+    <div x-show="toast.show"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 translate-x-full"
+         x-transition:enter-end="opacity-100 translate-x-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 translate-x-0"
+         x-transition:leave-end="opacity-0 translate-x-full"
+         class="fixed top-20 right-4 z-[9999] max-w-md"
+         x-cloak>
+        <div :class="toast.type === 'success' ? 'bg-emerald-50 border-emerald-500 text-emerald-800' : 'bg-red-50 border-red-500 text-red-800'"
+             class="border-l-4 p-4 rounded-r-lg shadow-lg">
+            <div class="flex items-center gap-3">
+                <div :class="toast.type === 'success' ? 'bg-emerald-100' : 'bg-red-100'"
+                     class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center">
+                    <svg :class="toast.type === 'success' ? 'text-emerald-600' : 'text-red-600'" class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <span class="flex-1 font-medium" x-text="toast.message"></span>
+                <button type="button" @click="toast.show = false" class="text-gray-500 hover:text-gray-700">✕</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                🦷 Interactive Dental Chart - FDI Notation
+            </h3>
+            <p class="text-sm text-gray-500 mt-1">Click on teeth to select, double-click to edit</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <div class="inline-flex rounded-lg border border-gray-300 p-1 bg-gray-50">
+                <button type="button" @click="chartType = 'permanent'"
+                        :class="chartType === 'permanent' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-200'"
+                        class="px-3 py-1.5 text-sm font-medium rounded-md transition-all">
+                    Permanent
+                </button>
+                <button type="button" @click="chartType = 'primary'"
+                        :class="chartType === 'primary' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-200'"
+                        class="px-3 py-1.5 text-sm font-medium rounded-md transition-all">
+                    Primary
+                </button>
+            </div>
+            <button type="button" @click="clearSelection()"
+                    class="px-3 py-1.5 text-sm bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">
+                ✕ Clear
+            </button>
+            <button type="button" @click="openBulkModal()"
+                    :disabled="selectedTeeth.length === 0"
+                    class="px-3 py-1.5 text-sm bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                ✎ Edit Selected (<span x-text="selectedTeeth.length">0</span>)
+            </button>
+        </div>
+    </div>
+
+    <!-- Condition Legend -->
+    <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h4 class="text-sm font-semibold text-gray-700 mb-3">Condition Legend</h4>
+        <div class="flex flex-wrap gap-3">
+            <span class="legend-item"><span class="legend-color bg-green-400"></span> Healthy</span>
+            <span class="legend-item"><span class="legend-color bg-red-500"></span> Decayed</span>
+            <span class="legend-item"><span class="legend-color bg-blue-500"></span> Filled</span>
+            <span class="legend-item"><span class="legend-color bg-gray-400"></span> Missing</span>
+            <span class="legend-item"><span class="legend-color bg-gray-600"></span> Extracted</span>
+            <span class="legend-item"><span class="legend-color bg-yellow-500"></span> Crowned</span>
+            <span class="legend-item"><span class="legend-color bg-purple-500"></span> Root Canal</span>
+            <span class="legend-item"><span class="legend-color bg-orange-500"></span> Impacted</span>
+            <span class="legend-item"><span class="legend-color bg-teal-500"></span> Implant</span>
+            <span class="legend-item"><span class="legend-color bg-pink-500"></span> Fractured</span>
+        </div>
+    </div>
+
+    <!-- Permanent Teeth Chart -->
+    <div x-show="chartType === 'permanent'" class="chart-wrapper">
+        <!-- Upper Jaw -->
+        <div class="jaw-section mb-8">
+            <div class="text-center mb-3">
+                <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Upper Jaw (Maxilla)</span>
+            </div>
+            <div class="flex justify-center">
+                <div class="teeth-row">
+                    <!-- Upper Right (Quadrant 1) -->
+                    <div class="quadrant quadrant-upper-right">
+                        <div class="quadrant-label">Q1</div>
+                        <template x-for="i in ['8','7','6','5','4','3','2','1']" :key="'1'+i">
+                            <div class="tooth-wrapper"
+                                 :data-tooth="'1'+i"
+                                 :class="{'selected': selectedTeeth.includes(parseInt('1'+i))}"
+                                 @click="toggleToothSelection(parseInt('1'+i))"
+                                 @dblclick="openToothModal(parseInt('1'+i))">
+                                <div class="tooth permanent" :class="getToothClass(parseInt('1'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('1'+i), 'buccal')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('1'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('1'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('1'+i), 'distal')"></div>
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('1'+i), 'lingual')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'1'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="midline"></div>
+                    <!-- Upper Left (Quadrant 2) -->
+                    <div class="quadrant quadrant-upper-left">
+                        <div class="quadrant-label">Q2</div>
+                        <template x-for="i in ['1','2','3','4','5','6','7','8']" :key="'2'+i">
+                            <div class="tooth-wrapper"
+                                 :data-tooth="'2'+i"
+                                 :class="{'selected': selectedTeeth.includes(parseInt('2'+i))}"
+                                 @click="toggleToothSelection(parseInt('2'+i))"
+                                 @dblclick="openToothModal(parseInt('2'+i))">
+                                <div class="tooth permanent" :class="getToothClass(parseInt('2'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('2'+i), 'buccal')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('2'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('2'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('2'+i), 'distal')"></div>
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('2'+i), 'lingual')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'2'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Lower Jaw -->
+        <div class="jaw-section">
+            <div class="flex justify-center">
+                <div class="teeth-row">
+                    <!-- Lower Right (Quadrant 4) -->
+                    <div class="quadrant quadrant-lower-right">
+                        <div class="quadrant-label">Q4</div>
+                        <template x-for="i in ['8','7','6','5','4','3','2','1']" :key="'4'+i">
+                            <div class="tooth-wrapper"
+                                 :data-tooth="'4'+i"
+                                 :class="{'selected': selectedTeeth.includes(parseInt('4'+i))}"
+                                 @click="toggleToothSelection(parseInt('4'+i))"
+                                 @dblclick="openToothModal(parseInt('4'+i))">
+                                <div class="tooth permanent" :class="getToothClass(parseInt('4'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('4'+i), 'lingual')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('4'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('4'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('4'+i), 'distal')"></div>
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('4'+i), 'buccal')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'4'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="midline"></div>
+                    <!-- Lower Left (Quadrant 3) -->
+                    <div class="quadrant quadrant-lower-left">
+                        <div class="quadrant-label">Q3</div>
+                        <template x-for="i in ['1','2','3','4','5','6','7','8']" :key="'3'+i">
+                            <div class="tooth-wrapper"
+                                 :data-tooth="'3'+i"
+                                 :class="{'selected': selectedTeeth.includes(parseInt('3'+i))}"
+                                 @click="toggleToothSelection(parseInt('3'+i))"
+                                 @dblclick="openToothModal(parseInt('3'+i))">
+                                <div class="tooth permanent" :class="getToothClass(parseInt('3'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('3'+i), 'lingual')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('3'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('3'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('3'+i), 'distal')"></div>
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('3'+i), 'buccal')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'3'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Lower Jaw (Mandible)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Primary Teeth Chart -->
+    <div x-show="chartType === 'primary'" class="chart-wrapper" x-cloak>
+        <!-- Upper Jaw -->
+        <div class="jaw-section mb-8">
+            <div class="text-center mb-3">
+                <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Upper Jaw (Primary Teeth)</span>
+            </div>
+            <div class="flex justify-center">
+                <div class="teeth-row">
+                    <div class="quadrant quadrant-upper-right">
+                        <div class="quadrant-label">Q5</div>
+                        <template x-for="i in ['5','4','3','2','1']" :key="'5'+i">
+                            <div class="tooth-wrapper"
+                                 :data-tooth="'5'+i"
+                                 :class="{'selected': selectedTeeth.includes(parseInt('5'+i))}"
+                                 @click="toggleToothSelection(parseInt('5'+i))"
+                                 @dblclick="openToothModal(parseInt('5'+i))">
+                                <div class="tooth primary" :class="getToothClass(parseInt('5'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('5'+i), 'buccal')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('5'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('5'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('5'+i), 'distal')"></div>
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('5'+i), 'lingual')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'5'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="midline"></div>
+                    <div class="quadrant quadrant-upper-left">
+                        <div class="quadrant-label">Q6</div>
+                        <template x-for="i in ['1','2','3','4','5']" :key="'6'+i">
+                            <div class="tooth-wrapper"
+                                 :data-tooth="'6'+i"
+                                 :class="{'selected': selectedTeeth.includes(parseInt('6'+i))}"
+                                 @click="toggleToothSelection(parseInt('6'+i))"
+                                 @dblclick="openToothModal(parseInt('6'+i))">
+                                <div class="tooth primary" :class="getToothClass(parseInt('6'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('6'+i), 'buccal')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('6'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('6'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('6'+i), 'distal')"></div>
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('6'+i), 'lingual')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'6'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Lower Jaw -->
+        <div class="jaw-section">
+            <div class="flex justify-center">
+                <div class="teeth-row">
+                    <div class="quadrant quadrant-lower-right">
+                        <div class="quadrant-label">Q8</div>
+                        <template x-for="i in ['5','4','3','2','1']" :key="'8'+i">
+                            <div class="tooth-wrapper"
+                                 :data-tooth="'8'+i"
+                                 :class="{'selected': selectedTeeth.includes(parseInt('8'+i))}"
+                                 @click="toggleToothSelection(parseInt('8'+i))"
+                                 @dblclick="openToothModal(parseInt('8'+i))">
+                                <div class="tooth primary" :class="getToothClass(parseInt('8'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('8'+i), 'lingual')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('8'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('8'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('8'+i), 'distal')"></div>
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('8'+i), 'buccal')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'8'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="midline"></div>
+                    <div class="quadrant quadrant-lower-left">
+                        <div class="quadrant-label">Q7</div>
+                        <template x-for="i in ['1','2','3','4','5']" :key="'7'+i">
+                            <div class="tooth-wrapper"
+                                 :data-tooth="'7'+i"
+                                 :class="{'selected': selectedTeeth.includes(parseInt('7'+i))}"
+                                 @click="toggleToothSelection(parseInt('7'+i))"
+                                 @dblclick="openToothModal(parseInt('7'+i))">
+                                <div class="tooth primary" :class="getToothClass(parseInt('7'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('7'+i), 'lingual')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('7'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('7'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('7'+i), 'distal')"></div>
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('7'+i), 'buccal')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'7'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Lower Jaw (Primary Teeth)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recorded Teeth Table -->
+    <div class="mt-8">
+        <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            📋 Recorded Teeth
+            <span class="text-sm font-normal text-gray-500" x-show="teeth.length > 0">(<span x-text="teeth.length"></span> recorded)</span>
+        </h4>
+        <template x-if="teeth.length > 0">
+            <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">FDI #</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Quadrant</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Type</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Condition</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Notes</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <template x-for="tooth in teeth" :key="tooth.id">
+                            <tr class="hover:bg-primary-50 transition-colors">
+                                <td class="px-4 py-3 text-sm font-semibold text-gray-900" x-text="tooth.tooth_number"></td>
+                                <td class="px-4 py-3 text-sm text-gray-700" x-text="tooth.quadrant_name"></td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span :class="tooth.tooth_type === 'permanent' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'"
+                                          class="px-2 py-1 text-xs rounded-full" x-text="tooth.tooth_type === 'permanent' ? 'Permanent' : 'Primary'"></span>
+                                </td>
+                                <td class="px-4 py-3 text-sm">
+                                    <span :class="getConditionBadgeClass(tooth.condition)"
+                                          class="px-2 py-1 text-xs rounded-full" x-text="getConditionLabel(tooth.condition)"></span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" :title="tooth.notes" x-text="tooth.notes || '-'"></td>
+                                <td class="px-4 py-3 text-sm">
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" @click="openToothModal(tooth.tooth_number)"
+                                            class="px-2.5 py-1 bg-primary-600 text-white text-xs font-medium rounded-lg hover:bg-primary-700">
+                                            Edit
+                                        </button>
+                                        <button type="button" @click="deleteTooth(tooth)"
+                                            class="px-2.5 py-1 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700">
+                                            🗑
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
+            </div>
+        </template>
+        <template x-if="teeth.length === 0">
+            <div class="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-4xl text-gray-300 mb-3">🦷</p>
+                <p class="text-gray-500">No teeth recorded in chart yet.</p>
+                <p class="text-sm text-gray-400 mt-1">Double-click on a tooth in the chart above to start documenting.</p>
+            </div>
+        </template>
+    </div>
+
+    <!-- Single Tooth Edit Modal -->
+    <div x-show="toothModal.open"
+         class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4"
+         x-transition @keydown.escape.window="toothModal.open = false" x-cloak>
+        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+             @click.outside="toothModal.open = false">
+            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 rounded-t-2xl flex-shrink-0">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-gray-900">
+                        🦷 <span x-text="toothModal.isNew ? 'Add Tooth #' + toothModal.toothNumber : 'Edit Tooth #' + toothModal.toothNumber"></span>
+                    </h3>
+                    <button type="button" @click="toothModal.open = false" class="text-gray-500 hover:text-gray-700 text-xl">✕</button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <form @submit.prevent="saveTooth()">
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tooth Number (FDI)</label>
+                            <input type="text" :value="toothModal.toothNumber" readonly
+                                   class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Condition</label>
+                            <select x-model="toothModal.condition"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                                <option value="healthy">Healthy</option>
+                                <option value="decayed">Decayed/Caries</option>
+                                <option value="filled">Filled</option>
+                                <option value="missing">Missing</option>
+                                <option value="extracted">Extracted</option>
+                                <option value="impacted">Impacted</option>
+                                <option value="root_canal">Root Canal</option>
+                                <option value="crowned">Crowned</option>
+                                <option value="bridge">Bridge</option>
+                                <option value="bridge_pontic">Bridge Pontic</option>
+                                <option value="implant">Implant</option>
+                                <option value="fractured">Fractured</option>
+                                <option value="unerupted">Unerupted</option>
+                                <option value="partially_erupted">Partially Erupted</option>
+                                <option value="sealant">Sealant</option>
+                                <option value="veneer">Veneer</option>
+                                <option value="temporary">Temporary Filling</option>
+                                <option value="root_fragment">Root Fragment</option>
+                                <option value="anomaly">Anomaly</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea x-model="toothModal.notes" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Add notes about this tooth..."></textarea>
+                    </div>
+                    <!-- Surface-Level Marking Section -->
+                    <div class="mb-4 p-3 bg-gray-50 rounded-lg">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Surface Conditions</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <template x-for="surface in ['mesial', 'distal', 'buccal', 'lingual', 'occlusal']" :key="surface">
+                                <div>
+                                    <label class="text-xs text-gray-500 block mb-1" x-text="getSurfaceLabel(surface)"></label>
+                                    <select x-model="toothModal.surfaces[surface]" class="w-full text-sm px-2 py-1.5 border rounded">
+                                        <option value="">Not set</option>
+                                        <option value="healthy">Healthy</option>
+                                        <option value="decayed">Decayed</option>
+                                        <option value="filled">Filled</option>
+                                        <option value="filled_with_caries">Filled w/ Caries</option>
+                                        <option value="sealant">Sealant</option>
+                                        <option value="fracture">Fracture</option>
+                                    </select>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 justify-end items-center pt-3 border-t">
+                        <template x-if="toothModal.loading">
+                            <span class="text-sm text-gray-500">Saving...</span>
+                        </template>
+                        <button type="button" @click="toothModal.open = false"
+                                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+                        <template x-if="!toothModal.isNew">
+                            <button type="button" @click="deleteToothFromModal()"
+                                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">🗑 Delete</button>
+                        </template>
+                        <button type="submit" :disabled="toothModal.loading"
+                                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">💾 Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Edit Modal -->
+    <div x-show="bulkModal.open"
+         class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4"
+         x-transition @keydown.escape.window="bulkModal.open = false" x-cloak>
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full" @click.outside="bulkModal.open = false">
+            <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-gray-900">🦷 Bulk Edit Teeth</h3>
+                    <button type="button" @click="bulkModal.open = false" class="text-gray-500 hover:text-gray-700 text-xl">✕</button>
+                </div>
+            </div>
+            <div class="p-6">
+                <form @submit.prevent="saveBulk()">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Selected Teeth</label>
+                        <div class="p-3 bg-gray-100 rounded-lg text-sm text-gray-700 max-h-24 overflow-y-auto">
+                            <span x-text="selectedTeeth.sort((a,b) => a-b).join(', ')"></span>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Set Condition for All</label>
+                        <select x-model="bulkModal.condition"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                            <option value="healthy">Healthy</option>
+                            <option value="decayed">Decayed/Caries</option>
+                            <option value="filled">Filled</option>
+                            <option value="missing">Missing</option>
+                            <option value="extracted">Extracted</option>
+                            <option value="crowned">Crowned</option>
+                            <option value="root_canal">Root Canal</option>
+                            <option value="implant">Implant</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
+                        <textarea x-model="bulkModal.notes" rows="2"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  placeholder="Add notes for all selected teeth..."></textarea>
+                    </div>
+                    <div class="flex gap-3 justify-end items-center">
+                        <button type="button" @click="bulkModal.open = false"
+                                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+                        <button type="submit" :disabled="bulkModal.loading"
+                                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">💾 Apply to All</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div x-show="deleteModal.open"
+         class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4"
+         x-transition @keydown.escape.window="deleteModal.open = false" x-cloak>
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full" @click.outside="deleteModal.open = false">
+            <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-red-50 to-red-100 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-gray-900">⚠️ Confirm Delete</h3>
+                    <button type="button" @click="deleteModal.open = false" class="text-gray-500 hover:text-gray-700 text-xl">✕</button>
+                </div>
+            </div>
+            <div class="p-6">
+                <p class="text-gray-700 mb-6">
+                    Are you sure you want to delete tooth #<span class="font-bold" x-text="deleteModal.toothNumber"></span>? This action cannot be undone.
+                </p>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" @click="deleteModal.open = false"
+                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">Cancel</button>
+                    <button type="button" @click="confirmDelete()" :disabled="deleteModal.loading"
+                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">🗑 Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.chart-wrapper { padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%); border-radius: 12px; border: 1px solid #e2e8f0; }
+.teeth-row { display: flex; align-items: flex-start; gap: 4px; }
+.quadrant { display: flex; gap: 4px; position: relative; padding: 8px; }
+.quadrant-label { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; color: #6b7280; background: white; padding: 2px 6px; border-radius: 4px; border: 1px solid #e5e7eb; }
+.midline { width: 3px; background: linear-gradient(to bottom, #3b82f6, #93c5fd); margin: 0 8px; border-radius: 2px; align-self: stretch; }
+.tooth-wrapper { display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.15s; }
+.tooth-wrapper:hover { transform: translateY(-2px); }
+.tooth-wrapper.selected .tooth { box-shadow: 0 0 0 3px #3b82f6, 0 0 12px rgba(59, 130, 246, 0.5); }
+.tooth { width: 36px; height: 40px; background: white; border: 2px solid #d1d5db; border-radius: 6px 6px 4px 4px; position: relative; transition: all 0.2s; }
+.tooth.primary { width: 36px; height: 40px; }
+.tooth-number { font-size: 10px; font-weight: 600; color: #4b5563; margin-top: 3px; }
+.tooth-surfaces { position: absolute; inset: 3px; display: grid; grid-template-areas: "buccal buccal buccal" "mesial occlusal distal" "lingual lingual lingual"; grid-template-rows: 1fr 1.5fr 1fr; grid-template-columns: 1fr 1.5fr 1fr; gap: 1px; }
+.surface { background: #f3f4f6; border-radius: 2px; transition: background-color 0.2s; }
+.surface-buccal { grid-area: buccal; } .surface-mesial { grid-area: mesial; } .surface-occlusal { grid-area: occlusal; } .surface-distal { grid-area: distal; } .surface-lingual { grid-area: lingual; }
+/* Condition Colors */
+.tooth.condition-healthy { background: #d1fae5; border-color: #10b981; }
+.tooth.condition-decayed { background: #fee2e2; border-color: #ef4444; }
+.tooth.condition-filled { background: #dbeafe; border-color: #3b82f6; }
+.tooth.condition-missing { background: #e5e7eb; border-color: #6b7280; }
+.tooth.condition-missing .tooth-surfaces { display: none; }
+.tooth.condition-missing::after { content: '×'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #6b7280; }
+.tooth.condition-extracted { background: #d1d5db; border-color: #4b5563; }
+.tooth.condition-extracted .tooth-surfaces { display: none; }
+.tooth.condition-extracted::after { content: 'X'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #4b5563; }
+.tooth.condition-crowned { background: #fef3c7; border-color: #f59e0b; }
+.tooth.condition-root_canal { background: #f3e8ff; border-color: #9333ea; }
+.tooth.condition-impacted { background: #ffedd5; border-color: #f97316; }
+.tooth.condition-implant { background: #ccfbf1; border-color: #14b8a6; }
+.tooth.condition-fractured { background: #fce7f3; border-color: #ec4899; }
+.tooth.condition-bridge { background: #e0e7ff; border-color: #6366f1; }
+.tooth.condition-bridge_pontic { background: #e0e7ff; border-color: #6366f1; opacity: 0.6; }
+.tooth.condition-unerupted { background: #f3f4f6; border-color: #9ca3af; border-style: dashed; }
+.tooth.condition-sealant { background: #d1fae5; border-color: #059669; }
+.tooth.condition-veneer { background: #fef3c7; border-color: #d97706; }
+/* Surface Condition Colors */
+.surface.surface-condition-healthy { background: #86efac !important; }
+.surface.surface-condition-decayed { background: #fca5a5 !important; }
+.surface.surface-condition-filled { background: #93c5fd !important; }
+.surface.surface-condition-filled_with_caries { background: linear-gradient(135deg, #93c5fd 50%, #fca5a5 50%) !important; }
+.surface.surface-condition-sealant { background: #6ee7b7 !important; }
+.surface.surface-condition-fracture { background: #f9a8d4 !important; }
+/* Legend */
+.legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #4b5563; }
+.legend-color { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(0,0,0,0.1); }
+[x-cloak] { display: none !important; }
+</style>
+
+<script>
+function dentalFormChartApp() {
+    return {
+        formId: {{ dental_form.pk }},
+        baseUrl: '{% url "health_forms_services:dental_chart_api_get" dental_form.pk %}'.replace('/api/', ''),
+        chartType: 'permanent',
+        selectedTeeth: [],
+        teeth: [],
+        teethData: {},
+        toast: { show: false, message: '', type: 'success' },
+        toothModal: {
+            open: false, loading: false, isNew: true,
+            toothNumber: null, toothId: null,
+            condition: 'healthy', notes: '',
+            surfaces: { mesial: '', distal: '', buccal: '', lingual: '', occlusal: '' }
+        },
+        bulkModal: { open: false, loading: false, condition: 'healthy', notes: '' },
+        deleteModal: { open: false, loading: false, toothNumber: null, toothId: null },
+        conditionLabels: {
+            healthy: 'Healthy', decayed: 'Decayed/Caries', filled: 'Filled',
+            missing: 'Missing', extracted: 'Extracted', impacted: 'Impacted',
+            root_canal: 'Root Canal', crowned: 'Crowned', bridge: 'Bridge',
+            bridge_pontic: 'Bridge Pontic', implant: 'Implant', fractured: 'Fractured',
+            unerupted: 'Unerupted', partially_erupted: 'Partially Erupted',
+            sealant: 'Sealant', veneer: 'Veneer', temporary: 'Temporary Filling',
+            root_fragment: 'Root Fragment', anomaly: 'Anomaly', other: 'Other'
+        },
+
+        init() { this.loadTeeth(); },
+
+        async loadTeeth() {
+            try {
+                const response = await fetch(`/health-forms/dental/${this.formId}/chart/api/`);
+                if (response.ok) {
+                    const data = await response.json();
+                    this.teeth = data.teeth || [];
+                    this.teethData = {};
+                    this.teeth.forEach(tooth => { this.teethData[tooth.tooth_number] = tooth; });
+                }
+            } catch (error) { console.error('Error loading teeth:', error); }
+        },
+
+        getToothClass(num) {
+            const t = this.teethData[num];
+            return t && t.condition ? 'condition-' + t.condition : '';
+        },
+        getSurfaceClass(num, surface) {
+            const t = this.teethData[num];
+            if (t && t.surfaces && t.surfaces.length > 0) {
+                const s = t.surfaces.find(s => s.surface === surface);
+                if (s && s.condition) return 'surface-condition-' + s.condition;
+            }
+            return '';
+        },
+        toggleToothSelection(num) {
+            const idx = this.selectedTeeth.indexOf(num);
+            idx > -1 ? this.selectedTeeth.splice(idx, 1) : this.selectedTeeth.push(num);
+        },
+        clearSelection() { this.selectedTeeth = []; },
+
+        openToothModal(num) {
+            const existing = this.teethData[num];
+            this.toothModal.toothNumber = num;
+            this.toothModal.isNew = !existing;
+            this.toothModal.toothId = existing ? existing.id : null;
+            this.toothModal.condition = existing ? existing.condition : 'healthy';
+            this.toothModal.notes = existing ? (existing.notes || '') : '';
+            this.toothModal.surfaces = { mesial: '', distal: '', buccal: '', lingual: '', occlusal: '' };
+            if (existing && existing.surfaces) {
+                existing.surfaces.forEach(s => {
+                    if (this.toothModal.surfaces.hasOwnProperty(s.surface)) this.toothModal.surfaces[s.surface] = s.condition || '';
+                });
+            }
+            this.toothModal.loading = false;
+            this.toothModal.open = true;
+        },
+        openBulkModal() {
+            if (this.selectedTeeth.length === 0) return;
+            this.bulkModal = { open: true, loading: false, condition: 'healthy', notes: '' };
+        },
+
+        async saveTooth() {
+            this.toothModal.loading = true;
+            const formData = new FormData();
+            formData.append('tooth_number', this.toothModal.toothNumber);
+            formData.append('condition', this.toothModal.condition);
+            formData.append('notes', this.toothModal.notes);
+            ['mesial','distal','buccal','lingual','occlusal'].forEach(s => formData.append('surface_'+s, this.toothModal.surfaces[s]));
+            try {
+                const response = await fetch(`/health-forms/dental/${this.formId}/chart/api/update/`, {
+                    method: 'POST', headers: { 'X-CSRFToken': this.getCsrfToken() }, body: formData
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    this.toothModal.open = false;
+                    this.showToast(data.created ? 'Tooth added!' : 'Tooth updated!', 'success');
+                    await this.loadTeeth(); this.clearSelection();
+                } else { this.showToast(data.error || 'Failed to save', 'error'); }
+            } catch (e) { this.showToast('Error saving tooth', 'error'); }
+            finally { this.toothModal.loading = false; }
+        },
+
+        async saveBulk() {
+            this.bulkModal.loading = true;
+            try {
+                const response = await fetch(`/health-forms/dental/${this.formId}/chart/api/bulk-update/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': this.getCsrfToken() },
+                    body: JSON.stringify({ tooth_numbers: this.selectedTeeth, condition: this.bulkModal.condition, notes: this.bulkModal.notes })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    this.bulkModal.open = false;
+                    this.showToast(`${data.updated_count} teeth updated!`, 'success');
+                    await this.loadTeeth(); this.clearSelection();
+                } else { this.showToast(data.error || 'Failed', 'error'); }
+            } catch (e) { this.showToast('Error updating', 'error'); }
+            finally { this.bulkModal.loading = false; }
+        },
+
+        deleteTooth(tooth) {
+            this.deleteModal = { open: true, loading: false, toothNumber: tooth.tooth_number, toothId: tooth.id };
+        },
+        deleteToothFromModal() {
+            const tooth = this.teethData[this.toothModal.toothNumber];
+            if (tooth) { this.toothModal.open = false; this.deleteTooth(tooth); }
+        },
+        async confirmDelete() {
+            this.deleteModal.loading = true;
+            try {
+                const response = await fetch(`/health-forms/dental/${this.formId}/chart/api/${this.deleteModal.toothId}/delete/`, {
+                    method: 'DELETE', headers: { 'X-CSRFToken': this.getCsrfToken() }
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    this.deleteModal.open = false;
+                    this.showToast(`Tooth #${this.deleteModal.toothNumber} deleted!`, 'success');
+                    await this.loadTeeth();
+                } else { this.showToast(data.error || 'Failed', 'error'); }
+            } catch (e) { this.showToast('Error deleting', 'error'); }
+            finally { this.deleteModal.loading = false; }
+        },
+
+        showToast(message, type = 'success') {
+            this.toast = { show: true, message, type };
+            setTimeout(() => { this.toast.show = false; }, 4000);
+        },
+        getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                   document.cookie.split('; ').find(r => r.startsWith('csrftoken='))?.split('=')[1] || '';
+        },
+        getSurfaceLabel(s) {
+            return { mesial:'Mesial (M)', distal:'Distal (D)', buccal:'Buccal/Facial (B)', lingual:'Lingual/Palatal (L)', occlusal:'Occlusal/Incisal (O/I)' }[s] || s;
+        },
+        getConditionLabel(c) { return this.conditionLabels[c] || c; },
+        getConditionBadgeClass(c) {
+            return { healthy:'bg-green-100 text-green-800', decayed:'bg-red-100 text-red-800', filled:'bg-blue-100 text-blue-800',
+                missing:'bg-gray-100 text-gray-800', extracted:'bg-gray-100 text-gray-800', crowned:'bg-yellow-100 text-yellow-800',
+                root_canal:'bg-purple-100 text-purple-800', impacted:'bg-orange-100 text-orange-800', implant:'bg-teal-100 text-teal-800',
+                fractured:'bg-pink-100 text-pink-800' }[c] || 'bg-orange-100 text-orange-800';
+        }
+    }
+}
+</script>

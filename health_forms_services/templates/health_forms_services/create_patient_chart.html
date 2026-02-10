@@ -1,0 +1,89 @@
+{% extends 'core/base.html' %}
+
+{% block title %}New Patient Chart - JMCFI Clinic{% endblock %}
+
+{% block head %}
+<style>
+    .form-input, .form-textarea, .form-select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+        outline: none;
+        ring: 2px;
+        ring-color: #a855f7;
+        border-color: #a855f7;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <a href="{% url 'health_forms_services:patient_chart_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Patient Charts
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900 mt-2">New Patient Chart</h1>
+            <p class="text-gray-600 mt-1">Create a new health services patient chart (F-HSS-20-0002)</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Personal Information -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {% for field in personal_form %}
+                            <div{% if field.name == 'address' %} class="md:col-span-3"{% endif %}>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    {{ field.label }}{% if field.field.required %} *{% endif %}
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Emergency Contact Note -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                    </svg>
+                    <p class="text-sm text-blue-800">
+                        After creating the chart, you can add consultation entries (Date/Time, Findings, Doctor's Orders) from the chart detail page.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="flex justify-end gap-4">
+                <a href="{% url 'health_forms_services:patient_chart_list' %}"
+                   class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                    Create Patient Chart
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -5,10 +5,12 @@ Forms for collecting comprehensive dental patient information
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
     DentalHealthQuestionnaire, DentalSystemsReview,
-    DentalHistory, PediatricDentalHistory, DentalChart
+    DentalHistory, PediatricDentalHistory, DentalChart,
+    ProgressNote
 )
 
 User = get_user_model()
@@ -33,13 +35,18 @@ class DentalRecordForm(forms.ModelForm):
     student_id = forms.CharField(
         required=False,
         widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-gray-50',
+            'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-gray-50',
             'placeholder': 'Auto-filled from selected patient',
             'id': 'id_student_id',
             'readonly': 'readonly'
         }),
         label='Student/Staff ID'
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set consent_date initial value to today's date
+        self.fields['consent_date'].initial = timezone.now().date()
     
     class Meta:
         model = DentalRecord
@@ -48,7 +55,8 @@ class DentalRecordForm(forms.ModelForm):
             'address', 'date_of_birth', 'place_of_birth', 'email',
             'contact_number', 'telephone_number', 'designation',
             'department_college_office', 'guardian_name', 'guardian_contact',
-            'date_of_examination', 'examined_by', 'appointment', 'consent_signed', 'consent_date'
+            'date_of_examination', 'examined_by', 'appointment', 'consent_signed', 'consent_date',
+            'informed_consent_signed', 'informed_consent_date'
         ]
         widgets = {
             'patient': forms.Select(attrs={
@@ -56,77 +64,86 @@ class DentalRecordForm(forms.ModelForm):
                 'id': 'patient-select-field'
             }),
             'middle_name': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Middle Name'
             }),
             'age': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'min': '0',
                 'max': '150'
             }),
             'gender': forms.Select(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'civil_status': forms.Select(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'address': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3,
                 'placeholder': 'Complete residential address'
             }),
             'date_of_birth': forms.DateInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'type': 'date'
             }),
             'place_of_birth': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'City/Province'
             }),
             'email': forms.EmailInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'email@example.com'
             }),
             'contact_number': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': '09XX-XXX-XXXX'
             }),
             'telephone_number': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Landline (optional)'
             }),
             'designation': forms.Select(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'department_college_office': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Department/College/Office'
             }),
             'guardian_name': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Emergency Contact Name'
             }),
             'guardian_contact': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Emergency Contact Number'
             }),
             'date_of_examination': forms.DateInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'type': 'date'
             }),
             'examined_by': forms.Select(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'appointment': forms.Select(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50',
                 'readonly': 'readonly'
             }),
             'consent_signed': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'consent_date': forms.DateInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'type': 'date'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'type': 'date',
+                'readonly': 'readonly'
+            }),
+            'informed_consent_signed': forms.CheckboxInput(attrs={
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
+            }),
+            'informed_consent_date': forms.DateInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'type': 'date',
+                'readonly': 'readonly'
             }),
         }
         labels = {
@@ -149,6 +166,8 @@ class DentalRecordForm(forms.ModelForm):
             'examined_by': 'Examined By (Dentist)',
             'consent_signed': 'Consent Form Signed',
             'consent_date': 'Consent Date',
+            'informed_consent_signed': 'Informed Consent Signed',
+            'informed_consent_date': 'Informed Consent Date',
         }
 
 
@@ -164,55 +183,55 @@ class DentalExaminationForm(forms.ModelForm):
         ]
         widgets = {
             'facial_symmetry': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'cutaneous_areas': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'lips': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'eyes': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'lymph_nodes': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'tmj': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'buccal_labial_mucosa': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'gingiva': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'palate_soft': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'palate_hard': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'tongue': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'salivary_flow': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'oral_hygiene': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
         }
@@ -241,27 +260,27 @@ class DentalVitalSignsForm(forms.ModelForm):
         fields = ['blood_pressure', 'pulse_rate', 'respiratory_rate', 'temperature', 'weight', 'height']
         widgets = {
             'blood_pressure': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'e.g., 120/80'
             }),
             'pulse_rate': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'bpm'
             }),
             'respiratory_rate': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'breaths/min'
             }),
             'temperature': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': '°C or °F'
             }),
             'weight': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'kg or lbs'
             }),
             'height': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'cm or ft'
             }),
         }
@@ -295,79 +314,79 @@ class DentalHealthQuestionnaireForm(forms.ModelForm):
         ]
         widgets = {
             'last_hospital_date': forms.DateInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'type': 'date'
             }),
             'last_hospital_reason': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'last_doctor_date': forms.DateInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'type': 'date'
             }),
             'last_doctor_reason': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'doctor_care_2years': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'doctor_care_reason': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'excessive_bleeding': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'excessive_bleeding_when': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'medications_2years': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'medications_for': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'easily_exhausted': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'swollen_ankles': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'more_than_2_pillows': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'pillows_reason': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'tumor_cancer': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'tumor_cancer_when': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'is_pregnant': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'pregnancy_months': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'min': '0',
                 'max': '9'
             }),
             'birth_control_pills': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'birth_control_specify': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'anticipate_pregnancy': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'having_period': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
         }
 
@@ -406,57 +425,57 @@ class DentalSystemsReviewForm(forms.ModelForm):
         ]
         widgets = {
             # All boolean fields as checkboxes
-            'heart_disease': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'hypertension': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'rheumatic_heart_disease': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'heart_surgery': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'stroke': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'asthma': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'emphysema': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'cough': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'pneumonia': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'hay_fever': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'sinus_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'tuberculosis': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'anemia': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'bleeding_tendencies': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'hemophilia': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'sickle_cell_anemia': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'blood_transfusion': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'diabetes': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'thyroid_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'glandular_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'stomach_ulcer': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'liver_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'hepatitis_a': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'hepatitis_b': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'kidney_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'hiv_aids': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'scarlet_fever': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'std': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'brain_injury': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'psychiatric_visit': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'arthritis': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'rheumatism': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'tmj_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'cancer_treatment': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'glaucoma': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'cold_sores': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'bruising': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'drug_addiction': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'ear_infection': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'hyperactivity': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'skin_disorder': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'development_problems': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'aspirin_medication': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
-            'cortisone_medication': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'}),
+            'heart_disease': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'hypertension': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'rheumatic_heart_disease': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'heart_surgery': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'stroke': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'asthma': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'emphysema': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'cough': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'pneumonia': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'hay_fever': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'sinus_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'tuberculosis': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'anemia': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'bleeding_tendencies': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'hemophilia': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'sickle_cell_anemia': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'blood_transfusion': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'diabetes': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'thyroid_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'glandular_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'stomach_ulcer': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'liver_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'hepatitis_a': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'hepatitis_b': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'kidney_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'hiv_aids': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'scarlet_fever': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'std': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'brain_injury': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'psychiatric_visit': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'arthritis': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'rheumatism': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'tmj_problem': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'cancer_treatment': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'glaucoma': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'cold_sores': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'bruising': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'drug_addiction': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'ear_infection': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'hyperactivity': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'skin_disorder': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'development_problems': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'aspirin_medication': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
+            'cortisone_medication': forms.CheckboxInput(attrs={'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'}),
             'allergies': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3,
                 'placeholder': 'List any allergies'
             }),
             'other_conditions': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3,
                 'placeholder': 'Any other conditions'
             }),
@@ -477,40 +496,40 @@ class DentalHistoryForm(forms.ModelForm):
         ]
         widgets = {
             'first_dental_visit': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'last_dental_visit': forms.DateInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'type': 'date'
             }),
             'last_visit_reason': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'teeth_extracted': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'extraction_when': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'anesthesia_allergy': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'anesthesia_allergy_when': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'dental_appliance': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'appliance_type': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'e.g., braces, retainer, dentures'
             }),
             'pain_discomfort': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'pain_location': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3,
                 'placeholder': 'Describe location and type of pain'
             }),
@@ -530,41 +549,41 @@ class PediatricDentalHistoryForm(forms.ModelForm):
         ]
         widgets = {
             'child_mouth_condition': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
             'normal_pregnancy_birth': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'bottle_at_bedtime': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'last_dentist_visit': forms.DateInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'type': 'date'
             }),
             'first_tooth_age_months': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'min': '0',
                 'max': '36'
             }),
             'thumb_sucking': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'tongue_thrusting': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'nail_biting': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'mouth_breathing': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'teeth_grinding': forms.CheckboxInput(attrs={
-                'class': 'w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-2 focus:ring-primary-500'
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'other_habits': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
         }
@@ -578,18 +597,51 @@ class DentalChartForm(forms.ModelForm):
         fields = ['tooth_number', 'tooth_type', 'condition', 'notes']
         widgets = {
             'tooth_number': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'min': '1',
                 'max': '85'
             }),
             'tooth_type': forms.Select(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'condition': forms.Select(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
             }),
             'notes': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'rows': 3
             }),
+        }
+
+
+class ProgressNoteForm(forms.ModelForm):
+    """Form for progress notes"""
+    
+    class Meta:
+        model = ProgressNote
+        fields = ['date', 'procedure_done', 'dentist', 'remarks']
+        widgets = {
+            'date': forms.DateInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'type': 'date'
+            }),
+            'procedure_done': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'rows': 3,
+                'placeholder': 'Description of the procedure performed'
+            }),
+            'dentist': forms.Select(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+            }),
+            'remarks': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'rows': 3,
+                'placeholder': 'Additional remarks or notes'
+            }),
+        }
+        labels = {
+            'date': 'Date',
+            'procedure_done': 'Procedure Done',
+            'dentist': 'Dentist',
+            'remarks': 'Remarks',
         }

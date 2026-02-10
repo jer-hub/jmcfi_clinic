@@ -1,0 +1,419 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Edit Dental Records - JMCFI Clinic{% endblock %}
+
+{% block head %}
+<style>
+    .form-input, .form-textarea, .form-select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+        outline: none;
+        border-color: #a855f7;
+        box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+    }
+    .form-checkbox, input[type="checkbox"] {
+        width: 1rem; height: 1rem;
+        color: #a855f7; border-radius: 0.25rem;
+        border: 1px solid #d1d5db; cursor: pointer;
+    }
+    .checkbox-row {
+        display: flex; align-items: center; gap: 0.75rem;
+        padding: 0.5rem 0.75rem; border-radius: 0.5rem; background: #f9fafb;
+    }
+    .checkbox-row label {
+        font-weight: 500; font-size: 0.875rem; color: #374151;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <a href="{% url 'health_forms_services:dental_form_detail' dental_form.pk %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Form Details
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900 mt-2">Edit Dental Records</h1>
+            <p class="text-gray-600 mt-1">{{ dental_form.get_full_name }} — F-HSS-20-0003</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <nav class="flex flex-wrap border-b border-gray-200" id="form-tabs">
+                <button type="button" data-tab="personal" class="tab-btn active px-4 md:px-6 py-3 text-sm font-medium text-primary-600 border-b-2 border-primary-600">
+                    Personal Info
+                </button>
+                <button type="button" data-tab="chart" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Dental Chart
+                </button>
+                <button type="button" data-tab="examination" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Examination
+                </button>
+                <button type="button" data-tab="conditions" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Conditions & Remarks
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab 1: Personal Information -->
+        <div id="personal-section" class="tab-content bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="personal">
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {% for field in personal_form %}
+                            <div{% if field.name == 'address' %} class="md:col-span-3"{% endif %}>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    {{ field.label }}{% if field.field.required %} *{% endif %}
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                            Save Personal Info
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tab 2: Dental Chart (FDI Interactive) -->
+        <div id="chart-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">FDI Dental Chart</h2>
+            </div>
+            <div class="p-6">
+                {% csrf_token %}
+                {% include "health_forms_services/partials/interactive_dental_chart.html" %}
+            </div>
+        </div>
+
+        <!-- Tab 3: Examination -->
+        <div id="examination-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Dental Examination</h2>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="examination">
+                <div class="p-6 space-y-8">
+
+                    <!-- Initial Soft Tissue Exam -->
+                    <fieldset>
+                        <legend class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-3 border-b pb-2 w-full">Initial Soft Tissue Exam</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Lips</label>
+                                {{ examination_form.soft_tissue_lips }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Floor of Mouth</label>
+                                {{ examination_form.soft_tissue_floor_of_mouth }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Palate</label>
+                                {{ examination_form.soft_tissue_palate }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tongue</label>
+                                {{ examination_form.soft_tissue_tongue }}
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Neck & Nodes</label>
+                                {{ examination_form.soft_tissue_neck_nodes }}
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Oral Health Condition -->
+                    <fieldset>
+                        <legend class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-3 border-b pb-2 w-full">Oral Health Condition</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Age Last Birthday</label>
+                                {{ examination_form.oral_health_age_last_birthday }}
+                            </div>
+                        </div>
+                        <div class="mt-4 space-y-2">
+                            <div class="checkbox-row">
+                                {{ examination_form.presence_of_debris }}
+                                <label for="{{ examination_form.presence_of_debris.id_for_label }}">Presence of Debris</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ examination_form.inflammation_of_gingiva }}
+                                <label for="{{ examination_form.inflammation_of_gingiva.id_for_label }}">Inflammation of Gingiva</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ examination_form.presence_of_calculus }}
+                                <label for="{{ examination_form.presence_of_calculus.id_for_label }}">Presence of Calculus</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ examination_form.under_orthodontic_treatment }}
+                                <label for="{{ examination_form.under_orthodontic_treatment.id_for_label }}">Under Orthodontic Treatment</label>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Dentofacial Anomaly / Neoplasm / Others</label>
+                            {{ examination_form.dentofacial_anomaly }}
+                        </div>
+                    </fieldset>
+
+                    <!-- Tooth Count -->
+                    <fieldset>
+                        <legend class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-3 border-b pb-2 w-full">Tooth Count</legend>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Teeth Present</label>
+                                {{ examination_form.teeth_present }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Caries Free</label>
+                                {{ examination_form.caries_free_teeth }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Decayed (D)</label>
+                                {{ examination_form.decayed_teeth }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Missing (M)</label>
+                                {{ examination_form.missing_teeth }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Filled (F)</label>
+                                {{ examination_form.filled_teeth }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Total DMF</label>
+                                {{ examination_form.total_dmf_teeth }}
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Initial Periodontal Exam -->
+                    <fieldset>
+                        <legend class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-3 border-b pb-2 w-full">Initial Periodontal Exam</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Gingival Inflammation</label>
+                                {{ examination_form.gingival_inflammation }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Soft Plaque Buildup</label>
+                                {{ examination_form.soft_plaque_buildup }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Hard Calculus Buildup</label>
+                                {{ examination_form.hard_calc_buildup }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Stains</label>
+                                {{ examination_form.stains }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Home Care Effectiveness</label>
+                                {{ examination_form.home_care_effectiveness }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Periodontal Condition</label>
+                                {{ examination_form.periodontal_condition }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Periodontal Diagnosis</label>
+                                {{ examination_form.periodontal_diagnosis }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Periodontitis</label>
+                                {{ examination_form.periodontitis }}
+                            </div>
+                            <div class="md:col-span-3">
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Mucogingival Defects</label>
+                                {{ examination_form.mucogingival_defects }}
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Clinical Data -->
+                    <fieldset>
+                        <legend class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-3 border-b pb-2 w-full">Clinical Data</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Occlusion</label>
+                                {{ examination_form.occlusion }}
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">TMJ Exam</label>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div class="checkbox-row">
+                                    {{ examination_form.tmj_pain }}
+                                    <label for="{{ examination_form.tmj_pain.id_for_label }}">Pain</label>
+                                </div>
+                                <div class="checkbox-row">
+                                    {{ examination_form.tmj_popping }}
+                                    <label for="{{ examination_form.tmj_popping.id_for_label }}">Popping</label>
+                                </div>
+                                <div class="checkbox-row">
+                                    {{ examination_form.tmj_deviation }}
+                                    <label for="{{ examination_form.tmj_deviation.id_for_label }}">Deviation</label>
+                                </div>
+                                <div class="checkbox-row">
+                                    {{ examination_form.tmj_tooth_wear }}
+                                    <label for="{{ examination_form.tmj_tooth_wear.id_for_label }}">Tooth Wear</label>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                            Save Examination
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tab 4: Conditions & Remarks -->
+        <div id="conditions-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Conditions & Recommendations</h2>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="conditions">
+                <div class="p-6 space-y-8">
+
+                    <!-- Conditions Checklist -->
+                    <fieldset>
+                        <legend class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-3 border-b pb-2 w-full">Dental/Oral Examination Conditions</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_caries_free }}
+                                <label for="{{ conditions_form.cond_caries_free.id_for_label }}">Caries Free</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_poor_oral_hygiene }}
+                                <label for="{{ conditions_form.cond_poor_oral_hygiene.id_for_label }}">Poor Oral Hygiene</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_indicated_restoration }}
+                                <label for="{{ conditions_form.cond_indicated_restoration.id_for_label }}">Indicated for Restoration</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_indicated_extraction }}
+                                <label for="{{ conditions_form.cond_indicated_extraction.id_for_label }}">Indicated for Extraction</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_gingival_inflammation }}
+                                <label for="{{ conditions_form.cond_gingival_inflammation.id_for_label }}">Gingival Inflammation</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_needs_oral_prophylaxis }}
+                                <label for="{{ conditions_form.cond_needs_oral_prophylaxis.id_for_label }}">Needs Oral Prophylaxis</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_needs_prosthesis }}
+                                <label for="{{ conditions_form.cond_needs_prosthesis.id_for_label }}">Needs Prosthesis</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_for_endodontic }}
+                                <label for="{{ conditions_form.cond_for_endodontic.id_for_label }}">For Endodontic Treatment</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_for_orthodontic }}
+                                <label for="{{ conditions_form.cond_for_orthodontic.id_for_label }}">For Orthodontic Consultation</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_for_sealant }}
+                                <label for="{{ conditions_form.cond_for_sealant.id_for_label }}">Pits & Fissures Sealant</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_others }}
+                                <label for="{{ conditions_form.cond_others.id_for_label }}">Others</label>
+                            </div>
+                            <div class="checkbox-row">
+                                {{ conditions_form.cond_no_treatment_needed }}
+                                <label for="{{ conditions_form.cond_no_treatment_needed.id_for_label }}">No Dental Treatment Needed</label>
+                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Others (specify)</label>
+                            {{ conditions_form.cond_others_detail }}
+                        </div>
+                    </fieldset>
+
+                    <!-- Remarks -->
+                    <fieldset>
+                        <legend class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-3 border-b pb-2 w-full">Remarks</legend>
+                        <div>
+                            {{ conditions_form.remarks }}
+                        </div>
+                    </fieldset>
+
+                    <!-- Dentist Information -->
+                    <fieldset>
+                        <legend class="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-3 border-b pb-2 w-full">Dentist Information</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Dentist Name</label>
+                                {{ conditions_form.dentist_name }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">License No.</label>
+                                {{ conditions_form.dentist_license_no }}
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                            Save Conditions & Remarks
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = this.getAttribute('data-tab');
+            tabs.forEach(t => {
+                t.classList.remove('active', 'text-primary-600', 'border-primary-600', 'border-b-2');
+                t.classList.add('text-gray-500');
+            });
+            tab.classList.add('active', 'text-primary-600', 'border-primary-600', 'border-b-2');
+            tab.classList.remove('text-gray-500');
+            contents.forEach(c => c.classList.add('hidden'));
+            const section = document.getElementById(`${target}-section`);
+            if (section) section.classList.remove('hidden');
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,416 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Edit Dental Services Request - JMCFI Clinic{% endblock %}
+
+{% block head %}
+<style>
+    .form-input, .form-textarea, .form-select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+    }
+    .form-input:focus, .form-textarea:focus, .form-select:focus {
+        outline: none;
+        border-color: #a855f7;
+        box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+    }
+    .form-checkbox, input[type="checkbox"] {
+        width: 1rem; height: 1rem;
+        color: #a855f7; border-radius: 0.25rem;
+        border: 1px solid #d1d5db; cursor: pointer;
+    }
+    .service-row {
+        display: flex; align-items: flex-start; gap: 0.75rem;
+        padding: 0.625rem 0.75rem; border-radius: 0.5rem; background: #f9fafb;
+    }
+    .service-row label {
+        font-weight: 500; font-size: 0.875rem; color: #374151;
+        white-space: nowrap; padding-top: 0.125rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <a href="{% url 'health_forms_services:dental_services_detail' service_form.pk %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Form Details
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900 mt-2">Edit Dental Services Request</h1>
+            <p class="text-gray-600 mt-1">{{ service_form.get_full_name }} — Dental Form 2</p>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <nav class="flex flex-wrap border-b border-gray-200" id="form-tabs">
+                <button type="button" data-tab="personal" class="tab-btn active px-4 md:px-6 py-3 text-sm font-medium text-primary-600 border-b-2 border-primary-600">
+                    Personal Info
+                </button>
+                <button type="button" data-tab="services" class="tab-btn px-4 md:px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700">
+                    Services Checklist
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab 1: Personal Information -->
+        <div id="personal-section" class="tab-content bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="personal">
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {% for field in personal_form %}
+                            <div{% if field.name == 'address' %} class="md:col-span-3"{% endif %}>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">
+                                    {{ field.label }}{% if field.field.required %} *{% endif %}
+                                </label>
+                                {{ field }}
+                                {% if field.errors %}
+                                    <p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                            Save Personal Info
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tab 2: Services Checklist -->
+        <div id="services-section" class="tab-content hidden bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h2 class="text-lg font-semibold text-gray-900">Please Check Services That Are Needed</h2>
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="section" value="services">
+                <div class="p-6 space-y-8">
+
+                    <!-- PERIODONTICS -->
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="w-2 h-2 bg-teal-500 rounded-full"></span>
+                                Periodontics
+                            </span>
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="service-row">
+                                {{ checklist_form.perio_oral_prophylaxis }}
+                                <label for="{{ checklist_form.perio_oral_prophylaxis.id_for_label }}">Oral Prophylaxis</label>
+                            </div>
+                            <div class="service-row">
+                                {{ checklist_form.perio_scaling_root_planning }}
+                                <label for="{{ checklist_form.perio_scaling_root_planning.id_for_label }}">Scaling and Root Planning</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OPERATIVE DENTISTRY -->
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                Operative Dentistry
+                            </span>
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.oper_class_i }}
+                                    <label for="{{ checklist_form.oper_class_i.id_for_label }}">Class I Restoration</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.oper_class_i_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.oper_class_ii }}
+                                    <label for="{{ checklist_form.oper_class_ii.id_for_label }}">Class II Restoration</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.oper_class_ii_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.oper_class_iii }}
+                                    <label for="{{ checklist_form.oper_class_iii.id_for_label }}">Class III Restoration</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.oper_class_iii_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.oper_class_iv }}
+                                    <label for="{{ checklist_form.oper_class_iv.id_for_label }}">Class IV Restoration</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.oper_class_iv_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.oper_class_v }}
+                                    <label for="{{ checklist_form.oper_class_v.id_for_label }}">Class V Restoration</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.oper_class_v_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.oper_class_vi }}
+                                    <label for="{{ checklist_form.oper_class_vi.id_for_label }}">Class VI Restoration</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.oper_class_vi_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.oper_onlay_inlay }}
+                                    <label for="{{ checklist_form.oper_onlay_inlay.id_for_label }}">Onlay / Inlay</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.oper_onlay_inlay_detail }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SURGERY -->
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="w-2 h-2 bg-red-500 rounded-full"></span>
+                                Surgery
+                            </span>
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.surg_tooth_extraction }}
+                                    <label for="{{ checklist_form.surg_tooth_extraction.id_for_label }}">Tooth Extraction</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.surg_tooth_extraction_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.surg_odontectomy }}
+                                    <label for="{{ checklist_form.surg_odontectomy.id_for_label }}">Odontectomy</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.surg_odontectomy_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.surg_operculectomy }}
+                                    <label for="{{ checklist_form.surg_operculectomy.id_for_label }}">Operculectomy</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.surg_operculectomy_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.surg_other_pathological }}
+                                    <label for="{{ checklist_form.surg_other_pathological.id_for_label }}">Other Pathological Case</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.surg_other_pathological_detail }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROSTHODONTICS -->
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                                Prosthodontics
+                            </span>
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="service-row">
+                                {{ checklist_form.prosth_complete_denture }}
+                                <label for="{{ checklist_form.prosth_complete_denture.id_for_label }}">Complete Denture</label>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.prosth_rpd }}
+                                    <label for="{{ checklist_form.prosth_rpd.id_for_label }}">RPD</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.prosth_rpd_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.prosth_fpd }}
+                                    <label for="{{ checklist_form.prosth_fpd.id_for_label }}">FPD</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.prosth_fpd_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.prosth_single_crown }}
+                                    <label for="{{ checklist_form.prosth_single_crown.id_for_label }}">Single Crown</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.prosth_single_crown_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.prosth_veneers_laminates }}
+                                    <label for="{{ checklist_form.prosth_veneers_laminates.id_for_label }}">Veneers / Laminates</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.prosth_veneers_laminates_detail }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ENDODONTICS -->
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                Endodontics
+                            </span>
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.endo_anterior }}
+                                    <label for="{{ checklist_form.endo_anterior.id_for_label }}">Anterior</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.endo_anterior_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.endo_posterior }}
+                                    <label for="{{ checklist_form.endo_posterior.id_for_label }}">Posterior</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.endo_posterior_detail }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PEDIATRIC -->
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="w-2 h-2 bg-pink-500 rounded-full"></span>
+                                Pediatric
+                            </span>
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="service-row">
+                                {{ checklist_form.pedo_fluoride }}
+                                <label for="{{ checklist_form.pedo_fluoride.id_for_label }}">Fluoride</label>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.pedo_sealant }}
+                                    <label for="{{ checklist_form.pedo_sealant.id_for_label }}">Sealant</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.pedo_sealant_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.pedo_pulpotomy }}
+                                    <label for="{{ checklist_form.pedo_pulpotomy.id_for_label }}">Pulpotomy</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.pedo_pulpotomy_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.pedo_ssc }}
+                                    <label for="{{ checklist_form.pedo_ssc.id_for_label }}">SSC</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.pedo_ssc_detail }}</div>
+                            </div>
+                            <div class="service-row flex-wrap">
+                                <div class="flex items-center gap-2 shrink-0">
+                                    {{ checklist_form.pedo_space_maintainer }}
+                                    <label for="{{ checklist_form.pedo_space_maintainer.id_for_label }}">Space Maintainer</label>
+                                </div>
+                                <div class="flex-1 min-w-[200px]">{{ checklist_form.pedo_space_maintainer_detail }}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CURRENTLY UNDERGOING TREATMENT -->
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                            <span class="inline-flex items-center gap-2">
+                                <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+                                Other
+                            </span>
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="service-row">
+                                {{ checklist_form.currently_undergoing_treatment }}
+                                <label for="{{ checklist_form.currently_undergoing_treatment.id_for_label }}">
+                                    Currently undergoing treatment
+                                </label>
+                            </div>
+                            <div class="ml-7">
+                                <label class="block text-sm text-gray-600 mb-1">Please specify:</label>
+                                {{ checklist_form.currently_undergoing_treatment_detail }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- DENTIST -->
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-800 mb-3 pb-2 border-b border-gray-200">
+                            Dentist
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Dentist Name</label>
+                                {{ checklist_form.dentist_name }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                {{ checklist_form.dentist_date }}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">License No.</label>
+                                {{ checklist_form.dentist_license_no }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex justify-end">
+                        <button type="submit" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                            Save Services
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tabs = document.querySelectorAll('.tab-btn');
+    const sections = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const target = btn.dataset.tab;
+            
+            // Reset tabs
+            tabs.forEach(t => {
+                t.classList.remove('active', 'text-primary-600', 'border-b-2', 'border-primary-600');
+                t.classList.add('text-gray-500');
+            });
+            btn.classList.add('active', 'text-primary-600', 'border-b-2', 'border-primary-600');
+            btn.classList.remove('text-gray-500');
+            
+            // Show/hide sections
+            sections.forEach(s => s.classList.add('hidden'));
+            document.getElementById(target + '-section').classList.remove('hidden');
+        });
+    });
+});
+</script>
+{% endblock %}

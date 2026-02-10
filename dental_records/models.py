@@ -1,7 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.core.validators import MinValueValidator, MaxValueValidator
 
 User = get_user_model()
 
@@ -19,6 +18,11 @@ class DentalRecord(models.Model):
     DESIGNATION_CHOICES = [
         ('student', 'Student'),
         ('employee', 'Employee'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
     ]
     
     # Link to existing user
@@ -47,9 +51,16 @@ class DentalRecord(models.Model):
     examined_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='dental_examinations')
     appointment = models.ForeignKey('appointments.Appointment', on_delete=models.SET_NULL, null=True, blank=True, related_name='dental_records')
     
-    # Consent
+    # Consent (Data Accuracy)
     consent_signed = models.BooleanField(default=False)
     consent_date = models.DateField(null=True, blank=True)
+    
+    # Informed Consent (Authorization for dental procedures)
+    informed_consent_signed = models.BooleanField(default=False)
+    informed_consent_date = models.DateField(null=True, blank=True)
+    
+    # Record Status
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
@@ -296,7 +307,7 @@ class PediatricDentalHistory(models.Model):
 
 
 class DentalChart(models.Model):
-    """Individual tooth record in dental chart"""
+    """Individual tooth record in dental chart using FDI notation"""
     TOOTH_TYPE_CHOICES = [
         ('permanent', 'Permanent'),
         ('primary', 'Primary/Deciduous'),
@@ -304,22 +315,34 @@ class DentalChart(models.Model):
     
     CONDITION_CHOICES = [
         ('healthy', 'Healthy'),
-        ('cavity', 'Cavity/Caries'),
+        ('decayed', 'Decayed/Caries'),
         ('filled', 'Filled'),
         ('missing', 'Missing'),
         ('extracted', 'Extracted'),
         ('impacted', 'Impacted'),
         ('root_canal', 'Root Canal'),
-        ('crown', 'Crown'),
+        ('crowned', 'Crowned'),
         ('bridge', 'Bridge'),
+        ('bridge_pontic', 'Bridge Pontic'),
         ('implant', 'Implant'),
         ('fractured', 'Fractured'),
+        ('unerupted', 'Unerupted'),
+        ('partially_erupted', 'Partially Erupted'),
+        ('sealant', 'Sealant'),
+        ('veneer', 'Veneer'),
+        ('temporary', 'Temporary Filling'),
+        ('root_fragment', 'Root Fragment'),
+        ('anomaly', 'Anomaly'),
         ('other', 'Other'),
     ]
     
     dental_record = models.ForeignKey(DentalRecord, on_delete=models.CASCADE, related_name='dental_chart')
     
-    tooth_number = models.PositiveIntegerField(help_text="Universal numbering: 1-32 for permanent, 51-85 for primary")
+    # FDI Notation: Quadrant (1-4 for permanent, 5-8 for primary) + Tooth (1-8)
+    # e.g., 11 = Upper right central incisor, 55 = Primary upper right second molar
+    tooth_number = models.PositiveIntegerField(
+        help_text="FDI notation: 11-18 (UR), 21-28 (UL), 31-38 (LL), 41-48 (LR) for permanent; 51-55 (UR), 61-65 (UL), 71-75 (LL), 81-85 (LR) for primary"
+    )
     tooth_type = models.CharField(max_length=20, choices=TOOTH_TYPE_CHOICES, default='permanent')
     condition = models.CharField(max_length=20, choices=CONDITION_CHOICES, default='healthy')
     notes = models.TextField(blank=True, help_text="Additional notes about this tooth")
@@ -334,3 +357,99 @@ class DentalChart(models.Model):
     
     def __str__(self):
         return f"Tooth #{self.tooth_number} - {self.get_condition_display()}"
+    
+    @property
+    def fdi_quadrant(self):
+        """Return the quadrant number (1-8)"""
+        return self.tooth_number // 10
+    
+    @property
+    def fdi_tooth_position(self):
+        """Return the tooth position within quadrant (1-8)"""
+        return self.tooth_number % 10
+    
+    @property
+    def quadrant_name(self):
+        """Return human-readable quadrant name"""
+        quadrant_names = {
+            1: 'Upper Right', 2: 'Upper Left',
+            3: 'Lower Left', 4: 'Lower Right',
+            5: 'Upper Right (Primary)', 6: 'Upper Left (Primary)',
+            7: 'Lower Left (Primary)', 8: 'Lower Right (Primary)',
+        }
+        return quadrant_names.get(self.fdi_quadrant, 'Unknown')
+
+
+class ToothSurface(models.Model):
+    """Surface-level marking for individual tooth surfaces"""
+    SURFACE_CHOICES = [
+        ('mesial', 'Mesial (M)'),
+        ('distal', 'Distal (D)'),
+        ('buccal', 'Buccal/Facial (B/F)'),
+        ('lingual', 'Lingual/Palatal (L/P)'),
+        ('occlusal', 'Occlusal (O)'),
+        ('incisal', 'Incisal (I)'),
+    ]
+    
+    SURFACE_CONDITION_CHOICES = [
+        ('healthy', 'Healthy'),
+        ('decayed', 'Decayed/Caries'),
+        ('filled', 'Filled'),
+        ('filled_with_caries', 'Filled with Caries'),
+        ('sealant', 'Sealant'),
+        ('fracture', 'Fracture'),
+        ('erosion', 'Erosion'),
+        ('abrasion', 'Abrasion'),
+        ('attrition', 'Attrition'),
+        ('demineralization', 'Demineralization'),
+    ]
+    
+    tooth = models.ForeignKey(DentalChart, on_delete=models.CASCADE, related_name='surfaces')
+    surface = models.CharField(max_length=20, choices=SURFACE_CHOICES)
+    condition = models.CharField(max_length=20, choices=SURFACE_CONDITION_CHOICES, default='healthy')
+    notes = models.TextField(blank=True)
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        unique_together = ['tooth', 'surface']
+        ordering = ['surface']
+    
+    def __str__(self):
+        return f"Tooth #{self.tooth.tooth_number} - {self.get_surface_display()} ({self.get_condition_display()})"
+
+
+class DentalChartSnapshot(models.Model):
+    """Snapshot of dental chart for comparison over time"""
+    dental_record = models.ForeignKey(DentalRecord, on_delete=models.CASCADE, related_name='chart_snapshots')
+    snapshot_date = models.DateTimeField(auto_now_add=True)
+    notes = models.TextField(blank=True, help_text="Notes about this snapshot")
+    chart_data = models.JSONField(help_text="JSON snapshot of all teeth and surfaces")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        ordering = ['-snapshot_date']
+    
+    def __str__(self):
+        return f"Chart Snapshot - {self.dental_record} ({self.snapshot_date.strftime('%Y-%m-%d %H:%M')})"
+
+
+class ProgressNote(models.Model):
+    """Progress notes for dental procedures performed"""
+    dental_record = models.ForeignKey(DentalRecord, on_delete=models.CASCADE, related_name='progress_notes')
+    date = models.DateField(default=timezone.now)
+    procedure_done = models.TextField(help_text="Description of the procedure performed")
+    dentist = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='progress_notes_authored')
+    remarks = models.TextField(blank=True)
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-date', '-created_at']
+    
+    def __str__(self):
+        return f"Progress Note - {self.dental_record} ({self.date})"

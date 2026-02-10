@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import HealthProfileForm
+from .models import (
+    HealthProfileForm, DentalHealthForm, DentalFormTooth, DentalFormToothSurface,
+    DentalServicesRequest, PatientChart, PatientChartEntry,
+    Prescription, PrescriptionItem, MedicalCertificate,
+)
 
 
 @admin.register(HealthProfileForm)
@@ -122,3 +126,327 @@ class HealthProfileFormAdmin(admin.ModelAdmin):
     def get_name(self, obj):
         return obj.get_full_name() or '-'
     get_name.short_description = 'Name'
+
+
+class DentalFormToothInline(admin.TabularInline):
+    model = DentalFormTooth
+    extra = 0
+    fields = ['tooth_number', 'tooth_type', 'condition', 'notes']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(DentalHealthForm)
+class DentalHealthFormAdmin(admin.ModelAdmin):
+    list_display = ['id', 'get_name', 'user', 'status', 'designation', 'department_college_office', 'created_at']
+    list_filter = ['status', 'gender', 'designation', 'created_at']
+    search_fields = ['last_name', 'first_name', 'user__email', 'department_college_office']
+    readonly_fields = ['created_at', 'updated_at']
+    inlines = [DentalFormToothInline]
+
+    fieldsets = (
+        ('Status & Review', {
+            'fields': ('user', 'status', 'reviewed_by', 'reviewed_at', 'review_notes')
+        }),
+        ('Personal Information', {
+            'fields': (
+                ('last_name', 'first_name', 'middle_name'),
+                ('age', 'gender', 'civil_status'),
+                'address',
+                ('date_of_birth', 'place_of_birth'),
+                ('email_address', 'contact_number', 'telephone_number'),
+                ('designation', 'department_college_office'),
+                ('guardian_name', 'guardian_contact'),
+                'date_of_examination',
+            )
+        }),
+        ('Initial Soft Tissue Exam', {
+            'fields': (
+                'soft_tissue_lips', 'soft_tissue_floor_of_mouth',
+                'soft_tissue_palate', 'soft_tissue_tongue', 'soft_tissue_neck_nodes',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Oral Health Condition', {
+            'fields': (
+                'oral_health_age_last_birthday',
+                ('presence_of_debris', 'inflammation_of_gingiva', 'presence_of_calculus'),
+                ('under_orthodontic_treatment',),
+                'dentofacial_anomaly',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Tooth Count', {
+            'fields': (
+                ('teeth_present', 'caries_free_teeth'),
+                ('decayed_teeth', 'missing_teeth', 'filled_teeth'),
+                'total_dmf_teeth',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Initial Periodontal Exam', {
+            'fields': (
+                ('gingival_inflammation', 'soft_plaque_buildup', 'hard_calc_buildup'),
+                ('stains', 'home_care_effectiveness', 'periodontal_condition'),
+                ('periodontal_diagnosis', 'periodontitis'),
+                'mucogingival_defects',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Clinical Data', {
+            'fields': (
+                'occlusion',
+                ('tmj_pain', 'tmj_popping', 'tmj_deviation', 'tmj_tooth_wear'),
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Conditions & Recommendations', {
+            'fields': (
+                ('cond_caries_free', 'cond_poor_oral_hygiene'),
+                ('cond_indicated_restoration', 'cond_indicated_extraction'),
+                ('cond_gingival_inflammation', 'cond_needs_oral_prophylaxis'),
+                ('cond_needs_prosthesis', 'cond_for_endodontic'),
+                ('cond_for_orthodontic', 'cond_for_sealant'),
+                ('cond_others', 'cond_others_detail'),
+                'cond_no_treatment_needed',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Remarks & Dentist', {
+            'fields': ('remarks', 'dentist_name', 'dentist_license_no'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_name(self, obj):
+        return obj.get_full_name() or '-'
+    get_name.short_description = 'Name'
+
+
+class PatientChartEntryInline(admin.TabularInline):
+    model = PatientChartEntry
+    extra = 1
+    fields = ['date_and_time', 'findings', 'doctors_orders', 'recorded_by']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(PatientChart)
+class PatientChartAdmin(admin.ModelAdmin):
+    list_display = ['id', 'get_name', 'user', 'status', 'designation', 'entry_count', 'created_at']
+    list_filter = ['status', 'designation', 'gender', 'created_at']
+    search_fields = ['last_name', 'first_name', 'user__email', 'email_address']
+    readonly_fields = ['created_at', 'updated_at']
+    inlines = [PatientChartEntryInline]
+    
+    fieldsets = (
+        ('Status & Review', {
+            'fields': ('user', 'status', 'reviewed_by', 'reviewed_at', 'review_notes')
+        }),
+        ('Personal Information', {
+            'fields': (
+                'last_name', 'first_name', 'middle_name',
+                'address', 'date_of_birth', 'place_of_birth',
+                'age', 'gender', 'civil_status',
+                'email_address', 'contact_number', 'telephone_number',
+                'designation', 'department_college_office',
+            )
+        }),
+        ('Emergency Contact', {
+            'fields': ('guardian_name', 'guardian_contact')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_name(self, obj):
+        return obj.get_full_name() or '-'
+    get_name.short_description = 'Name'
+    
+    def entry_count(self, obj):
+        return obj.entries.count()
+    entry_count.short_description = 'Entries'
+
+
+@admin.register(PatientChartEntry)
+class PatientChartEntryAdmin(admin.ModelAdmin):
+    list_display = ['id', 'patient_chart', 'date_and_time', 'recorded_by', 'created_at']
+    list_filter = ['date_and_time', 'created_at']
+    search_fields = ['findings', 'doctors_orders', 'patient_chart__last_name', 'patient_chart__first_name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(DentalServicesRequest)
+class DentalServicesRequestAdmin(admin.ModelAdmin):
+    list_display = ['id', 'get_name', 'user', 'status', 'department', 'created_at']
+    list_filter = ['status', 'gender', 'created_at']
+    search_fields = ['last_name', 'first_name', 'user__email', 'department']
+    readonly_fields = ['created_at', 'updated_at']
+
+    fieldsets = (
+        ('Status & Review', {
+            'fields': ('user', 'status', 'reviewed_by', 'reviewed_at', 'review_notes')
+        }),
+        ('Personal Information', {
+            'fields': (
+                ('last_name', 'first_name', 'middle_name'),
+                'address',
+                ('age', 'gender', 'date_of_birth'),
+                ('contact_number', 'department'),
+            )
+        }),
+        ('Periodontics', {
+            'fields': ('perio_oral_prophylaxis', 'perio_scaling_root_planning'),
+            'classes': ('collapse',)
+        }),
+        ('Operative Dentistry', {
+            'fields': (
+                ('oper_class_i', 'oper_class_i_detail'),
+                ('oper_class_ii', 'oper_class_ii_detail'),
+                ('oper_class_iii', 'oper_class_iii_detail'),
+                ('oper_class_iv', 'oper_class_iv_detail'),
+                ('oper_class_v', 'oper_class_v_detail'),
+                ('oper_class_vi', 'oper_class_vi_detail'),
+                ('oper_onlay_inlay', 'oper_onlay_inlay_detail'),
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Surgery', {
+            'fields': (
+                ('surg_tooth_extraction', 'surg_tooth_extraction_detail'),
+                ('surg_odontectomy', 'surg_odontectomy_detail'),
+                ('surg_operculectomy', 'surg_operculectomy_detail'),
+                ('surg_other_pathological', 'surg_other_pathological_detail'),
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Prosthodontics', {
+            'fields': (
+                'prosth_complete_denture',
+                ('prosth_rpd', 'prosth_rpd_detail'),
+                ('prosth_fpd', 'prosth_fpd_detail'),
+                ('prosth_single_crown', 'prosth_single_crown_detail'),
+                ('prosth_veneers_laminates', 'prosth_veneers_laminates_detail'),
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Endodontics', {
+            'fields': (
+                ('endo_anterior', 'endo_anterior_detail'),
+                ('endo_posterior', 'endo_posterior_detail'),
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Pediatric', {
+            'fields': (
+                'pedo_fluoride',
+                ('pedo_sealant', 'pedo_sealant_detail'),
+                ('pedo_pulpotomy', 'pedo_pulpotomy_detail'),
+                ('pedo_ssc', 'pedo_ssc_detail'),
+                ('pedo_space_maintainer', 'pedo_space_maintainer_detail'),
+            ),
+            'classes': ('collapse',)
+        }),
+        ('Other', {
+            'fields': ('currently_undergoing_treatment', 'currently_undergoing_treatment_detail'),
+            'classes': ('collapse',)
+        }),
+        ('Dentist', {
+            'fields': ('dentist_name', 'dentist_date', 'dentist_license_no'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def get_name(self, obj):
+        return obj.get_full_name() or '-'
+    get_name.short_description = 'Name'
+
+
+class PrescriptionItemInline(admin.TabularInline):
+    model = PrescriptionItem
+    extra = 1
+    fields = ['medication_name', 'dosage', 'frequency', 'duration', 'quantity', 'instructions']
+
+
+@admin.register(Prescription)
+class PrescriptionAdmin(admin.ModelAdmin):
+    list_display = ['id', 'patient_name', 'user', 'status', 'date', 'physician_name', 'created_at']
+    list_filter = ['status', 'gender', 'created_at']
+    search_fields = ['patient_name', 'user__email', 'physician_name']
+    readonly_fields = ['created_at', 'updated_at']
+    inlines = [PrescriptionItemInline]
+
+    fieldsets = (
+        ('Status & Review', {
+            'fields': ('user', 'status', 'reviewed_by', 'reviewed_at', 'review_notes')
+        }),
+        ('Patient Information', {
+            'fields': (
+                'patient_name',
+                ('age', 'gender'),
+                'address',
+                'date',
+            )
+        }),
+        ('Prescription', {
+            'fields': ('prescription_body',),
+        }),
+        ('Physician', {
+            'fields': ('physician_name', 'license_no', 'ptr_no'),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+
+@admin.register(PrescriptionItem)
+class PrescriptionItemAdmin(admin.ModelAdmin):
+    list_display = ['id', 'prescription', 'medication_name', 'dosage', 'frequency', 'quantity', 'created_at']
+    search_fields = ['medication_name', 'prescription__patient_name']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(MedicalCertificate)
+class MedicalCertificateAdmin(admin.ModelAdmin):
+    list_display = ['id', 'patient_name', 'user', 'status', 'certificate_date', 'physician_name', 'created_at']
+    list_filter = ['status', 'gender', 'created_at']
+    search_fields = ['patient_name', 'user__email', 'physician_name', 'diagnosis']
+    readonly_fields = ['created_at', 'updated_at']
+
+    fieldsets = (
+        ('Status & Review', {
+            'fields': ('user', 'status', 'reviewed_by', 'reviewed_at', 'review_notes')
+        }),
+        ('Certificate Information', {
+            'fields': ('certificate_date',),
+        }),
+        ('Patient Information', {
+            'fields': (
+                'patient_name',
+                ('age', 'gender'),
+                'address',
+                'consultation_date',
+            )
+        }),
+        ('Medical Details', {
+            'fields': ('diagnosis', 'remarks_recommendations'),
+        }),
+        ('Physician', {
+            'fields': ('physician_name', 'license_no', 'ptr_no'),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+

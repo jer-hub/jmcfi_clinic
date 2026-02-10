@@ -2,8 +2,15 @@ from django.contrib import admin
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
     DentalHealthQuestionnaire, DentalSystemsReview,
-    DentalHistory, PediatricDentalHistory, DentalChart
+    DentalHistory, PediatricDentalHistory, DentalChart,
+    ToothSurface, DentalChartSnapshot, ProgressNote
 )
+
+
+class ToothSurfaceInline(admin.TabularInline):
+    model = ToothSurface
+    extra = 0
+    fields = ('surface', 'condition', 'notes')
 
 
 class DentalChartInline(admin.TabularInline):
@@ -14,9 +21,9 @@ class DentalChartInline(admin.TabularInline):
 
 @admin.register(DentalRecord)
 class DentalRecordAdmin(admin.ModelAdmin):
-    list_display = ('patient', 'age', 'designation', 'date_of_examination', 'examined_by', 'consent_signed', 'created_at')
+    list_display = ('patient', 'age', 'designation', 'date_of_examination', 'examined_by', 'status', 'consent_signed', 'created_at')
     search_fields = ('patient__username', 'patient__email', 'patient__first_name', 'patient__last_name', 'middle_name')
-    list_filter = ('designation', 'gender', 'consent_signed', 'date_of_examination', 'created_at')
+    list_filter = ('designation', 'gender', 'status', 'consent_signed', 'date_of_examination', 'created_at')
     readonly_fields = ('created_at', 'updated_at')
     date_hierarchy = 'date_of_examination'
     inlines = [DentalChartInline]
@@ -35,10 +42,13 @@ class DentalRecordAdmin(admin.ModelAdmin):
             'fields': ('guardian_name', 'guardian_contact')
         }),
         ('Examination Details', {
-            'fields': ('date_of_examination', 'examined_by')
+            'fields': ('date_of_examination', 'examined_by', 'status')
         }),
         ('Consent', {
             'fields': ('consent_signed', 'consent_date')
+        }),
+        ('Informed Consent', {
+            'fields': ('informed_consent_signed', 'informed_consent_date')
         }),
         ('Metadata', {
             'fields': ('created_at', 'updated_at'),
@@ -104,7 +114,36 @@ class PediatricDentalHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(DentalChart)
 class DentalChartAdmin(admin.ModelAdmin):
-    list_display = ('dental_record', 'tooth_number', 'tooth_type', 'condition', 'created_at')
+    list_display = ('dental_record', 'tooth_number', 'tooth_type', 'condition', 'quadrant_name', 'created_at')
     search_fields = ('dental_record__patient__username',)
     list_filter = ('tooth_type', 'condition', 'created_at')
+    readonly_fields = ('created_at', 'updated_at', 'fdi_quadrant', 'fdi_tooth_position', 'quadrant_name')
+    inlines = [ToothSurfaceInline]
+    
+    def quadrant_name(self, obj):
+        return obj.quadrant_name
+    quadrant_name.short_description = 'Quadrant'
+
+
+@admin.register(ToothSurface)
+class ToothSurfaceAdmin(admin.ModelAdmin):
+    list_display = ('tooth', 'surface', 'condition', 'created_at')
+    search_fields = ('tooth__dental_record__patient__username',)
+    list_filter = ('surface', 'condition', 'created_at')
+    readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(DentalChartSnapshot)
+class DentalChartSnapshotAdmin(admin.ModelAdmin):
+    list_display = ('dental_record', 'snapshot_date', 'created_by', 'notes')
+    search_fields = ('dental_record__patient__username', 'notes')
+    list_filter = ('snapshot_date', 'created_by')
+    readonly_fields = ('snapshot_date', 'chart_data')
+
+
+@admin.register(ProgressNote)
+class ProgressNoteAdmin(admin.ModelAdmin):
+    list_display = ('dental_record', 'date', 'procedure_done', 'dentist', 'created_at')
+    search_fields = ('dental_record__patient__username', 'procedure_done', 'remarks')
+    list_filter = ('date', 'dentist', 'created_at')
     readonly_fields = ('created_at', 'updated_at')

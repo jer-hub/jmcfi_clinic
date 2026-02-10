@@ -1,0 +1,392 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Dental Records - {{ dental_form.get_full_name|default:dental_form.user.get_full_name }} - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-6">
+            <a href="{% url 'health_forms_services:dental_forms_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Dental Forms
+            </a>
+        </div>
+
+        <!-- Status & Actions Bar -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-4">
+                <span class="px-3 py-1 text-sm font-medium rounded-full
+                    {% if dental_form.status == 'completed' %}bg-green-100 text-green-700
+                    {% elif dental_form.status == 'rejected' %}bg-red-100 text-red-700
+                    {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                    {{ dental_form.get_status_display }}
+                </span>
+                <span class="text-sm text-gray-500">
+                    Created {{ dental_form.created_at|date:"M d, Y" }}
+                </span>
+                <span class="text-xs text-gray-400 font-mono">F-HSS-20-0003</span>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                {% if can_edit %}
+                <a href="{% url 'health_forms_services:edit_dental_form' dental_form.pk %}"
+                   class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm">
+                    Edit
+                </a>
+                {% endif %}
+
+                <a href="{% url 'health_forms_services:export_dental_form_docx' dental_form.pk %}" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm inline-flex items-center space-x-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <span>Download .docx</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <!-- Personal Information -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Personal Information</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <dt class="text-gray-500">Full Name</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.get_full_name|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Age / Gender</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.age|default:"-" }} / {{ dental_form.get_gender_display|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Civil Status</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.get_civil_status_display|default:"-" }}</dd>
+                        </div>
+                        <div class="sm:col-span-2 lg:col-span-3">
+                            <dt class="text-gray-500">Address</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.address|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Date of Birth</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.date_of_birth|date:"F d, Y"|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Place of Birth</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.place_of_birth|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Designation</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.get_designation_display|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Department / College / Office</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.department_college_office|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Email Address</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.email_address|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Contact Number</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.contact_number|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Telephone</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.telephone_number|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Guardian</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.guardian_name|default:"-" }} {% if dental_form.guardian_contact %}({{ dental_form.guardian_contact }}){% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">Date of Examination</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.date_of_examination|date:"F d, Y"|default:"-" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- FDI Dental Chart (Teeth Summary) -->
+            {% if teeth %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">FDI Dental Chart</h2>
+                    <p class="text-sm text-gray-500 mt-1">{{ teeth|length }} teeth recorded</p>
+                </div>
+                <div class="p-6 overflow-x-auto">
+                    <table class="min-w-full text-sm divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tooth #</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Condition</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Surfaces</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for tooth in teeth %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-4 py-2 font-medium text-gray-900">{{ tooth.tooth_number }}</td>
+                                <td class="px-4 py-2 text-gray-600">{{ tooth.get_tooth_type_display }}</td>
+                                <td class="px-4 py-2">
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded-full
+                                        {% if tooth.condition == 'healthy' %}bg-green-100 text-green-700
+                                        {% elif tooth.condition == 'decayed' %}bg-red-100 text-red-700
+                                        {% elif tooth.condition == 'missing' or tooth.condition == 'extracted' %}bg-gray-200 text-gray-600
+                                        {% elif tooth.condition == 'filled' %}bg-blue-100 text-blue-700
+                                        {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                                        {{ tooth.get_condition_display }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-2 text-gray-600">
+                                    {% for surface in tooth.surfaces.all %}
+                                        <span class="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded mr-1 mb-1" title="{{ surface.get_condition_display }}">
+                                            {{ surface.get_surface_display|truncatewords:1 }}: {{ surface.get_condition_display }}
+                                        </span>
+                                    {% empty %}
+                                        <span class="text-gray-400">—</span>
+                                    {% endfor %}
+                                </td>
+                                <td class="px-4 py-2 text-gray-600">{{ tooth.notes|default:"—" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Initial Soft Tissue Exam -->
+            {% if dental_form.soft_tissue_lips or dental_form.soft_tissue_floor_of_mouth or dental_form.soft_tissue_palate or dental_form.soft_tissue_tongue or dental_form.soft_tissue_neck_nodes %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Initial Soft Tissue Exam</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div><dt class="text-gray-500">Lips</dt><dd class="font-medium text-gray-900">{{ dental_form.soft_tissue_lips|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Floor of Mouth</dt><dd class="font-medium text-gray-900">{{ dental_form.soft_tissue_floor_of_mouth|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Palate</dt><dd class="font-medium text-gray-900">{{ dental_form.soft_tissue_palate|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Tongue</dt><dd class="font-medium text-gray-900">{{ dental_form.soft_tissue_tongue|default:"-" }}</dd></div>
+                        <div class="sm:col-span-2"><dt class="text-gray-500">Neck & Nodes</dt><dd class="font-medium text-gray-900">{{ dental_form.soft_tissue_neck_nodes|default:"-" }}</dd></div>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Oral Health Condition -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Oral Health Condition</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        <div>
+                            <dt class="text-gray-500">Age Last Birthday</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.oral_health_age_last_birthday|default:"-" }}</dd>
+                        </div>
+                    </dl>
+                    <div class="mt-4 flex flex-wrap gap-3 text-sm">
+                        {% if dental_form.presence_of_debris %}
+                            <span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full">Presence of Debris</span>
+                        {% endif %}
+                        {% if dental_form.inflammation_of_gingiva %}
+                            <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full">Inflammation of Gingiva</span>
+                        {% endif %}
+                        {% if dental_form.presence_of_calculus %}
+                            <span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Presence of Calculus</span>
+                        {% endif %}
+                        {% if dental_form.under_orthodontic_treatment %}
+                            <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Under Orthodontic Treatment</span>
+                        {% endif %}
+                    </div>
+                    {% if dental_form.dentofacial_anomaly %}
+                    <div class="mt-4 text-sm">
+                        <dt class="text-gray-500">Dentofacial Anomaly / Neoplasm / Others</dt>
+                        <dd class="font-medium text-gray-900 mt-1">{{ dental_form.dentofacial_anomaly }}</dd>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Tooth Count -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Tooth Count</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-sm text-center">
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <dt class="text-gray-500 text-xs">Present</dt>
+                            <dd class="text-xl font-bold text-gray-900">{{ dental_form.teeth_present|default:"—" }}</dd>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <dt class="text-gray-500 text-xs">Caries Free</dt>
+                            <dd class="text-xl font-bold text-green-600">{{ dental_form.caries_free_teeth|default:"—" }}</dd>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <dt class="text-gray-500 text-xs">Decayed (D)</dt>
+                            <dd class="text-xl font-bold text-red-600">{{ dental_form.decayed_teeth|default:"—" }}</dd>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <dt class="text-gray-500 text-xs">Missing (M)</dt>
+                            <dd class="text-xl font-bold text-gray-600">{{ dental_form.missing_teeth|default:"—" }}</dd>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <dt class="text-gray-500 text-xs">Filled (F)</dt>
+                            <dd class="text-xl font-bold text-blue-600">{{ dental_form.filled_teeth|default:"—" }}</dd>
+                        </div>
+                        <div class="bg-primary-50 rounded-lg p-3">
+                            <dt class="text-primary-600 text-xs font-semibold">Total DMF</dt>
+                            <dd class="text-xl font-bold text-primary-700">{{ dental_form.total_dmf_teeth|default:"—" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Initial Periodontal Exam -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Initial Periodontal Exam</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+                        <div><dt class="text-gray-500">Gingival Inflammation</dt><dd class="font-medium text-gray-900">{{ dental_form.get_gingival_inflammation_display|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Soft Plaque Buildup</dt><dd class="font-medium text-gray-900">{{ dental_form.get_soft_plaque_buildup_display|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Hard Calculus Buildup</dt><dd class="font-medium text-gray-900">{{ dental_form.get_hard_calc_buildup_display|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Stains</dt><dd class="font-medium text-gray-900">{{ dental_form.get_stains_display|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Home Care Effectiveness</dt><dd class="font-medium text-gray-900">{{ dental_form.get_home_care_effectiveness_display|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Periodontal Condition</dt><dd class="font-medium text-gray-900">{{ dental_form.get_periodontal_condition_display|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Periodontal Diagnosis</dt><dd class="font-medium text-gray-900">{{ dental_form.get_periodontal_diagnosis_display|default:"-" }}</dd></div>
+                        <div><dt class="text-gray-500">Periodontitis</dt><dd class="font-medium text-gray-900">{{ dental_form.get_periodontitis_display|default:"-" }}</dd></div>
+                        <div class="sm:col-span-2 lg:col-span-3"><dt class="text-gray-500">Mucogingival Defects</dt><dd class="font-medium text-gray-900">{{ dental_form.mucogingival_defects|default:"-" }}</dd></div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Clinical Data -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Clinical Data</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <dt class="text-gray-500">Occlusion</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.get_occlusion_display|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">TMJ Exam</dt>
+                            <dd class="font-medium text-gray-900">
+                                {% if dental_form.tmj_pain or dental_form.tmj_popping or dental_form.tmj_deviation or dental_form.tmj_tooth_wear %}
+                                    <span class="flex flex-wrap gap-2">
+                                        {% if dental_form.tmj_pain %}<span class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs">Pain</span>{% endif %}
+                                        {% if dental_form.tmj_popping %}<span class="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs">Popping</span>{% endif %}
+                                        {% if dental_form.tmj_deviation %}<span class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded text-xs">Deviation</span>{% endif %}
+                                        {% if dental_form.tmj_tooth_wear %}<span class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">Tooth Wear</span>{% endif %}
+                                    </span>
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Conditions & Recommendations -->
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Conditions & Recommendations</h2>
+                </div>
+                <div class="p-6">
+                    <div class="flex flex-wrap gap-3 text-sm">
+                        {% if dental_form.cond_caries_free %}<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full">Caries Free</span>{% endif %}
+                        {% if dental_form.cond_poor_oral_hygiene %}<span class="px-3 py-1 bg-red-100 text-red-700 rounded-full">Poor Oral Hygiene</span>{% endif %}
+                        {% if dental_form.cond_indicated_restoration %}<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Indicated for Restoration</span>{% endif %}
+                        {% if dental_form.cond_indicated_extraction %}<span class="px-3 py-1 bg-red-100 text-red-700 rounded-full">Indicated for Extraction</span>{% endif %}
+                        {% if dental_form.cond_gingival_inflammation %}<span class="px-3 py-1 bg-orange-100 text-orange-700 rounded-full">Gingival Inflammation</span>{% endif %}
+                        {% if dental_form.cond_needs_oral_prophylaxis %}<span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Needs Oral Prophylaxis</span>{% endif %}
+                        {% if dental_form.cond_needs_prosthesis %}<span class="px-3 py-1 bg-purple-100 text-purple-700 rounded-full">Needs Prosthesis</span>{% endif %}
+                        {% if dental_form.cond_for_endodontic %}<span class="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">For Endodontic Treatment</span>{% endif %}
+                        {% if dental_form.cond_for_orthodontic %}<span class="px-3 py-1 bg-teal-100 text-teal-700 rounded-full">For Orthodontic Consultation</span>{% endif %}
+                        {% if dental_form.cond_for_sealant %}<span class="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full">Pits & Fissures Sealant</span>{% endif %}
+                        {% if dental_form.cond_others %}<span class="px-3 py-1 bg-gray-200 text-gray-700 rounded-full">Others{% if dental_form.cond_others_detail %}: {{ dental_form.cond_others_detail }}{% endif %}</span>{% endif %}
+                        {% if dental_form.cond_no_treatment_needed %}<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full">No Dental Treatment Needed</span>{% endif %}
+                    </div>
+                    {% if not dental_form.cond_caries_free and not dental_form.cond_poor_oral_hygiene and not dental_form.cond_indicated_restoration and not dental_form.cond_indicated_extraction and not dental_form.cond_gingival_inflammation and not dental_form.cond_needs_oral_prophylaxis and not dental_form.cond_needs_prosthesis and not dental_form.cond_for_endodontic and not dental_form.cond_for_orthodontic and not dental_form.cond_for_sealant and not dental_form.cond_others and not dental_form.cond_no_treatment_needed %}
+                        <span class="text-gray-400 italic text-sm">No conditions selected</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Remarks -->
+            {% if dental_form.remarks %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Remarks</h2>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-900 whitespace-pre-wrap">{{ dental_form.remarks }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Dentist Information -->
+            {% if dental_form.dentist_name or dental_form.dentist_license_no %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Dentist Information</h2>
+                </div>
+                <div class="p-6">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <dt class="text-gray-500">Dentist Name</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.dentist_name|default:"-" }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-gray-500">License No.</dt>
+                            <dd class="font-medium text-gray-900">{{ dental_form.dentist_license_no|default:"-" }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Review Section (Staff/Doctor Only) -->
+            {% if can_review %}
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden no-print">
+                </div>
+                <div class="p-6">
+                    <form method="post" action="{% url 'health_forms_services:review_dental_form' dental_form.pk %}">
+                        {% csrf_token %}
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                <select name="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                                    <option value="pending" {% if dental_form.status == 'pending' %}selected{% endif %}>Pending Review</option>
+                                    <option value="completed" {% if dental_form.status == 'completed' %}selected{% endif %}>Completed</option>
+                                    <option value="rejected" {% if dental_form.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
+                                <textarea name="review_notes" rows="4" class="w-full px-4 py-2 border border-gray-300 rounded-lg">{{ dental_form.review_notes }}</textarea>
+                            </div>
+                            <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
+                                Update Status
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

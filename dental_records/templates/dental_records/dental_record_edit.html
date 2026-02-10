@@ -14,19 +14,44 @@
                         <span class="text-primary-600">
                             <i class="fas fa-tooth"></i> {{ title }}
                         </span>
+                        {% if dental_record.status == 'completed' %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                            <i class="fas fa-check-circle mr-1"></i> Completed
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                            <i class="fas fa-clock mr-1"></i> Pending
+                        </span>
+                        {% endif %}
                     </h1>
                     <p class="mt-2 text-gray-600">Complete dental health record management</p>
                 </div>
                 <div class="flex items-center gap-3">
-                    {% if appointment and appointment.status != 'completed' %}
-                    <form method="post" action="{% url 'dental_records:complete_appointment' dental_record.id %}" class="inline">
+                    {% if dental_record.status == 'pending' %}
+                    <form method="post" action="{% url 'dental_records:mark_record_completed' dental_record.id %}">
                         {% csrf_token %}
+                        <input type="hidden" name="status" value="completed">
                         <button type="submit" 
-                                class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
-                                onclick="return confirm('Are you sure you want to mark this appointment as completed?')">
-                            <i class="fas fa-check"></i> Mark Appointment Completed
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                            <i class="fas fa-check-double"></i> Mark Record Completed
                         </button>
                     </form>
+                    {% else %}
+                    <form method="post" action="{% url 'dental_records:mark_record_completed' dental_record.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="pending">
+                        <button type="submit" 
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors duration-200">
+                            <i class="fas fa-undo"></i> Revert to Pending
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if appointment and appointment.status != 'completed' %}
+                    <button type="button" 
+                            onclick="openCompleteAppointmentModal()"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                        <i class="fas fa-check"></i> Mark Appointment Completed
+                    </button>
                     {% endif %}
                     <a href="{% url 'dental_records:dental_record_list' %}" 
                        class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
@@ -37,34 +62,37 @@
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="bg-white rounded-t-2xl shadow-lg border border-gray-100 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div class="border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
-                <nav class="flex flex-wrap -mb-px px-6" aria-label="Tabs">
-                    <button onclick="switchTab('demographics')" id="tab-demographics" class="tab-button active whitespace-nowrap py-4 px-6 border-b-2 border-primary-600 font-medium text-sm text-primary-600 focus:outline-none">
-                        <i class="fas fa-user mr-2"></i> Demographics
+                <nav class="flex overflow-x-auto -mb-px px-4 scrollbar-thin" aria-label="Tabs" style="scrollbar-width: thin;">
+                    <button onclick="switchTab('demographics')" id="tab-demographics" class="tab-button active whitespace-nowrap py-3 px-3 lg:px-4 border-b-2 border-primary-600 font-medium text-xs lg:text-sm text-primary-600 focus:outline-none flex-shrink-0">
+                        <i class="fas fa-user mr-1"></i> Demographics
                     </button>
-                    <button onclick="switchTab('health-questionnaire')" id="tab-health-questionnaire" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
-                        <i class="fas fa-clipboard-list mr-2"></i> Health Questionnaire
+                    <button onclick="switchTab('health-questionnaire')" id="tab-health-questionnaire" class="tab-button whitespace-nowrap py-3 px-3 lg:px-4 border-b-2 border-transparent font-medium text-xs lg:text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex-shrink-0">
+                        <i class="fas fa-clipboard-list mr-1"></i> Health Q.
                     </button>
-                    <button onclick="switchTab('systems-review')" id="tab-systems-review" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
-                        <i class="fas fa-heartbeat mr-2"></i> Systems Review
+                    <button onclick="switchTab('systems-review')" id="tab-systems-review" class="tab-button whitespace-nowrap py-3 px-3 lg:px-4 border-b-2 border-transparent font-medium text-xs lg:text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex-shrink-0">
+                        <i class="fas fa-heartbeat mr-1"></i> Systems Review
                     </button>
-                    <button onclick="switchTab('dental-history')" id="tab-dental-history" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
-                        <i class="fas fa-history mr-2"></i> Dental History
+                    <button onclick="switchTab('dental-history')" id="tab-dental-history" class="tab-button whitespace-nowrap py-3 px-3 lg:px-4 border-b-2 border-transparent font-medium text-xs lg:text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex-shrink-0">
+                        <i class="fas fa-history mr-1"></i> Dental History
                     </button>
                     {% if is_pediatric %}
-                    <button onclick="switchTab('pediatric')" id="tab-pediatric" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
-                        <i class="fas fa-child mr-2"></i> Pediatric Info
+                    <button onclick="switchTab('pediatric')" id="tab-pediatric" class="tab-button whitespace-nowrap py-3 px-3 lg:px-4 border-b-2 border-transparent font-medium text-xs lg:text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex-shrink-0">
+                        <i class="fas fa-child mr-1"></i> Pediatric
                     </button>
                     {% endif %}
-                    <button onclick="switchTab('examination')" id="tab-examination" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
-                        <i class="fas fa-stethoscope mr-2"></i> Examination
+                    <button onclick="switchTab('examination')" id="tab-examination" class="tab-button whitespace-nowrap py-3 px-3 lg:px-4 border-b-2 border-transparent font-medium text-xs lg:text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex-shrink-0">
+                        <i class="fas fa-stethoscope mr-1"></i> Examination
                     </button>
-                    <button onclick="switchTab('vital-signs')" id="tab-vital-signs" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
-                        <i class="fas fa-thermometer mr-2"></i> Vital Signs
+                    <button onclick="switchTab('vital-signs')" id="tab-vital-signs" class="tab-button whitespace-nowrap py-3 px-3 lg:px-4 border-b-2 border-transparent font-medium text-xs lg:text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex-shrink-0">
+                        <i class="fas fa-thermometer mr-1"></i> Vitals
                     </button>
-                    <button onclick="switchTab('dental-chart')" id="tab-dental-chart" class="tab-button whitespace-nowrap py-4 px-6 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none">
-                        <i class="fas fa-teeth mr-2"></i> Dental Chart
+                    <button onclick="switchTab('dental-chart')" id="tab-dental-chart" class="tab-button whitespace-nowrap py-3 px-3 lg:px-4 border-b-2 border-transparent font-medium text-xs lg:text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex-shrink-0">
+                        <i class="fas fa-teeth mr-1"></i> Dental Chart
+                    </button>
+                    <button onclick="switchTab('progress-notes')" id="tab-progress-notes" class="tab-button whitespace-nowrap py-3 px-3 lg:px-4 border-b-2 border-transparent font-medium text-xs lg:text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex-shrink-0">
+                        <i class="fas fa-notes-medical mr-1"></i> Progress Notes
                     </button>
                 </nav>
             </div>
@@ -278,6 +306,22 @@
                                     </label>
                                     {% if demographics_form.consent_signed.errors %}
                                         <p class="mt-1 text-sm text-red-600">{{ demographics_form.consent_signed.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.informed_consent_date.label }}</label>
+                                    {{ demographics_form.informed_consent_date }}
+                                    {% if demographics_form.informed_consent_date.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.informed_consent_date.errors }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="flex items-center">
+                                    <label class="flex items-center gap-2 cursor-pointer">
+                                        {{ demographics_form.informed_consent_signed }}
+                                        <span class="text-sm font-medium text-gray-700">{{ demographics_form.informed_consent_signed.label }}</span>
+                                    </label>
+                                    {% if demographics_form.informed_consent_signed.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.informed_consent_signed.errors }}</p>
                                     {% endif %}
                                 </div>
                             </div>
@@ -688,104 +732,124 @@
 
                 <!-- Dental Chart Tab -->
                 <div id="panel-dental-chart" class="tab-panel hidden">
-                    <div class="space-y-6">
-                        <div class="mb-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
-                                <i class="fas fa-teeth text-primary-600"></i> Dental Chart - Universal Numbering System
-                            </h3>
-                        </div>
+                    {% include 'dental_records/partials/interactive_dental_chart.html' %}
+                </div>
 
-                        <div id="dental-chart-container">
-                        {% if dental_chart %}
-                        <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
-                            <table class="min-w-full divide-y divide-gray-200" id="dental-chart-table">
-                                <thead class="bg-gradient-to-r from-primary-50 to-primary-100">
+                <!-- Progress Notes Tab -->
+                <div id="panel-progress-notes" class="tab-panel hidden"
+                     x-data="progressNotes()"
+                     x-init="init()">
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                            <i class="fas fa-notes-medical text-primary-600"></i> Progress Notes
+                            <span x-show="notes.length" class="ml-2 inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-primary-600 rounded-full" x-text="notes.length"></span>
+                        </h3>
+                        <p class="text-sm text-gray-500">Track procedures and treatments performed on this patient.</p>
+                    </div>
+
+                    <!-- Toast notification -->
+                    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-2"
+                         :class="toast.type === 'success' ? 'bg-green-50 border-green-300 text-green-800' : 'bg-red-50 border-red-300 text-red-800'"
+                         class="mb-4 p-3 rounded-lg border flex items-center gap-2 text-sm font-medium">
+                        <i :class="toast.type === 'success' ? 'fas fa-check-circle text-green-500' : 'fas fa-exclamation-circle text-red-500'"></i>
+                        <span x-text="toast.message"></span>
+                    </div>
+
+                    <!-- Add Progress Note Form -->
+                    <form @submit.prevent="addNote()" class="mb-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+                        <h4 class="text-base font-semibold text-gray-700 mb-4"><i class="fas fa-plus-circle text-primary-500 mr-2"></i>Add Progress Note</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                                <input type="date" x-model="form.date" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Dentist</label>
+                                <input type="text" value="{{ request.user.get_full_name }}" readonly class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Procedure Done <span class="text-red-500">*</span></label>
+                            <textarea x-model="form.procedure_done" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all" placeholder="Describe the procedure performed..." :class="errors.procedure_done ? 'border-red-400 ring-1 ring-red-400' : ''"></textarea>
+                            <p x-show="errors.procedure_done" class="mt-1 text-xs text-red-600" x-text="errors.procedure_done"></p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Remarks</label>
+                            <textarea x-model="form.remarks" rows="2" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all" placeholder="Additional remarks..."></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" :disabled="submitting" class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i :class="submitting ? 'fas fa-spinner fa-spin' : 'fas fa-plus'"></i>
+                                <span x-text="submitting ? 'Saving...' : 'Add Note'"></span>
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Existing Progress Notes -->
+                    <template x-if="notes.length > 0">
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+                                <thead class="bg-gray-100">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Tooth #</th>
-                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Type</th>
-                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Condition</th>
-                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Notes</th>
-                                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Date</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Procedure Done</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Dentist</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">Remarks</th>
+                                        <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wide w-20">Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    {% for tooth in dental_chart %}
-                                    <tr class="hover:bg-primary-50 transition-colors duration-150">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">{{ tooth.tooth_number }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ tooth.get_tooth_type_display }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ tooth.get_condition_display }}</td>
-                                        <td class="px-6 py-4 text-sm text-gray-700">{{ tooth.notes|truncatewords:10 }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                            <div class="flex items-center gap-2">
-                                                <button type="button" onclick="editTooth({{ tooth.tooth_number }}, '{{ tooth.tooth_type }}', '{{ tooth.condition }}', '{{ tooth.notes|escapejs }}')"
-                                                    class="inline-flex items-center px-3 py-1.5 bg-primary-600 text-white text-xs font-medium rounded-lg hover:bg-primary-700 transition-colors shadow-sm">
-                                                    <i class="fas fa-edit mr-1"></i> Edit
+                                <tbody class="divide-y divide-gray-100">
+                                    <template x-for="note in notes" :key="note.id">
+                                        <tr class="hover:bg-gray-50 transition-colors">
+                                            <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap" x-text="note.date_display"></td>
+                                            <td class="px-4 py-3 text-sm text-gray-700" x-text="note.procedure_done"></td>
+                                            <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap" x-text="note.dentist"></td>
+                                            <td class="px-4 py-3 text-sm text-gray-500" x-text="note.remarks"></td>
+                                            <td class="px-4 py-3 text-center">
+                                                <button @click="confirmDelete(note)" type="button" class="inline-flex items-center justify-center w-8 h-8 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors" title="Delete note">
+                                                    <i class="fas fa-trash-alt text-sm"></i>
                                                 </button>
-                                                <button type="button"
-                                                    onclick="confirmDeleteTooth({{ dental_record.id }}, {{ tooth.id }}, {{ tooth.tooth_number }})"
-                                                    class="inline-flex items-center px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">
-                                                    <i class="fas fa-trash mr-1"></i> Delete
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
+                                            </td>
+                                        </tr>
+                                    </template>
                                 </tbody>
                             </table>
                         </div>
-                        {% else %}
-                        <div class="text-center py-12 bg-gray-50 rounded-lg border border-gray-200" id="dental-chart-empty">
-                            <i class="fas fa-teeth text-4xl text-gray-300 mb-3"></i>
-                            <p class="text-gray-500">No teeth recorded in chart yet.</p>
-                        </div>
-                        {% endif %}
-                        </div>
+                    </template>
 
-                        <!-- Add Tooth Form -->
-                        <form method="post" 
-                              action="{% url 'dental_records:dental_chart_add_tooth' dental_record.id %}" 
-                              class="bg-gray-50 p-6 rounded-lg border border-gray-200"
-                              hx-post="{% url 'dental_records:dental_chart_add_tooth' dental_record.id %}"
-                              hx-target="#dental-chart-container"
-                              hx-swap="outerHTML"
-                              hx-on::after-request="handleToothFormResponse(event)">
-                            {% csrf_token %}
-                            <h4 class="text-md font-semibold text-gray-800 mb-4 flex items-center gap-2" id="tooth-form-heading">
-                                <i class="fas fa-plus-circle text-primary-600"></i> Add Tooth to Chart
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tooth Number</label>
-                                    <input type="number" name="tooth_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" min="1" max="85" required>
+                    <template x-if="notes.length === 0">
+                        <div class="text-center py-10 text-gray-400">
+                            <i class="fas fa-clipboard text-5xl mb-3"></i>
+                            <p class="text-lg font-medium text-gray-500">No progress notes yet</p>
+                            <p class="text-sm">Add the first progress note using the form above.</p>
+                        </div>
+                    </template>
+
+                    <!-- Delete Confirmation Dialog -->
+                    <div x-show="deleteModal.show" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+                         class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="deleteModal.show = false">
+                        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full" @click.stop>
+                            <div class="px-6 py-5 border-b border-gray-200 flex items-center gap-3">
+                                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-trash-alt text-red-600"></i>
                                 </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Type</label>
-                                    <select name="tooth_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                                        <option value="permanent">Permanent</option>
-                                        <option value="primary">Primary</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Condition</label>
-                                    <select name="condition" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                                        <option value="healthy">Healthy</option>
-                                        <option value="cavity">Cavity</option>
-                                        <option value="filled">Filled</option>
-                                        <option value="missing">Missing</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">&nbsp;</label>
-                                    <button type="submit" class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium">
-                                        <i class="fas fa-plus mr-2"></i> Add Tooth
-                                    </button>
+                                <h3 class="text-lg font-bold text-gray-900">Delete Progress Note</h3>
+                            </div>
+                            <div class="px-6 py-4">
+                                <p class="text-gray-600 text-sm">Are you sure you want to delete this progress note? This action cannot be undone.</p>
+                                <div x-show="deleteModal.note" class="mt-3 p-3 bg-gray-50 rounded-lg text-sm">
+                                    <p class="font-medium text-gray-800" x-text="deleteModal.note?.date_display"></p>
+                                    <p class="text-gray-600 mt-1 line-clamp-2" x-text="deleteModal.note?.procedure_done"></p>
                                 </div>
                             </div>
-                            <div class="mt-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                                <textarea name="notes" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500" rows="2"></textarea>
+                            <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex gap-3 justify-end">
+                                <button @click="deleteModal.show = false" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm">Cancel</button>
+                                <button @click="deleteNote()" :disabled="deleting" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium text-sm disabled:opacity-50">
+                                    <i :class="deleting ? 'fas fa-spinner fa-spin' : 'fas fa-trash-alt'" class="mr-1"></i>
+                                    <span x-text="deleting ? 'Deleting...' : 'Delete'"></span>
+                                </button>
                             </div>
-                        </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -963,11 +1027,12 @@ function switchTab(tabName) {
         selectedPanel.classList.remove('hidden');
     }
     
-    // Activate selected button
+    // Activate selected button and scroll it into view
     const selectedButton = document.getElementById('tab-' + tabName);
     if (selectedButton) {
         selectedButton.classList.remove('border-transparent', 'text-gray-500');
         selectedButton.classList.add('border-primary-600', 'text-primary-600');
+        selectedButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
 }
 
@@ -1155,7 +1220,196 @@ function dismissMessage(btn) {
         }, 300);
     }
 }
+
+// Complete Appointment Modal Functions
+function openCompleteAppointmentModal() {
+    const modal = document.getElementById('completeAppointmentModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    setTimeout(() => {
+        modal.querySelector('.modal-content').classList.add('animate-scale-in');
+    }, 10);
+}
+
+function closeCompleteAppointmentModal() {
+    const modal = document.getElementById('completeAppointmentModal');
+    const content = modal.querySelector('.modal-content');
+    content.classList.remove('animate-scale-in');
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }, 300);
+}
+
+function confirmCompleteAppointment() {
+    const form = document.getElementById('completeAppointmentForm');
+    form.submit();
+}
+
+// Close modal when clicking outside
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('completeAppointmentModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeCompleteAppointmentModal();
+            }
+        });
+        
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeCompleteAppointmentModal();
+            }
+        });
+    }
+});
+
+// ============================================
+// Alpine.js: Progress Notes Component
+// ============================================
+function progressNotes() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    const recordId = {{ dental_record.id }};
+    const baseUrl = `/dental-records/${recordId}/progress-notes`;
+    const today = new Date().toISOString().slice(0, 10);
+
+    return {
+        notes: [],
+        form: { date: today, procedure_done: '', remarks: '' },
+        errors: {},
+        submitting: false,
+        deleting: false,
+        toast: { show: false, message: '', type: 'success' },
+        deleteModal: { show: false, note: null },
+
+        init() {
+            // Load initial data from server-rendered JSON
+            try {
+                this.notes = JSON.parse('{{ progress_notes_json|escapejs }}');
+            } catch (e) {
+                this.notes = [];
+                console.error('Failed to parse progress notes JSON', e);
+            }
+        },
+
+        showToast(message, type = 'success') {
+            this.toast = { show: true, message, type };
+            setTimeout(() => { this.toast.show = false; }, 3000);
+        },
+
+        async addNote() {
+            this.errors = {};
+            if (!this.form.procedure_done.trim()) {
+                this.errors.procedure_done = 'Please enter the procedure done.';
+                return;
+            }
+
+            this.submitting = true;
+            try {
+                const res = await fetch(`${baseUrl}/add/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        date: this.form.date || today,
+                        procedure_done: this.form.procedure_done.trim(),
+                        remarks: this.form.remarks.trim(),
+                    }),
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    // Insert at correct sorted position (newest first)
+                    this.notes.unshift(data.note);
+                    this.form = { date: today, procedure_done: '', remarks: '' };
+                    this.showToast('Progress note added successfully.');
+                } else {
+                    this.showToast(data.error || 'Failed to add note.', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                this.showToast('Network error. Please try again.', 'error');
+            } finally {
+                this.submitting = false;
+            }
+        },
+
+        confirmDelete(note) {
+            this.deleteModal = { show: true, note };
+        },
+
+        async deleteNote() {
+            const note = this.deleteModal.note;
+            if (!note) return;
+            this.deleting = true;
+            try {
+                const res = await fetch(`${baseUrl}/${note.id}/delete/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    this.notes = this.notes.filter(n => n.id !== note.id);
+                    this.showToast('Progress note deleted.');
+                } else {
+                    this.showToast(data.error || 'Failed to delete note.', 'error');
+                }
+            } catch (err) {
+                console.error(err);
+                this.showToast('Network error. Please try again.', 'error');
+            } finally {
+                this.deleting = false;
+                this.deleteModal = { show: false, note: null };
+            }
+        },
+    };
+}
 </script>
+
+<!-- Complete Appointment Modal -->
+<div id="completeAppointmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div class="modal-content bg-white rounded-lg shadow-lg max-w-sm w-full transform transition-all">
+        <!-- Modal Header -->
+        <div class="border-b border-gray-200 px-6 py-4">
+            <h2 class="text-lg font-semibold text-gray-900">Complete Appointment</h2>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="px-6 py-6">
+            <p class="text-gray-600 text-sm">
+                Are you sure you want to mark this appointment as completed?
+            </p>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="bg-gray-50 px-6 py-3 rounded-b-lg flex items-center gap-3 justify-end border-t border-gray-200">
+            <button type="button" 
+                    onclick="closeCompleteAppointmentModal()"
+                    class="px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded transition-colors duration-200 text-sm font-medium">
+                Cancel
+            </button>
+            <form id="completeAppointmentForm" 
+                  method="post" 
+                  action="{% url 'dental_records:complete_appointment' dental_record.id %}" 
+                  class="inline">
+                {% csrf_token %}
+                <button type="submit" 
+                        class="px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 rounded transition-colors duration-200 text-sm font-medium">
+                    Complete
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
 
 <style>
     @keyframes slideDown {
@@ -1193,6 +1447,22 @@ function dismissMessage(btn) {
         transform: translateX(100%);
         opacity: 0;
         transition: all 0.3s ease-out;
+    }
+    
+    /* Modal animation */
+    @keyframes scaleIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+    
+    .animate-scale-in {
+        animation: scaleIn 0.3s ease-out;
     }
 </style>
 {% endblock %}

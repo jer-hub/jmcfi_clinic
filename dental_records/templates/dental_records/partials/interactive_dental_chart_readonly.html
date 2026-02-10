@@ -1,0 +1,576 @@
+{% load static %}
+<!-- Interactive Dental Chart Component (Read-Only View) -->
+
+<div x-data="dentalChartReadOnlyApp()" x-init="init()" class="dental-chart-container" id="interactive-dental-chart-readonly">
+    <!-- Chart Header -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+            <h3 class="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-teeth text-primary-600"></i> 
+                Interactive Dental Chart - FDI Notation
+            </h3>
+            <p class="text-sm text-gray-500 mt-1">Visual representation of dental conditions</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <!-- Chart Type Toggle -->
+            <div class="inline-flex rounded-lg border border-gray-300 p-1 bg-gray-50">
+                <button type="button" @click="chartType = 'permanent'" 
+                        :class="chartType === 'permanent' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-200'"
+                        class="px-3 py-1.5 text-sm font-medium rounded-md transition-all">
+                    Permanent
+                </button>
+                <button type="button" @click="chartType = 'primary'" 
+                        :class="chartType === 'primary' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-200'"
+                        class="px-3 py-1.5 text-sm font-medium rounded-md transition-all">
+                    Primary
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Condition Legend -->
+    <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <h4 class="text-sm font-semibold text-gray-700 mb-3">Condition Legend</h4>
+        <div class="flex flex-wrap gap-3">
+            <span class="legend-item"><span class="legend-color bg-green-400"></span> Healthy</span>
+            <span class="legend-item"><span class="legend-color bg-red-500"></span> Decayed</span>
+            <span class="legend-item"><span class="legend-color bg-blue-500"></span> Filled</span>
+            <span class="legend-item"><span class="legend-color bg-gray-400"></span> Missing</span>
+            <span class="legend-item"><span class="legend-color bg-gray-600"></span> Extracted</span>
+            <span class="legend-item"><span class="legend-color bg-yellow-500"></span> Crowned</span>
+            <span class="legend-item"><span class="legend-color bg-purple-500"></span> Root Canal</span>
+            <span class="legend-item"><span class="legend-color bg-orange-500"></span> Impacted</span>
+            <span class="legend-item"><span class="legend-color bg-teal-500"></span> Implant</span>
+            <span class="legend-item"><span class="legend-color bg-pink-500"></span> Fractured</span>
+        </div>
+    </div>
+
+    <!-- Permanent Teeth Chart -->
+    <div x-show="chartType === 'permanent'" class="chart-wrapper">
+        <!-- Upper Jaw -->
+        <div class="jaw-section mb-8">
+            <div class="text-center mb-3">
+                <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Upper Jaw (Maxilla)</span>
+            </div>
+            <div class="flex justify-center">
+                <div class="teeth-row">
+                    <!-- Upper Right (Quadrant 1) -->
+                    <div class="quadrant quadrant-upper-right">
+                        <div class="quadrant-label">Q1</div>
+                        <template x-for="i in ['8','7','6','5','4','3','2','1']" :key="'1'+i">
+                            <div class="tooth-wrapper readonly" :data-tooth="'1'+i">
+                                <div class="tooth permanent" 
+                                     :id="'tooth-1'+i"
+                                     :class="getToothClass(parseInt('1'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('1'+i), 'buccal')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('1'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('1'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('1'+i), 'distal')"></div>
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('1'+i), 'lingual')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'1'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="midline"></div>
+                    <!-- Upper Left (Quadrant 2) -->
+                    <div class="quadrant quadrant-upper-left">
+                        <div class="quadrant-label">Q2</div>
+                        <template x-for="i in ['1','2','3','4','5','6','7','8']" :key="'2'+i">
+                            <div class="tooth-wrapper readonly" :data-tooth="'2'+i">
+                                <div class="tooth permanent" 
+                                     :id="'tooth-2'+i"
+                                     :class="getToothClass(parseInt('2'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('2'+i), 'buccal')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('2'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('2'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('2'+i), 'distal')"></div>
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('2'+i), 'lingual')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'2'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lower Jaw -->
+        <div class="jaw-section">
+            <div class="flex justify-center">
+                <div class="teeth-row">
+                    <!-- Lower Right (Quadrant 4) -->
+                    <div class="quadrant quadrant-lower-right">
+                        <div class="quadrant-label">Q4</div>
+                        <template x-for="i in ['8','7','6','5','4','3','2','1']" :key="'4'+i">
+                            <div class="tooth-wrapper readonly" :data-tooth="'4'+i">
+                                <div class="tooth permanent" 
+                                     :id="'tooth-4'+i"
+                                     :class="getToothClass(parseInt('4'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('4'+i), 'lingual')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('4'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('4'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('4'+i), 'distal')"></div>
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('4'+i), 'buccal')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'4'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="midline"></div>
+                    <!-- Lower Left (Quadrant 3) -->
+                    <div class="quadrant quadrant-lower-left">
+                        <div class="quadrant-label">Q3</div>
+                        <template x-for="i in ['1','2','3','4','5','6','7','8']" :key="'3'+i">
+                            <div class="tooth-wrapper readonly" :data-tooth="'3'+i">
+                                <div class="tooth permanent" 
+                                     :id="'tooth-3'+i"
+                                     :class="getToothClass(parseInt('3'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('3'+i), 'lingual')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('3'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('3'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('3'+i), 'distal')"></div>
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('3'+i), 'buccal')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'3'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Lower Jaw (Mandible)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Primary Teeth Chart -->
+    <div x-show="chartType === 'primary'" class="chart-wrapper" x-cloak>
+        <!-- Upper Jaw -->
+        <div class="jaw-section mb-8">
+            <div class="text-center mb-3">
+                <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Upper Jaw (Primary Teeth)</span>
+            </div>
+            <div class="flex justify-center">
+                <div class="teeth-row">
+                    <!-- Upper Right (Quadrant 5) -->
+                    <div class="quadrant quadrant-upper-right">
+                        <div class="quadrant-label">Q5</div>
+                        <template x-for="i in ['5','4','3','2','1']" :key="'5'+i">
+                            <div class="tooth-wrapper readonly" :data-tooth="'5'+i">
+                                <div class="tooth primary" 
+                                     :id="'tooth-5'+i"
+                                     :class="getToothClass(parseInt('5'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('5'+i), 'buccal')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('5'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('5'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('5'+i), 'distal')"></div>
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('5'+i), 'lingual')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'5'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="midline"></div>
+                    <!-- Upper Left (Quadrant 6) -->
+                    <div class="quadrant quadrant-upper-left">
+                        <div class="quadrant-label">Q6</div>
+                        <template x-for="i in ['1','2','3','4','5']" :key="'6'+i">
+                            <div class="tooth-wrapper readonly" :data-tooth="'6'+i">
+                                <div class="tooth primary" 
+                                     :id="'tooth-6'+i"
+                                     :class="getToothClass(parseInt('6'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('6'+i), 'buccal')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('6'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('6'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('6'+i), 'distal')"></div>
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('6'+i), 'lingual')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'6'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lower Jaw -->
+        <div class="jaw-section">
+            <div class="flex justify-center">
+                <div class="teeth-row">
+                    <!-- Lower Right (Quadrant 8) -->
+                    <div class="quadrant quadrant-lower-right">
+                        <div class="quadrant-label">Q8</div>
+                        <template x-for="i in ['5','4','3','2','1']" :key="'8'+i">
+                            <div class="tooth-wrapper readonly" :data-tooth="'8'+i">
+                                <div class="tooth primary" 
+                                     :id="'tooth-8'+i"
+                                     :class="getToothClass(parseInt('8'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('8'+i), 'lingual')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('8'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('8'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('8'+i), 'distal')"></div>
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('8'+i), 'buccal')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'8'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="midline"></div>
+                    <!-- Lower Left (Quadrant 7) -->
+                    <div class="quadrant quadrant-lower-left">
+                        <div class="quadrant-label">Q7</div>
+                        <template x-for="i in ['1','2','3','4','5']" :key="'7'+i">
+                            <div class="tooth-wrapper readonly" :data-tooth="'7'+i">
+                                <div class="tooth primary" 
+                                     :id="'tooth-7'+i"
+                                     :class="getToothClass(parseInt('7'+i))">
+                                    <div class="tooth-surfaces">
+                                        <div class="surface surface-lingual" :class="getSurfaceClass(parseInt('7'+i), 'lingual')"></div>
+                                        <div class="surface surface-mesial" :class="getSurfaceClass(parseInt('7'+i), 'mesial')"></div>
+                                        <div class="surface surface-occlusal" :class="getSurfaceClass(parseInt('7'+i), 'occlusal')"></div>
+                                        <div class="surface surface-distal" :class="getSurfaceClass(parseInt('7'+i), 'distal')"></div>
+                                        <div class="surface surface-buccal" :class="getSurfaceClass(parseInt('7'+i), 'buccal')"></div>
+                                    </div>
+                                </div>
+                                <div class="tooth-number" x-text="'7'+i"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Lower Jaw (Primary Teeth)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recorded Teeth Table -->
+    <div class="mt-8">
+        <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-list text-primary-600"></i> Recorded Teeth
+            <span class="text-sm font-normal text-gray-500" x-show="teeth.length > 0">(<span x-text="teeth.length"></span> recorded)</span>
+        </h4>
+        
+        <div id="teeth-table-container">
+            <template x-if="teeth.length > 0">
+                <div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                    <table class="min-w-full divide-y divide-gray-200" id="dental-chart-table">
+                        <thead class="bg-gradient-to-r from-primary-50 to-primary-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">FDI #</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Quadrant</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Type</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Condition</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <template x-for="tooth in teeth" :key="tooth.id">
+                                <tr class="hover:bg-primary-50 transition-colors duration-150">
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900" x-text="tooth.tooth_number"></td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700" x-text="tooth.quadrant_name"></td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                        <span :class="tooth.tooth_type === 'permanent' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'"
+                                              class="px-2 py-1 text-xs rounded-full" x-text="tooth.tooth_type === 'permanent' ? 'Permanent' : 'Primary'"></span>
+                                    </td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                        <span :class="getConditionBadgeClass(tooth.condition)"
+                                              class="px-2 py-1 text-xs rounded-full" x-text="getConditionLabel(tooth.condition)"></span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-700 max-w-xs truncate" :title="tooth.notes" x-text="tooth.notes || '-'"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+            <template x-if="teeth.length === 0">
+                <div class="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+                    <i class="fas fa-teeth text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500">No teeth recorded in chart yet.</p>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Dental Chart Styles */
+.chart-wrapper {
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.teeth-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.quadrant {
+    display: flex;
+    gap: 4px;
+    position: relative;
+    padding: 8px;
+}
+
+.quadrant-label {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 600;
+    color: #6b7280;
+    background: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid #e5e7eb;
+}
+
+.midline {
+    width: 3px;
+    background: linear-gradient(to bottom, #3b82f6, #93c5fd);
+    margin: 0 8px;
+    border-radius: 2px;
+    align-self: stretch;
+}
+
+.tooth-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.15s;
+}
+
+.tooth-wrapper.readonly {
+    cursor: default;
+}
+
+.tooth-wrapper.readonly:hover {
+    transform: translateY(-1px);
+}
+
+.tooth {
+    width: 36px;
+    height: 40px;
+    background: white;
+    border: 2px solid #d1d5db;
+    border-radius: 6px 6px 4px 4px;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.tooth.primary {
+    width: 36px;
+    height: 40px;
+}
+
+.tooth-number {
+    font-size: 10px;
+    font-weight: 600;
+    color: #4b5563;
+    margin-top: 3px;
+}
+
+.tooth-surfaces {
+    position: absolute;
+    inset: 3px;
+    display: grid;
+    grid-template-areas:
+        "buccal buccal buccal"
+        "mesial occlusal distal"
+        "lingual lingual lingual";
+    grid-template-rows: 1fr 1.5fr 1fr;
+    grid-template-columns: 1fr 1.5fr 1fr;
+    gap: 1px;
+}
+
+.surface {
+    background: #f3f4f6;
+    border-radius: 2px;
+    transition: background-color 0.2s;
+}
+
+.surface-buccal { grid-area: buccal; }
+.surface-mesial { grid-area: mesial; }
+.surface-occlusal { grid-area: occlusal; }
+.surface-distal { grid-area: distal; }
+.surface-lingual { grid-area: lingual; }
+
+/* Condition Colors */
+.tooth.condition-healthy { background: #d1fae5; border-color: #10b981; }
+.tooth.condition-decayed { background: #fee2e2; border-color: #ef4444; }
+.tooth.condition-filled { background: #dbeafe; border-color: #3b82f6; }
+.tooth.condition-missing { background: #e5e7eb; border-color: #6b7280; }
+.tooth.condition-missing .tooth-surfaces { display: none; }
+.tooth.condition-missing::after { 
+    content: '×'; 
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #6b7280;
+}
+.tooth.condition-extracted { background: #d1d5db; border-color: #4b5563; }
+.tooth.condition-extracted .tooth-surfaces { display: none; }
+.tooth.condition-extracted::after { 
+    content: 'X'; 
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    color: #4b5563;
+}
+.tooth.condition-crowned { background: #fef3c7; border-color: #f59e0b; }
+.tooth.condition-root_canal { background: #f3e8ff; border-color: #9333ea; }
+.tooth.condition-impacted { background: #ffedd5; border-color: #f97316; }
+.tooth.condition-implant { background: #ccfbf1; border-color: #14b8a6; }
+.tooth.condition-fractured { background: #fce7f3; border-color: #ec4899; }
+.tooth.condition-bridge { background: #e0e7ff; border-color: #6366f1; }
+.tooth.condition-bridge_pontic { background: #e0e7ff; border-color: #6366f1; opacity: 0.6; }
+.tooth.condition-unerupted { background: #f3f4f6; border-color: #9ca3af; border-style: dashed; }
+.tooth.condition-sealant { background: #d1fae5; border-color: #059669; }
+.tooth.condition-veneer { background: #fef3c7; border-color: #d97706; }
+
+/* Surface Condition Colors */
+.surface.surface-condition-healthy { background: #86efac !important; }
+.surface.surface-condition-decayed { background: #fca5a5 !important; }
+.surface.surface-condition-filled { background: #93c5fd !important; }
+.surface.surface-condition-filled_with_caries { 
+    background: linear-gradient(135deg, #93c5fd 50%, #fca5a5 50%) !important; 
+}
+.surface.surface-condition-sealant { background: #6ee7b7 !important; }
+.surface.surface-condition-fracture { background: #f9a8d4 !important; }
+
+/* Legend Styles */
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Alpine x-cloak */
+[x-cloak] { display: none !important; }
+</style>
+
+<script>
+function dentalChartReadOnlyApp() {
+    return {
+        recordId: {{ dental_record.id }},
+        chartType: 'permanent',
+        teeth: [],
+        teethData: {},
+        
+        conditionLabels: {
+            healthy: 'Healthy',
+            decayed: 'Decayed/Caries',
+            filled: 'Filled',
+            missing: 'Missing',
+            extracted: 'Extracted',
+            crowned: 'Crowned',
+            root_canal: 'Root Canal',
+            impacted: 'Impacted',
+            implant: 'Implant',
+            fractured: 'Fractured',
+            bridge: 'Bridge',
+            bridge_pontic: 'Bridge Pontic',
+            unerupted: 'Unerupted',
+            partially_erupted: 'Partially Erupted',
+            sealant: 'Sealant',
+            veneer: 'Veneer',
+            temporary: 'Temporary Filling',
+            root_fragment: 'Root Fragment',
+            anomaly: 'Anomaly',
+            other: 'Other'
+        },
+        
+        init() {
+            this.loadTeeth();
+        },
+        
+        loadTeeth() {
+            // Load teeth data directly from server-rendered JSON (no API call needed)
+            const teethJson = {{ dental_chart_json|safe }};
+            this.teeth = teethJson || [];
+            
+            // Build a quick lookup dictionary
+            this.teethData = {};
+            this.teeth.forEach(tooth => {
+                this.teethData[tooth.tooth_number] = tooth;
+            });
+        },
+        
+        getToothClass(toothNumber) {
+            const tooth = this.teethData[toothNumber];
+            if (tooth && tooth.condition) {
+                return 'condition-' + tooth.condition;
+            }
+            return '';
+        },
+        
+        getSurfaceClass(toothNumber, surfaceName) {
+            const tooth = this.teethData[toothNumber];
+            if (tooth && tooth.surfaces && tooth.surfaces.length > 0) {
+                const surface = tooth.surfaces.find(s => s.surface === surfaceName);
+                if (surface && surface.condition) {
+                    return 'surface-condition-' + surface.condition;
+                }
+            }
+            return '';
+        },
+        
+        getConditionLabel(condition) {
+            return this.conditionLabels[condition] || condition;
+        },
+        
+        getConditionBadgeClass(condition) {
+            const classes = {
+                healthy: 'bg-green-100 text-green-800',
+                decayed: 'bg-red-100 text-red-800',
+                filled: 'bg-blue-100 text-blue-800',
+                missing: 'bg-gray-100 text-gray-800',
+                extracted: 'bg-gray-100 text-gray-800',
+                crowned: 'bg-yellow-100 text-yellow-800',
+                root_canal: 'bg-purple-100 text-purple-800',
+                impacted: 'bg-orange-100 text-orange-800',
+                implant: 'bg-teal-100 text-teal-800',
+                fractured: 'bg-pink-100 text-pink-800'
+            };
+            return classes[condition] || 'bg-orange-100 text-orange-800';
+        }
+    }
+}
+</script>

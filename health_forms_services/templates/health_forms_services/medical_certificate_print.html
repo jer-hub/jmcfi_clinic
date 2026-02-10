@@ -1,0 +1,293 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Medical Certificate – {{ certificate.patient_name }}</title>
+<style>
+    /* ── Embedded fonts ───────────────────────────── */
+    @font-face {
+        font-family: 'Old English Text MT';
+        src: url("{% static 'fonts/old-english-text-mt.ttf' %}") format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+
+    /* ── Reset & Page ─────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    @page {
+        size: 8.5in 11in;           /* portrait letter */
+        margin: 0.5in 1in 0.5in 1in;
+    }
+
+    html, body {
+        width: 8.5in;
+        height: 11in;
+        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        font-size: 12pt;
+        color: #000;
+        background: #fff;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    body {
+        padding: 0.5in 1in 0.5in 1in;
+    }
+
+    .certificate-page {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ── Letterhead ───────────────────────────────── */
+    .letterhead {
+        text-align: center;
+        margin-bottom: 4px;
+    }
+
+    .letterhead .institution-name {
+        font-family: 'Old English Text MT', 'UnifrakturMaguntia', serif;
+        font-size: 18pt;
+        color: #000;
+    }
+
+    .letterhead .institution-sub {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 8pt;
+        font-weight: bold;
+        color: #000;
+        letter-spacing: 3.5px;
+        margin-top: 0;
+    }
+
+    .letterhead .institution-address {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 8pt;
+        color: #000;
+        margin-top: 0;
+    }
+
+    .letterhead .department {
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 16pt;
+        font-weight: 900;
+        color: #000;
+        margin-top: 0;
+    }
+
+    /* ── Title ────────────────────────────────────── */
+    .cert-title {
+        text-align: center;
+        font-size: 16pt;
+        font-weight: bold;
+        margin-top: 14px;
+        margin-bottom: 6px;
+    }
+
+    /* ── Date field (right-aligned) ───────────────── */
+    .date-row {
+        text-align: right;
+        font-size: 12pt;
+        margin-top: 10px;
+        margin-bottom: 8px;
+        padding-right: 36px;
+    }
+
+    .date-row .field-value {
+        text-decoration: underline;
+        display: inline;
+        padding: 0 2px;
+        font-weight: bold;
+    }
+
+    /* ── Body paragraph ───────────────────────────── */
+    .cert-body {
+        font-size: 12pt;
+        line-height: 2;
+        margin-top: 10px;
+    }
+
+    .cert-body .field-value {
+        text-decoration: underline;
+        display: inline;
+        padding: 0 2px;
+        font-weight: bold;
+    }
+
+    .cert-body .field-value.name-field,
+    .cert-body .field-value.age-gender-field,
+    .cert-body .field-value.address-field,
+    .cert-body .field-value.consult-date-field {
+        display: inline;
+    }
+
+    /* ── Sections: Diagnosis & Remarks ────────────── */
+    .section-header {
+        font-size: 14pt;
+        font-weight: bold;
+        margin-top: 18px;
+        margin-bottom: 6px;
+    }
+
+    .section-lines {
+        line-height: 2;
+    }
+
+    .section-lines .content-line {
+        display: block;
+        min-height: 1.6em;
+        font-size: 12pt;
+    }
+
+    /* ── Bottom section (fixed to page bottom) ──── */
+    .bottom-fixed {
+        margin-top: auto;
+    }
+
+    /* ── Physician block (right-aligned) ──────────── */
+    .physician-block {
+        text-align: right;
+        font-size: 12pt;
+        padding-right: 0;
+    }
+
+    .physician-block .physician-name {
+        font-weight: bold;
+        border-top: 1px solid #000;
+        display: inline-block;
+        padding-top: 4px;
+        min-width: 220px;
+        text-align: center;
+    }
+
+    .physician-block .license-line,
+    .physician-block .ptr-line {
+        font-weight: normal;
+        margin-top: 2px;
+    }
+
+    /* ── Footer ───────────────────────────────────── */
+    .form-footer {
+        font-size: 8pt;
+        font-style: italic;
+        text-align: center;
+        padding-top: 16px;
+        padding-bottom: 4px;
+        line-height: 1.5;
+        color: #000;
+    }
+
+    /* ── Print-specific ───────────────────────────── */
+    @media print {
+        html, body {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+        }
+        .certificate-page {
+            height: 100vh;
+            min-height: 100vh;
+        }
+    }
+
+    /* ── Screen preview helpers ────────────────────── */
+    @media screen {
+        body {
+            background: #e5e7eb;
+        }
+        .certificate-page {
+            background: #fff;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+            border-radius: 2px;
+            max-width: 8.5in;
+            margin: 0 auto;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="certificate-page">
+
+    <!-- Letterhead -->
+    <div class="letterhead">
+        <div class="institution-name">JOSE MARIA COLLEGE</div>
+        <div class="institution-sub">FOUNDATION, INC.</div>
+        <div class="institution-address">PHILIPPINE-JAPAN FRIENDSHIP HIGHWAY, SASA, DAVAO CITY, 8000</div>
+        <div class="department">HEALTH SERVICES</div>
+    </div>
+
+    <!-- Title -->
+    <div class="cert-title">MEDICAL CERTIFICATE</div>
+
+    <!-- Date Row -->
+    <div class="date-row">
+        <span class="field-value">{{ certificate.certificate_date|date:"m/d/Y"|default:"" }}</span>
+    </div>
+
+    <!-- Body Paragraph -->
+    <div class="cert-body">
+        This certifies that
+        <span class="field-value name-field">{{ certificate.patient_name|default_if_none:"" }}</span>,
+        <span class="field-value age-gender-field">{% if certificate.age %}{{ certificate.age }}{% endif %}{% if certificate.age and certificate.gender %} / {% endif %}{% if certificate.gender %}{{ certificate.get_gender_display }}{% endif %}</span>
+        residing at
+        <span class="field-value address-field">{{ certificate.address|default_if_none:"" }}</span>
+        <br>
+        came in for consult on
+        <span class="field-value consult-date-field">{{ certificate.consultation_date|date:"m/d/Y"|default:"" }}</span>.
+    </div>
+
+    <!-- Diagnosis Section -->
+    <div class="section-header">DIAGNOSIS</div>
+    <div class="section-lines">
+        {% if certificate.diagnosis %}
+        {% for line in diagnosis_lines %}
+        <span class="content-line"><u>{{ line }}</u></span>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Remarks / Recommendations Section -->
+    <div class="section-header">REMARKS/RECOMMENDATIONS</div>
+    <div class="section-lines">
+        {% if certificate.remarks_recommendations %}
+        {% for line in remarks_lines %}
+        <span class="content-line"><u>{{ line }}</u></span>
+        {% endfor %}
+        {% endif %}
+    </div>
+
+    <!-- Bottom Fixed: Physician + Disclaimer -->
+    <div class="bottom-fixed">
+        <!-- Physician Block -->
+        <div class="physician-block">
+            <div class="physician-name">
+                {% if certificate.physician_name %}{{ certificate.physician_name }}, MD{% else %}__________________________ MD{% endif %}
+            </div>
+            <div class="license-line">
+                License No. {% if certificate.license_no %}{{ certificate.license_no }}{% else %}____________________{% endif %}
+            </div>
+            <div class="ptr-line">
+                PTR No. {% if certificate.ptr_no %}{{ certificate.ptr_no }}{% else %}______________________{% endif %}
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="form-footer">
+            This certificate is issued upon the request of the abovementioned patient for whatever purpose it may serve him/her except cases concerning medico-legal matters.
+        </div>
+    </div>
+
+</div>
+
+<script>
+    window.onload = function() {
+        window.print();
+    };
+</script>
+</body>
+</html>

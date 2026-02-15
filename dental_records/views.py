@@ -26,6 +26,7 @@ from .forms import (
 import json
 from core.decorators import role_required
 from appointments.models import Appointment
+from medical_records.models import MedicalRecord
 
 User = get_user_model()
 
@@ -187,17 +188,39 @@ def dental_record_create(request):
         except:
             appointment = None
 
+    if appointment:
+        existing_dental_record = DentalRecord.objects.filter(appointment=appointment).first()
+        if existing_dental_record:
+            messages.warning(request, 'A dental record already exists for this appointment.')
+            return redirect('dental_records:dental_record_edit', record_id=existing_dental_record.id)
+
+        if MedicalRecord.objects.filter(appointment=appointment).exists():
+            messages.warning(request, 'A medical record already exists for this appointment. Only one record per appointment is allowed.')
+            return redirect('appointments:appointment_detail', appointment_id=appointment.id)
+
     if request.method == 'POST':
         form = DentalRecordForm(request.POST)
         
         if form.is_valid():
             try:
                 with transaction.atomic():
+                    locked_appointment = None
+                    if appointment:
+                        locked_appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
+
+                        if DentalRecord.objects.filter(appointment=locked_appointment).exists():
+                            messages.warning(request, 'A dental record already exists for this appointment.')
+                            return redirect('appointments:appointment_detail', appointment_id=locked_appointment.id)
+
+                        if MedicalRecord.objects.filter(appointment=locked_appointment).exists():
+                            messages.warning(request, 'A medical record already exists for this appointment. Only one record per appointment is allowed.')
+                            return redirect('appointments:appointment_detail', appointment_id=locked_appointment.id)
+
                     dental_record = form.save()
                     
                     # Set appointment if provided
-                    if appointment:
-                        dental_record.appointment = appointment
+                    if locked_appointment:
+                        dental_record.appointment = locked_appointment
                         dental_record.save()
                     
                     # Create empty related records so the edit page can populate them
@@ -416,10 +439,25 @@ def mark_record_completed(request, record_id):
     if request.method == 'POST':
         new_status = request.POST.get('status', 'completed')
         if new_status in ('pending', 'completed'):
-            dental_record.status = new_status
-            dental_record.save(update_fields=['status', 'updated_at'])
+            with transaction.atomic():
+                dental_record.status = new_status
+                dental_record.save(update_fields=['status', 'updated_at'])
+
+                appointment_marked_completed = False
+                if (
+                    new_status == 'completed'
+                    and dental_record.appointment
+                    and dental_record.appointment.status != 'completed'
+                ):
+                    dental_record.appointment.status = 'completed'
+                    dental_record.appointment.save(update_fields=['status'])
+                    appointment_marked_completed = True
+
             if new_status == 'completed':
-                messages.success(request, 'Dental record marked as completed. The patient can now view their record.')
+                if appointment_marked_completed:
+                    messages.success(request, 'Dental record and associated appointment marked as completed.')
+                else:
+                    messages.success(request, 'Dental record marked as completed. The patient can now view their record.')
             else:
                 messages.info(request, 'Dental record reverted to pending. The patient will not be able to view details.')
     

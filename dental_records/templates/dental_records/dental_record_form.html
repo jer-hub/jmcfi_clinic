@@ -20,9 +20,24 @@
         <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
             <div class="p-8">
                 <form method="post" novalidate>
-                        {% csrf_token %}
-                        
-                        <!-- Patient Search & Selection Section -->
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                            <div>
+                                <ul class="text-sm text-red-800 list-disc list-inside">
+                                    {% for error in form.non_field_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Patient Search & Selection Section -->
                         <div class="mb-8 bg-gradient-to-r from-primary-50 to-primary-100 p-6 rounded-xl border-2 border-primary-200">
                             <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-300 flex items-center gap-2">
                                 <i class="fas fa-search text-primary-600"></i> Patient Search & Selection
@@ -38,7 +53,7 @@
                                     <input type="text" 
                                            id="patient-search-input" 
                                            placeholder="Start typing patient name, email, or ID..."
-                                           class="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-base bg-white"
+                                         class="w-full px-4 py-3 pr-12 border-2 rounded-lg transition-all text-base bg-white {% if form.patient.errors %}border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500{% else %}border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500{% endif %}"
                                            autocomplete="off"
                                            aria-label="Search for patient"
                                            aria-describedby="search-instructions">
@@ -59,6 +74,7 @@
                                          aria-label="Patient search results">
                                     </div>
                                 </div>
+                                {% include 'partials/field_errors.html' with errors=form.patient.errors %}
                             </div>
                                 
                             <!-- Selected Patient Display -->
@@ -95,9 +111,6 @@
                             <!-- Hidden actual patient field -->
                             <div class="hidden">
                                 {{ form.patient }}
-                                {% if form.patient.errors %}
-                                    <p class="text-sm text-red-600">{{ form.patient.errors }}</p>
-                                {% endif %}
                             </div>
                         </div>
                         
@@ -114,17 +127,12 @@
                                     <!-- Hidden form field for submission -->
                                     <div class="hidden">
                                         {{ form.student_id }}
-                                        {% if form.student_id.errors %}
-                                            <p class="text-sm text-red-600">{{ form.student_id.errors }}</p>
-                                        {% endif %}
                                     </div>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.middle_name.label }}</label>
                                     {{ form.middle_name }}
-                                    {% if form.middle_name.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.middle_name.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.middle_name.errors %}
                                 </div>
                             </div>
                         </div>
@@ -138,46 +146,34 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.age.label }}</label>
                                     {{ form.age }}
-                                    {% if form.age.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.age.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.age.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.gender.label }}</label>
                                     {{ form.gender }}
-                                    {% if form.gender.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.gender.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.gender.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.civil_status.label }}</label>
                                     {{ form.civil_status }}
-                                    {% if form.civil_status.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.civil_status.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.civil_status.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.date_of_birth.label }}</label>
                                     {{ form.date_of_birth }}
-                                    {% if form.date_of_birth.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.date_of_birth.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.date_of_birth.errors %}
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.place_of_birth.label }}</label>
                                     {{ form.place_of_birth }}
-                                    {% if form.place_of_birth.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.place_of_birth.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.place_of_birth.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.email.label }}</label>
                                     {{ form.email }}
-                                    {% if form.email.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.email.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.email.errors %}
                                 </div>
                             </div>
                         </div>
@@ -191,25 +187,19 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.address.label }}</label>
                                     {{ form.address }}
-                                    {% if form.address.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.address.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.address.errors %}
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.contact_number.label }}</label>
                                     {{ form.contact_number }}
-                                    {% if form.contact_number.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.contact_number.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.contact_number.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.telephone_number.label }}</label>
                                     {{ form.telephone_number }}
-                                    {% if form.telephone_number.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.telephone_number.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.telephone_number.errors %}
                                 </div>
                             </div>
                         </div>
@@ -223,16 +213,12 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.designation.label }}</label>
                                     {{ form.designation }}
-                                    {% if form.designation.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.designation.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.designation.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.department_college_office.label }}</label>
                                     {{ form.department_college_office }}
-                                    {% if form.department_college_office.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.department_college_office.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.department_college_office.errors %}
                                 </div>
                             </div>
                         </div>
@@ -246,16 +232,12 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.guardian_name.label }}</label>
                                     {{ form.guardian_name }}
-                                    {% if form.guardian_name.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.guardian_name.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.guardian_name.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.guardian_contact.label }}</label>
                                     {{ form.guardian_contact }}
-                                    {% if form.guardian_contact.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.guardian_contact.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.guardian_contact.errors %}
                                 </div>
                             </div>
                         </div>
@@ -269,16 +251,12 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.date_of_examination.label }}</label>
                                     {{ form.date_of_examination }}
-                                    {% if form.date_of_examination.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.date_of_examination.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.date_of_examination.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.examined_by.label }}</label>
                                     {{ form.examined_by }}
-                                    {% if form.examined_by.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.examined_by.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=form.examined_by.errors %}
                                 </div>
                             </div>
                         </div>
@@ -327,15 +305,11 @@
                                     </label>
                                 </div>
                             </div>
-                            {% if form.consent_signed.errors %}
-                                <p class="text-sm text-red-600 mb-4">{{ form.consent_signed.errors }}</p>
-                            {% endif %}
+                            {% include 'partials/field_errors.html' with errors=form.consent_signed.errors %}
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.consent_date.label }}</label>
                                 {{ form.consent_date }}
-                                {% if form.consent_date.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.consent_date.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=form.consent_date.errors %}
                             </div>
                         </div>
 
@@ -360,15 +334,11 @@
                                     </label>
                                 </div>
                             </div>
-                            {% if form.informed_consent_signed.errors %}
-                                <p class="text-sm text-red-600 mb-4">{{ form.informed_consent_signed.errors }}</p>
-                            {% endif %}
+                            {% include 'partials/field_errors.html' with errors=form.informed_consent_signed.errors %}
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.informed_consent_date.label }}</label>
                                 {{ form.informed_consent_date }}
-                                {% if form.informed_consent_date.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.informed_consent_date.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=form.informed_consent_date.errors %}
                             </div>
                         </div>
 
@@ -445,6 +415,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const patientSelect = document.getElementById('patient-select-field');
     const searchSpinner = document.getElementById('search-spinner');
     const isPreselected = {{ preselected_patient|yesno:"true,false" }};
+
+    // Auto-focus first invalid field after failed submit
+    {% if form.errors %}
+    const errorFieldOrder = [
+        {% if form.patient.errors %}'patient-search-input',{% endif %}
+        {% if form.student_id.errors %}'id_student_id',{% endif %}
+        {% if form.middle_name.errors %}'id_middle_name',{% endif %}
+        {% if form.age.errors %}'id_age',{% endif %}
+        {% if form.gender.errors %}'id_gender',{% endif %}
+        {% if form.civil_status.errors %}'id_civil_status',{% endif %}
+        {% if form.date_of_birth.errors %}'id_date_of_birth',{% endif %}
+        {% if form.place_of_birth.errors %}'id_place_of_birth',{% endif %}
+        {% if form.email.errors %}'id_email',{% endif %}
+        {% if form.address.errors %}'id_address',{% endif %}
+        {% if form.contact_number.errors %}'id_contact_number',{% endif %}
+        {% if form.telephone_number.errors %}'id_telephone_number',{% endif %}
+        {% if form.designation.errors %}'id_designation',{% endif %}
+        {% if form.department_college_office.errors %}'id_department_college_office',{% endif %}
+        {% if form.guardian_name.errors %}'id_guardian_name',{% endif %}
+        {% if form.guardian_contact.errors %}'id_guardian_contact',{% endif %}
+        {% if form.date_of_examination.errors %}'id_date_of_examination',{% endif %}
+        {% if form.examined_by.errors %}'id_examined_by',{% endif %}
+        {% if form.consent_signed.errors %}'id_consent_signed',{% endif %}
+        {% if form.consent_date.errors %}'id_consent_date',{% endif %}
+        {% if form.informed_consent_signed.errors %}'id_informed_consent_signed',{% endif %}
+        {% if form.informed_consent_date.errors %}'id_informed_consent_date',{% endif %}
+    ];
+
+    const firstErrorFieldId = errorFieldOrder.find(Boolean);
+    if (firstErrorFieldId) {
+        const firstErrorField = document.getElementById(firstErrorFieldId);
+        if (firstErrorField) {
+            firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setTimeout(() => firstErrorField.focus(), 250);
+        }
+    }
+    {% endif %}
     
     // Helper function to set field value (used by both preselected and search flows)
     function setFieldValue(fieldId, value) {
@@ -727,7 +734,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if patientSelect exists
         if (!patientSelect) {
             console.error('CRITICAL: patientSelect element is null!');
-            alert('Form error: Patient field not found. Please refresh the page.');
+            selectedDisplay.classList.remove('hidden');
+            selectedName.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Form configuration error';
+            if (selectedInfo) selectedInfo.textContent = 'Patient field is unavailable. Please refresh the page.';
             return;
         }
         
@@ -742,7 +751,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Patient select field set to:', patient.id);
         } catch (error) {
             console.error('Error setting patient value:', error);
-            alert('Error: Could not select patient. Please refresh the page.');
+            selectedName.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Error selecting patient';
+            if (selectedInfo) selectedInfo.textContent = 'Could not select patient. Please refresh the page.';
             return;
         }
         
@@ -818,29 +828,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Re-enable search
                 searchInput.disabled = false;
                 searchInput.classList.remove('opacity-50');
-                
-                // Show error notification
-                const errorNotification = document.createElement('div');
-                errorNotification.className = 'mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-lg flex items-center gap-3';
-                errorNotification.innerHTML = `
-                    <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-                    </svg>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-red-800">Failed to load patient profile</p>
-                        <p class="text-xs text-red-700 mt-1">${errorMessage}. You can fill the form manually or try again.</p>
-                    </div>
-                    <button type="button" onclick="this.parentElement.remove()" class="text-red-600 hover:text-red-800">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                        </svg>
-                    </button>
-                `;
-                const formCard = document.querySelector('.bg-white.rounded-2xl');
-                if (formCard) {
-                    formCard.insertBefore(errorNotification, formCard.firstChild);
-                    setTimeout(() => errorNotification.remove(), 8000);
-                }
             });
     }
     
@@ -899,41 +886,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const studentIdDisplay = document.getElementById('student-id-display');
         if (studentIdDisplay) {
             studentIdDisplay.value = profile.student_id || profile.staff_id || '';
-        }
-        
-        console.log(`All fields processed. ${fieldsPopulated} fields populated with data.`);
-        
-        // Show a success message
-        const formCard = document.querySelector('.bg-white.rounded-2xl');
-        if (formCard) {
-            const notification = document.createElement('div');
-            notification.className = 'mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-3 animate-fade-in';
-            notification.innerHTML = `
-                <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-green-800">Patient selected successfully!</p>
-                    <p class="text-xs text-green-700 mt-1">${fieldsPopulated > 0 ? `${fieldsPopulated} fields auto-filled. ` : ''}Please review and complete any remaining fields.</p>
-                </div>
-                <button type="button" onclick="this.parentElement.remove()" class="text-green-600 hover:text-green-800">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                    </svg>
-                </button>
-            `;
-            
-            formCard.insertBefore(notification, formCard.firstChild);
-            
-            // Scroll to top to show notification
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            
-            // Remove notification after 5 seconds
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                notification.style.transition = 'opacity 0.5s';
-                setTimeout(() => notification.remove(), 500);
-            }, 5000);
         }
     }
     

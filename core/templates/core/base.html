@@ -198,6 +198,10 @@
         animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       }
     </style>
+    
+    <!-- Form Errors Styling -->
+    <link rel="stylesheet" href="{% static 'css/form-errors.css' %}">
+    
     {% block head %}
     {% endblock %}
   </head>
@@ -1157,6 +1161,66 @@
           if (menuOpen) menuOpen.classList.remove('hidden');
           if (menuClose) menuClose.classList.add('hidden');
         }
+      });
+    </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const forms = document.querySelectorAll('form');
+
+        function isHighlightableField(field) {
+          if (!field) return false;
+          if (!field.matches('input, select, textarea')) return false;
+          if (field.type === 'hidden') return false;
+          if (field.disabled) return false;
+          if (field.readOnly) return false;
+          return true;
+        }
+
+        function findPreviousField(errorNode, form) {
+          let current = errorNode;
+
+          while (current && current !== form) {
+            let sibling = current.previousElementSibling;
+
+            while (sibling) {
+              const directField = sibling.matches('input, select, textarea') ? sibling : null;
+              if (isHighlightableField(directField)) return directField;
+
+              const nestedField = sibling.querySelector('input, select, textarea');
+              if (isHighlightableField(nestedField)) return nestedField;
+
+              sibling = sibling.previousElementSibling;
+            }
+
+            current = current.parentElement;
+          }
+
+          return null;
+        }
+
+        forms.forEach((form) => {
+          const errorNodes = form.querySelectorAll('.errorlist, p.text-red-600, p[class*="text-red-600"]');
+
+          errorNodes.forEach((errorNode) => {
+            if (errorNode.classList.contains('nonfield')) return;
+
+            let field = findPreviousField(errorNode, form);
+
+            if (!field) {
+              const container = errorNode.closest('div');
+              if (container) {
+                const candidate = container.querySelector('input, select, textarea');
+                if (isHighlightableField(candidate)) {
+                  field = candidate;
+                }
+              }
+            }
+
+            if (!field) return;
+
+            field.classList.add('form-field-error');
+          });
+        });
       });
     </script>
   </body>

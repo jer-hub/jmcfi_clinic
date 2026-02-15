@@ -3,27 +3,38 @@
 {% block title %}Process Document Request - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-12">
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="mb-8">
-            <div class="flex items-center space-x-3">
-                <a href="{% url 'document_request:document_requests' %}" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                </a>
-                <h1 class="text-3xl font-bold text-gray-900">Process Document Request</h1>
+        <!-- Enhanced Header -->
+        <div class="bg-white rounded-lg shadow-lg mb-8">
+            <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Process Document Request</h1>
+                        <p class="mt-1 text-sm text-gray-600">Review and process the document request</p>
+                    </div>
+                </div>
             </div>
-            <p class="mt-1 text-sm text-gray-600">Review and process the document request</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <!-- Certificate Request Details -->
             <div class="lg:col-span-2">
                 <div class="bg-white rounded-lg shadow-lg">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h2 class="text-xl font-semibold text-gray-900">Request Details</h2>
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+                        <h2 class="text-xl font-semibold text-gray-900 flex items-center">
+                            <svg class="w-5 h-5 text-primary-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Request Details
+                        </h2>
                     </div>
                     
                     <div class="p-6 space-y-6">
@@ -50,19 +61,15 @@
                                 <div class="mt-1">
                                     {% if cert_request.status == 'pending' %}
                                     <span class="px-3 py-1 text-sm font-medium rounded-full bg-yellow-100 text-yellow-800">
-                                        Pending Review
+                                        Pending
                                     </span>
-                                    {% elif cert_request.status == 'approved' %}
-                                    <span class="px-3 py-1 text-sm font-medium rounded-full bg-blue-100 text-blue-800">
-                                        Approved
+                                    {% elif cert_request.status == 'completed' %}
+                                    <span class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
+                                        Completed
                                     </span>
                                     {% elif cert_request.status == 'rejected' %}
                                     <span class="px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">
                                         Rejected
-                                    </span>
-                                    {% elif cert_request.status == 'ready' %}
-                                    <span class="px-3 py-1 text-sm font-medium rounded-full bg-green-100 text-green-800">
-                                        Ready for Collection
                                     </span>
                                     {% endif %}
                                 </div>
@@ -125,90 +132,147 @@
 
             <!-- Actions Panel -->
             <div class="lg:col-span-1">
-                <div class="bg-white rounded-lg shadow-lg">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Actions</h3>
+                <!-- Linked Medical Certificate Info -->
+                {% if cert_request.medical_certificate %}
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
+                    <div class="px-4 py-3 border-b border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-900 flex items-center">
+                            <svg class="w-4 h-4 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                            </svg>
+                            Certificate Status
+                        </h3>
                     </div>
-                    
-                    <div class="p-6">
-                        <form method="POST" id="processForm" class="space-y-4">
+                    <div class="p-4 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">Status</span>
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
+                                {% if cert_request.medical_certificate.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif cert_request.medical_certificate.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ cert_request.medical_certificate.get_status_display }}
+                            </span>
+                        </div>
+                        <a href="{% url 'health_forms_services:medical_certificate_detail' cert_request.medical_certificate.pk %}"
+                           class="inline-flex items-center text-xs text-blue-600 hover:text-blue-800 font-medium">
+                            <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                            </svg>
+                            View Certificate
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                    <div class="px-4 py-3 border-b border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-900">Actions</h3>
+                    </div>
+
+                    <div class="p-4">
+                        {% if can_process %}
+                        <form method="POST" id="processForm" class="space-y-3">
                             {% csrf_token %}
-                            
+
                             {% if cert_request.status == 'pending' %}
-                            <!-- Approve -->
-                            <button type="button" 
-                                    onclick="processRequest('approve')"
-                                    class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg flex items-center justify-center space-x-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+
+                            <!-- Review Certificate -->
+                            <button type="button"
+                                    onclick="processRequest('review')"
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                <span>Approve Request</span>
+                                Review & Edit
                             </button>
 
                             <!-- Reject -->
-                            <button type="button" 
+                            <button type="button"
                                     onclick="showRejectForm()"
-                                    class="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg flex items-center justify-center space-x-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="w-full bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
-                                <span>Reject Request</span>
+                                Reject Request
                             </button>
-                            
-                            {% elif cert_request.status == 'approved' %}
-                            <!-- Mark as Ready -->
-                            <button type="button" 
-                                    onclick="processRequest('ready')"
-                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg flex items-center justify-center space-x-2">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                <span>Mark as Ready</span>
-                            </button>
-                            
+
                             {% else %}
-                            <div class="text-center text-gray-500">
+                            <div class="text-center text-gray-500 py-4">
+                                {% if cert_request.status == 'completed' %}
+                                <div class="flex flex-col items-center space-y-2">
+                                    <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <p class="text-sm font-medium text-green-700">This request has been completed.</p>
+                                </div>
+                                {% elif cert_request.status == 'rejected' %}
+                                <div class="text-center space-y-2">
+                                    <svg class="w-6 h-6 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                    <p class="text-sm font-medium text-red-700">Request Rejected</p>
+                                    {% if cert_request.rejection_reason %}
+                                    <p class="text-xs text-red-600 mt-1">See rejection reason above</p>
+                                    {% endif %}
+                                </div>
+                                {% else %}
                                 <p class="text-sm">No actions available for this request.</p>
+                                {% endif %}
                             </div>
                             {% endif %}
-                            
+
                             <!-- Hidden inputs -->
                             <input type="hidden" name="action" id="actionInput">
-                            
+
                             <!-- Rejection reason textarea (hidden by default) -->
-                            <div id="rejectForm" class="hidden space-y-4 pt-4 border-t">
+                            <div id="rejectForm" class="hidden space-y-3 pt-3 border-t border-gray-200">
                                 <div>
-                                    <label for="rejection_reason" class="block text-sm font-medium text-gray-700">Rejection Reason *</label>
-                                    <textarea name="rejection_reason" 
-                                              id="rejection_reason" 
-                                              rows="4" 
+                                    <label for="rejection_reason" class="block text-xs font-medium text-gray-700">Reason *</label>
+                                    <textarea name="rejection_reason"
+                                              id="rejection_reason"
+                                              rows="3"
                                               required
-                                              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
-                                              placeholder="Please provide a detailed reason for rejection..."></textarea>
+                                              class="mt-1 block w-full px-2 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-red-500 focus:border-red-500"
+                                              placeholder="Please provide a reason for rejection..."></textarea>
                                 </div>
-                                <div class="flex space-x-3">
-                                    <button type="submit" 
-                                            class="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                                        Confirm Rejection
+                                <div class="flex space-x-2">
+                                    <button type="submit"
+                                            class="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-md text-xs font-medium">
+                                        Confirm
                                     </button>
-                                    <button type="button" 
+                                    <button type="button"
                                             onclick="hideRejectForm()"
-                                            class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-md text-sm font-medium">
+                                            class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-3 py-2 rounded-md text-xs font-medium">
                                         Cancel
                                     </button>
                                 </div>
                             </div>
                         </form>
-
-                        <!-- Additional Information -->
-                        <div class="mt-6 pt-6 border-t border-gray-200">
-                            <h4 class="text-sm font-medium text-gray-700 mb-3">Processing Notes</h4>
-                            <div class="text-xs text-gray-600 space-y-1">
-                                <p>• Approved documents are prepared within 1-2 business days</p>
-                                <p>• Students are notified of status changes</p>
-                                <p>• Ready documents can be collected during clinic hours</p>
+                        {% else %}
+                        <!-- View-only mode for non-staff users -->
+                        <div class="text-center text-gray-500 py-4">
+                            {% if cert_request.status == 'completed' %}
+                            <div class="flex flex-col items-center space-y-2">
+                                <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="text-sm font-medium text-green-700">This request has been completed.</p>
                             </div>
+                            {% elif cert_request.status == 'rejected' %}
+                            <div class="text-center space-y-2">
+                                <svg class="w-6 h-6 text-red-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                                <p class="text-sm font-medium text-red-700">Request Rejected</p>
+                                {% if cert_request.rejection_reason %}
+                                <p class="text-xs text-red-600 mt-1">See rejection reason above</p>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-sm">Your request is being processed.</p>
+                            {% endif %}
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -217,6 +281,7 @@
 </div>
 
 <script>
+{% if can_process %}
 function processRequest(action) {
     if (confirm(`Are you sure you want to ${action} this document request?`)) {
         document.getElementById('actionInput').value = action;
@@ -234,5 +299,6 @@ function hideRejectForm() {
     document.getElementById('actionInput').value = '';
     document.getElementById('rejection_reason').value = '';
 }
+{% endif %}
 </script>
 {% endblock content %}

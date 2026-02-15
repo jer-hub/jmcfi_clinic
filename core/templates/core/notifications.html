@@ -92,7 +92,11 @@
                                 {% url 'appointments:appointment_list' as notification_url %}
                             {% endif %}
                         {% elif notification.transaction_type == 'certificate_requested' or notification.transaction_type == 'certificate_processing' %}
-                            {% url 'document_request:certificate_requests' as notification_url %}
+                            {% if notification.related_id %}
+                                {% url 'document_request:view_document' notification.related_id as notification_url %}
+                            {% else %}
+                                {% url 'document_request:certificate_requests' as notification_url %}
+                            {% endif %}
                         {% elif notification.transaction_type == 'certificate_approved' or notification.transaction_type == 'certificate_ready' %}
                             {% if notification.related_id %}
                                 {% url 'document_request:view_document' notification.related_id as notification_url %}
@@ -100,7 +104,11 @@
                                 {% url 'document_request:certificate_requests' as notification_url %}
                             {% endif %}
                         {% elif notification.transaction_type == 'certificate_rejected' %}
-                            {% url 'document_request:certificate_requests' as notification_url %}
+                            {% if notification.related_id %}
+                                {% url 'document_request:view_document' notification.related_id as notification_url %}
+                            {% else %}
+                                {% url 'document_request:certificate_requests' as notification_url %}
+                            {% endif %}
                         {% elif notification.transaction_type == 'health_tip_new' or notification.transaction_type == 'health_tip_updated' %}
                             {% url 'health_tips:health_tips_list' as notification_url %}
                         {% elif notification.transaction_type == 'medical_record_created' or notification.transaction_type == 'medical_record_updated' %}
@@ -119,25 +127,21 @@
                     {% else %}
                         {% comment %}Fallback to original logic for notifications without transaction_type{% endcomment %}
                         {% if notification.notification_type == 'appointment' and notification.related_id %}
-                            {% if 'schedule' in notification.title|lower or 'book' in notification.title|lower %}
-                                {% url 'appointments:schedule_appointment' as notification_url %}
-                            {% else %}
-                                {% url 'appointments:appointment_detail' notification.related_id as notification_url %}
-                            {% endif %}
+                            {% url 'appointments:appointment_detail' notification.related_id as notification_url %}
                         {% elif notification.notification_type == 'certificate' and notification.related_id %}
-                            {% if 'ready' in notification.title|lower or 'approved' in notification.title|lower or 'completed' in notification.title|lower %}
-                                {% url 'document_request:view_document' notification.related_id as notification_url %}
-                            {% elif 'request' in notification.title|lower or 'submitted' in notification.title|lower %}
-                                {% url 'document_request:certificate_requests' as notification_url %}
-                            {% elif 'process' in notification.title|lower %}
-                                {% url 'document_request:process_document' notification.related_id as notification_url %}
-                            {% else %}
-                                {% url 'document_request:certificate_requests' as notification_url %}
-                            {% endif %}
+                            {% url 'document_request:view_document' notification.related_id as notification_url %}
                         {% elif notification.notification_type == 'health_tip' %}
                             {% url 'health_tips:health_tips_list' as notification_url %}
                         {% elif notification.notification_type == 'general' %}
-                            {% if 'feedback' in notification.title|lower %}
+                            {% if notification.related_id and 'medical record' in notification.title|lower %}
+                                {% url 'medical_records:medical_record_detail' notification.related_id as notification_url %}
+                            {% elif notification.related_id and 'appointment' in notification.title|lower %}
+                                {% url 'appointments:appointment_detail' notification.related_id as notification_url %}
+                            {% elif notification.related_id and 'certificate' in notification.title|lower %}
+                                {% url 'document_request:view_document' notification.related_id as notification_url %}
+                            {% elif notification.related_id and 'document' in notification.title|lower %}
+                                {% url 'document_request:view_document' notification.related_id as notification_url %}
+                            {% elif 'feedback' in notification.title|lower %}
                                 {% url 'feedback:feedback_list' as notification_url %}
                             {% elif 'medical record' in notification.title|lower %}
                                 {% url 'medical_records:medical_records' as notification_url %}

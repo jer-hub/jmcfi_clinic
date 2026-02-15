@@ -1317,7 +1317,6 @@ def medical_certificate_list(request):
 
 
 @login_required
-@role_required('staff', 'doctor')
 def medical_certificate_detail(request, pk):
     """View medical certificate details"""
     user = request.user
@@ -1329,7 +1328,7 @@ def medical_certificate_detail(request, pk):
 
     context = {
         'certificate': certificate,
-        'can_edit': user.role in ['staff', 'doctor', 'admin'] or certificate.user == user,
+        'can_edit': user.role in ['staff', 'doctor', 'admin'],
         'can_review': user.role in ['staff', 'doctor', 'admin'],
     }
 
@@ -1337,28 +1336,47 @@ def medical_certificate_detail(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor')
 def edit_medical_certificate(request, pk):
     """Edit a medical certificate"""
     user = request.user
 
-    if user.role in ['staff', 'doctor', 'admin']:
-        certificate = get_object_or_404(MedicalCertificate, pk=pk)
-    else:
-        certificate = get_object_or_404(MedicalCertificate, pk=pk, user=user)
+    # Only staff, doctors, and admins can edit medical certificates
+    if user.role not in ['staff', 'doctor', 'admin']:
+        messages.error(request, 'You do not have permission to edit medical certificates.')
+        return redirect('health_forms_services:medical_certificate_detail', pk=pk)
+
+    certificate = get_object_or_404(MedicalCertificate, pk=pk)
+
+    # Find any document requests linked to this certificate
+    linked_doc_requests = certificate.document_requests.select_related('student').all()
 
     if request.method == 'POST':
         form = MedicalCertificateForm(request.POST, instance=certificate)
+        review_form = MedicalCertificateReviewForm(request.POST, prefix='review', instance=certificate)
+        
         if form.is_valid():
             form.save()
-            messages.success(request, 'Medical certificate updated successfully.')
+            
+            # Also process the review/status section if submitted
+            if review_form.is_valid() and review_form.has_changed():
+                cert = review_form.save(commit=False)
+                cert.reviewed_by = request.user
+                cert.reviewed_at = timezone.now()
+                cert.save()
+                messages.success(request, f'Medical certificate saved and status updated to {certificate.get_status_display()}.')
+            else:
+                messages.success(request, 'Medical certificate updated successfully.')
+            
             return redirect('health_forms_services:medical_certificate_detail', pk=pk)
     else:
         form = MedicalCertificateForm(instance=certificate)
+        review_form = MedicalCertificateReviewForm(prefix='review', instance=certificate)
 
     context = {
         'certificate': certificate,
         'form': form,
+        'review_form': review_form,
+        'linked_doc_requests': linked_doc_requests,
     }
 
     return render(request, 'health_forms_services/edit_medical_certificate.html', context)
@@ -1499,11 +1517,20 @@ def export_prescription_docx(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor')
 def export_medical_certificate_docx(request, pk):
     """Export Medical Certificate as printable HTML (mirrors the official PDF form)."""
-    cert = get_object_or_404(MedicalCertificate, pk=pk)
-
+    user = request.user
+    
+    if user.role in ['staff', 'doctor', 'admin']:
+        cert = get_object_or_404(MedicalCertificate, pk=pk)
+    else:
+        cert = get_object_or_404(MedicalCertificate, pk=pk, user=user)
+    
+    # Check if certificate is completed before allowing export
+    if cert.status != 'completed':
+        messages.error(request, 'This certificate is not yet ready for printing. Please check back later.')
+        return redirect('document_request:document_requests')
+    
     # Split text into lines and pad with blank lines to fill the ruled area
     DIAG_LINES = 5
     REM_LINES = 7

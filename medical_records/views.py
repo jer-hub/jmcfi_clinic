@@ -5,11 +5,13 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db import transaction
 
 from .models import MedicalRecord
 from core.models import Notification
 from appointments.models import Appointment
 from core.decorators import role_required
+from dental_records.models import DentalRecord
 
 
 def paginate_queryset(queryset, request, per_page=10):
@@ -206,6 +208,11 @@ def create_medical_record(request, appointment_id):
     if MedicalRecord.objects.filter(appointment=appointment).exists():
         messages.warning(request, 'Medical record already exists for this appointment.')
         return redirect('appointments:appointment_detail', appointment_id=appointment.id)
+
+    # Check if dental record already exists for this appointment
+    if DentalRecord.objects.filter(appointment=appointment).exists():
+        messages.warning(request, 'A dental record already exists for this appointment. Only one record per appointment is allowed.')
+        return redirect('appointments:appointment_detail', appointment_id=appointment.id)
     
     if request.method == 'POST':
         diagnosis = request.POST.get('diagnosis', '').strip()
@@ -271,30 +278,43 @@ def create_medical_record(request, appointment_id):
             return render(request, 'medical_records/create_medical_record.html', {'appointment': appointment})
         
         try:
-            # Create medical record
-            medical_record = MedicalRecord.objects.create(
-                student=appointment.student,
-                doctor=request.user,
-                appointment=appointment,
-                diagnosis=diagnosis,
-                treatment=treatment,
-                prescription=prescription,
-                lab_results=lab_results,
-                vital_signs=vital_signs,
-                follow_up_required=follow_up,
-                follow_up_date=follow_up_date
-            )
-            
-            # Update appointment status
-            appointment.status = 'completed'
-            appointment.save()
+            with transaction.atomic():
+                locked_appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
+
+                if MedicalRecord.objects.filter(appointment=locked_appointment).exists():
+                    messages.warning(request, 'Medical record already exists for this appointment.')
+                    return redirect('appointments:appointment_detail', appointment_id=locked_appointment.id)
+
+                if DentalRecord.objects.filter(appointment=locked_appointment).exists():
+                    messages.warning(request, 'A dental record already exists for this appointment. Only one record per appointment is allowed.')
+                    return redirect('appointments:appointment_detail', appointment_id=locked_appointment.id)
+
+                # Create medical record
+                medical_record = MedicalRecord.objects.create(
+                    student=locked_appointment.student,
+                    doctor=request.user,
+                    appointment=locked_appointment,
+                    diagnosis=diagnosis,
+                    treatment=treatment,
+                    prescription=prescription,
+                    lab_results=lab_results,
+                    vital_signs=vital_signs,
+                    follow_up_required=follow_up,
+                    follow_up_date=follow_up_date
+                )
+
+                # Update appointment status
+                locked_appointment.status = 'completed'
+                locked_appointment.save(update_fields=['status', 'updated_at'])
             
             # Create notification for student
             Notification.objects.create(
                 user=appointment.student,
                 title='Medical Record Created',
                 message=f'Your medical record from your appointment on {appointment.date.strftime("%B %d, %Y")} is now available',
-                notification_type='general'
+                notification_type='general',
+                transaction_type='medical_record_created',
+                related_id=medical_record.id
             )
             
             messages.success(request, 'Medical record created successfully!')

@@ -45,8 +45,36 @@ class DentalRecordForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Set consent_date initial value to today's date
-        self.fields['consent_date'].initial = timezone.now().date()
+        today = timezone.now().date()
+        # Set consent date defaults for new records
+        if not self.instance.pk:
+            self.fields['consent_date'].initial = today
+            self.fields['informed_consent_date'].initial = today
+            self.fields['consent_signed'].required = True
+            self.fields['informed_consent_signed'].required = True
+            self.fields['consent_signed'].widget.attrs['required'] = 'required'
+            self.fields['informed_consent_signed'].widget.attrs['required'] = 'required'
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        if not self.instance.pk:
+            consent_signed = cleaned_data.get('consent_signed')
+            informed_consent_signed = cleaned_data.get('informed_consent_signed')
+
+            if not consent_signed:
+                self.add_error('consent_signed', 'Patient consent is required before creating a dental record.')
+
+            if not informed_consent_signed:
+                self.add_error('informed_consent_signed', 'Informed consent is required before creating a dental record.')
+
+            if consent_signed and not cleaned_data.get('consent_date'):
+                cleaned_data['consent_date'] = timezone.now().date()
+
+            if informed_consent_signed and not cleaned_data.get('informed_consent_date'):
+                cleaned_data['informed_consent_date'] = timezone.now().date()
+
+        return cleaned_data
     
     class Meta:
         model = DentalRecord

@@ -57,7 +57,7 @@ def appointment_list(request):
     if date_to:
         appointments = appointments.filter(date__lte=date_to)
     
-    appointments = appointments.order_by('-date', '-time')
+    appointments = appointments.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set').order_by('-date', '-time')
     appointments = paginate_queryset(appointments, request)
     
     return render(request, 'appointments/appointment_list.html', {'appointments': appointments})
@@ -232,7 +232,10 @@ def _get_appointment_context(doctors):
 
 @login_required
 def appointment_detail(request, appointment_id):
-    appointment = get_object_or_404(Appointment, id=appointment_id)
+    appointment = get_object_or_404(
+        Appointment.objects.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set'),
+        id=appointment_id,
+    )
     
     # Check permissions
     if request.user.role == 'student' and appointment.student != request.user:
@@ -284,7 +287,9 @@ def appointment_detail(request, appointment_id):
                     user=appointment.doctor,
                     title='Appointment Cancelled',
                     message=f'Appointment with {request.user.get_full_name()} has been cancelled',
-                    notification_type='appointment'
+                    notification_type='appointment',
+                    transaction_type='appointment_cancelled',
+                    related_id=appointment.id
                 )
                 
                 messages.success(request, 'Appointment cancelled successfully!')

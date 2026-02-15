@@ -8,17 +8,13 @@ class DocumentRequest(models.Model):
     """Model for certificate/document requests from students."""
     
     DOCUMENT_TYPES = [
-        ('fitness', 'Medical Fitness Certificate'),
-        ('absence', 'Medical Leave Certificate'),
-        ('vaccination', 'Vaccination Certificate'),
-        ('health_record', 'Health Record Certificate'),
+        ('medical_certificate', 'Medical Certificate'),
     ]
     
     STATUS_CHOICES = [
         ('pending', 'Pending'),
-        ('approved', 'Approved'),
+        ('completed', 'Completed'),
         ('rejected', 'Rejected'),
-        ('ready', 'Ready for Collection'),
     ]
 
     student = models.ForeignKey(
@@ -26,7 +22,7 @@ class DocumentRequest(models.Model):
         on_delete=models.CASCADE, 
         related_name='document_requests'
     )
-    document_type = models.CharField(max_length=20, choices=DOCUMENT_TYPES)
+    document_type = models.CharField(max_length=30, choices=DOCUMENT_TYPES, default='medical_certificate')
     purpose = models.CharField(max_length=200)
     additional_info = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -36,6 +32,14 @@ class DocumentRequest(models.Model):
         null=True, 
         blank=True, 
         related_name='processed_documents'
+    )
+    medical_certificate = models.ForeignKey(
+        'health_forms_services.MedicalCertificate',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='document_requests',
+        help_text='Linked medical certificate from Health Services'
     )
     rejection_reason = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

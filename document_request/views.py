@@ -8,6 +8,7 @@ from datetime import timedelta
 
 from .models import DocumentRequest
 from core.models import Notification
+from health_forms_services.models import MedicalCertificate
 
 User = get_user_model()
 
@@ -46,6 +47,17 @@ def document_requests(request):
         total_count = DocumentRequest.objects.count()
         pending_count = DocumentRequest.objects.filter(status='pending').count()
     
+    # Build status choices based on role
+    if request.user.role == 'student':
+        # Simplified labels for students
+        status_choices = [
+            ('pending', 'Processing'),
+            ('completed', 'Ready'),
+            ('rejected', 'Rejected'),
+        ]
+    else:
+        status_choices = DocumentRequest.STATUS_CHOICES
+    
     context = {
         'requests': requests_page,
         'total_count': total_count,
@@ -53,7 +65,7 @@ def document_requests(request):
         'current_status': status,
         'current_type': document_type,
         'certificate_types': DocumentRequest.DOCUMENT_TYPES,
-        'status_choices': DocumentRequest.STATUS_CHOICES,
+        'status_choices': status_choices,
     }
     
     return render(request, 'document_request/document_requests.html', context)
@@ -94,21 +106,18 @@ def request_document(request):
                 'certificate_types': DocumentRequest.DOCUMENT_TYPES,
             })
         
-        # Check for recent duplicate requests
-        recent_request = DocumentRequest.objects.filter(
+        # Check for existing pending requests (prevent duplicate pending requests)
+        pending_request = DocumentRequest.objects.filter(
             student=request.user,
             document_type=document_type,
-            created_at__gte=timezone.now() - timedelta(days=7),
-            status__in=['pending', 'approved']
+            status='pending'
         ).first()
         
-        if recent_request:
+        if pending_request:
             messages.warning(
                 request, 
-                f'You already have a recent request for this certificate type '
-                f'(submitted {recent_request.created_at.strftime("%B %d, %Y")}). '
-                f'Please wait for it to be processed.'
-            )
+                'You already have a pending certificate request. '
+                'Please wait for it to be processed.'            )
             return redirect('document_request:document_requests')
         
         try:
@@ -117,24 +126,52 @@ def request_document(request):
                 student=request.user,
                 document_type=document_type,
                 purpose=purpose,
-                additional_info=additional_info
+                additional_info=additional_info,
+                status='pending'  # Will be updated when certificate is created
             )
+            
+            # Auto-create a new MedicalCertificate for this student
+            student = request.user
+            
+            # Get student profile data for auto-filling
+            profile_data = {}
+            if hasattr(student, 'student_profile') and student.student_profile:
+                profile = student.student_profile
+                profile_data = {
+                    'age': profile.age,
+                    'gender': profile.gender,
+                    'address': profile.address,
+                }
+            
+            cert = MedicalCertificate.objects.create(
+                user=student,
+                status=MedicalCertificate.Status.PENDING,
+                certificate_date=timezone.now().date(),
+                patient_name=student.get_full_name(),
+                consultation_date=timezone.now().date(),
+                remarks_recommendations=additional_info or '',
+                **profile_data  # Auto-fill age, gender, address from student profile
+            )
+            
+            # Link the certificate to the request
+            doc_request.medical_certificate = cert
+            doc_request.save()
             
             # Create notification for staff/admin
             staff_users = User.objects.filter(role__in=['staff', 'admin'])
-            notification_count = 0
             for staff in staff_users:
                 Notification.objects.create(
                     user=staff,
                     title='New Certificate Request',
-                    message=f'{request.user.get_full_name()} has requested a {dict(DocumentRequest.DOCUMENT_TYPES)[document_type]}',
-                    notification_type='certificate'
+                    message=f'{request.user.get_full_name()} has requested a {dict(DocumentRequest.DOCUMENT_TYPES).get(document_type, "certificate")} and a certificate has been auto-created for review.',
+                    notification_type='certificate',
+                    transaction_type='certificate_requested',
+                    related_id=doc_request.id
                 )
-                notification_count += 1
             
-            messages.success(request, f'Certificate request submitted successfully! Request ID: {doc_request.id}')
-            messages.info(request, f'Notifications sent to {notification_count} staff members. You will be notified when your request is processed.')
+            messages.success(request, 'Your certificate request has been submitted successfully. You will be notified once it is ready for review.')
             
+            # Redirect to document requests page to show status
             return redirect('document_request:document_requests')
             
         except Exception as e:
@@ -152,74 +189,7 @@ def request_document(request):
 
 @login_required
 def process_document(request, request_id):
-    """Process a document/certificate request (staff/admin only)."""
-    if request.user.role not in ['staff', 'admin']:
-        messages.error(request, 'Access denied')
-        return redirect('core:dashboard')
-    
-    doc_request = get_object_or_404(DocumentRequest, id=request_id)
-    
-    if request.method == 'POST':
-        action = request.POST.get('action')
-        rejection_reason = request.POST.get('rejection_reason', '')
-        
-        if action == 'approve':
-            doc_request.status = 'approved'
-            doc_request.processed_by = request.user
-            message = 'Certificate request approved successfully!'
-            
-            # Create notification for student
-            Notification.objects.create(
-                user=doc_request.student,
-                title='Certificate Request Approved',
-                message=f'Your {dict(DocumentRequest.DOCUMENT_TYPES)[doc_request.document_type]} request has been approved and is being prepared.',
-                notification_type='certificate'
-            )
-            
-        elif action == 'reject':
-            if not rejection_reason:
-                messages.error(request, 'Please provide a reason for rejection.')
-                return render(request, 'document_request/process_document.html', {'cert_request': doc_request})
-                
-            doc_request.status = 'rejected'
-            doc_request.rejection_reason = rejection_reason
-            doc_request.processed_by = request.user
-            message = 'Certificate request rejected.'
-            
-            # Create notification for student
-            Notification.objects.create(
-                user=doc_request.student,
-                title='Certificate Request Rejected',
-                message=f'Your {dict(DocumentRequest.DOCUMENT_TYPES)[doc_request.document_type]} request has been rejected. Reason: {rejection_reason}',
-                notification_type='certificate'
-            )
-            
-        elif action == 'ready':
-            doc_request.status = 'ready'
-            doc_request.processed_by = request.user
-            message = 'Certificate marked as ready for collection.'
-            
-            # Create notification for student
-            Notification.objects.create(
-                user=doc_request.student,
-                title='Certificate Ready',
-                message=f'Your {dict(DocumentRequest.DOCUMENT_TYPES)[doc_request.document_type]} is ready for collection at the clinic.',
-                notification_type='certificate'
-            )
-        else:
-            messages.error(request, 'Invalid action.')
-            return render(request, 'document_request/process_document.html', {'cert_request': doc_request})
-        
-        doc_request.save()
-        messages.success(request, message)
-        return redirect('document_request:document_requests')
-    
-    return render(request, 'document_request/process_document.html', {'cert_request': doc_request})
-
-
-@login_required
-def view_document(request, request_id):
-    """View a certificate in printable format."""
+    """Process a document/certificate request - accessible to all roles for viewing."""
     doc_request = get_object_or_404(DocumentRequest, id=request_id)
     
     # Check permissions - students can only view their own certificates
@@ -227,24 +197,73 @@ def view_document(request, request_id):
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
     
-    # Only allow viewing of approved or ready certificates
-    if doc_request.status not in ['approved', 'ready']:
-        messages.error(request, 'Certificate is not ready for viewing')
+    # Staff/admin can process, others can only view
+    can_process = request.user.role in ['staff', 'admin']
+
+    if request.method == 'POST' and can_process:
+        action = request.POST.get('action')
+        rejection_reason = request.POST.get('rejection_reason', '')
+
+        if action == 'review':
+            # Redirect to edit the medical certificate (already created)
+            if doc_request.medical_certificate:
+                messages.info(request, 'Please review and complete the medical certificate details.')
+                return redirect('health_forms_services:edit_medical_certificate', pk=doc_request.medical_certificate.pk)
+            else:
+                messages.error(request, 'No medical certificate found for this request.')
+                return redirect('document_request:document_requests')
+
+        elif action == 'reject':
+            if not rejection_reason:
+                messages.error(request, 'Please provide a reason for rejection.')
+                return render(request, 'document_request/process_document.html', {'cert_request': doc_request, 'can_process': can_process})
+
+            doc_request.status = 'rejected'
+            doc_request.rejection_reason = rejection_reason
+            doc_request.processed_by = request.user
+
+            # Also reject the linked certificate if any
+            if doc_request.medical_certificate:
+                doc_request.medical_certificate.status = MedicalCertificate.Status.REJECTED
+                doc_request.medical_certificate.save()
+
+            # Create notification for student
+            Notification.objects.create(
+                user=doc_request.student,
+                title='Certificate Request Rejected',
+                message=f'Your {dict(DocumentRequest.DOCUMENT_TYPES).get(doc_request.document_type, "certificate")} request has been rejected. Reason: {rejection_reason}',
+                notification_type='certificate',
+                transaction_type='certificate_rejected',
+                related_id=doc_request.id
+            )
+
+            doc_request.save()
+            messages.success(request, 'Certificate request rejected.')
+            return redirect('document_request:document_requests')
+        else:
+            messages.error(request, 'Invalid action.')
+            return render(request, 'document_request/process_document.html', {'cert_request': doc_request, 'can_process': can_process})
+
+    return render(request, 'document_request/process_document.html', {'cert_request': doc_request, 'can_process': can_process})
+
+
+@login_required
+def view_document(request, request_id):
+    """View a certificate – redirects to the process document request page for all roles."""
+    doc_request = get_object_or_404(DocumentRequest, id=request_id)
+    
+    # Check permissions - students can only view their own certificates
+    if request.user.role == 'student' and doc_request.student != request.user:
+        messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
     
-    # Prepare certificate data
-    context = {
-        'cert_request': doc_request,
-        'issue_date': timezone.now().date(),
-        'certificate_number': f"JMCFI-{doc_request.id:06d}",
-    }
-    
-    return render(request, 'document_request/view_document.html', context)
+    # Redirect to the process document request page for all roles regardless of status
+    return redirect('document_request:process_document', request_id=request_id)
 
 
 @login_required 
 def print_document(request, request_id):
-    """Print a certificate - returns a print-optimized view."""
+    """Print a certificate – redirects to the health_forms_services print template."""
     doc_request = get_object_or_404(DocumentRequest, id=request_id)
     
     # Check permissions
@@ -252,16 +271,18 @@ def print_document(request, request_id):
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
     
-    # Only allow printing of ready certificates
-    if doc_request.status != 'ready':
-        messages.error(request, 'Certificate is not ready for printing')
+    # Check status and provide appropriate messaging
+    if doc_request.status == 'rejected':
+        messages.error(request, 'This certificate request has been rejected. Please check the rejection reason and submit a new request if needed.')
+        return redirect('document_request:document_requests')
+    elif doc_request.status != 'completed':
+        messages.info(request, 'Your certificate is being prepared. Please check back later.')
         return redirect('document_request:document_requests')
     
-    # Prepare certificate data
-    context = {
-        'cert_request': doc_request,
-        'issue_date': timezone.now().date(),
-        'certificate_number': f"JMCFI-{doc_request.id:06d}",
-    }
+    # Redirect to the official medical certificate print template
+    if doc_request.medical_certificate:
+        return redirect('health_forms_services:export_medical_certificate_docx', pk=doc_request.medical_certificate.pk)
     
-    return render(request, 'document_request/print_document.html', context)
+    # No linked certificate
+    messages.info(request, 'Your certificate is being prepared. Please check back later.')
+    return redirect('document_request:document_requests')

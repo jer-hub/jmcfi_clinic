@@ -1,0 +1,15 @@
+{% comment %}
+Reusable field error display component
+Usage: {% include 'partials/field_errors.html' with errors=form.field_name.errors %}
+{% endcomment %}
+
+{% if errors %}
+    <div class="mt-2 flex items-start gap-2 p-3 bg-red-50 border-l-4 border-red-500 rounded-r-md animate-shake">
+        <i class="fas fa-exclamation-circle text-red-600 text-sm mt-0.5 flex-shrink-0"></i>
+        <div class="flex-1">
+            {% for error in errors %}
+                <p class="text-sm text-red-700 font-medium">{{ error }}</p>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}

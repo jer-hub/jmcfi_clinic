@@ -1,0 +1,98 @@
+/* Minimal form error styling */
+
+.errorlist {
+    margin: 0.375rem 0 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.errorlist li {
+    display: inline-block;
+    color: #dc2626;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    padding: 0.125rem 0.5rem;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 9999px;
+}
+
+.errorlist li + li {
+    margin-left: 0.375rem;
+}
+
+.errorlist.nonfield {
+    margin: 0 0 1rem 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+    background-color: #fef2f2;
+}
+
+.errorlist.nonfield li {
+    display: list-item;
+    padding: 0;
+    background: none;
+    border: 0;
+    border-radius: 0;
+}
+
+.form-errors-summary {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #fecaca;
+    border-radius: 0.5rem;
+    background-color: #fef2f2;
+}
+
+.form-errors-summary h3 {
+    color: #991b1b;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.form-errors-summary ul {
+    margin: 0;
+    padding-left: 1rem;
+}
+
+.form-errors-summary li {
+    color: #991b1b;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+/* Existing template pattern: <p class="text-red-600 ...">error</p> */
+form p.text-red-600,
+form p[class*="text-red-600"] {
+    margin-top: 0.375rem;
+    color: #dc2626 !important;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+}
+
+/* Compact subtle error chip for paragraph-based errors */
+form p.text-red-600:not(:empty),
+form p[class*="text-red-600"]:not(:empty) {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 9999px;
+}
+
+/* Universal visual state for fields with errors */
+form input.form-field-error,
+form select.form-field-error,
+form textarea.form-field-error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.08);
+}
+
+form input.form-field-error:focus,
+form select.form-field-error:focus,
+form textarea.form-field-error:focus {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}

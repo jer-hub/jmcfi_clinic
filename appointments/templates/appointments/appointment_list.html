@@ -199,6 +199,14 @@
                                             </svg>
                                             View Details
                                         </a>
+                                        {% if appointment.status == 'completed' and appointment.medicalrecord_set.exists %}
+                                            <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-emerald-300 text-sm font-medium rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                View Medical Record
+                                            </a>
+                                        {% endif %}
                                         {% if user.role == 'student' and appointment.status == 'completed' %}
                                             {% if appointment.dental_records.exists %}
                                                 <a href="{% url 'dental_records:dental_record_detail' appointment.dental_records.first.id %}" class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-lg text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors">

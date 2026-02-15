@@ -1,0 +1,71 @@
+{% comment %}
+Form-level (non-field) errors display
+Usage: {% include 'partials/form_errors.html' with form=form %}
+{% endcomment %}
+
+{% if form.non_field_errors %}
+    <div class="mb-6 bg-red-50 border-l-4 border-red-600 rounded-r-lg p-5 shadow-sm animate-shake">
+        <div class="flex items-start gap-3">
+            <div class="flex-shrink-0">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-semibold text-red-900 mb-2">
+                    <i class="fas fa-times-circle mr-1"></i>
+                    Please correct the following errors:
+                </h3>
+                <ul class="space-y-1">
+                    {% for error in form.non_field_errors %}
+                        <li class="text-sm text-red-800 flex items-start gap-2">
+                            <i class="fas fa-chevron-right text-red-600 text-xs mt-1"></i>
+                            <span>{{ error }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+{% endif %}
+
+{% comment %}Display all field errors in a summary at the top{% endcomment %}
+{% if form.errors %}
+    {% if form.errors|length > 0 %}
+        <div class="mb-6 bg-red-50 border-l-4 border-red-600 rounded-r-lg p-5 shadow-sm animate-shake">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-red-900 mb-3">
+                        <i class="fas fa-times-circle mr-1"></i>
+                        Please correct the following errors:
+                    </h3>
+                    <ul class="space-y-2">
+                        {% for field, errors in form.errors.items %}
+                            {% if field != '__all__' %}
+                                {% for error in errors %}
+                                    <li class="text-sm text-red-800 flex items-start gap-2">
+                                        <i class="fas fa-chevron-right text-red-600 text-xs mt-1"></i>
+                                        <span><strong>{{ form|lookup:field|get_label|default:field }}:</strong> {{ error }}</span>
+                                    </li>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endif %}
+
+<style>
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+    20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.animate-shake {
+    animation: shake 0.5s ease-in-out;
+}
+</style>

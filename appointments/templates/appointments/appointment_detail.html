@@ -159,6 +159,11 @@
                                 View Dental Record
                             </a>
                                     {% endif %}
+                                    {% if appointment.medicalrecord_set.exists %}
+                            <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="block w-full text-center px-4 py-2 border border-emerald-600 text-emerald-700 rounded-md shadow-sm text-sm font-medium hover:bg-emerald-50">
+                                View Medical Record
+                            </a>
+                                    {% endif %}
                                 {% endif %}
                             {% endif %}
                         {% endif %}
@@ -167,6 +172,11 @@
                             {% if appointment.appointment_type == 'dental' and appointment.dental_records.exists %}
                             <a href="{% url 'dental_records:dental_record_detail' appointment.dental_records.first.id %}" class="block w-full text-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md shadow-sm text-sm font-medium hover:bg-blue-50">
                                 View Dental Record
+                            </a>
+                            {% endif %}
+                            {% if appointment.medicalrecord_set.exists %}
+                            <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="block w-full text-center px-4 py-2 border border-emerald-600 text-emerald-700 rounded-md shadow-sm text-sm font-medium hover:bg-emerald-50">
+                                View Medical Record
                             </a>
                             {% endif %}
                             <a href="{% url 'feedback:submit_feedback_appointment' appointment.id %}" class="block w-full text-center px-4 py-2 border border-primary-600 text-primary-600 rounded-md shadow-sm text-sm font-medium hover:bg-primary-50">

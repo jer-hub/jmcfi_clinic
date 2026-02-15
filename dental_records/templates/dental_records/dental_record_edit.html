@@ -33,7 +33,12 @@
                         <input type="hidden" name="status" value="completed">
                         <button type="submit" 
                                 class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
-                            <i class="fas fa-check-double"></i> Mark Record Completed
+                            <i class="fas fa-check-double"></i>
+                            {% if appointment and appointment.status != 'completed' %}
+                                Mark Record &amp; Appointment Completed
+                            {% else %}
+                                Mark Record Completed
+                            {% endif %}
                         </button>
                     </form>
                     {% else %}
@@ -45,13 +50,6 @@
                             <i class="fas fa-undo"></i> Revert to Pending
                         </button>
                     </form>
-                    {% endif %}
-                    {% if appointment and appointment.status != 'completed' %}
-                    <button type="button" 
-                            onclick="openCompleteAppointmentModal()"
-                            class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
-                        <i class="fas fa-check"></i> Mark Appointment Completed
-                    </button>
                     {% endif %}
                     <a href="{% url 'dental_records:dental_record_list' %}" 
                        class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
@@ -107,6 +105,21 @@
                           hx-on::after-request="handleFormResponse(event, 'Demographics')">
                         {% csrf_token %}
                         <input type="hidden" name="form_type" value="demographics">
+
+                        {% if demographics_form.non_field_errors %}
+                        <div class="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                                <div>
+                                    <ul class="text-sm text-red-800 list-disc list-inside">
+                                        {% for error in demographics_form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
@@ -147,44 +160,32 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.middle_name.label }}</label>
                                     {{ demographics_form.middle_name }}
-                                    {% if demographics_form.middle_name.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.middle_name.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.middle_name.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.age.label }}</label>
                                     {{ demographics_form.age }}
-                                    {% if demographics_form.age.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.age.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.age.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.gender.label }}</label>
                                     {{ demographics_form.gender }}
-                                    {% if demographics_form.gender.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.gender.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.gender.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.civil_status.label }}</label>
                                     {{ demographics_form.civil_status }}
-                                    {% if demographics_form.civil_status.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.civil_status.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.civil_status.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.date_of_birth.label }}</label>
                                     {{ demographics_form.date_of_birth }}
-                                    {% if demographics_form.date_of_birth.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.date_of_birth.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.date_of_birth.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.place_of_birth.label }}</label>
                                     {{ demographics_form.place_of_birth }}
-                                    {% if demographics_form.place_of_birth.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.place_of_birth.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.place_of_birth.errors %}
                                 </div>
                             </div>
                         </div>
@@ -198,30 +199,22 @@
                                 <div class="md:col-span-2">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.address.label }}</label>
                                     {{ demographics_form.address }}
-                                    {% if demographics_form.address.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.address.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.address.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.email.label }}</label>
                                     {{ demographics_form.email }}
-                                    {% if demographics_form.email.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.email.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.email.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.contact_number.label }}</label>
                                     {{ demographics_form.contact_number }}
-                                    {% if demographics_form.contact_number.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.contact_number.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.contact_number.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.telephone_number.label }}</label>
                                     {{ demographics_form.telephone_number }}
-                                    {% if demographics_form.telephone_number.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.telephone_number.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.telephone_number.errors %}
                                 </div>
                             </div>
                         </div>
@@ -235,16 +228,12 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.designation.label }}</label>
                                     {{ demographics_form.designation }}
-                                    {% if demographics_form.designation.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.designation.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.designation.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.department_college_office.label }}</label>
                                     {{ demographics_form.department_college_office }}
-                                    {% if demographics_form.department_college_office.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.department_college_office.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.department_college_office.errors %}
                                 </div>
                             </div>
                         </div>
@@ -258,16 +247,12 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.guardian_name.label }}</label>
                                     {{ demographics_form.guardian_name }}
-                                    {% if demographics_form.guardian_name.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.guardian_name.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.guardian_name.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.guardian_contact.label }}</label>
                                     {{ demographics_form.guardian_contact }}
-                                    {% if demographics_form.guardian_contact.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.guardian_contact.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.guardian_contact.errors %}
                                 </div>
                             </div>
                         </div>
@@ -281,48 +266,36 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.date_of_examination.label }}</label>
                                     {{ demographics_form.date_of_examination }}
-                                    {% if demographics_form.date_of_examination.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.date_of_examination.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.date_of_examination.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.examined_by.label }}</label>
                                     {{ demographics_form.examined_by }}
-                                    {% if demographics_form.examined_by.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.examined_by.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.examined_by.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.consent_date.label }}</label>
                                     {{ demographics_form.consent_date }}
-                                    {% if demographics_form.consent_date.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.consent_date.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.consent_date.errors %}
                                 </div>
                                 <div class="flex items-center">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         {{ demographics_form.consent_signed }}
                                         <span class="text-sm font-medium text-gray-700">{{ demographics_form.consent_signed.label }}</span>
                                     </label>
-                                    {% if demographics_form.consent_signed.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.consent_signed.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.consent_signed.errors %}
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ demographics_form.informed_consent_date.label }}</label>
                                     {{ demographics_form.informed_consent_date }}
-                                    {% if demographics_form.informed_consent_date.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.informed_consent_date.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.informed_consent_date.errors %}
                                 </div>
                                 <div class="flex items-center">
                                     <label class="flex items-center gap-2 cursor-pointer">
                                         {{ demographics_form.informed_consent_signed }}
                                         <span class="text-sm font-medium text-gray-700">{{ demographics_form.informed_consent_signed.label }}</span>
                                     </label>
-                                    {% if demographics_form.informed_consent_signed.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ demographics_form.informed_consent_signed.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=demographics_form.informed_consent_signed.errors %}
                                 </div>
                             </div>
                         </div>
@@ -347,6 +320,21 @@
                           hx-on::after-request="handleFormResponse(event, 'Health Questionnaire')">
                         {% csrf_token %}
                         <input type="hidden" name="form_type" value="health_questionnaire">
+
+                        {% if health_questionnaire_form.non_field_errors %}
+                        <div class="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                                <div>
+                                    <ul class="text-sm text-red-800 list-disc list-inside">
+                                        {% for error in health_questionnaire_form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
@@ -366,9 +354,7 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
                                     {{ field }}
                                 {% endif %}
-                                {% if field.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=field.errors %}
                             </div>
                             {% endfor %}
                         </div>
@@ -389,6 +375,21 @@
                           hx-on::after-request="handleFormResponse(event, 'Systems Review')">
                         {% csrf_token %}
                         <input type="hidden" name="form_type" value="systems_review">
+
+                        {% if systems_review_form.non_field_errors %}
+                        <div class="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                                <div>
+                                    <ul class="text-sm text-red-800 list-disc list-inside">
+                                        {% for error in systems_review_form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
@@ -428,6 +429,21 @@
                           hx-on::after-request="handleFormResponse(event, 'Dental History')">
                         {% csrf_token %}
                         <input type="hidden" name="form_type" value="dental_history">
+
+                        {% if dental_history_form.non_field_errors %}
+                        <div class="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                                <div>
+                                    <ul class="text-sm text-red-800 list-disc list-inside">
+                                        {% for error in dental_history_form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
@@ -451,9 +467,7 @@
                                             {{ dental_history_form.first_dental_visit.label }}
                                         </label>
                                     </div>
-                                    {% if dental_history_form.first_dental_visit.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.first_dental_visit.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=dental_history_form.first_dental_visit.errors %}
                                 </div>
 
                                 <!-- Last Dental Visit Date -->
@@ -462,9 +476,7 @@
                                         {{ dental_history_form.last_dental_visit.label }}
                                     </label>
                                     {{ dental_history_form.last_dental_visit }}
-                                    {% if dental_history_form.last_dental_visit.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.last_dental_visit.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=dental_history_form.last_dental_visit.errors %}
                                 </div>
 
                                 <!-- Last Visit Reason -->
@@ -473,9 +485,7 @@
                                         {{ dental_history_form.last_visit_reason.label }}
                                     </label>
                                     {{ dental_history_form.last_visit_reason }}
-                                    {% if dental_history_form.last_visit_reason.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.last_visit_reason.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=dental_history_form.last_visit_reason.errors %}
                                 </div>
                             </div>
                         </div>
@@ -495,9 +505,7 @@
                                         {{ dental_history_form.teeth_extracted.label }}
                                     </label>
                                 </div>
-                                {% if dental_history_form.teeth_extracted.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ dental_history_form.teeth_extracted.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=dental_history_form.teeth_extracted.errors %}
 
                                 <!-- When Extraction Occurred -->
                                 <div>
@@ -505,9 +513,7 @@
                                         {{ dental_history_form.extraction_when.label }}
                                     </label>
                                     {{ dental_history_form.extraction_when }}
-                                    {% if dental_history_form.extraction_when.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.extraction_when.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=dental_history_form.extraction_when.errors %}
                                 </div>
                             </div>
                         </div>
@@ -527,9 +533,7 @@
                                         {{ dental_history_form.anesthesia_allergy.label }}
                                     </label>
                                 </div>
-                                {% if dental_history_form.anesthesia_allergy.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ dental_history_form.anesthesia_allergy.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=dental_history_form.anesthesia_allergy.errors %}
 
                                 <!-- When Allergy Occurred -->
                                 <div>
@@ -537,9 +541,7 @@
                                         {{ dental_history_form.anesthesia_allergy_when.label }}
                                     </label>
                                     {{ dental_history_form.anesthesia_allergy_when }}
-                                    {% if dental_history_form.anesthesia_allergy_when.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.anesthesia_allergy_when.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=dental_history_form.anesthesia_allergy_when.errors %}
                                 </div>
                             </div>
                         </div>
@@ -559,9 +561,7 @@
                                         {{ dental_history_form.dental_appliance.label }}
                                     </label>
                                 </div>
-                                {% if dental_history_form.dental_appliance.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ dental_history_form.dental_appliance.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=dental_history_form.dental_appliance.errors %}
 
                                 <!-- Appliance Type -->
                                 <div>
@@ -569,9 +569,7 @@
                                         {{ dental_history_form.appliance_type.label }}
                                     </label>
                                     {{ dental_history_form.appliance_type }}
-                                    {% if dental_history_form.appliance_type.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.appliance_type.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=dental_history_form.appliance_type.errors %}
                                 </div>
                             </div>
                         </div>
@@ -591,9 +589,7 @@
                                         {{ dental_history_form.pain_discomfort.label }}
                                     </label>
                                 </div>
-                                {% if dental_history_form.pain_discomfort.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ dental_history_form.pain_discomfort.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=dental_history_form.pain_discomfort.errors %}
 
                                 <!-- Pain Location -->
                                 <div>
@@ -601,9 +597,7 @@
                                         {{ dental_history_form.pain_location.label }}
                                     </label>
                                     {{ dental_history_form.pain_location }}
-                                    {% if dental_history_form.pain_location.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ dental_history_form.pain_location.errors }}</p>
-                                    {% endif %}
+                                    {% include 'partials/field_errors.html' with errors=dental_history_form.pain_location.errors %}
                                 </div>
                             </div>
                         </div>
@@ -625,6 +619,21 @@
                           hx-on::after-request="handleFormResponse(event, 'Pediatric History')">
                         {% csrf_token %}
                         <input type="hidden" name="form_type" value="pediatric_history">
+
+                        {% if pediatric_history_form.non_field_errors %}
+                        <div class="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                                <div>
+                                    <ul class="text-sm text-red-800 list-disc list-inside">
+                                        {% for error in pediatric_history_form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
@@ -644,9 +653,7 @@
                                     <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
                                     {{ field }}
                                 {% endif %}
-                                {% if field.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=field.errors %}
                             </div>
                             {% endfor %}
                         </div>
@@ -668,6 +675,21 @@
                           hx-on::after-request="handleFormResponse(event, 'Examination')">
                         {% csrf_token %}
                         <input type="hidden" name="form_type" value="examination">
+
+                        {% if examination_form.non_field_errors %}
+                        <div class="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                                <div>
+                                    <ul class="text-sm text-red-800 list-disc list-inside">
+                                        {% for error in examination_form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
@@ -680,9 +702,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
                                 {{ field }}
-                                {% if field.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=field.errors %}
                             </div>
                             {% endfor %}
                         </div>
@@ -703,6 +723,21 @@
                           hx-on::after-request="handleFormResponse(event, 'Vital Signs')">
                         {% csrf_token %}
                         <input type="hidden" name="form_type" value="vital_signs">
+
+                        {% if vital_signs_form.non_field_errors %}
+                        <div class="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                                <div>
+                                    <ul class="text-sm text-red-800 list-disc list-inside">
+                                        {% for error in vital_signs_form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                         
                         <div class="mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
@@ -715,9 +750,7 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">{{ field.label }}</label>
                                 {{ field }}
-                                {% if field.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ field.errors }}</p>
-                                {% endif %}
+                                {% include 'partials/field_errors.html' with errors=field.errors %}
                             </div>
                             {% endfor %}
                         </div>
@@ -1221,50 +1254,6 @@ function dismissMessage(btn) {
     }
 }
 
-// Complete Appointment Modal Functions
-function openCompleteAppointmentModal() {
-    const modal = document.getElementById('completeAppointmentModal');
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    setTimeout(() => {
-        modal.querySelector('.modal-content').classList.add('animate-scale-in');
-    }, 10);
-}
-
-function closeCompleteAppointmentModal() {
-    const modal = document.getElementById('completeAppointmentModal');
-    const content = modal.querySelector('.modal-content');
-    content.classList.remove('animate-scale-in');
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }, 300);
-}
-
-function confirmCompleteAppointment() {
-    const form = document.getElementById('completeAppointmentForm');
-    form.submit();
-}
-
-// Close modal when clicking outside
-document.addEventListener('DOMContentLoaded', function() {
-    const modal = document.getElementById('completeAppointmentModal');
-    if (modal) {
-        modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                closeCompleteAppointmentModal();
-            }
-        });
-        
-        // Close on Escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-                closeCompleteAppointmentModal();
-            }
-        });
-    }
-});
-
 // ============================================
 // Alpine.js: Progress Notes Component
 // ============================================
@@ -1375,42 +1364,6 @@ function progressNotes() {
 }
 </script>
 
-<!-- Complete Appointment Modal -->
-<div id="completeAppointmentModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="modal-content bg-white rounded-lg shadow-lg max-w-sm w-full transform transition-all">
-        <!-- Modal Header -->
-        <div class="border-b border-gray-200 px-6 py-4">
-            <h2 class="text-lg font-semibold text-gray-900">Complete Appointment</h2>
-        </div>
-        
-        <!-- Modal Body -->
-        <div class="px-6 py-6">
-            <p class="text-gray-600 text-sm">
-                Are you sure you want to mark this appointment as completed?
-            </p>
-        </div>
-        
-        <!-- Modal Footer -->
-        <div class="bg-gray-50 px-6 py-3 rounded-b-lg flex items-center gap-3 justify-end border-t border-gray-200">
-            <button type="button" 
-                    onclick="closeCompleteAppointmentModal()"
-                    class="px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded transition-colors duration-200 text-sm font-medium">
-                Cancel
-            </button>
-            <form id="completeAppointmentForm" 
-                  method="post" 
-                  action="{% url 'dental_records:complete_appointment' dental_record.id %}" 
-                  class="inline">
-                {% csrf_token %}
-                <button type="submit" 
-                        class="px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 rounded transition-colors duration-200 text-sm font-medium">
-                    Complete
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
-
 <style>
     @keyframes slideDown {
         from {
@@ -1449,20 +1402,5 @@ function progressNotes() {
         transition: all 0.3s ease-out;
     }
     
-    /* Modal animation */
-    @keyframes scaleIn {
-        from {
-            opacity: 0;
-            transform: scale(0.95);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-    
-    .animate-scale-in {
-        animation: scaleIn 0.3s ease-out;
-    }
 </style>
 {% endblock %}

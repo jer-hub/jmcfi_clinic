@@ -18,7 +18,7 @@ def document_requests(request):
     """View list of document/certificate requests."""
     if request.user.role == 'student':
         requests_qs = DocumentRequest.objects.filter(student=request.user)
-    elif request.user.role in ['staff', 'admin']:
+    elif request.user.role in ['admin', 'doctor']:
         requests_qs = DocumentRequest.objects.all()
     else:
         requests_qs = DocumentRequest.objects.none()
@@ -157,8 +157,8 @@ def request_document(request):
             doc_request.medical_certificate = cert
             doc_request.save()
             
-            # Create notification for staff/admin
-            staff_users = User.objects.filter(role__in=['staff', 'admin'])
+            # Create notification for authorized processors
+            staff_users = User.objects.filter(role__in=['admin', 'doctor'])
             for staff in staff_users:
                 Notification.objects.create(
                     user=staff,
@@ -196,9 +196,12 @@ def process_document(request, request_id):
     if request.user.role == 'student' and doc_request.student != request.user:
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
+    elif request.user.role not in ['student', 'doctor', 'admin']:
+        messages.error(request, 'Access denied')
+        return redirect('document_request:document_requests')
     
-    # Staff/admin can process, others can only view
-    can_process = request.user.role in ['staff', 'admin']
+    # Only doctor/admin can process, students can only view their own
+    can_process = request.user.role in ['admin', 'doctor']
 
     if request.method == 'POST' and can_process:
         action = request.POST.get('action')
@@ -256,6 +259,9 @@ def view_document(request, request_id):
     if request.user.role == 'student' and doc_request.student != request.user:
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
+    elif request.user.role not in ['student', 'doctor', 'admin']:
+        messages.error(request, 'Access denied')
+        return redirect('document_request:document_requests')
     
     # Redirect to the process document request page for all roles regardless of status
     return redirect('document_request:process_document', request_id=request_id)
@@ -265,9 +271,16 @@ def view_document(request, request_id):
 def print_document(request, request_id):
     """Print a certificate – redirects to the health_forms_services print template."""
     doc_request = get_object_or_404(DocumentRequest, id=request_id)
+
+    if request.user.role not in ['doctor', 'admin']:
+        messages.error(request, 'Access denied. Printing certificates is restricted to authorized clinicians.')
+        return redirect('document_request:document_requests')
     
     # Check permissions
     if request.user.role == 'student' and doc_request.student != request.user:
+        messages.error(request, 'Access denied')
+        return redirect('document_request:document_requests')
+    elif request.user.role not in ['student', 'doctor', 'admin']:
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
     

@@ -26,10 +26,7 @@ class HealthTip(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Health Tip'
         verbose_name_plural = 'Health Tips'
-        # Use the existing table from management app to preserve data
-        db_table = 'management_healthtip'
         # Mark as managed=False to prevent migrations from creating a new table
-        managed = False
 
     def __str__(self):
         return self.title

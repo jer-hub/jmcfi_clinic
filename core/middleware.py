@@ -59,20 +59,16 @@ class ProfileCompleteMiddleware:
     """
     def __init__(self, get_response):
         self.get_response = get_response
-        # URLs that don't require profile completion
+        # URLs that don't require profile completion - only essential pages
         self.exempt_urls = [
-            '/',
-            '/profile/',
             '/profile/edit/',
-            '/accounts/logout/',
-            '/admin/',
+            '/profile/required/',
+            '/logout/',
         ]
         # Add media and static URLs
         self.exempt_patterns = [
             '/media/',
             '/static/',
-            '/admin/',
-            '/accounts/',
         ]
 
     def __call__(self, request):
@@ -110,7 +106,7 @@ class ProfileCompleteMiddleware:
                 return None
             
             # Silent redirect - the banner will handle the messaging
-            return redirect('core:edit_profile')
+            return redirect('core:profile_required')
 
         return None
 

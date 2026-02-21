@@ -54,7 +54,7 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     "core.middleware.SessionTimeoutMiddleware",  # Role-based session timeout
     "core.middleware.RoleMiddleware",
-    # "core.middleware.ProfileCompleteMiddleware",  # Disabled - users can access services without complete profile
+    "core.middleware.ProfileCompleteMiddleware",  # Require complete profile for access
 ]
 
 # Provider specific settings

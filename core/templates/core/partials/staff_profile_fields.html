@@ -171,23 +171,7 @@
             </div>
 
             <!-- Mobile Phone -->
-            <div class="form-group">
-                <label for="{{ form.phone.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Mobile Phone Number <span class="text-red-600">*</span>
-                </label>
-                {{ form.phone }}
-                <p class="mt-1 text-xs text-gray-500">Format: +639171234567 or 09171234567</p>
-                {% if form.phone.errors %}
-                    {% for error in form.phone.errors %}
-                        <p class="mt-2 text-sm text-red-600 flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            {{ error }}
-                        </p>
-                    {% endfor %}
-                {% endif %}
-            </div>
+            {% include "partials/phone_field.html" with field=form.phone label="Mobile Phone Number" required=True icon_color="blue" %}
 
             <!-- Telephone Number -->
             <div class="form-group">
@@ -227,23 +211,7 @@
             </div>
 
             <!-- Emergency Contact Phone -->
-            <div class="form-group">
-                <label for="{{ form.emergency_phone.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Emergency Contact Number <span class="text-red-600">*</span>
-                </label>
-                {{ form.emergency_phone }}
-                <p class="mt-1 text-xs text-gray-500">Phone number of emergency contact</p>
-                {% if form.emergency_phone.errors %}
-                    {% for error in form.emergency_phone.errors %}
-                        <p class="mt-2 text-sm text-red-600 flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            {{ error }}
-                        </p>
-                    {% endfor %}
-                {% endif %}
-            </div>
+            {% include "partials/phone_field.html" with field=form.emergency_phone label="Emergency Contact Number" required=False icon_color="orange" %}
         </div>
     </div>
 

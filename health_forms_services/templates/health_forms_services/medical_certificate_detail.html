@@ -41,6 +41,12 @@
                 </div>
 
                 <div class="flex items-center space-x-3">
+                    {% if user.role == 'doctor' %}
+                    <a href="{% url 'health_forms_services:my_signature' %}"
+                       class="px-4 py-2 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 font-medium text-sm shadow-sm transition-all duration-200 hover:shadow-md inline-flex items-center space-x-2">
+                        <span>My Signature</span>
+                    </a>
+                    {% endif %}
                     {% if can_edit %}
                     <a href="{% url 'health_forms_services:edit_medical_certificate' certificate.pk %}"
                        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm shadow-sm transition-all duration-200 hover:shadow-md inline-flex items-center space-x-2">
@@ -62,6 +68,20 @@
                 </div>
             </div>
         </div>
+
+        {% if missing_signature_warning %}
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
+            <div class="flex items-center justify-between gap-3">
+                <p class="text-sm text-amber-800">
+                    Your active signature is not set. You must upload one before marking certificates as completed.
+                </p>
+                <a href="{% url 'health_forms_services:my_signature' %}"
+                   class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-amber-900 bg-amber-100 hover:bg-amber-200 transition-colors">
+                    Set My Signature
+                </a>
+            </div>
+        </div>
+        {% endif %}
 
         <div class="space-y-6">
             <!-- Certificate Information -->

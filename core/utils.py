@@ -1,10 +1,62 @@
+import re
+
 from django.db.models import Count, Q, Avg
 from django.utils import timezone
 from django.core.paginator import Paginator
+from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
+
+
+# ---------------------------------------------------------------------------
+# Philippine Mobile Number Validation & Normalization
+# ---------------------------------------------------------------------------
+
+def clean_philippine_phone(value):
+    """Validate and normalize a Philippine mobile number to E.164 format.
+
+    Accepted inputs (spaces, dashes, dots, parentheses are ignored):
+        +639171234567   →  +639171234567
+        09171234567     →  +639171234567
+        9171234567      →  +639171234567
+        +63 917 123 4567  (formatted)
+
+    Returns:
+        str  –  Normalized number in +63XXXXXXXXXX format.
+
+    Raises:
+        ValidationError  –  If *value* is not a valid PH mobile number.
+    """
+    if not value:
+        return value
+
+    raw = value.strip()
+
+    # Preserve a leading '+' then keep only digits
+    has_plus = raw.startswith('+')
+    digits = re.sub(r'\D', '', raw)
+
+    # Extract the 10-digit mobile part (must start with 9)
+    mobile = None
+
+    if has_plus and digits.startswith('63') and len(digits) == 12:
+        mobile = digits[2:]                       # +639XXXXXXXXX
+    elif digits.startswith('63') and len(digits) == 12:
+        mobile = digits[2:]                       # 639XXXXXXXXX (no +)
+    elif digits.startswith('0') and len(digits) == 11:
+        mobile = digits[1:]                       # 09XXXXXXXXX
+    elif len(digits) == 10:
+        mobile = digits                           # 9XXXXXXXXX
+
+    if mobile and len(mobile) == 10 and mobile[0] == '9':
+        return f'+63{mobile}'
+
+    raise ValidationError(
+        'Enter a valid Philippine mobile number '
+        '(e.g., 09171234567 or +639171234567).'
+    )
 
 
 def get_user_profile(user):

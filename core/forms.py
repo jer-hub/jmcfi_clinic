@@ -1,41 +1,42 @@
 from django import forms
-from django.core.validators import RegexValidator
 from django.contrib.auth import get_user_model
 from .models import StudentProfile, StaffProfile
+from .utils import clean_philippine_phone
 
 User = get_user_model()
+
+
+# ---------------------------------------------------------------------------
+# Shared phone-field widget attrs
+# ---------------------------------------------------------------------------
+
+PHONE_WIDGET_ATTRS = {
+    'class': (
+        'block w-full pl-12 pr-10 py-2.5 border border-gray-300 rounded-lg '
+        'shadow-sm placeholder-gray-400 text-sm tracking-wide '
+        'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 '
+        'transition-colors duration-200'
+    ),
+    'placeholder': '0917 123 4567',
+    'inputmode': 'tel',
+    'autocomplete': 'tel',
+    'maxlength': '16',
+    'data-phone-input': 'true',
+}
 
 
 class StudentProfileForm(forms.ModelForm):
     """Form for updating student profile including profile image"""
     
-    # Philippines phone number validator - strict for mobile numbers only
-    phone_validator = RegexValidator(
-        regex=r'^(\+63|63|0)?(9[0-9]{9})$',
-        message='Enter a valid Philippine mobile number (e.g., +639171234567, 09171234567)'
-    )
-    
-    # Override phone fields with validation
+    # Override phone fields with enhanced widget (validation handled in clean methods)
     phone = forms.CharField(
         max_length=20,
-        validators=[phone_validator],
-        widget=forms.TextInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
-            'placeholder': '+639171234567 or 09171234567',
-            'required': True,
-            'data-phone-input': 'true'
-        })
+        widget=forms.TextInput(attrs={**PHONE_WIDGET_ATTRS, 'required': True}),
     )
     
     emergency_phone = forms.CharField(
         max_length=20,
-        validators=[phone_validator],
-        widget=forms.TextInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
-            'placeholder': '+639171234567 or 09171234567',
-            'required': True,
-            'data-phone-input': 'true'
-        })
+        widget=forms.TextInput(attrs={**PHONE_WIDGET_ATTRS, 'required': True}),
     )
     
     class Meta:
@@ -154,56 +155,10 @@ class StudentProfileForm(forms.ModelForm):
                 self.fields[field_name].required = True
 
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
-        if phone:
-            # Remove all non-digit characters for processing
-            cleaned = ''.join(filter(str.isdigit, phone))
-            
-            # Validate Philippine mobile number format (strict)
-            if cleaned.startswith('63'):
-                # +63 format - must be 12 digits and 3rd digit must be 9
-                if len(cleaned) == 12 and cleaned[2] == '9':
-                    return f"+{cleaned}"
-                elif len(cleaned) == 13 and cleaned.startswith('630') and cleaned[3] == '9':
-                    # Remove leading 0 after country code
-                    return f"+63{cleaned[3:]}"
-            elif cleaned.startswith('0'):
-                # 0 prefix format (e.g., 09171234567) - must be 11 digits and 2nd digit must be 9
-                if len(cleaned) == 11 and cleaned[1] == '9':
-                    return f"+63{cleaned[1:]}"
-            elif len(cleaned) == 10 and cleaned[0] == '9':
-                # Without country code or 0 prefix (e.g., 9171234567) - must start with 9
-                return f"+63{cleaned}"
-            
-            # If none of the valid patterns match, raise validation error
-            raise forms.ValidationError('Please enter a valid Philippine mobile number starting with 9.')
-        return phone
+        return clean_philippine_phone(self.cleaned_data.get('phone'))
 
     def clean_emergency_phone(self):
-        phone = self.cleaned_data.get('emergency_phone')
-        if phone:
-            # Remove all non-digit characters for processing
-            cleaned = ''.join(filter(str.isdigit, phone))
-            
-            # Validate Philippine mobile number format (strict)
-            if cleaned.startswith('63'):
-                # +63 format - must be 12 digits and 3rd digit must be 9
-                if len(cleaned) == 12 and cleaned[2] == '9':
-                    return f"+{cleaned}"
-                elif len(cleaned) == 13 and cleaned.startswith('630') and cleaned[3] == '9':
-                    # Remove leading 0 after country code
-                    return f"+63{cleaned[3:]}"
-            elif cleaned.startswith('0'):
-                # 0 prefix format (e.g., 09171234567) - must be 11 digits and 2nd digit must be 9
-                if len(cleaned) == 11 and cleaned[1] == '9':
-                    return f"+63{cleaned[1:]}"
-            elif len(cleaned) == 10 and cleaned[0] == '9':
-                # Without country code or 0 prefix (e.g., 9171234567) - must start with 9
-                return f"+63{cleaned}"
-            
-            # If none of the valid patterns match, raise validation error
-            raise forms.ValidationError('Please enter a valid Philippine mobile number starting with 9.')
-        return phone
+        return clean_philippine_phone(self.cleaned_data.get('emergency_phone'))
 
     def clean_student_id(self):
         student_id = self.cleaned_data.get('student_id')
@@ -215,33 +170,16 @@ class StudentProfileForm(forms.ModelForm):
 class StaffProfileForm(forms.ModelForm):
     """Form for updating staff profile including profile image"""
     
-    # Philippines phone number validator - strict for mobile numbers only
-    phone_validator = RegexValidator(
-        regex=r'^(\+63|63|0)?(9[0-9]{9})$',
-        message='Enter a valid Philippine mobile number (e.g., +639171234567, 09171234567)'
-    )
-    
-    # Override phone fields with validation
+    # Override phone fields with enhanced widget (validation handled in clean methods)
     phone = forms.CharField(
         max_length=20,
-        validators=[phone_validator],
-        widget=forms.TextInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
-            'placeholder': '+639171234567 or 09171234567',
-            'required': True,
-            'data-phone-input': 'true'
-        })
+        widget=forms.TextInput(attrs={**PHONE_WIDGET_ATTRS, 'required': True}),
     )
     
     emergency_phone = forms.CharField(
         max_length=20,
-        validators=[phone_validator],
         required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
-            'placeholder': '+639171234567 or 09171234567',
-            'data-phone-input': 'true'
-        })
+        widget=forms.TextInput(attrs=PHONE_WIDGET_ATTRS),
     )
     
     class Meta:
@@ -362,56 +300,10 @@ class StaffProfileForm(forms.ModelForm):
                 self.fields[field_name].required = True
 
     def clean_phone(self):
-        phone = self.cleaned_data.get('phone')
-        if phone:
-            # Remove all non-digit characters for processing
-            cleaned = ''.join(filter(str.isdigit, phone))
-            
-            # Validate Philippine mobile number format (strict)
-            if cleaned.startswith('63'):
-                # +63 format - must be 12 digits and 3rd digit must be 9
-                if len(cleaned) == 12 and cleaned[2] == '9':
-                    return f"+{cleaned}"
-                elif len(cleaned) == 13 and cleaned.startswith('630') and cleaned[3] == '9':
-                    # Remove leading 0 after country code
-                    return f"+63{cleaned[3:]}"
-            elif cleaned.startswith('0'):
-                # 0 prefix format (e.g., 09171234567) - must be 11 digits and 2nd digit must be 9
-                if len(cleaned) == 11 and cleaned[1] == '9':
-                    return f"+63{cleaned[1:]}"
-            elif len(cleaned) == 10 and cleaned[0] == '9':
-                # Without country code or 0 prefix (e.g., 9171234567) - must start with 9
-                return f"+63{cleaned}"
-            
-            # If none of the valid patterns match, raise validation error
-            raise forms.ValidationError('Please enter a valid Philippine mobile number starting with 9.')
-        return phone
+        return clean_philippine_phone(self.cleaned_data.get('phone'))
 
     def clean_emergency_phone(self):
-        phone = self.cleaned_data.get('emergency_phone')
-        if phone:
-            # Remove all non-digit characters for processing
-            cleaned = ''.join(filter(str.isdigit, phone))
-            
-            # Validate Philippine mobile number format (strict)
-            if cleaned.startswith('63'):
-                # +63 format - must be 12 digits and 3rd digit must be 9
-                if len(cleaned) == 12 and cleaned[2] == '9':
-                    return f"+{cleaned}"
-                elif len(cleaned) == 13 and cleaned.startswith('630') and cleaned[3] == '9':
-                    # Remove leading 0 after country code
-                    return f"+63{cleaned[3:]}"
-            elif cleaned.startswith('0'):
-                # 0 prefix format (e.g., 09171234567) - must be 11 digits and 2nd digit must be 9
-                if len(cleaned) == 11 and cleaned[1] == '9':
-                    return f"+63{cleaned[1:]}"
-            elif len(cleaned) == 10 and cleaned[0] == '9':
-                # Without country code or 0 prefix (e.g., 9171234567) - must start with 9
-                return f"+63{cleaned}"
-            
-            # If none of the valid patterns match, raise validation error
-            raise forms.ValidationError('Please enter a valid Philippine mobile number starting with 9.')
-        return phone
+        return clean_philippine_phone(self.cleaned_data.get('emergency_phone'))
 
     def clean_staff_id(self):
         staff_id = self.cleaned_data.get('staff_id')

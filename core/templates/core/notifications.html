@@ -113,7 +113,7 @@
                             {% url 'health_tips:health_tips_list' as notification_url %}
                         {% elif notification.transaction_type == 'medical_record_created' or notification.transaction_type == 'medical_record_updated' %}
                             {% if notification.related_id %}
-                                {% url 'medical_records:medical_record_detail' notification.related_id as notification_url %}
+                                {% url 'medical_records:medical_record_detail_page' notification.related_id as notification_url %}
                             {% else %}
                                 {% url 'medical_records:medical_records' as notification_url %}
                             {% endif %}
@@ -134,7 +134,7 @@
                             {% url 'health_tips:health_tips_list' as notification_url %}
                         {% elif notification.notification_type == 'general' %}
                             {% if notification.related_id and 'medical record' in notification.title|lower %}
-                                {% url 'medical_records:medical_record_detail' notification.related_id as notification_url %}
+                                {% url 'medical_records:medical_record_detail_page' notification.related_id as notification_url %}
                             {% elif notification.related_id and 'appointment' in notification.title|lower %}
                                 {% url 'appointments:appointment_detail' notification.related_id as notification_url %}
                             {% elif notification.related_id and 'certificate' in notification.title|lower %}

@@ -45,7 +45,6 @@ class Appointment(models.Model):
 
     class Meta:
         ordering = ['-date', '-time']
-        db_table = 'management_appointment'  # Keep existing table name
 
     def __str__(self):
         name = f"{self.student.first_name} {self.student.last_name}".strip()
@@ -102,7 +101,6 @@ class AppointmentTypeDefault(models.Model):
         ordering = ['appointment_type']
         verbose_name = 'Appointment Type Default'
         verbose_name_plural = 'Appointment Type Defaults'
-        db_table = 'management_appointmenttypedefault'  # Keep existing table name
 
     def __str__(self):
         if self.default_doctor:

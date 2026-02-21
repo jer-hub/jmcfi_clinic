@@ -23,7 +23,7 @@
                                 {% if user.role == 'student' %}
                                     Manage your certificate requests and track their status
                                 {% else %}
-                                    Process student certificate requests efficiently
+                                    Review and process student certificate requests
                                 {% endif %}
                             </p>
                         </div>
@@ -291,7 +291,7 @@
                                     </span>
                                     {% endif %}
                                 {% else %}
-                                    {# Detailed status for staff/admin #}
+                                    {# Detailed status for doctor/admin #}
                                     {% if cert_request.status == 'pending' %}
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
                                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

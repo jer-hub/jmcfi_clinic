@@ -31,6 +31,24 @@ def logout_view(request):
     return redirect('account_login')
 
 
+@login_required
+def profile_required(request):
+    """View to show profile completion required page"""
+    from .utils import get_missing_profile_fields
+    missing_fields = get_missing_profile_fields(request.user)
+    
+    # Format field names for display
+    formatted_fields = []
+    for field in missing_fields:
+        # Replace underscores with spaces and title case
+        formatted_field = field.replace('_', ' ').title()
+        formatted_fields.append(formatted_field)
+    
+    return render(request, 'core/profile_required.html', {
+        'missing_fields': formatted_fields
+    })
+
+
 # =====================
 # Dashboard Views
 # =====================

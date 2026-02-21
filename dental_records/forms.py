@@ -6,6 +6,7 @@ Forms for collecting comprehensive dental patient information
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from core.utils import clean_philippine_phone
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
     DentalHealthQuestionnaire, DentalSystemsReview,
@@ -75,6 +76,12 @@ class DentalRecordForm(forms.ModelForm):
                 cleaned_data['informed_consent_date'] = timezone.now().date()
 
         return cleaned_data
+
+    def clean_contact_number(self):
+        return clean_philippine_phone(self.cleaned_data.get('contact_number'))
+
+    def clean_guardian_contact(self):
+        return clean_philippine_phone(self.cleaned_data.get('guardian_contact'))
     
     class Meta:
         model = DentalRecord
@@ -124,8 +131,12 @@ class DentalRecordForm(forms.ModelForm):
                 'placeholder': 'email@example.com'
             }),
             'contact_number': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'placeholder': '09XX-XXX-XXXX'
+                'class': 'w-full pl-12 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': '0917 123 4567',
+                'data-phone-input': 'true',
+                'inputmode': 'tel',
+                'autocomplete': 'tel',
+                'maxlength': '16',
             }),
             'telephone_number': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
@@ -143,8 +154,12 @@ class DentalRecordForm(forms.ModelForm):
                 'placeholder': 'Emergency Contact Name'
             }),
             'guardian_contact': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'placeholder': 'Emergency Contact Number'
+                'class': 'w-full pl-12 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': '0917 123 4567',
+                'data-phone-input': 'true',
+                'inputmode': 'tel',
+                'autocomplete': 'tel',
+                'maxlength': '16',
             }),
             'date_of_examination': forms.DateInput(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',

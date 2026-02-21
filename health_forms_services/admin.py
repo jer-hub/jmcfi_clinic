@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     HealthProfileForm, DentalHealthForm, DentalFormTooth, DentalFormToothSurface,
     DentalServicesRequest, PatientChart, PatientChartEntry,
-    Prescription, PrescriptionItem, MedicalCertificate,
+    Prescription, PrescriptionItem, MedicalCertificate, DoctorSignature,
 )
 
 
@@ -418,10 +418,10 @@ class PrescriptionItemAdmin(admin.ModelAdmin):
 
 @admin.register(MedicalCertificate)
 class MedicalCertificateAdmin(admin.ModelAdmin):
-    list_display = ['id', 'patient_name', 'user', 'status', 'certificate_date', 'physician_name', 'created_at']
+    list_display = ['id', 'patient_name', 'user', 'status', 'certificate_date', 'physician_name', 'signed_by', 'signed_at', 'created_at']
     list_filter = ['status', 'gender', 'created_at']
     search_fields = ['patient_name', 'user__email', 'physician_name', 'diagnosis']
-    readonly_fields = ['created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at', 'signed_by', 'signed_at', 'signature_hash', 'signature_snapshot']
 
     fieldsets = (
         ('Status & Review', {
@@ -444,9 +444,20 @@ class MedicalCertificateAdmin(admin.ModelAdmin):
         ('Physician', {
             'fields': ('physician_name', 'license_no', 'ptr_no'),
         }),
+        ('Signing Snapshot', {
+            'fields': ('signed_by', 'signed_at', 'signature_snapshot', 'signature_hash'),
+        }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(DoctorSignature)
+class DoctorSignatureAdmin(admin.ModelAdmin):
+    list_display = ['doctor', 'is_active', 'updated_by', 'updated_at']
+    list_filter = ['is_active', 'updated_at']
+    search_fields = ['doctor__first_name', 'doctor__last_name', 'doctor__email']
+    readonly_fields = ['created_at', 'updated_at']
 

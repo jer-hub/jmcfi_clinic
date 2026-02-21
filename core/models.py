@@ -143,9 +143,6 @@ class StudentProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        db_table = 'management_studentprofile'
-
     def __str__(self):
         name = f"{self.user.first_name} {self.user.last_name}".strip()
         if not name:
@@ -210,9 +207,6 @@ class StaffProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    class Meta:
-        db_table = 'management_staffprofile'
-
     def __str__(self):
         name = f"{self.user.first_name} {self.user.last_name}".strip()
         if not name:
@@ -276,7 +270,6 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        db_table = 'management_notification'
 
     def __str__(self):
         name = f"{self.user.first_name} {self.user.last_name}".strip()

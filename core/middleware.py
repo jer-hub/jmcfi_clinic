@@ -55,60 +55,56 @@ class RoleMiddleware:
 
 class ProfileCompleteMiddleware:
     """
-    Middleware to ensure users complete their profile before accessing protected pages
+    Middleware that blocks ALL service access for authenticated users who have
+    not completed their required profile fields (including License Number and
+    PTR No. for clinical staff/doctors).
+
+    The check runs in __call__ so it covers every HTTP request – regular page
+    loads, AJAX calls, form submissions, redirects – not just Django view
+    functions.
     """
+
     def __init__(self, get_response):
         self.get_response = get_response
-        # URLs that don't require profile completion - only essential pages
+
+        # Exact URL paths that are always allowed (profile edit + auth flows)
         self.exempt_urls = [
             '/profile/edit/',
             '/profile/required/',
             '/logout/',
         ]
-        # Add media and static URLs
+
+        # URL prefixes that are always allowed
         self.exempt_patterns = [
             '/media/',
             '/static/',
+            '/accounts/',   # allauth: login, logout, signup, password-reset …
+            '/admin/',      # Django admin (admins are already skipped by role)
         ]
 
+    # ------------------------------------------------------------------
+    # Primary intercept – runs on EVERY request
+    # ------------------------------------------------------------------
     def __call__(self, request):
-        response = self.get_response(request)
-        return response
+        if (
+            request.user.is_authenticated
+            and not request.user.is_superuser
+            and getattr(request.user, 'role', None) != 'admin'
+            and not self._is_exempt_url(request.path)
+        ):
+            # Session-cache the result to avoid a DB hit on every request
+            session_key = f'profile_complete_{request.user.id}'
+            profile_complete = request.session.get(session_key)
 
-    def process_view(self, request, view_func, view_args, view_kwargs):
-        # Skip if user is not authenticated
-        if not request.user.is_authenticated:
-            return None
+            if profile_complete is None:
+                profile_complete = self._is_profile_complete(request.user)
+                # Store without overriding the expiry set by SessionTimeoutMiddleware
+                request.session[session_key] = profile_complete
 
-        # Skip for admin users
-        if request.user.is_superuser or request.user.role == 'admin':
-            return None
+            if not profile_complete:
+                return redirect('core:profile_required')
 
-        # Skip if accessing exempt URLs
-        if self._is_exempt_url(request.path):
-            return None
-
-        # Check session cache first to avoid repeated database calls
-        session_key = f'profile_complete_{request.user.id}'
-        profile_complete = request.session.get(session_key)
-        
-        # If not in session or it's been a while, check the database
-        if profile_complete is None:
-            profile_complete = self._is_profile_complete(request.user)
-            request.session[session_key] = profile_complete
-            # Cache for 5 minutes
-            request.session.set_expiry(300)
-
-        # Check if profile is complete
-        if not profile_complete:
-            # If already on profile edit page, don't redirect
-            if request.path == '/profile/edit/':
-                return None
-            
-            # Silent redirect - the banner will handle the messaging
-            return redirect('core:profile_required')
-
-        return None
+        return self.get_response(request)
 
     def _is_exempt_url(self, path):
         """Check if the URL is exempt from profile completion requirement"""
@@ -157,7 +153,9 @@ class ProfileCompleteMiddleware:
     def _is_staff_profile_complete(self, profile):
         """Check if staff profile is complete with all required fields"""
         required_fields = [
-            'staff_id', 'department', 'phone'
+            'staff_id', 'department', 'phone',
+            # Professional / licensing fields required for clinical staff
+            'license_number', 'ptr_no',
         ]
         
         for field in required_fields:

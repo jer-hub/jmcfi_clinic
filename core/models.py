@@ -139,6 +139,9 @@ class StudentProfile(models.Model):
     ], blank=True, null=True)
     allergies = models.TextField(blank=True, default='')
     medical_conditions = models.TextField(blank=True, default='')
+    # Professional / Licensing (for staff/doctors)
+    license_number = models.CharField(max_length=50, blank=True)
+    ptr_no = models.CharField(max_length=100, blank=True, help_text='Professional Tax Receipt or PTR number')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -195,6 +198,7 @@ class StaffProfile(models.Model):
     position = models.CharField(max_length=100, blank=True, default='')
     specialization = models.CharField(max_length=100, blank=True)
     license_number = models.CharField(max_length=50, blank=True)
+    ptr_no = models.CharField(max_length=100, blank=True, help_text='Professional Tax Receipt or PTR number')
     
     # Medical Information
     blood_type = models.CharField(max_length=5, choices=[

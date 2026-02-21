@@ -488,12 +488,28 @@
                                     <p class="text-gray-900 font-medium mt-1">{{ profile.specialization }}</p>
                                 </div>
                                 {% endif %}
-                                {% if profile.license_number %}
-                                <div class="bg-teal-50 rounded-lg p-4">
+                                <div class="bg-teal-50 rounded-lg p-4{% if not profile.license_number %} border border-yellow-300{% endif %}">
                                     <label class="text-xs font-medium text-teal-600 uppercase tracking-wider">License Number</label>
+                                    {% if profile.license_number %}
                                     <p class="text-gray-900 font-medium mt-1 font-mono">{{ profile.license_number }}</p>
+                                    {% else %}
+                                    <p class="text-amber-600 font-medium mt-1 text-sm flex items-center">
+                                        <svg class="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                        Required — not yet provided
+                                    </p>
+                                    {% endif %}
                                 </div>
-                                {% endif %}
+                                <div class="bg-teal-50 rounded-lg p-4{% if not profile.ptr_no %} border border-yellow-300{% endif %}">
+                                    <label class="text-xs font-medium text-teal-600 uppercase tracking-wider">PTR No. <span class="normal-case">(Professional Tax Receipt)</span></label>
+                                    {% if profile.ptr_no %}
+                                    <p class="text-gray-900 font-medium mt-1 font-mono">{{ profile.ptr_no }}</p>
+                                    {% else %}
+                                    <p class="text-amber-600 font-medium mt-1 text-sm flex items-center">
+                                        <svg class="w-4 h-4 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                        Required — not yet provided
+                                    </p>
+                                    {% endif %}
+                                </div>
                             </div>
                             {% else %}
                             <div class="text-center py-8">

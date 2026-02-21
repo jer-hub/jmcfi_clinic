@@ -1436,6 +1436,26 @@ def edit_medical_certificate(request, pk):
         if form.is_valid() and review_form.is_valid():
             certificate = form.save(commit=False)
 
+            # After editing the certificate, extract age and gender and persist to the student's profile when available
+            try:
+                student = certificate.user
+                age_val = form.cleaned_data.get('age')
+                gender_val = form.cleaned_data.get('gender')
+                if hasattr(student, 'student_profile') and student.student_profile:
+                    profile = student.student_profile
+                    changed = False
+                    if age_val is not None and age_val != profile.age:
+                        profile.age = age_val
+                        changed = True
+                    if gender_val and gender_val != profile.gender:
+                        profile.gender = gender_val
+                        changed = True
+                    if changed:
+                        profile.save()
+            except Exception:
+                # Do not block saving the certificate on profile update errors
+                pass
+
             if review_form.has_changed():
                 certificate.status = review_form.cleaned_data.get('status', certificate.status)
                 certificate.review_notes = review_form.cleaned_data.get('review_notes', certificate.review_notes)
@@ -1466,7 +1486,48 @@ def edit_medical_certificate(request, pk):
 
             return redirect('health_forms_services:medical_certificate_detail', pk=pk)
     else:
-        form = MedicalCertificateForm(instance=certificate)
+        # Prefill the certificate form with student profile details when certificate fields are empty
+        initial = {}
+        try:
+            student = certificate.user
+            if hasattr(student, 'student_profile') and student.student_profile:
+                profile = student.student_profile
+                if not certificate.age and profile.age:
+                    initial['age'] = profile.age
+                if (not certificate.gender or certificate.gender == '') and profile.gender:
+                    initial['gender'] = profile.gender
+                if (not certificate.address or certificate.address == '') and profile.address:
+                    initial['address'] = profile.address
+                if (not certificate.patient_name or certificate.patient_name == ''):
+                    # Use student's full name if certificate missing patient_name
+                    initial['patient_name'] = student.get_full_name()
+        except Exception:
+            initial = {}
+
+        # Prefill physician details from the current user when available
+        try:
+            if user and user.role in ['doctor', 'admin']:
+                if not certificate.physician_name and not initial.get('physician_name'):
+                    initial['physician_name'] = user.get_full_name() or user.email or ''
+
+                # license number: try staff_profile then common attributes
+                lic = ''
+                if hasattr(user, 'staff_profile') and getattr(user, 'staff_profile'):
+                    lic = getattr(user.staff_profile, 'license_number', '') or ''
+                lic = lic or getattr(user, 'license_number', '') or getattr(user, 'license_no', '') or ''
+                if lic and not certificate.license_no and not initial.get('license_no'):
+                    initial['license_no'] = lic
+
+                # PTR no: try common attributes on user or staff_profile
+                ptr = getattr(user, 'ptr_no', '') or getattr(user, 'ptrno', '') or ''
+                if not ptr and hasattr(user, 'staff_profile') and getattr(user, 'staff_profile'):
+                    ptr = getattr(user.staff_profile, 'ptr_no', '') or getattr(user.staff_profile, 'ptrno', '') or ''
+                if ptr and not certificate.ptr_no and not initial.get('ptr_no'):
+                    initial['ptr_no'] = ptr
+        except Exception:
+            pass
+
+        form = MedicalCertificateForm(instance=certificate, initial=initial)
         review_form = MedicalCertificateReviewForm(prefix='review', instance=certificate)
 
     context = {

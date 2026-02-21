@@ -50,6 +50,28 @@
                             </div>
                         </div>
 
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Age</label>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.age %}{{ cert_request.student.student_profile.age }}{% else %}-{% endif %}</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Gender</label>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.gender %}{{ cert_request.student.student_profile.get_gender_display|default:cert_request.student.student_profile.gender }}{% else %}-{% endif %}</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-6 mt-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.date_of_birth %}{{ cert_request.student.student_profile.date_of_birth|date:"M d, Y" }}{% else %}-{% endif %}</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Address</label>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.address %}{{ cert_request.student.student_profile.address }}{% else %}-{% endif %}</div>
+                            </div>
+                        </div>
+
                         <!-- Certificate Details -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
@@ -287,6 +309,11 @@
 <script>
 {% if can_process %}
 function processRequest(action) {
+    // For review action, open a confirmation modal
+    if (action === 'review') {
+        openReviewModal();
+        return;
+    }
     if (confirm(`Are you sure you want to ${action} this document request?`)) {
         document.getElementById('actionInput').value = action;
         document.getElementById('processForm').submit();
@@ -304,5 +331,54 @@ function hideRejectForm() {
     document.getElementById('rejection_reason').value = '';
 }
 {% endif %}
+</script>
+
+<!-- Review Confirmation Modal -->
+<div id="reviewModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50" aria-hidden="true" style="display: none;">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="p-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Confirm Review</h3>
+            </div>
+            <div class="p-4">
+                <p class="text-sm text-gray-700">You are about to open the medical certificate for review and editing. Continue?</p>
+            </div>
+            <div class="p-4 flex justify-end space-x-2 border-t border-gray-100">
+                <button type="button" onclick="closeReviewModal()" class="px-4 py-2 bg-gray-200 rounded-md text-sm text-gray-700 hover:bg-gray-300">Cancel</button>
+                <button type="button" onclick="confirmReview()" class="px-4 py-2 bg-blue-600 rounded-md text-sm text-white hover:bg-blue-700">Confirm</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function openReviewModal() {
+    var m = document.getElementById('reviewModal');
+    if (!m) return;
+    m.style.display = 'block';
+}
+function closeReviewModal() {
+    var m = document.getElementById('reviewModal');
+    if (!m) return;
+    m.style.display = 'none';
+}
+function confirmReview() {
+    document.getElementById('actionInput').value = 'review';
+    document.getElementById('processForm').submit();
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+    var m = document.getElementById('reviewModal');
+    if (!m || m.style.display === 'none') return;
+    if (e.target === m) closeReviewModal();
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    var m = document.getElementById('reviewModal');
+    if (!m || m.style.display === 'none') return;
+    if (e.key === 'Escape') closeReviewModal();
+});
 </script>
 {% endblock content %}

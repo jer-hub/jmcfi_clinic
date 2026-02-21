@@ -288,12 +288,32 @@
             <!-- License Number -->
             <div class="form-group">
                 <label for="{{ form.license_number.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Professional License Number <span class="text-gray-400 text-xs">(Optional)</span>
+                    Professional License Number <span class="text-red-600">*</span>
                 </label>
                 {{ form.license_number }}
-                <p class="mt-1 text-xs text-gray-500">Medical or professional license number</p>
+                <p class="mt-1 text-xs text-gray-500">PRC medical or professional license number</p>
                 {% if form.license_number.errors %}
                     {% for error in form.license_number.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- PTR Number -->
+            <div class="form-group">
+                <label for="{{ form.ptr_no.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    PTR No. <span class="text-red-600">*</span>
+                    <span class="text-gray-400 text-xs font-normal">(Professional Tax Receipt)</span>
+                </label>
+                {{ form.ptr_no }}
+                <p class="mt-1 text-xs text-gray-500">Required for issuing medical certificates and official documents</p>
+                {% if form.ptr_no.errors %}
+                    {% for error in form.ptr_no.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">
                             <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>

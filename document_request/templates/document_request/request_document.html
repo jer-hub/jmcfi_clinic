@@ -79,7 +79,7 @@
                         <div class="md:col-span-2">
                             <label for="date_of_birth" class="block text-xs text-gray-600">Date of Birth</label>
                             <input type="date" id="date_of_birth" name="date_of_birth"
-                                   value="{% if student_profile and student_profile.date_of_birth %}{{ student_profile.date_of_birth }}{% endif %}"
+                                   value="{% if student_profile and student_profile.date_of_birth %}{{ student_profile.date_of_birth|date:"Y-m-d" }}{% endif %}"
                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                         </div>
                         <div class="md:col-span-2">

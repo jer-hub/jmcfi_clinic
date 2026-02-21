@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Edit Health Profile - JMCFI Clinic{% endblock %}
 
@@ -156,10 +157,36 @@
                         <input type="text" name="zip_code" value="{{ health_form.zip_code }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
-                        <input type="text" name="mobile_number" value="{{ health_form.mobile_number }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    <div data-phone-wrapper>
+                        <label class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                            </svg>
+                            Mobile Number
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                                <span class="text-base leading-none select-none">🇵🇭</span>
+                            </div>
+                            <input type="text" name="mobile_number" value="{{ health_form.mobile_number }}"
+                                   class="w-full pl-12 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
+                                   data-phone-input="true"
+                                   inputmode="tel"
+                                   autocomplete="tel"
+                                   maxlength="16"
+                                   placeholder="0917 123 4567">
+                        </div>
+                        <div class="mt-1 flex items-center justify-between">
+                            <p class="text-xs text-gray-500 flex items-center">
+                                <svg class="w-3 h-3 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                e.g. 0917 123 4567
+                            </p>
+                            <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400 transition-colors duration-200">
+                                10 digits needed
+                            </span>
+                        </div>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
@@ -190,10 +217,36 @@
                         <input type="text" name="guardian_name" value="{{ health_form.guardian_name }}"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Guardian Contact Number</label>
-                        <input type="text" name="guardian_contact" value="{{ health_form.guardian_contact }}"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                    <div data-phone-wrapper>
+                        <label class="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                            </svg>
+                            Guardian Contact Number
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                                <span class="text-base leading-none select-none">🇵🇭</span>
+                            </div>
+                            <input type="text" name="guardian_contact" value="{{ health_form.guardian_contact }}"
+                                   class="w-full pl-12 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 transition-colors duration-200"
+                                   data-phone-input="true"
+                                   inputmode="tel"
+                                   autocomplete="tel"
+                                   maxlength="16"
+                                   placeholder="0917 123 4567">
+                        </div>
+                        <div class="mt-1 flex items-center justify-between">
+                            <p class="text-xs text-gray-500 flex items-center">
+                                <svg class="w-3 h-3 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                e.g. 0917 123 4567
+                            </p>
+                            <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400 transition-colors duration-200">
+                                10 digits needed
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -791,4 +844,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<script src="{% static 'js/phone-input.js' %}"></script>
 {% endblock %}

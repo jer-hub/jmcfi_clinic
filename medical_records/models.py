@@ -35,7 +35,6 @@ class MedicalRecord(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        db_table = 'management_medicalrecord'  # Keep existing table name
 
     def __str__(self):
         name = f"{self.student.first_name} {self.student.last_name}".strip()

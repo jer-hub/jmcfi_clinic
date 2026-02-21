@@ -11,7 +11,7 @@ urlpatterns = [
     # Submit New Request
     path('request/', views.request_document, name='request_document'),
     
-    # Process Request (Staff/Admin)
+    # Process Request (Doctor/Admin)
     path('process/<int:request_id>/', views.process_document, name='process_document'),
     
     # View Certificate

@@ -7,6 +7,8 @@ from django.core.paginator import Paginator
 from django.urls import reverse
 from django.utils import timezone
 from django.db.models import Q
+from django.core.files.base import ContentFile
+import hashlib
 import json
 
 from core.decorators import role_required
@@ -14,7 +16,7 @@ from core.decorators import role_required
 from .models import (
     HealthProfileForm, DentalHealthForm, DentalFormTooth, DentalFormToothSurface,
     DentalServicesRequest, PatientChart, PatientChartEntry,
-    Prescription, PrescriptionItem, MedicalCertificate,
+    Prescription, PrescriptionItem, MedicalCertificate, DoctorSignature,
 )
 from .forms import (
     HealthProfilePersonalInfoForm,
@@ -38,6 +40,7 @@ from .forms import (
     PrescriptionReviewForm,
     MedicalCertificateForm,
     MedicalCertificateReviewForm,
+    DoctorSignatureForm,
 )
 
 
@@ -1276,8 +1279,77 @@ def delete_prescription_item(request, pk, item_id):
 
 # ========== MEDICAL CERTIFICATE VIEWS (F-HSS-20-0005) ==========
 
+def _apply_medical_certificate_signature(certificate, signing_user):
+    """Capture immutable signature snapshot when a certificate is completed."""
+    if (
+        certificate.signature_snapshot
+        and certificate.signature_hash
+        and certificate.signed_by_id
+        and certificate.signed_at
+    ):
+        return True, None
+
+    if signing_user.role != 'doctor':
+        return False, 'Only a doctor account with an active signature can mark this certificate as completed.'
+
+    signature = DoctorSignature.objects.filter(doctor=signing_user, is_active=True).first()
+    if not signature or not signature.signature_image:
+        return False, 'No active doctor signature found. Please upload your signature first.'
+
+    signature.signature_image.open('rb')
+    signature_bytes = signature.signature_image.read()
+    signature.signature_image.close()
+    if not signature_bytes:
+        return False, 'Doctor signature file is empty. Please upload a valid signature image.'
+
+    signature_name = signature.signature_image.name.rsplit('/', 1)[-1]
+    certificate.signature_snapshot.save(
+        f'cert_{certificate.pk}_{signing_user.pk}_{signature_name}',
+        ContentFile(signature_bytes),
+        save=False,
+    )
+    certificate.signature_hash = hashlib.sha256(signature_bytes).hexdigest()
+    certificate.signed_by = signing_user
+    certificate.signed_at = timezone.now()
+
+    if not certificate.physician_name:
+        certificate.physician_name = signing_user.get_full_name() or signing_user.email
+
+    return True, None
+
+
+def _doctor_missing_active_signature(user):
+    """Return True when current user is a doctor without an active signature."""
+    if not user.is_authenticated or user.role != 'doctor':
+        return False
+    return not DoctorSignature.objects.filter(doctor=user, is_active=True).exists()
+
+
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
+def my_signature(request):
+    """Doctor self-service page for managing active signature."""
+    signature = DoctorSignature.objects.filter(doctor=request.user).first()
+
+    if request.method == 'POST':
+        form = DoctorSignatureForm(request.POST, request.FILES, instance=signature)
+        if form.is_valid():
+            signature = form.save(commit=False)
+            signature.doctor = request.user
+            signature.updated_by = request.user
+            signature.save()
+            messages.success(request, 'Your signature has been updated successfully.')
+            return redirect('health_forms_services:my_signature')
+    else:
+        form = DoctorSignatureForm(instance=signature)
+
+    return render(request, 'health_forms_services/my_signature.html', {
+        'form': form,
+        'signature': signature,
+    })
+
+@login_required
+@role_required('doctor', 'admin')
 def medical_certificate_list(request):
     """List medical certificates"""
     user = request.user
@@ -1311,6 +1383,7 @@ def medical_certificate_list(request):
         'status_filter': status_filter,
         'status_choices': MedicalCertificate.Status.choices,
         'create_url': reverse('health_forms_services:create_medical_certificate'),
+        'missing_signature_warning': _doctor_missing_active_signature(user),
     }
 
     return render(request, 'health_forms_services/medical_certificate_list.html', context)
@@ -1321,15 +1394,20 @@ def medical_certificate_detail(request, pk):
     """View medical certificate details"""
     user = request.user
 
-    if user.role in ['staff', 'doctor', 'admin']:
+    if user.role not in ['doctor', 'admin']:
+        messages.error(request, 'Access denied.')
+        return redirect('core:dashboard')
+
+    if user.role in ['doctor', 'admin']:
         certificate = get_object_or_404(MedicalCertificate, pk=pk)
     else:
         certificate = get_object_or_404(MedicalCertificate, pk=pk, user=user)
 
     context = {
         'certificate': certificate,
-        'can_edit': user.role in ['staff', 'doctor', 'admin'],
-        'can_review': user.role in ['staff', 'doctor', 'admin'],
+        'can_edit': user.role in ['doctor', 'admin'],
+        'can_review': user.role in ['doctor', 'admin'],
+        'missing_signature_warning': _doctor_missing_active_signature(user),
     }
 
     return render(request, 'health_forms_services/medical_certificate_detail.html', context)
@@ -1340,8 +1418,8 @@ def edit_medical_certificate(request, pk):
     """Edit a medical certificate"""
     user = request.user
 
-    # Only staff, doctors, and admins can edit medical certificates
-    if user.role not in ['staff', 'doctor', 'admin']:
+    # Only doctors and admins can edit medical certificates
+    if user.role not in ['doctor', 'admin']:
         messages.error(request, 'You do not have permission to edit medical certificates.')
         return redirect('health_forms_services:medical_certificate_detail', pk=pk)
 
@@ -1351,22 +1429,41 @@ def edit_medical_certificate(request, pk):
     linked_doc_requests = certificate.document_requests.select_related('student').all()
 
     if request.method == 'POST':
+        previous_status = certificate.status
         form = MedicalCertificateForm(request.POST, instance=certificate)
         review_form = MedicalCertificateReviewForm(request.POST, prefix='review', instance=certificate)
         
-        if form.is_valid():
-            form.save()
-            
-            # Also process the review/status section if submitted
-            if review_form.is_valid() and review_form.has_changed():
-                cert = review_form.save(commit=False)
-                cert.reviewed_by = request.user
-                cert.reviewed_at = timezone.now()
-                cert.save()
+        if form.is_valid() and review_form.is_valid():
+            certificate = form.save(commit=False)
+
+            if review_form.has_changed():
+                certificate.status = review_form.cleaned_data.get('status', certificate.status)
+                certificate.review_notes = review_form.cleaned_data.get('review_notes', certificate.review_notes)
+                certificate.reviewed_by = request.user
+                certificate.reviewed_at = timezone.now()
+
+            if (
+                certificate.status == MedicalCertificate.Status.COMPLETED
+                and previous_status != MedicalCertificate.Status.COMPLETED
+            ):
+                signature_ok, signature_error = _apply_medical_certificate_signature(certificate, request.user)
+                if not signature_ok:
+                    messages.error(request, signature_error)
+                    context = {
+                        'certificate': certificate,
+                        'form': form,
+                        'review_form': review_form,
+                        'linked_doc_requests': linked_doc_requests,
+                    }
+                    return render(request, 'health_forms_services/edit_medical_certificate.html', context)
+
+            certificate.save()
+
+            if review_form.has_changed():
                 messages.success(request, f'Medical certificate saved and status updated to {certificate.get_status_display()}.')
             else:
                 messages.success(request, 'Medical certificate updated successfully.')
-            
+
             return redirect('health_forms_services:medical_certificate_detail', pk=pk)
     else:
         form = MedicalCertificateForm(instance=certificate)
@@ -1377,13 +1474,14 @@ def edit_medical_certificate(request, pk):
         'form': form,
         'review_form': review_form,
         'linked_doc_requests': linked_doc_requests,
+        'missing_signature_warning': _doctor_missing_active_signature(user),
     }
 
     return render(request, 'health_forms_services/edit_medical_certificate.html', context)
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor', 'admin')
 def create_medical_certificate(request):
     """Create a new medical certificate"""
     if request.method == 'POST':
@@ -1410,17 +1508,28 @@ def create_medical_certificate(request):
 @require_POST
 def review_medical_certificate(request, pk):
     """Review and approve/reject medical certificate"""
-    if request.user.role not in ['staff', 'doctor', 'admin']:
+    if request.user.role not in ['doctor', 'admin']:
         messages.error(request, 'Permission denied.')
         return redirect('health_forms_services:medical_certificate_detail', pk=pk)
 
     certificate = get_object_or_404(MedicalCertificate, pk=pk)
+    previous_status = certificate.status
 
     form = MedicalCertificateReviewForm(request.POST, instance=certificate)
     if form.is_valid():
         certificate = form.save(commit=False)
         certificate.reviewed_by = request.user
         certificate.reviewed_at = timezone.now()
+
+        if (
+            certificate.status == MedicalCertificate.Status.COMPLETED
+            and previous_status != MedicalCertificate.Status.COMPLETED
+        ):
+            signature_ok, signature_error = _apply_medical_certificate_signature(certificate, request.user)
+            if not signature_ok:
+                messages.error(request, signature_error)
+                return redirect('health_forms_services:medical_certificate_detail', pk=pk)
+
         certificate.save()
 
         messages.success(request, f'Certificate status updated to {certificate.get_status_display()}.')
@@ -1431,7 +1540,7 @@ def review_medical_certificate(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor', 'admin')
 def delete_medical_certificate(request, pk):
     """Delete a medical certificate"""
     user = request.user
@@ -1520,8 +1629,12 @@ def export_prescription_docx(request, pk):
 def export_medical_certificate_docx(request, pk):
     """Export Medical Certificate as printable HTML (mirrors the official PDF form)."""
     user = request.user
+
+    if user.role not in ['doctor', 'admin']:
+        messages.error(request, 'Access denied.')
+        return redirect('core:dashboard')
     
-    if user.role in ['staff', 'doctor', 'admin']:
+    if user.role in ['doctor', 'admin']:
         cert = get_object_or_404(MedicalCertificate, pk=pk)
     else:
         cert = get_object_or_404(MedicalCertificate, pk=pk, user=user)

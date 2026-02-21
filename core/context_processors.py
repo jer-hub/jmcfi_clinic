@@ -21,7 +21,7 @@ def notification_context(request):
 
 def profile_context(request):
     """Add profile completion status to context for authenticated users"""
-    if request.user.is_authenticated and request.user.role in ['student', 'staff']:
+    if request.user.is_authenticated and request.user.role in ['student', 'staff', 'doctor']:
         profile_complete = is_profile_complete(request.user)
         missing_fields = get_missing_profile_fields(request.user) if not profile_complete else []
         

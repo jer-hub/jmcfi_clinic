@@ -875,6 +875,36 @@ class PrescriptionItem(models.Model):
         return f"{self.medication_name} — {self.prescription}"
 
 
+class DoctorSignature(models.Model):
+    """Single active signature file per doctor for certificate signing."""
+
+    doctor = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='doctor_signature',
+        limit_choices_to={'role': 'doctor'},
+    )
+    signature_image = models.ImageField(upload_to='signatures/doctors/')
+    is_active = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='updated_doctor_signatures',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['doctor__last_name', 'doctor__first_name']
+        verbose_name = 'Doctor Signature'
+        verbose_name_plural = 'Doctor Signatures'
+
+    def __str__(self):
+        return f"Signature - {self.doctor.get_full_name() or self.doctor.email}"
+
+
 class MedicalCertificate(models.Model):
     """Medical Certificate Form — F-HSS-20-0005
     
@@ -928,6 +958,18 @@ class MedicalCertificate(models.Model):
     physician_name = models.CharField(max_length=200, blank=True)
     license_no = models.CharField(max_length=100, blank=True)
     ptr_no = models.CharField(max_length=100, blank=True, verbose_name='PTR No.')
+
+    # Signing snapshot (immutable proof captured at completion time)
+    signed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='signed_medical_certificates'
+    )
+    signed_at = models.DateTimeField(blank=True, null=True)
+    signature_snapshot = models.ImageField(upload_to='signatures/certificate_snapshots/', blank=True)
+    signature_hash = models.CharField(max_length=64, blank=True)
 
     class Meta:
         ordering = ['-created_at']

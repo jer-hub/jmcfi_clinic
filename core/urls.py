@@ -21,6 +21,7 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/quick-edit/', views.quick_edit_profile, name='quick_edit_profile'),
+    path('profile/required/', views.profile_required, name='profile_required'),
     
     # User Management (Admin Only)
     path('users/', views.user_management, name='user_management'),

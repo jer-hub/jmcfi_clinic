@@ -1,7 +1,8 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import HealthProfileForm, DentalHealthForm, DentalServicesRequest, PatientChart, PatientChartEntry, Prescription, PrescriptionItem, MedicalCertificate
+from core.utils import clean_philippine_phone
+from .models import HealthProfileForm, DentalHealthForm, DentalServicesRequest, PatientChart, PatientChartEntry, Prescription, PrescriptionItem, MedicalCertificate, DoctorSignature
 
 User = get_user_model()
 
@@ -35,12 +36,26 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'age': forms.NumberInput(attrs={'class': 'form-input'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'email_address': forms.EmailInput(attrs={'class': 'form-input'}),
-            'mobile_number': forms.TextInput(attrs={'class': 'form-input'}),
+            'mobile_number': forms.TextInput(attrs={
+                'class': 'form-input pl-12 pr-10',
+                'data-phone-input': 'true',
+                'placeholder': '0917 123 4567',
+                'inputmode': 'tel',
+                'autocomplete': 'tel',
+                'maxlength': '16',
+            }),
             'telephone_number': forms.TextInput(attrs={'class': 'form-input'}),
             'designation': forms.Select(attrs={'class': 'form-select'}),
             'department_college_office': forms.TextInput(attrs={'class': 'form-input'}),
             'guardian_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'guardian_contact': forms.TextInput(attrs={'class': 'form-input'}),
+            'guardian_contact': forms.TextInput(attrs={
+                'class': 'form-input pl-12 pr-10',
+                'data-phone-input': 'true',
+                'placeholder': '0917 123 4567',
+                'inputmode': 'tel',
+                'autocomplete': 'tel',
+                'maxlength': '16',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -53,6 +68,12 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
         for name in required_fields:
             if name in self.fields:
                 self.fields[name].required = True
+
+    def clean_mobile_number(self):
+        return clean_philippine_phone(self.cleaned_data.get('mobile_number'))
+
+    def clean_guardian_contact(self):
+        return clean_philippine_phone(self.cleaned_data.get('guardian_contact'))
 
 
 class HealthProfileMedicalHistoryForm(forms.ModelForm):
@@ -323,12 +344,20 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
             'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
             'place_of_birth': forms.TextInput(attrs={'class': 'form-input'}),
             'email_address': forms.EmailInput(attrs={'class': 'form-input'}),
-            'contact_number': forms.TextInput(attrs={'class': 'form-input'}),
+            'contact_number': forms.TextInput(attrs={
+                'class': 'form-input pl-12',
+                'data-phone-input': 'true',
+                'placeholder': '+639171234567 or 09171234567'
+            }),
             'telephone_number': forms.TextInput(attrs={'class': 'form-input'}),
             'designation': forms.Select(attrs={'class': 'form-select'}),
             'department_college_office': forms.TextInput(attrs={'class': 'form-input'}),
             'guardian_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'guardian_contact': forms.TextInput(attrs={'class': 'form-input'}),
+            'guardian_contact': forms.TextInput(attrs={
+                'class': 'form-input pl-12',
+                'data-phone-input': 'true',
+                'placeholder': '+639171234567 or 09171234567'
+            }),
             'date_of_examination': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
         }
 
@@ -481,12 +510,20 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
             'email_address': forms.EmailInput(attrs={'class': 'form-input'}),
-            'contact_number': forms.TextInput(attrs={'class': 'form-input'}),
+            'contact_number': forms.TextInput(attrs={
+                'class': 'form-input pl-12',
+                'data-phone-input': 'true',
+                'placeholder': '+639171234567 or 09171234567'
+            }),
             'telephone_number': forms.TextInput(attrs={'class': 'form-input'}),
             'designation': forms.Select(attrs={'class': 'form-select'}),
             'department_college_office': forms.TextInput(attrs={'class': 'form-input'}),
             'guardian_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'guardian_contact': forms.TextInput(attrs={'class': 'form-input'}),
+            'guardian_contact': forms.TextInput(attrs={
+                'class': 'form-input pl-12',
+                'data-phone-input': 'true',
+                'placeholder': '+639171234567 or 09171234567'
+            }),
         }
 
 
@@ -540,7 +577,11 @@ class DentalServicesPersonalInfoForm(forms.ModelForm):
             'age': forms.NumberInput(attrs={'class': 'form-input'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
-            'contact_number': forms.TextInput(attrs={'class': 'form-input'}),
+            'contact_number': forms.TextInput(attrs={
+                'class': 'form-input pl-12',
+                'data-phone-input': 'true',
+                'placeholder': '+639171234567 or 09171234567'
+            }),
             'department': forms.TextInput(attrs={'class': 'form-input'}),
         }
 
@@ -769,3 +810,29 @@ class MedicalCertificateReviewForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-select'}),
             'review_notes': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 4}),
         }
+
+
+class DoctorSignatureForm(forms.ModelForm):
+    """Doctor self-service form for uploading and managing signature."""
+
+    class Meta:
+        model = DoctorSignature
+        fields = ['signature_image', 'is_active']
+        widgets = {
+            'signature_image': forms.ClearableFileInput(attrs={
+                'class': 'form-input',
+                'accept': 'image/png,image/jpeg,image/jpg,image/webp',
+            }),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance or not self.instance.pk or not self.instance.signature_image:
+            self.fields['signature_image'].required = True
+
+    def clean_signature_image(self):
+        signature_image = self.cleaned_data.get('signature_image')
+        if signature_image is None and self.instance and self.instance.pk and self.instance.signature_image:
+            return self.instance.signature_image
+        return signature_image

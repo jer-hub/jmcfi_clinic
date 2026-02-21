@@ -67,4 +67,5 @@ urlpatterns = [
     path('medical-certificate/<int:pk>/review/', views.review_medical_certificate, name='review_medical_certificate'),
     path('medical-certificate/<int:pk>/delete/', views.delete_medical_certificate, name='delete_medical_certificate'),
     path('medical-certificate/<int:pk>/export/docx/', views.export_medical_certificate_docx, name='export_medical_certificate_docx'),
+    path('medical-certificate/my-signature/', views.my_signature, name='my_signature'),
 ]

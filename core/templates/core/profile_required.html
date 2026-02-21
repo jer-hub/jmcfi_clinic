@@ -4,67 +4,70 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8">
-        <!-- Icon -->
+    <div class="max-w-lg w-full space-y-8">
+
+        <!-- Icon + Heading -->
         <div class="text-center">
             <div class="mx-auto h-20 w-20 flex items-center justify-center rounded-full bg-blue-100">
                 <svg class="h-12 w-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                 </svg>
             </div>
+            <h2 class="mt-4 text-2xl font-bold text-gray-900">Profile Setup Required</h2>
+            <p class="mt-2 text-gray-600">
+                Please complete your profile to gain access to the clinic management system.
+            </p>
         </div>
 
-        <!-- Heading -->
-        <div class="text-center">
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">
-                Profile Setup Required
-            </h2>
-            <p class="text-gray-600 mb-4">
-                Complete your profile to access the clinic management system
-            </p>
-            
-            {% if missing_fields %}
-            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
-                <div class="flex">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-yellow-800">
-                            Required Information Missing
-                        </h3>
-                        <div class="mt-2 text-sm text-yellow-700">
-                            <p>Please complete the following required fields:</p>
-                            <ul class="list-disc list-inside mt-1 space-y-1">
-                                {% for field in missing_fields %}
-                                <li>{{ field }}</li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
+        <!-- Missing Fields -->
+        {% if missing_fields %}
+        <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-yellow-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd"
+                              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742
+                                 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1
+                                 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                              clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-semibold text-yellow-800">
+                        The following required fields are missing:
+                    </h3>
+                    <ul class="mt-2 text-sm text-yellow-700 list-disc list-inside space-y-1">
+                        {% for label in missing_fields %}
+                        <li>{{ label }}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
-            {% endif %}
         </div>
+        {% endif %}
 
-        <!-- Action -->
+        <!-- Actions -->
         <div class="space-y-4">
-            <a href="{% url 'core:edit_profile' %}" 
-               class="w-full flex justify-center items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+            <a href="{% url 'core:edit_profile' %}"
+               class="w-full flex justify-center items-center px-6 py-3 border border-transparent text-base
+                      font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none
+                      focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0
+                             112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
                 </svg>
-                Complete Profile
+                Complete My Profile
             </a>
-            
+
             <div class="text-center">
                 <a href="{% url 'account_logout' %}" class="text-sm text-gray-500 hover:text-gray-700">
                     Sign out instead
                 </a>
             </div>
         </div>
+
     </div>
 </div>
 {% endblock content %}

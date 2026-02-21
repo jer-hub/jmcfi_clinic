@@ -192,6 +192,7 @@ class StaffProfileForm(forms.ModelForm):
             'address', 'phone', 'telephone_number', 'emergency_contact', 'emergency_phone',
             # Institutional Information
             'department', 'position', 'specialization', 'license_number',
+            'ptr_no',
             # Medical Information
             'blood_type', 'allergies', 'medical_conditions'
         ]
@@ -280,6 +281,10 @@ class StaffProfileForm(forms.ModelForm):
                 'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-mono',
                 'placeholder': 'Medical license number'
             }),
+            'ptr_no': forms.TextInput(attrs={
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-mono',
+                'placeholder': 'PTR No. / Professional Tax Receipt'
+            }),
         }
 
     def __init__(self, *args, **kwargs):
@@ -298,6 +303,12 @@ class StaffProfileForm(forms.ModelForm):
         for field_name in required_fields:
             if field_name in self.fields:
                 self.fields[field_name].required = True
+
+        # Make license and PTR required for medical staff (doctors)
+        if 'license_number' in self.fields:
+            self.fields['license_number'].required = True
+        if 'ptr_no' in self.fields:
+            self.fields['ptr_no'].required = True
 
     def clean_phone(self):
         return clean_philippine_phone(self.cleaned_data.get('phone'))

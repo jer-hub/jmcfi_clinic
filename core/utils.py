@@ -112,7 +112,9 @@ def is_student_profile_complete(profile):
 def is_staff_profile_complete(profile):
     """Check if staff profile is complete with all required fields"""
     required_fields = [
-        'staff_id', 'department', 'phone'
+        'staff_id', 'department', 'phone',
+        # Professional / licensing fields required for clinical staff
+        'license_number', 'ptr_no',
     ]
     
     for field in required_fields:
@@ -123,36 +125,52 @@ def is_staff_profile_complete(profile):
     return True
 
 
+# Human-readable labels for profile fields shown on the "profile required" page
+FIELD_LABELS = {
+    'student_id':        'Student ID',
+    'date_of_birth':     'Date of Birth',
+    'phone':             'Phone Number',
+    'emergency_contact': 'Emergency Contact Name',
+    'emergency_phone':   'Emergency Contact Number',
+    'blood_type':        'Blood Type',
+    'staff_id':          'Staff ID',
+    'department':        'Department',
+    'license_number':    'License Number',
+    'ptr_no':            'PTR No. (Professional Tax Receipt)',
+}
+
+# Required fields per role
+STUDENT_REQUIRED = [
+    'student_id', 'date_of_birth', 'phone',
+    'emergency_contact', 'emergency_phone', 'blood_type',
+]
+STAFF_REQUIRED = [
+    'staff_id', 'department', 'phone',
+    'license_number', 'ptr_no',
+]
+
+
 def get_missing_profile_fields(user):
-    """Get list of missing required fields for user's profile"""
+    """Return a list of (field_name, friendly_label) tuples for missing required fields."""
     profile = get_user_profile(user)
-    missing_fields = []
-    
-    if not profile:
-        if user.role == 'student':
-            return ['student_id', 'date_of_birth', 'phone', 'emergency_contact', 'emergency_phone', 'blood_type']
-        elif user.role == 'staff':
-            return ['staff_id', 'department', 'phone']
-        return []
 
     if user.role == 'student':
-        required_fields = [
-            'student_id', 'date_of_birth', 'phone', 
-            'emergency_contact', 'emergency_phone', 'blood_type'
-        ]
-    elif user.role == 'staff':
-        required_fields = [
-            'staff_id', 'department', 'phone'
-        ]
+        required_fields = STUDENT_REQUIRED
+    elif user.role in ['staff', 'doctor']:
+        required_fields = STAFF_REQUIRED
     else:
         return []
-    
+
+    if not profile:
+        # Profile doesn't exist yet — all required fields are missing
+        return [(f, FIELD_LABELS.get(f, f.replace('_', ' ').title())) for f in required_fields]
+
+    missing = []
     for field in required_fields:
         value = getattr(profile, field, None)
         if not value or (isinstance(value, str) and not value.strip()):
-            missing_fields.append(field)
-    
-    return missing_fields
+            missing.append((field, FIELD_LABELS.get(field, field.replace('_', ' ').title())))
+    return missing
 
 
 def check_permission(user, obj, field='user'):

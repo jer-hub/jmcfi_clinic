@@ -132,17 +132,32 @@ def request_document(request):
             
             # Auto-create a new MedicalCertificate for this student
             student = request.user
-            
-            # Get student profile data for auto-filling
+
+            # Allow submitted profile overrides (age/gender/address) -- fall back to stored profile
+            posted_age = request.POST.get('age')
+            posted_gender = request.POST.get('gender')
+            posted_address = request.POST.get('address')
+
             profile_data = {}
-            if hasattr(student, 'student_profile') and student.student_profile:
-                profile = student.student_profile
+            if posted_age or posted_gender or posted_address:
+                try:
+                    age_val = int(posted_age) if posted_age else None
+                except Exception:
+                    age_val = None
                 profile_data = {
-                    'age': profile.age,
-                    'gender': profile.gender,
-                    'address': profile.address,
+                    'age': age_val,
+                    'gender': posted_gender or '',
+                    'address': posted_address or '',
                 }
-            
+            else:
+                if hasattr(student, 'student_profile') and student.student_profile:
+                    profile = student.student_profile
+                    profile_data = {
+                        'age': profile.age,
+                        'gender': profile.gender,
+                        'address': profile.address,
+                    }
+
             cert = MedicalCertificate.objects.create(
                 user=student,
                 status=MedicalCertificate.Status.PENDING,
@@ -150,7 +165,7 @@ def request_document(request):
                 patient_name=student.get_full_name(),
                 consultation_date=timezone.now().date(),
                 remarks_recommendations=additional_info or '',
-                **profile_data  # Auto-fill age, gender, address from student profile
+                **profile_data  # Auto-fill age, gender, address from student profile or submitted values
             )
             
             # Link the certificate to the request
@@ -183,6 +198,10 @@ def request_document(request):
     context = {
         'certificate_types': DocumentRequest.DOCUMENT_TYPES,
     }
+
+    # Include student profile data for pre-filling the form when available
+    if hasattr(request.user, 'student_profile') and request.user.student_profile:
+        context['student_profile'] = request.user.student_profile
     
     return render(request, 'document_request/request_document.html', context)
 

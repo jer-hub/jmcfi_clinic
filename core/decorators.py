@@ -96,10 +96,24 @@ def _is_staff_profile_complete(profile):
     required_fields = [
         'staff_id', 'department', 'phone'
     ]
-    
+
     for field in required_fields:
         value = getattr(profile, field, None)
         if not value or (isinstance(value, str) and not value.strip()):
             return False
-    
+
+    # If this staff member is a doctor, require professional credentials
+    try:
+        user = getattr(profile, 'user', None)
+        if user and getattr(user, 'role', '') == 'doctor':
+            # license_number and ptr_no must be present
+            lic = getattr(profile, 'license_number', None)
+            ptr = getattr(profile, 'ptr_no', None)
+            if not lic or (isinstance(lic, str) and not lic.strip()):
+                return False
+            if not ptr or (isinstance(ptr, str) and not ptr.strip()):
+                return False
+    except Exception:
+        return False
+
     return True

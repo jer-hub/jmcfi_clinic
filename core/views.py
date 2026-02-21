@@ -33,19 +33,14 @@ def logout_view(request):
 
 @login_required
 def profile_required(request):
-    """View to show profile completion required page"""
+    """View to show profile completion required page – access to all services is blocked."""
     from .utils import get_missing_profile_fields
-    missing_fields = get_missing_profile_fields(request.user)
-    
-    # Format field names for display
-    formatted_fields = []
-    for field in missing_fields:
-        # Replace underscores with spaces and title case
-        formatted_field = field.replace('_', ' ').title()
-        formatted_fields.append(formatted_field)
-    
+    # Returns a list of (field_name, friendly_label) tuples
+    missing = get_missing_profile_fields(request.user)
+    # Pass only the labels to the template
+    missing_labels = [label for _field, label in missing]
     return render(request, 'core/profile_required.html', {
-        'missing_fields': formatted_fields
+        'missing_fields': missing_labels,
     })
 
 

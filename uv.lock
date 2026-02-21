@@ -163,83 +163,46 @@ wheels = [
 [[package]]
 name = "jmcfi-clinic"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
-    { name = "asgiref" },
-    { name = "certifi" },
-    { name = "cffi" },
-    { name = "charset-normalizer" },
-    { name = "cryptography" },
     { name = "django" },
     { name = "django-allauth", extra = ["socialaccount"] },
-    { name = "django-extensions" },
-    { name = "idna" },
-    { name = "jwt" },
     { name = "markdown" },
     { name = "pillow" },
     { name = "psycopg2-binary" },
-    { name = "pycparser" },
-    { name = "pydot" },
-    { name = "pyjwt" },
-    { name = "pyparsing" },
+    { name = "pyjwt", extra = ["crypto"] },
     { name = "python-decouple" },
     { name = "python-docx" },
     { name = "requests" },
-    { name = "ruff" },
-    { name = "setuptools" },
-    { name = "sqlparse" },
-    { name = "typing-extensions" },
-    { name = "tzdata" },
-    { name = "urllib3" },
-    { name = "uv" },
-    { name = "wheel" },
     { name = "whitenoise" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "django-extensions" },
+    { name = "pydot" },
+    { name = "ruff" },
+    { name = "uv" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "asgiref", specifier = "==3.8.1" },
-    { name = "certifi", specifier = "==2025.8.3" },
-    { name = "cffi", specifier = "==1.17.1" },
-    { name = "charset-normalizer", specifier = "==3.4.3" },
-    { name = "cryptography", specifier = "==45.0.6" },
     { name = "django", specifier = "==5.2" },
     { name = "django-allauth", extras = ["google", "socialaccount"], specifier = "==65.10.0" },
-    { name = "django-extensions", specifier = "==4.1" },
-    { name = "idna", specifier = "==3.10" },
-    { name = "jwt", specifier = ">=1.4.0" },
+    { name = "django-extensions", marker = "extra == 'dev'", specifier = "==4.1" },
     { name = "markdown", specifier = "==3.10.1" },
     { name = "pillow", specifier = "==12.1.0" },
     { name = "psycopg2-binary", specifier = "==2.9.10" },
-    { name = "pycparser", specifier = "==2.22" },
-    { name = "pydot", specifier = "==4.0.1" },
-    { name = "pyjwt", specifier = "==2.10.1" },
-    { name = "pyparsing", specifier = "==3.3.2" },
+    { name = "pydot", marker = "extra == 'dev'", specifier = "==4.0.1" },
+    { name = "pyjwt", extras = ["crypto"], specifier = "==2.10.1" },
     { name = "python-decouple", specifier = "==3.8" },
     { name = "python-docx", specifier = ">=1.2.0" },
     { name = "requests", specifier = "==2.32.4" },
-    { name = "ruff", specifier = "==0.11.5" },
-    { name = "setuptools", specifier = "==75.8.0" },
-    { name = "sqlparse", specifier = "==0.5.3" },
-    { name = "typing-extensions", specifier = "==4.12.2" },
-    { name = "tzdata", specifier = "==2025.2" },
-    { name = "urllib3", specifier = "==2.5.0" },
-    { name = "uv", specifier = "==0.6.14" },
-    { name = "wheel", specifier = "==0.45.1" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = "==0.11.5" },
+    { name = "uv", marker = "extra == 'dev'", specifier = "==0.6.14" },
     { name = "whitenoise", specifier = "==6.9.0" },
 ]
-
-[[package]]
-name = "jwt"
-version = "1.4.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "cryptography" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/7f/20/21254c9e601e6c29445d1e8854c2a81bdb554e07a82fb1f9846137a6965c/jwt-1.4.0.tar.gz", hash = "sha256:f6f789128ac247142c79ee10f3dba6e366ec4e77c9920d18c1592e28aa0a7952", size = 24911 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b9/80/34e3fae850adb0b7b8b9b1cf02b2d975fcb68e0e8eb7d56d6b4fc23f7433/jwt-1.4.0-py3-none-any.whl", hash = "sha256:7560a7f1de4f90de94ac645ee0303ac60c95b9e08e058fb69f6c330f71d71b11", size = 18248 },
-]
+provides-extras = ["dev"]
 
 [[package]]
 name = "lxml"
@@ -505,15 +468,6 @@ wheels = [
 ]
 
 [[package]]
-name = "setuptools"
-version = "75.8.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/92/ec/089608b791d210aec4e7f97488e67ab0d33add3efccb83a056cbafe3a2a6/setuptools-75.8.0.tar.gz", hash = "sha256:c5afc8f407c626b8313a86e10311dd3f661c6cd9c09d4bf8c15c0e11f9f2b0e6", size = 1343222 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/69/8a/b9dc7678803429e4a3bc9ba462fa3dd9066824d3c607490235c6a796be5a/setuptools-75.8.0-py3-none-any.whl", hash = "sha256:e3982f444617239225d675215d51f6ba05f845d4eec313da4418fdbb56fb27e3", size = 1228782 },
-]
-
-[[package]]
 name = "sqlparse"
 version = "0.5.3"
 source = { registry = "https://pypi.org/simple" }
@@ -572,15 +526,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d8/fe/087d5193603e16bc5f67556d94cf8fa8634785c5863cccdec825f14e9a4c/uv-0.6.14-py3-none-win32.whl", hash = "sha256:7cdf3c8d927b07d4eaffc44809eb57523d449705f10dabbdd6f34f7bdfc7d5fe", size = 16131231 },
     { url = "https://files.pythonhosted.org/packages/40/17/33c5c1503c35c874932d4a21ec10a55051e3695dba12b7de700bcfad0cca/uv-0.6.14-py3-none-win_amd64.whl", hash = "sha256:012f46bef6909209c4a6749e4019eb755ba762d37d7ceaaf76da9cb4b7f771e9", size = 17628508 },
     { url = "https://files.pythonhosted.org/packages/77/09/163062d439ddc0d89e527ae0e631abf1f7781b183442d8823c48af368f5d/uv-0.6.14-py3-none-win_arm64.whl", hash = "sha256:7465081b4d0b213d0055ccb48de7fe546b5cf0853c6d3601115760760634f6d8", size = 16387232 },
-]
-
-[[package]]
-name = "wheel"
-version = "0.45.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/8a/98/2d9906746cdc6a6ef809ae6338005b3f21bb568bea3165cfc6a243fdc25c/wheel-0.45.1.tar.gz", hash = "sha256:661e1abd9198507b1409a20c02106d9670b2576e916d58f520316666abca6729", size = 107545 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/2c/87f3254fd8ffd29e4c02732eee68a83a1d3c346ae39bc6822dcbcb697f2b/wheel-0.45.1-py3-none-any.whl", hash = "sha256:708e7481cc80179af0e556bbf0cc00b8444c7321e2700b8d8580231d13017248", size = 72494 },
 ]
 
 [[package]]

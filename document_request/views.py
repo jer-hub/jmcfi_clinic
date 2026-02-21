@@ -77,7 +77,14 @@ def request_document(request):
     if request.user.role != 'student':
         messages.error(request, 'Only students can request certificates')
         return redirect('core:dashboard')
-    
+
+    # Base context used for all renders (GET and POST error paths)
+    base_context = {
+        'certificate_types': DocumentRequest.DOCUMENT_TYPES,
+    }
+    if hasattr(request.user, 'student_profile') and request.user.student_profile:
+        base_context['student_profile'] = request.user.student_profile
+
     if request.method == 'POST':
         document_type = request.POST.get('certificate_type') or request.POST.get('document_type')
         purpose = request.POST.get('purpose')
@@ -94,17 +101,13 @@ def request_document(request):
         if validation_errors:
             for error in validation_errors:
                 messages.error(request, error)
-            return render(request, 'document_request/request_document.html', {
-                'certificate_types': DocumentRequest.DOCUMENT_TYPES,
-            })
+            return render(request, 'document_request/request_document.html', base_context)
         
         # Check if document type is valid
         valid_types = [choice[0] for choice in DocumentRequest.DOCUMENT_TYPES]
         if document_type not in valid_types:
             messages.error(request, 'Invalid certificate type selected.')
-            return render(request, 'document_request/request_document.html', {
-                'certificate_types': DocumentRequest.DOCUMENT_TYPES,
-            })
+            return render(request, 'document_request/request_document.html', base_context)
         
         # Check for existing pending requests (prevent duplicate pending requests)
         pending_request = DocumentRequest.objects.filter(
@@ -191,19 +194,9 @@ def request_document(request):
             
         except Exception as e:
             messages.error(request, 'An error occurred while submitting your request. Please try again.')
-            return render(request, 'document_request/request_document.html', {
-                'certificate_types': DocumentRequest.DOCUMENT_TYPES,
-            })
-    
-    context = {
-        'certificate_types': DocumentRequest.DOCUMENT_TYPES,
-    }
+            return render(request, 'document_request/request_document.html', base_context)
 
-    # Include student profile data for pre-filling the form when available
-    if hasattr(request.user, 'student_profile') and request.user.student_profile:
-        context['student_profile'] = request.user.student_profile
-    
-    return render(request, 'document_request/request_document.html', context)
+    return render(request, 'document_request/request_document.html', base_context)
 
 
 @login_required

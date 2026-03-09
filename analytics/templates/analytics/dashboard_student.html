@@ -1,0 +1,99 @@
+{% extends "core/base.html" %}
+{% block title %}My Health Summary{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <!-- Header -->
+    <div class="mb-6 sm:mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+        <svg class="inline-block w-8 h-8 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        My Health Summary
+      </h1>
+      <p class="mt-1 text-sm text-gray-500">Your personal health analytics</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white rounded-lg shadow p-4 sm:p-5 flex items-center">
+        <div class="flex-shrink-0 bg-primary-100 rounded-full p-3 mr-4">
+          <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Medical Records</p>
+          <p class="text-2xl font-bold text-gray-900">{{ total_records }}</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 sm:p-5 flex items-center">
+        <div class="flex-shrink-0 bg-blue-100 rounded-full p-3 mr-4">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Total Appointments</p>
+          <p class="text-2xl font-bold text-gray-900">{{ total_appointments }}</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 sm:p-5 flex items-center">
+        <div class="flex-shrink-0 bg-green-100 rounded-full p-3 mr-4">
+          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Completed</p>
+          <p class="text-2xl font-bold text-gray-900">{{ completed_appointments }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Visit History Chart -->
+      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Visit History</h3>
+        {% if appointment_history %}
+        <canvas id="visitChart" height="250"></canvas>
+        {% else %}
+        <p class="text-sm text-gray-500">No appointment history to display.</p>
+        {% endif %}
+      </div>
+
+      <!-- Recent Diagnoses -->
+      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Diagnosis Summary</h3>
+        {% if recent_diagnoses %}
+        <div class="space-y-3">
+          {% for item in recent_diagnoses %}
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-700">{{ item.diagnosis }}</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700">{{ item.count }}x</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">No diagnoses recorded yet.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if appointment_history %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+new Chart(document.getElementById('visitChart'), {
+  type: 'bar',
+  data: {
+    labels: [{% for item in appointment_history %}"{{ item.month|date:'M Y' }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+    datasets: [{
+      label: 'Visits',
+      data: [{% for item in appointment_history %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}],
+      backgroundColor: '#a855f7'
+    }]
+  },
+  options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {stepSize: 1}}}}
+});
+</script>
+{% endif %}
+{% endblock %}

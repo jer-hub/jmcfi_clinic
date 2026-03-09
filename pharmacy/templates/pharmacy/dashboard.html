@@ -1,0 +1,251 @@
+{% extends 'core/base.html' %}
+{% block title %}Pharmacy Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+      <div class="bg-gradient-to-r from-primary-50 to-primary-100 px-6 py-5 sm:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-pills text-white text-xl"></i>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">Pharmacy & Inventory</h1>
+              <p class="text-sm text-gray-600 mt-1">Manage medicines, stock, procurement, and dispensing</p>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <a href="{% url 'pharmacy:medicine_list' %}" class="inline-flex items-center px-4 py-2 bg-white border border-primary-300 text-primary-700 text-sm font-medium rounded-lg hover:bg-primary-50 transition-colors">
+              <i class="fas fa-capsules mr-2"></i> Medicines
+            </a>
+            <a href="{% url 'pharmacy:dispensing_create' %}" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors shadow-sm">
+              <i class="fas fa-hand-holding-medical mr-2"></i> Dispense
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <!-- Total Medicines -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-capsules text-primary-600"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Active Medicines</p>
+            <p class="text-2xl font-bold text-gray-900">{{ total_medicines }}</p>
+          </div>
+        </div>
+      </div>
+      <!-- Low Stock -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-exclamation-triangle text-amber-600"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Low Stock Items</p>
+            <p class="text-2xl font-bold text-amber-600">{{ low_stock_count }}</p>
+          </div>
+        </div>
+      </div>
+      <!-- Near Expiry -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-clock text-red-600"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Near Expiry</p>
+            <p class="text-2xl font-bold text-red-600">{{ near_expiry_count }}</p>
+          </div>
+        </div>
+      </div>
+      <!-- Monthly Cost -->
+      <div class="bg-white rounded-lg shadow p-6">
+        <div class="flex items-center">
+          <div class="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+            <i class="fas fa-peso-sign text-emerald-600"></i>
+          </div>
+          <div class="ml-4">
+            <p class="text-sm font-medium text-gray-500">Monthly Dispensing</p>
+            <p class="text-2xl font-bold text-gray-900">₱{{ monthly_dispensed_cost|floatformat:2 }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Low Stock Alerts -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i>Low Stock Alerts
+          </h2>
+          <a href="{% url 'pharmacy:medicine_list' %}?stock=low" class="text-sm text-primary-600 hover:text-primary-800">View All →</a>
+        </div>
+        <div class="divide-y divide-gray-100">
+          {% for med in low_stock_medicines|slice:":5" %}
+          <div class="px-6 py-3 flex items-center justify-between hover:bg-amber-50/30">
+            <div>
+              <p class="font-medium text-gray-900">{{ med.name }}</p>
+              <p class="text-xs text-gray-500">{{ med.get_unit_display }} · Reorder at {{ med.reorder_level }}</p>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+              {{ med.current_stock }} left
+            </span>
+          </div>
+          {% empty %}
+          <div class="px-6 py-8 text-center text-gray-400">
+            <i class="fas fa-check-circle text-2xl mb-2"></i>
+            <p>All stock levels are healthy</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Near-Expiry Batches -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-clock text-red-500 mr-2"></i>Expiry Alerts
+          </h2>
+          <a href="{% url 'pharmacy:batch_list' %}?status=near_expiry" class="text-sm text-primary-600 hover:text-primary-800">View All →</a>
+        </div>
+        <div class="divide-y divide-gray-100">
+          {% for batch in near_expiry_batches|slice:":5" %}
+          <div class="px-6 py-3 flex items-center justify-between hover:bg-red-50/30">
+            <div>
+              <p class="font-medium text-gray-900">{{ batch.medicine.name }}</p>
+              <p class="text-xs text-gray-500">Batch {{ batch.batch_number }} · {{ batch.quantity }} units</p>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+              Exp: {{ batch.expiry_date|date:"M d, Y" }}
+            </span>
+          </div>
+          {% empty %}
+          <div class="px-6 py-8 text-center text-gray-400">
+            <i class="fas fa-check-circle text-2xl mb-2"></i>
+            <p>No near-expiry batches</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Recent Dispensings -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-hand-holding-medical text-primary-500 mr-2"></i>Recent Dispensings
+          </h2>
+          <a href="{% url 'pharmacy:dispensing_list' %}" class="text-sm text-primary-600 hover:text-primary-800">View All →</a>
+        </div>
+        <div class="divide-y divide-gray-100">
+          {% for d in recent_dispensings %}
+          <div class="px-6 py-3 hover:bg-primary-50/30">
+            <div class="flex items-center justify-between">
+              <p class="font-medium text-gray-900">{{ d.batch.medicine.name }} × {{ d.quantity }}</p>
+              <span class="text-xs text-gray-500">{{ d.dispensed_at|date:"M d, H:i" }}</span>
+            </div>
+            <p class="text-xs text-gray-500">To: {{ d.patient.first_name }} {{ d.patient.last_name }} · By: {{ d.dispensed_by.first_name }}</p>
+          </div>
+          {% empty %}
+          <div class="px-6 py-8 text-center text-gray-400">
+            <i class="fas fa-inbox text-2xl mb-2"></i>
+            <p>No dispensing records yet</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Pending Purchase Orders -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-truck text-primary-500 mr-2"></i>Pending Orders
+          </h2>
+          <a href="{% url 'pharmacy:purchase_order_list' %}" class="text-sm text-primary-600 hover:text-primary-800">View All →</a>
+        </div>
+        <div class="divide-y divide-gray-100">
+          {% for po in pending_orders %}
+          <div class="px-6 py-3 flex items-center justify-between hover:bg-primary-50/30">
+            <div>
+              <a href="{% url 'pharmacy:purchase_order_detail' order_id=po.pk %}" class="font-medium text-primary-700 hover:text-primary-900">
+                PO-{{ po.order_number }}
+              </a>
+              <p class="text-xs text-gray-500">{{ po.supplier.name }} · {{ po.order_date|date:"M d, Y" }}</p>
+            </div>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if po.status == 'draft' %}bg-gray-100 text-gray-800
+              {% elif po.status == 'submitted' %}bg-primary-100 text-primary-800
+              {% elif po.status == 'approved' %}bg-emerald-100 text-emerald-800{% endif %}">
+              {{ po.get_status_display }}
+            </span>
+          </div>
+          {% empty %}
+          <div class="px-6 py-8 text-center text-gray-400">
+            <i class="fas fa-check-circle text-2xl mb-2"></i>
+            <p>No pending orders</p>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Navigation -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Quick Links</h2>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 p-6">
+        <a href="{% url 'pharmacy:medicine_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
+          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
+            <i class="fas fa-capsules text-primary-600"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-700">Medicines</span>
+        </a>
+        <a href="{% url 'pharmacy:batch_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
+          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
+            <i class="fas fa-boxes-stacked text-primary-600"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-700">Batches</span>
+        </a>
+        <a href="{% url 'pharmacy:supplier_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
+          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
+            <i class="fas fa-truck text-primary-600"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-700">Suppliers</span>
+        </a>
+        <a href="{% url 'pharmacy:purchase_order_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
+          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
+            <i class="fas fa-file-invoice text-primary-600"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-700">Orders</span>
+        </a>
+        <a href="{% url 'pharmacy:audit_log_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
+          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
+            <i class="fas fa-clipboard-list text-primary-600"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-700">Audit Log</span>
+        </a>
+        <a href="{% url 'pharmacy:compliance_report' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
+          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
+            <i class="fas fa-chart-bar text-primary-600"></i>
+          </div>
+          <span class="text-sm font-medium text-gray-700">Reports</span>
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

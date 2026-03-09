@@ -1,0 +1,148 @@
+{% extends 'core/base.html' %}
+{% block title %}{{ title }} – Pharmacy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+  <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+    <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
+      <div class="border-b border-gray-200 px-6 py-4">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900">{{ title }}</h1>
+            <p class="mt-1 text-sm text-gray-500">Enter medicine details below.</p>
+          </div>
+          <a href="{% url 'pharmacy:category_list' %}" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 sm:text-sm">
+            Manage categories
+          </a>
+        </div>
+      </div>
+
+      <form method="post" class="space-y-6 p-6">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+        <div class="rounded-lg border border-red-200 bg-red-50 p-3">
+          {% for error in form.non_field_errors %}
+          <p class="text-sm text-red-700">{{ error }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <section class="space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Basic Information</h2>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label for="{{ form.name.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.name.label }}{% if form.name.field.required %}<span class="ml-1 text-red-500">*</span>{% endif %}</label>
+              {{ form.name }}
+              {% if form.name.errors %}{% for error in form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.category.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.category.label }}{% if form.category.field.required %}<span class="ml-1 text-red-500">*</span>{% endif %}</label>
+              {{ form.category }}
+              <p class="mt-1 text-xs text-gray-500">
+                No categories yet?
+                <a href="{% url 'pharmacy:category_create' %}" class="font-medium text-primary-700 hover:text-primary-800 hover:underline">Add category</a>
+                first.
+              </p>
+              {% if form.category.errors %}{% for error in form.category.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.generic_name.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.generic_name.label }}{% if form.generic_name.field.required %}<span class="ml-1 text-red-500">*</span>{% endif %}</label>
+              {{ form.generic_name }}
+              {% if form.generic_name.errors %}{% for error in form.generic_name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.brand_name.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.brand_name.label }}{% if form.brand_name.field.required %}<span class="ml-1 text-red-500">*</span>{% endif %}</label>
+              {{ form.brand_name }}
+              {% if form.brand_name.errors %}{% for error in form.brand_name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.unit.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.unit.label }}{% if form.unit.field.required %}<span class="ml-1 text-red-500">*</span>{% endif %}</label>
+              {{ form.unit }}
+              {% if form.unit.errors %}{% for error in form.unit.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.strength.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.strength.label }}{% if form.strength.field.required %}<span class="ml-1 text-red-500">*</span>{% endif %}</label>
+              {{ form.strength }}
+              {% if form.strength.errors %}{% for error in form.strength.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div class="sm:col-span-2">
+              <label for="{{ form.description.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.description.label }}{% if form.description.field.required %}<span class="ml-1 text-red-500">*</span>{% endif %}</label>
+              {{ form.description }}
+              {% if form.description.errors %}{% for error in form.description.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="space-y-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Stock Thresholds</h2>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label for="{{ form.reorder_level.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.reorder_level.label }}{% if form.reorder_level.field.required %}<span class="ml-1 text-red-500">*</span>{% endif %}</label>
+              {{ form.reorder_level }}
+              {% if form.reorder_level.errors %}{% for error in form.reorder_level.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.max_stock_level.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.max_stock_level.label }}{% if form.max_stock_level.field.required %}<span class="ml-1 text-red-500">*</span>{% endif %}</label>
+              {{ form.max_stock_level }}
+              {% if form.max_stock_level.errors %}{% for error in form.max_stock_level.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+          </div>
+        </section>
+
+        <section class="space-y-3">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Availability</h2>
+          <label for="{{ form.requires_prescription.id_for_label }}" class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+            <div class="pt-0.5">{{ form.requires_prescription }}</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">{{ form.requires_prescription.label }}</p>
+              {% if form.requires_prescription.errors %}{% for error in form.requires_prescription.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+          </label>
+
+          <label for="{{ form.is_active.id_for_label }}" class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+            <div class="pt-0.5">{{ form.is_active }}</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">{{ form.is_active.label }}</p>
+              {% if form.is_active.errors %}{% for error in form.is_active.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+          </label>
+        </section>
+
+        {% if not medicine %}
+        <section class="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Opening Stock (Optional)</h2>
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label for="{{ form.opening_batch_number.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.opening_batch_number.label }}</label>
+              {{ form.opening_batch_number }}
+              {% if form.opening_batch_number.errors %}{% for error in form.opening_batch_number.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.opening_quantity.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.opening_quantity.label }}</label>
+              {{ form.opening_quantity }}
+              {% if form.opening_quantity.errors %}{% for error in form.opening_quantity.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.opening_unit_cost.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.opening_unit_cost.label }}</label>
+              {{ form.opening_unit_cost }}
+              {% if form.opening_unit_cost.errors %}{% for error in form.opening_unit_cost.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+            <div>
+              <label for="{{ form.opening_expiry_date.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-700">{{ form.opening_expiry_date.label }}</label>
+              {{ form.opening_expiry_date }}
+              {% if form.opening_expiry_date.errors %}{% for error in form.opening_expiry_date.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            </div>
+          </div>
+        </section>
+        {% endif %}
+
+        <div class="flex items-center justify-end gap-3 border-t border-gray-200 pt-4">
+          <a href="{% url 'pharmacy:medicine_list' %}" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Cancel</a>
+          <button type="submit" class="rounded-lg bg-primary-600 px-5 py-2 text-sm font-medium text-white hover:bg-primary-700">Save Medicine</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

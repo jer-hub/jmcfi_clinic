@@ -1,0 +1,90 @@
+{% extends 'core/base.html' %}
+{% block title %}Stock Adjustments – Pharmacy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+
+      <div class="bg-gradient-to-r from-primary-50 to-primary-100 px-6 py-5 sm:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-sliders text-white text-xl"></i>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">Stock Adjustments</h1>
+              <p class="text-sm text-gray-600 mt-1">Manual inventory corrections and disposal records</p>
+            </div>
+          </div>
+          <a href="{% url 'pharmacy:adjustment_create' %}" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-2"></i>New Adjustment
+          </a>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Medicine / Batch</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Change</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Reason</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Adjusted By</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Notes</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {% for adj in adjustments %}
+            <tr class="hover:bg-primary-50/30 transition-colors">
+              <td class="px-6 py-4 text-sm">
+                <p class="font-medium text-gray-900">{{ adj.batch.medicine.name }}</p>
+                <p class="text-xs text-gray-500">Batch {{ adj.batch.batch_number }}</p>
+              </td>
+              <td class="px-6 py-4 text-center">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold
+                  {% if adj.quantity_change > 0 %}bg-emerald-100 text-emerald-800{% else %}bg-red-100 text-red-800{% endif %}">
+                  {% if adj.quantity_change > 0 %}+{% endif %}{{ adj.quantity_change }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-center text-sm text-gray-600">{{ adj.get_reason_display }}</td>
+              <td class="px-6 py-4 text-sm text-gray-600">{{ adj.adjusted_by.first_name }} {{ adj.adjusted_by.last_name }}</td>
+              <td class="px-6 py-4 text-sm text-gray-600">{{ adj.notes|truncatewords:10|default:"—" }}</td>
+              <td class="px-6 py-4 text-sm text-gray-600">{{ adj.created_at|date:"M d, Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-sliders text-gray-400 text-2xl"></i>
+                  </div>
+                  <p class="text-gray-500 font-medium">No adjustments recorded</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if adjustments.has_other_pages %}
+      <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+        <p class="text-sm text-gray-600">Showing {{ adjustments.start_index }}-{{ adjustments.end_index }} of {{ adjustments.paginator.count }}</p>
+        <div class="flex gap-2">
+          {% if adjustments.has_previous %}
+          <a href="?page={{ adjustments.previous_page_number }}" class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Previous</a>
+          {% endif %}
+          <span class="px-3 py-1 bg-primary-600 text-white rounded-md text-sm">{{ adjustments.number }}</span>
+          {% if adjustments.has_next %}
+          <a href="?page={{ adjustments.next_page_number }}" class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Next</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

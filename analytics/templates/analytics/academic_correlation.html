@@ -1,0 +1,128 @@
+{% extends "core/base.html" %}
+{% block title %}Academic Data Correlation{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <!-- Header -->
+    <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+          <svg class="inline-block w-8 h-8 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+          Academic Data Correlation
+        </h1>
+        <p class="mt-1 text-sm text-gray-500">Correlate health data with academic indicators such as absenteeism</p>
+      </div>
+      <a href="{% url 'analytics:dashboard' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">&larr; Back to Analytics</a>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
+      <form method="get" class="flex flex-wrap items-end gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
+          {{ filter_form.date_from }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
+          {{ filter_form.date_to }}
+        </div>
+        <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors">Filter</button>
+      </form>
+    </div>
+
+    <!-- Frequent Visitors (Potential High Absenteeism) -->
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-8">
+      <h3 class="text-lg font-semibold text-gray-900 mb-2">Frequent Clinic Visitors</h3>
+      <p class="text-xs text-gray-500 mb-4">Students with the most clinic visits – potential indicators of health-related absenteeism</p>
+      {% if frequent_visitors %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Course</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Year</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Visits</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for v in frequent_visitors %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 text-sm text-gray-700">{{ v.student__first_name }} {{ v.student__last_name }}</td>
+              <td class="px-4 py-3 text-sm text-gray-500">{{ v.student__email }}</td>
+              <td class="px-4 py-3 text-sm text-gray-700">{{ v.student__student_profile__course|default:"-" }}</td>
+              <td class="px-4 py-3 text-sm text-gray-700">{{ v.student__student_profile__year_level|default:"-" }}</td>
+              <td class="px-4 py-3 text-sm font-bold text-right">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if v.visit_count >= 10 %}bg-red-100 text-red-700{% elif v.visit_count >= 5 %}bg-yellow-100 text-yellow-700{% else %}bg-green-100 text-green-700{% endif %}">
+                  {{ v.visit_count }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-sm text-gray-500">No appointment data for this period.</p>
+      {% endif %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- Emergency Visits by Course -->
+      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Emergency Visits by Course</h3>
+        {% if emergency_visits %}
+        <div class="space-y-2">
+          {% for item in emergency_visits %}
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-700">{{ item.student__student_profile__course|default:"Unknown" }}</span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">{{ item.count }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500">No emergency visit data.</p>
+        {% endif %}
+      </div>
+
+      <!-- Follow-up Trend (Chronic Conditions) -->
+      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Follow-up Required Trend</h3>
+        <p class="text-xs text-gray-500 mb-3">Monthly count of records requiring follow-up – proxy for chronic conditions</p>
+        {% if follow_up_trend %}
+        <canvas id="followupChart" height="250"></canvas>
+        {% else %}
+        <p class="text-sm text-gray-500">No follow-up data available.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if follow_up_trend %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+new Chart(document.getElementById('followupChart'), {
+  type: 'line',
+  data: {
+    labels: [{% for item in follow_up_trend %}"{{ item.month|date:'M Y' }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+    datasets: [{
+      label: 'Follow-ups Required',
+      data: [{% for item in follow_up_trend %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}],
+      borderColor: '#ef4444',
+      backgroundColor: 'rgba(239,68,68,0.1)',
+      fill: true,
+      tension: 0.3
+    }]
+  },
+  options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {stepSize: 1}}}}
+});
+</script>
+{% endif %}
+{% endblock %}

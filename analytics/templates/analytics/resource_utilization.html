@@ -1,0 +1,152 @@
+{% extends "core/base.html" %}
+{% block title %}Resource Utilization{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <!-- Header -->
+    <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+          <svg class="inline-block w-8 h-8 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Resource Utilization
+        </h1>
+        <p class="mt-1 text-sm text-gray-500">Staff efficiency, consultation times, and patient throughput</p>
+      </div>
+      <a href="{% url 'analytics:dashboard' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">&larr; Back to Analytics</a>
+    </div>
+
+    <!-- Date Filter -->
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
+      <form method="get" class="flex flex-wrap items-end gap-4">
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
+          {{ filter_form.date_from }}
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
+          {{ filter_form.date_to }}
+        </div>
+        <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors">Filter</button>
+      </form>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white rounded-lg shadow p-4 sm:p-5 flex items-center">
+        <div class="flex-shrink-0 bg-primary-100 rounded-full p-3 mr-4">
+          <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Avg Consultation</p>
+          <p class="text-2xl font-bold text-gray-900">{{ avg_consultation }} min</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 sm:p-5 flex items-center">
+        <div class="flex-shrink-0 bg-green-100 rounded-full p-3 mr-4">
+          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Total Throughput</p>
+          <p class="text-2xl font-bold text-gray-900">{{ total_throughput }}</p>
+        </div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 sm:p-5 flex items-center">
+        <div class="flex-shrink-0 bg-blue-100 rounded-full p-3 mr-4">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+        </div>
+        <div>
+          <p class="text-sm font-medium text-gray-500">Avg Daily Throughput</p>
+          <p class="text-2xl font-bold text-gray-900">{{ avg_throughput }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Performance -->
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-8">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Staff Appointment Completion</h3>
+      {% if staff_stats %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Staff Member</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Completed</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Distribution</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for s in staff_stats %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 text-sm text-gray-700">{{ s.doctor__first_name }} {{ s.doctor__last_name }}</td>
+              <td class="px-4 py-3 text-sm font-medium text-gray-900 text-right">{{ s.total }}</td>
+              <td class="px-4 py-3">
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                  <div class="bg-primary-500 h-2 rounded-full" style="width: {% widthratio s.total staff_stats.0.total 100 %}%"></div>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="text-sm text-gray-500">No completed appointment data for this period.</p>
+      {% endif %}
+    </div>
+
+    <!-- Daily Utilization Records -->
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Daily Utilization Log</h3>
+      {% if records %}
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consultations</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Avg Min</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Throughput</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Staff</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Efficiency</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for r in records %}
+            <tr class="hover:bg-gray-50">
+              <td class="px-4 py-3 text-sm text-gray-700">{{ r.date|date:"M d, Y" }}</td>
+              <td class="px-4 py-3 text-sm text-right">{{ r.total_consultations }}</td>
+              <td class="px-4 py-3 text-sm text-right">{{ r.avg_consultation_minutes|floatformat:0 }}</td>
+              <td class="px-4 py-3 text-sm text-right">{{ r.patient_throughput }}</td>
+              <td class="px-4 py-3 text-sm text-right">{{ r.staff_on_duty }}</td>
+              <td class="px-4 py-3 text-sm text-right font-medium">{{ r.efficiency_score }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if records.has_other_pages %}
+      <nav class="flex justify-center mt-4">
+        <ul class="inline-flex -space-x-px text-sm">
+          {% if records.has_previous %}
+          <li><a href="?page={{ records.previous_page_number }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-l-md">Prev</a></li>
+          {% endif %}
+          {% for num in records.paginator.page_range %}
+          <li><a href="?page={{ num }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="px-3 py-2 border border-gray-300 {% if records.number == num %}bg-primary-50 text-primary-600{% else %}bg-white text-gray-500 hover:bg-gray-100{% endif %}">{{ num }}</a></li>
+          {% endfor %}
+          {% if records.has_next %}
+          <li><a href="?page={{ records.next_page_number }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-r-md">Next</a></li>
+          {% endif %}
+        </ul>
+      </nav>
+      {% endif %}
+      {% else %}
+      <p class="text-sm text-gray-500">No daily utilization records found. Records can be added via the Admin panel.</p>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}

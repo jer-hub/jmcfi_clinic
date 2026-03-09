@@ -1,0 +1,54 @@
+{% extends "core/base.html" %}
+{% block title %}Generate Compliance Report{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <div class="mb-6 sm:mb-8">
+      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Generate Compliance Report</h1>
+      <p class="mt-1 text-sm text-gray-500">Automated report for CHED, DOH, or university accreditation</p>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+      <form method="post">
+        {% csrf_token %}
+        {% include 'partials/form_errors.html' %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
+            {{ form.report_type }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            {{ form.status }}
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            {{ form.title }}
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            {{ form.description }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Period Start</label>
+            {{ form.period_start }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Period End</label>
+            {{ form.period_end }}
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3">
+          <a href="{% url 'analytics:compliance_reports' %}" class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition">Cancel</a>
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors">Generate Report</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

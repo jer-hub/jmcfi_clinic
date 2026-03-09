@@ -19,28 +19,25 @@
                     <label for="appointment_type" class="block text-sm font-medium text-gray-700">Appointment Type</label>
                     <select id="appointment_type" name="appointment_type" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
                         <option value="">Select type</option>
-                        <option value="consultation">General Consultation</option>
-                        <option value="checkup">Health Checkup</option>
-                        <option value="vaccination">Vaccination</option>
-                        <option value="emergency">Emergency</option>
-                        <option value="followup">Follow-up</option>
-                        <option value="dental">Dental</option>
+                        {% for default in active_defaults %}
+                            <option value="{{ default.appointment_type }}">{{ default.get_appointment_type_display }}</option>
+                        {% empty %}
+                            <option value="" disabled>No appointment types available</option>
+                        {% endfor %}
                     </select>
-                    <p class="mt-1 text-xs text-gray-500">A recommended doctor will be selected based on your appointment type</p>
+                    <p class="mt-1 text-xs text-gray-500">The available doctors will update based on your appointment type</p>
+                    {% if not active_defaults %}
+                    <p class="mt-1 text-xs text-red-500">No appointment types are currently configured. Please contact the clinic admin.</p>
+                    {% endif %}
                 </div>
 
                 <!-- Doctor Selection -->
                 <div>
                     <label for="doctor" class="block text-sm font-medium text-gray-700">
                         Select Doctor
-                        <span id="recommended-badge" class="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800 hidden">
-                            Recommended
-                        </span>
-                        <span id="default-assigned-badge" class="ml-2 px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 hidden">
-                            Default Assigned
-                        </span>
                     </label>
-                    <select id="doctor" name="doctor" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                    <select id="doctor" name="doctor" required disabled
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                         <option value="">Choose a doctor</option>
                         {% for doctor in doctors %}
                             <option value="{{ doctor.id }}" data-specialization="{{ doctor.staff_profile.specialization|default:'' }}" data-department="{{ doctor.staff_profile.department|default:'' }}">
@@ -54,7 +51,13 @@
                             </option>
                         {% endfor %}
                     </select>
-                    <p id="doctor-info" class="mt-1 text-xs text-gray-500"></p>
+                    <p id="select-type-first-msg" class="mt-1.5 flex items-center gap-1.5 text-xs text-amber-600">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Please select an appointment type first.
+                    </p>
+                    <p id="no-doctors-msg" class="mt-1 text-xs text-red-500 hidden">No doctors are currently assigned to this appointment type. Please contact the clinic.</p>
                 </div>
 
                 <!-- Date and Time -->
@@ -128,125 +131,52 @@
         const submitBtn = document.getElementById('submit-btn');
         const appointmentTypeSelect = document.getElementById('appointment_type');
         const doctorSelect = document.getElementById('doctor');
-        const recommendedBadge = document.getElementById('recommended-badge');
-        const defaultAssignedBadge = document.getElementById('default-assigned-badge');
-        const doctorInfo = document.getElementById('doctor-info');
-        
-        // Default doctor mapping from backend (legacy)
-        const defaultDoctors = {{ default_doctors|safe }};
-        
-        // Appointment type defaults from backend (new system)
-        const appointmentDefaults = {{ appointment_defaults|safe }};
-        
-        // Auto-select default/recommended doctor when appointment type changes
-        appointmentTypeSelect.addEventListener('change', function() {
-            const selectedType = this.value;
-            
-            // Reset badges and styling
-            recommendedBadge.classList.add('hidden');
-            defaultAssignedBadge.classList.add('hidden');
-            doctorSelect.classList.remove('border-green-500', 'ring-2', 'ring-green-200', 'border-blue-500', 'ring-blue-200', 'bg-gray-100');
-            doctorInfo.classList.remove('text-green-600', 'text-blue-600');
-            doctorInfo.classList.add('text-gray-500');
-            
-            // Check if there's a configured default for this appointment type
-            if (selectedType && appointmentDefaults[selectedType]) {
-                const defaultConfig = appointmentDefaults[selectedType];
-                const defaultDoctorId = defaultConfig.doctor_id;
-                
-                // Auto-select the default doctor
-                doctorSelect.value = defaultDoctorId;
-                
-                // Disable the doctor field
+
+        // Per-type allowed doctor IDs (empty array = all doctors allowed)
+        const typeDoctorMap = {{ type_doctor_map|safe }};
+
+        // Store all original doctor options for filtering
+        const allDoctorOptions = Array.from(doctorSelect.options).slice(1).map(opt => opt.cloneNode(true));
+
+        const selectTypeFirstMsg = document.getElementById('select-type-first-msg');
+        const noDoctorsMsg = document.getElementById('no-doctors-msg');
+
+        function filterDoctorsByType(selectedType) {
+            const allowedIds = typeDoctorMap[selectedType];
+            // Remove all options except the placeholder
+            while (doctorSelect.options.length > 1) {
+                doctorSelect.remove(1);
+            }
+
+            if (!selectedType) {
+                // No type chosen yet — disable doctor select and show hint
                 doctorSelect.disabled = true;
-                
-                // Show default assigned badge
-                defaultAssignedBadge.classList.remove('hidden');
-                
-                // Update doctor info
-                let infoText = 'Default in-charge for ' + getAppointmentTypeName(selectedType) + ': ' + defaultConfig.doctor_name;
-                if (defaultConfig.department) {
-                    infoText += ' (' + defaultConfig.department + ')';
-                }
-                infoText += ' - This field is locked by administrator.';
-                doctorInfo.textContent = infoText;
-                doctorInfo.classList.remove('text-gray-500');
-                doctorInfo.classList.add('text-blue-600');
-                
-                // Add visual styling for disabled state
-                doctorSelect.classList.add('bg-gray-100', 'border-blue-500', 'ring-2', 'ring-blue-200');
-                
-            } else if (selectedType && defaultDoctors[selectedType]) {
-                // Fallback to legacy recommendation system
-                const recommendedDoctorId = defaultDoctors[selectedType];
-                doctorSelect.value = recommendedDoctorId;
-                doctorSelect.disabled = false;
-                
-                // Show recommended badge
-                recommendedBadge.classList.remove('hidden');
-                
-                // Get selected doctor info
-                const selectedOption = doctorSelect.options[doctorSelect.selectedIndex];
-                const specialization = selectedOption.getAttribute('data-specialization');
-                const department = selectedOption.getAttribute('data-department');
-                
-                // Update doctor info text
-                let infoText = 'This doctor is recommended for ' + getAppointmentTypeName(selectedType);
-                if (specialization) {
-                    infoText += ' (Specialization: ' + specialization + ')';
-                }
-                doctorInfo.textContent = infoText;
-                doctorInfo.classList.add('text-green-600');
-                doctorInfo.classList.remove('text-gray-500');
-                
-                // Highlight the select box
-                doctorSelect.classList.add('border-green-500', 'ring-2', 'ring-green-200');
+                selectTypeFirstMsg.classList.remove('hidden');
+                noDoctorsMsg.classList.add('hidden');
+                doctorSelect.value = '';
+                return;
+            }
+
+            // Type selected — enable the select, hide the hint
+            doctorSelect.disabled = false;
+            selectTypeFirstMsg.classList.add('hidden');
+
+            if (!allowedIds || allowedIds.length === 0) {
+                // No restriction — show all doctors
+                allDoctorOptions.forEach(opt => doctorSelect.appendChild(opt.cloneNode(true)));
+                noDoctorsMsg.classList.add('hidden');
             } else {
-                // No default or recommendation - enable manual selection
-                doctorSelect.disabled = false;
-                doctorInfo.textContent = '';
+                const filtered = allDoctorOptions.filter(opt => allowedIds.includes(parseInt(opt.value)));
+                filtered.forEach(opt => doctorSelect.appendChild(opt.cloneNode(true)));
+                noDoctorsMsg.classList.toggle('hidden', filtered.length > 0);
             }
-        });
-        
-        // Prevent manual changes when doctor field is disabled (extra safeguard)
-        doctorSelect.addEventListener('change', function() {
-            if (this.disabled) {
-                return; // Don't process changes on disabled field
-            }
-            
-            const selectedType = appointmentTypeSelect.value;
-            const selectedDoctorId = parseInt(this.value);
-            
-            // Only check legacy recommendations if no default is configured
-            if (selectedType && !appointmentDefaults[selectedType] && defaultDoctors[selectedType]) {
-                const recommendedDoctorId = defaultDoctors[selectedType];
-                
-                if (selectedDoctorId === recommendedDoctorId) {
-                    recommendedBadge.classList.remove('hidden');
-                    doctorInfo.classList.add('text-green-600');
-                    doctorInfo.classList.remove('text-gray-500');
-                    doctorSelect.classList.add('border-green-500', 'ring-2', 'ring-green-200');
-                } else {
-                    recommendedBadge.classList.add('hidden');
-                    doctorInfo.textContent = 'You have selected a different doctor than recommended';
-                    doctorInfo.classList.remove('text-green-600');
-                    doctorInfo.classList.add('text-gray-500');
-                    doctorSelect.classList.remove('border-green-500', 'ring-2', 'ring-green-200');
-                }
-            }
-        });
-        
-        function getAppointmentTypeName(type) {
-            const types = {
-                'consultation': 'General Consultation',
-                'checkup': 'Health Checkup',
-                'vaccination': 'Vaccination',
-                'emergency': 'Emergency',
-                'followup': 'Follow-up',
-                'dental': 'Dental'
-            };
-            return types[type] || type;
+            doctorSelect.value = '';
         }
+        
+        // Filter available doctors when appointment type changes
+        appointmentTypeSelect.addEventListener('change', function() {
+            filterDoctorsByType(this.value);
+        });
         
         // Set minimum date to today
         const today = new Date();

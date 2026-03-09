@@ -124,70 +124,47 @@
   </div>
 </div>
 
-<!-- Recent Activity -->
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-  <!-- Upcoming Appointments -->
-  <div class="bg-white rounded-lg shadow h-96">
-    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-      <h3 class="text-base sm:text-lg font-semibold text-gray-900">Upcoming Appointments</h3>
-    </div>
-    <div class="p-4 sm:p-6 h-80 flex flex-col">
-      {% if upcoming_appointments %}
-        <div class="space-y-3 sm:space-y-4 flex-1 overflow-y-auto">
-          {% for appointment in upcoming_appointments %}
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 bg-gray-50 rounded-lg space-y-2 sm:space-y-0">
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-gray-900 truncate">{{ appointment.get_appointment_type_display }}</p>
-                <p class="text-xs sm:text-sm text-gray-600 truncate">Dr. {{ appointment.doctor.get_full_name }}</p>
-                <p class="text-xs sm:text-sm text-gray-500">{{ appointment.date|date:"M d, Y" }} at {{ appointment.time|time:"g:i A" }}</p>
-              </div>
-              <div class="flex-shrink-0">
-                <span class="px-2 py-1 text-xs font-medium rounded-full 
-                  {% if appointment.status == 'pending' %}bg-yellow-100 text-yellow-800
-                  {% else %}bg-green-100 text-green-800{% endif %}">
-                  {{ appointment.get_status_display }}
-                </span>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="flex-1 flex items-center justify-center">
-          <p class="text-sm text-gray-500">No upcoming appointments</p>
-        </div>
-      {% endif %}
-      <div class="mt-4 pt-2 border-t border-gray-100">
-        <a href="{% url 'appointments:appointment_list' %}" class="text-primary-600 hover:text-primary-500 text-sm font-medium">View all appointments →</a>
+<!-- Upcoming Appointments (minimal) -->
+<div class="bg-white rounded-lg shadow mb-6">
+  <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-base sm:text-lg font-semibold text-gray-900">Upcoming Appointments</h3>
+        <p class="text-sm text-gray-500 mt-1">{{ upcoming_appointments.count }} upcoming</p>
+      </div>
+      <div>
+        <a href="{% url 'appointments:appointment_list' %}" class="text-primary-600 hover:text-primary-500 text-sm font-medium">View all →</a>
       </div>
     </div>
   </div>
-
-  <!-- Recent Medical Records -->
-  <div class="bg-white rounded-lg shadow h-96">
-    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-      <h3 class="text-base sm:text-lg font-semibold text-gray-900">Recent Medical Records</h3>
-    </div>
-    <div class="p-4 sm:p-6 h-80 flex flex-col">
-      {% if recent_records %}
-        <div class="space-y-3 sm:space-y-4 flex-1 overflow-y-auto">
-          {% for record in recent_records %}
-            <div class="p-3 sm:p-4 bg-gray-50 rounded-lg">
-              <div class="flex flex-col space-y-1">
-                <p class="text-sm font-medium text-gray-900 break-words">{{ record.diagnosis|truncatewords:5 }}</p>
-                <p class="text-xs sm:text-sm text-gray-600 break-words">Dr. {{ record.doctor.get_full_name }}</p>
-                <p class="text-xs sm:text-sm text-gray-500">{{ record.created_at|date:'M d, Y' }}</p>
+  <div class="p-4 sm:p-6">
+    {% if upcoming_appointments %}
+      <ul class="divide-y divide-gray-100">
+        {% for appointment in upcoming_appointments %}
+          <li class="flex items-center justify-between py-3">
+            <div class="flex items-center space-x-3 min-w-0">
+              <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-700">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ appointment.get_appointment_type_display }}</p>
+                <p class="text-xs text-gray-500 truncate">Dr. {{ appointment.doctor.get_full_name }} · {{ appointment.date|date:"M d" }} · {{ appointment.time|time:"g:i A" }}</p>
               </div>
             </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <div class="flex-1 flex items-center justify-center">
-          <p class="text-sm text-gray-500">No medical records found</p>
-        </div>
-      {% endif %}
-      <div class="mt-4 pt-2 border-t border-gray-100">
-        <a href="{% url 'medical_records:medical_records' %}" class="text-primary-600 hover:text-primary-500 text-sm font-medium">View all records →</a>
-      </div>
-    </div>
+            <div class="flex items-center space-x-3">
+              <span class="text-xs font-medium px-2 py-1 rounded-full
+                {% if appointment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
+                {% else %}bg-green-100 text-green-800{% endif %}">
+                {{ appointment.get_status_display }}
+              </span>
+              <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="text-primary-600 text-sm font-medium">View</a>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <div class="py-8 text-center text-sm text-gray-500">No upcoming appointments</div>
+    {% endif %}
   </div>
 </div>

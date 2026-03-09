@@ -41,21 +41,42 @@
                     <div>
                         <label for="recipient_type" class="block text-sm font-medium text-gray-700">Recipients</label>
                         <select id="recipient_type" name="recipient_type" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
-                            <option value="all">All Users (Students & Staff)</option>
+                            <option value="all">All Users (Everyone)</option>
                             <option value="students">Students Only</option>
-                            <option value="staff">Staff Only</option>
+                            <option value="staff_only">Staff Only</option>
+                            <option value="doctors">Doctors Only</option>
+                            <option value="admins">Admins Only</option>
+                            <option value="staff_and_doctors">Staff &amp; Doctors</option>
+                            <option value="non_students">Staff, Doctors &amp; Admins</option>
                         </select>
                     </div>
 
                     <!-- Notification Type -->
                     <div>
                         <label for="notification_type" class="block text-sm font-medium text-gray-700">Type</label>
-                        <select id="notification_type" name="notification_type" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
-                            <option value="general">General</option>
-                            <option value="appointment">Appointment</option>
-                            <option value="certificate">Certificate</option>
-                            <option value="health_tip">Health Tip</option>
-                        </select>
+                        <div class="mt-1 flex gap-3">
+                            <!-- General -->
+                            <label class="notification-type-card flex-1 cursor-pointer rounded-lg border-2 border-primary-500 bg-primary-50 p-3 text-center transition-all" data-value="general">
+                                <input type="radio" name="notification_type" value="general" class="sr-only" checked>
+                                <div class="mx-auto mb-1.5 w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.952 9.168-5v10c-1.543-3.048-5.068-5-9.168-5H7a3.988 3.988 0 01-1.564-.317z"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-xs font-medium text-gray-700">General</span>
+                            </label>
+                            <!-- Health Tip -->
+                            <label class="notification-type-card flex-1 cursor-pointer rounded-lg border-2 border-gray-200 bg-white p-3 text-center transition-all hover:border-gray-300" data-value="health_tip">
+                                <input type="radio" name="notification_type" value="health_tip" class="sr-only">
+                                <div class="mx-auto mb-1.5 w-9 h-9 rounded-full bg-green-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                                    </svg>
+                                </div>
+                                <span class="text-xs font-medium text-gray-700">Health Tip</span>
+                            </label>
+                        </div>
+                        <p class="mt-1.5 text-xs text-gray-500">Appointment and certificate notifications are sent automatically by the system.</p>
                     </div>
 
                     <!-- Preview -->
@@ -64,15 +85,16 @@
                         <div class="bg-white rounded-md p-3 border">
                             <div class="flex items-start">
                                 <div class="flex-shrink-0">
-                                    <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-3.6-3.6a1 1 0 00-.7-.3h-3.4a1 1 0 00-.7.3L15 17zm-5-8a3 3 0 016 0v6l2 2v1H8v-1l2-2V9z"></path>
-                                        </svg>
+                                    <div id="preview-icon" class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center transition-colors duration-200">
+                                        <!-- icon injected by JS -->
                                     </div>
                                 </div>
                                 <div class="ml-3 flex-1">
-                                    <p class="text-sm font-medium text-gray-900" id="preview-title">Notification Title</p>
-                                    <p class="text-sm text-gray-600" id="preview-message">Your notification message will appear here...</p>
+                                    <div class="flex items-center gap-2">
+                                        <p class="text-sm font-medium text-gray-900" id="preview-title">Notification Title</p>
+                                        <span id="preview-badge" class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">General</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mt-0.5" id="preview-message">Your notification message will appear here...</p>
                                     <p class="text-xs text-gray-500 mt-1">Just now</p>
                                 </div>
                             </div>
@@ -100,15 +122,74 @@ document.addEventListener('DOMContentLoaded', function() {
     const messageInput = document.getElementById('message');
     const previewTitle = document.getElementById('preview-title');
     const previewMessage = document.getElementById('preview-message');
-    
-    // Update preview in real-time
+    const previewIcon = document.getElementById('preview-icon');
+    const previewBadge = document.getElementById('preview-badge');
+
+    // Icon + color config per type
+    const typeConfig = {
+        general: {
+            bgClass: 'bg-blue-100',
+            badgeBg: 'bg-blue-100',
+            badgeText: 'text-blue-700',
+            label: 'General',
+            svg: `<svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.952 9.168-5v10c-1.543-3.048-5.068-5-9.168-5H7a3.988 3.988 0 01-1.564-.317z">
+                    </path>
+                  </svg>`,
+        },
+        health_tip: {
+            bgClass: 'bg-green-100',
+            badgeBg: 'bg-green-100',
+            badgeText: 'text-green-700',
+            label: 'Health Tip',
+            svg: `<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z">
+                    </path>
+                  </svg>`,
+        },
+    };
+
+    function updatePreviewIcon(type) {
+        const cfg = typeConfig[type] || typeConfig.general;
+
+        // Update icon background
+        previewIcon.className = `w-8 h-8 ${cfg.bgClass} rounded-full flex items-center justify-center transition-colors duration-200`;
+        previewIcon.innerHTML = cfg.svg;
+
+        // Update badge
+        previewBadge.className = `inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${cfg.badgeBg} ${cfg.badgeText}`;
+        previewBadge.textContent = cfg.label;
+    }
+
+    // Card selection logic
+    const cards = document.querySelectorAll('.notification-type-card');
+    cards.forEach(card => {
+        card.addEventListener('click', function() {
+            cards.forEach(c => {
+                c.classList.remove('border-primary-500', 'bg-primary-50');
+                c.classList.add('border-gray-200', 'bg-white');
+            });
+            this.classList.add('border-primary-500', 'bg-primary-50');
+            this.classList.remove('border-gray-200', 'bg-white');
+            const radio = this.querySelector('input[type="radio"]');
+            radio.checked = true;
+            updatePreviewIcon(radio.value);
+        });
+    });
+
+    // Title & message live preview
     titleInput.addEventListener('input', function() {
         previewTitle.textContent = this.value || 'Notification Title';
     });
-    
+
     messageInput.addEventListener('input', function() {
         previewMessage.textContent = this.value || 'Your notification message will appear here...';
     });
+
+    // Set initial icon
+    updatePreviewIcon('general');
 });
 </script>
 {% endblock content %}

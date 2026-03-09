@@ -79,9 +79,7 @@ def schedule_appointment(request):
         # Validation
         if not all([doctor_id, appointment_type, date, time, reason]):
             messages.error(request, 'All fields are required.')
-            doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
-            context = _get_appointment_context(doctors)
-            return render(request, 'appointments/schedule_appointment.html', context)
+            return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
         
         try:
             from datetime import datetime
@@ -91,19 +89,25 @@ def schedule_appointment(request):
             # Check if date is not in the past
             if appointment_date < timezone.now().date():
                 messages.error(request, 'Cannot schedule appointments for past dates.')
-                doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
-                context = _get_appointment_context(doctors)
-                return render(request, 'appointments/schedule_appointment.html', context)
+                return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
             
             # Check if it's a weekend
             if appointment_date.weekday() >= 5:  # Saturday = 5, Sunday = 6
                 messages.error(request, 'Appointments are not available on weekends.')
-                doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
-                context = _get_appointment_context(doctors)
-                return render(request, 'appointments/schedule_appointment.html', context)
+                return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
             
             doctor = User.objects.get(id=doctor_id, role__in=['staff', 'doctor'])
             
+            # Validate that the selected doctor is allowed for this appointment type
+            type_default = AppointmentTypeDefault.objects.filter(
+                appointment_type=appointment_type, is_active=True
+            ).prefetch_related('assigned_doctors').first()
+            if type_default and type_default.assigned_doctors.exists():
+                allowed_ids = list(type_default.assigned_doctors.values_list('id', flat=True))
+                if doctor.id not in allowed_ids:
+                    messages.error(request, 'The selected doctor is not available for this appointment type.')
+                    return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
+
             # Check for conflicts
             existing_appointment = Appointment.objects.filter(
                 doctor=doctor,
@@ -114,9 +118,7 @@ def schedule_appointment(request):
             
             if existing_appointment:
                 messages.error(request, 'This time slot is already booked. Please choose a different time.')
-                doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
-                context = _get_appointment_context(doctors)
-                return render(request, 'appointments/schedule_appointment.html', context)
+                return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
             
             appointment = Appointment.objects.create(
                 student=request.user,
@@ -157,21 +159,7 @@ def schedule_appointment(request):
         except Exception as e:
             messages.error(request, 'An error occurred while scheduling the appointment. Please try again.')
     
-    doctors = User.objects.filter(role__in=['staff', 'doctor']).select_related('staff_profile')
-    context = _get_appointment_context(doctors)
-    
-    # Add appointment type defaults to context
-    appointment_defaults = {}
-    for default in AppointmentTypeDefault.objects.filter(is_active=True).select_related('default_doctor'):
-        if default.default_doctor:
-            appointment_defaults[default.appointment_type] = {
-                'doctor_id': default.default_doctor.id,
-                'doctor_name': f"Dr. {default.default_doctor.get_full_name()}",
-                'department': default.default_doctor.staff_profile.department if hasattr(default.default_doctor, 'staff_profile') else 'N/A'
-            }
-    context['appointment_defaults'] = appointment_defaults
-    
-    return render(request, 'appointments/schedule_appointment.html', context)
+    return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
 
 
 def _get_appointment_context(doctors):
@@ -227,6 +215,50 @@ def _get_appointment_context(doctors):
         'doctors': doctors,
         'default_doctors': json.dumps(default_doctors),
         'doctors_data': doctors_data
+    }
+
+
+def _get_schedule_context():
+    """
+    Build the full context for the schedule-appointment page.
+    Only includes active AppointmentTypeDefault records,
+    and only the doctors assigned to those types (or all active
+    staff/doctors when a type has no restriction).
+    """
+    active_defaults = (
+        AppointmentTypeDefault.objects
+        .filter(is_active=True)
+        .prefetch_related('assigned_doctors')
+        .order_by('appointment_type')
+    )
+
+    type_doctor_map = {}  # { appointment_type: [doctor_id, ...] }
+    all_assigned_ids = set()
+    has_unrestricted_type = False
+
+    for default in active_defaults:
+        assigned = list(default.assigned_doctors.values_list('id', flat=True))
+        type_doctor_map[default.appointment_type] = assigned
+        if assigned:
+            all_assigned_ids.update(assigned)
+        else:
+            has_unrestricted_type = True  # this type allows all doctors
+
+    # If any type is unrestricted (no assigned doctors), show all active staff/doctors.
+    # Otherwise show only those who appear in at least one type.
+    if has_unrestricted_type or not active_defaults.exists():
+        doctors = User.objects.filter(
+            role__in=['staff', 'doctor'], is_active=True
+        ).select_related('staff_profile').order_by('first_name', 'last_name')
+    else:
+        doctors = User.objects.filter(
+            id__in=all_assigned_ids, is_active=True
+        ).select_related('staff_profile').order_by('first_name', 'last_name')
+
+    return {
+        'doctors': doctors,
+        'active_defaults': active_defaults,
+        'type_doctor_map': json.dumps(type_doctor_map),
     }
 
 
@@ -309,37 +341,29 @@ def appointment_detail(request, appointment_id):
 @admin_required
 def appointment_type_settings(request):
     """
-    View for admin to manage default in-charge doctors for each appointment type.
-    Displays all appointment types and their current defaults.
+    View for admin to assign doctors to each appointment type via inline forms.
     """
-    # Get all appointment type choices
     appointment_types = dict(Appointment.APPOINTMENT_TYPE_CHOICES)
-    
-    # Get existing defaults
-    existing_defaults = AppointmentTypeDefault.objects.select_related('default_doctor').all()
-    existing_types = {d.appointment_type: d for d in existing_defaults}
-    
-    # Create a comprehensive list with all types
-    defaults_list = []
-    for type_key, type_label in appointment_types.items():
-        if type_key in existing_types:
-            defaults_list.append(existing_types[type_key])
-        else:
-            # Create a placeholder for types without defaults
-            defaults_list.append({
-                'appointment_type': type_key,
-                'type_display': type_label,
-                'default_doctor': None,
-                'is_active': False,
-                'is_placeholder': True
-            })
-    
-    context = {
-        'defaults_list': defaults_list,
-        'appointment_types': appointment_types,
+    existing_defaults = {
+        d.appointment_type: d
+        for d in AppointmentTypeDefault.objects.prefetch_related('assigned_doctors').all()
     }
-    
-    return render(request, 'appointments/appointment_settings/appointment_type_settings.html', context)
+
+    settings_data = []
+    for type_key, type_label in appointment_types.items():
+        instance = existing_defaults.get(type_key)
+        initial = {'appointment_type': type_key, 'is_active': True} if not instance else {}
+        form = AppointmentTypeDefaultForm(instance=instance, initial=initial, auto_id=f'id_{type_key}_%s')
+        settings_data.append({
+            'type_key': type_key,
+            'type_label': type_label,
+            'form': form,
+            'instance': instance,
+        })
+
+    return render(request, 'appointments/appointment_settings/appointment_type_settings.html', {
+        'settings_data': settings_data,
+    })
 
 
 @login_required
@@ -360,13 +384,12 @@ def edit_appointment_type_default(request, type_key=None):
             default = form.save(commit=False)
             default.updated_by = request.user
             default.save()
+            form.save_m2m()  # persist assigned_doctors M2M after commit=False save
             
             type_display = default.get_appointment_type_display()
-            doctor_name = f"Dr. {default.default_doctor.get_full_name()}" if default.default_doctor else "None"
-            
             messages.success(
                 request,
-                f'Successfully updated default in-charge for {type_display} to {doctor_name}.'
+                f'Successfully updated doctor assignments for {type_display}.'
             )
             return redirect('appointments:appointment_type_settings')
         else:

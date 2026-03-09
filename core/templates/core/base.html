@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 {% load role_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -227,97 +227,82 @@
                 {% if user.role == 'student' %}
                   <!-- Services Dropdown -->
                   <div class="relative inline-flex items-center" id="services-dropdown">
-                    <button type="button" onclick="toggleDropdown('services')" class="dropdown-button {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name or 'feedback' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
+                    <button type="button" onclick="toggleDropdown('services')" class="dropdown-button {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
                       Services
                       <svg class="ml-1 h-4 w-4 transition-transform" id="services-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div id="services-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                      <div class="py-1">
+                    <div id="services-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-auto min-w-max rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                      <div class="flex divide-x divide-gray-100 p-2">
                         <!-- Appointments Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
-                        <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                          </svg>
-                          View Appointments
-                        </a>
-                        <a href="{% url 'appointments:schedule_appointment' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                          </svg>
-                          Book Appointment
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
+                          <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            View Appointments
+                          </a>
+                          <a href="{% url 'appointments:schedule_appointment' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Book Appointment
+                          </a>
+                        </div>
                         
                         <!-- Medical Records Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
-                        <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                          </svg>
-                          Medical Records
-                        </a>
-                        <a href="{% url 'dental_records:my_dental_records' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                          </svg>
-                          Dental Records
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
+                          <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Medical Records
+                          </a>
+                          <a href="{% url 'dental_records:my_dental_records' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
+                            </svg>
+                            Dental Records
+                          </a>
+                        </div>
                         
                         <!-- Certificates Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
-                        <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                          </svg>
-                          View Requests
-                        </a>
-                        <a href="{% url 'document_request:request_certificate' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                          </svg>
-                          Request Certificate
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
-                        
-                        <!-- Feedback Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feedback</div>
-                        <a href="{% url 'feedback:feedback_list' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                          </svg>
-                          View Feedback
-                        </a>
-                        <a href="{% url 'feedback:submit_feedback' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                          </svg>
-                          Submit Feedback
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
+                          <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            View Requests
+                          </a>
+                          <a href="{% url 'document_request:request_certificate' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Request Certificate
+                          </a>
+                        </div>
                         
                         {% if request.user.role == 'staff' or request.user.role == 'doctor' %}
                         <!-- Health Forms Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Health Forms</div>
-                        <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                          </svg>
-                          My Health Forms
-                        </a>
-                        <a href="{% url 'health_forms_services:manual_entry' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                          </svg>
-                          New Health Form
-                        </a>
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Health Forms</div>
+                          <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            My Health Forms
+                          </a>
+                          <a href="{% url 'health_forms_services:manual_entry' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            New Health Form
+                          </a>
+                        </div>
                         {% endif %}
                       </div>
                     </div>
@@ -327,62 +312,52 @@
                 {% elif user.role == 'staff' or user.role == 'doctor' %}
                   <!-- Services Dropdown -->
                   <div class="relative inline-flex items-center" id="services-dropdown">
-                    <button type="button" onclick="toggleDropdown('services')" class="dropdown-button {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name or 'feedback' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
+                    <button type="button" onclick="toggleDropdown('services')" class="dropdown-button {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
                       Services
                       <svg class="ml-1 h-4 w-4 transition-transform" id="services-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div id="services-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                      <div class="py-1">
+                    <div id="services-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-auto min-w-max rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                      <div class="flex divide-x divide-gray-100 p-2">
                         <!-- Appointments Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
-                        <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                          </svg>
-                          View Appointments
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
+                          <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            View Appointments
+                          </a>
+                        </div>
                         
                         <!-- Medical Records Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
-                        <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                          </svg>
-                          View Medical Records
-                        </a>
-                        <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                          </svg>
-                          Dental Records
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
+                          <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            View Medical Records
+                          </a>
+                          <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
+                            </svg>
+                            Dental Records
+                          </a>
+                        </div>
                         
                         <!-- Certificates Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
-                        <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                          </svg>
-                          Review Requests
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
-                        
-                        <!-- Feedback Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feedback</div>
-                        <a href="{% url 'feedback:feedback_list' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                          </svg>
-                          View Feedback
-                        </a>
-                        
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
+                          <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Review Requests
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -443,69 +418,59 @@
                 {% elif user.role == 'admin' %}
                   <!-- Services Dropdown -->
                   <div class="relative inline-flex items-center" id="services-dropdown">
-                    <button type="button" onclick="toggleDropdown('services')" class="dropdown-button {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name or 'feedback' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
+                    <button type="button" onclick="toggleDropdown('services')" class="dropdown-button {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
                       Services
                       <svg class="ml-1 h-4 w-4 transition-transform" id="services-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div id="services-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                      <div class="py-1">
+                    <div id="services-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-auto min-w-max rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                      <div class="flex divide-x divide-gray-100 p-2">
                         <!-- Appointments Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
-                        <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                          </svg>
-                          All Appointments
-                        </a>
-                        <a href="{% url 'appointments:appointment_type_settings' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                          </svg>
-                          Appointment Settings
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
+                          <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            All Appointments
+                          </a>
+                          <a href="{% url 'appointments:appointment_type_settings' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            Appointment Settings
+                          </a>
+                        </div>
                         
                         <!-- Medical Records Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
-                        <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                          </svg>
-                          All Medical Records
-                        </a>
-                        <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                          </svg>
-                          All Dental Records
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
+                          <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            All Medical Records
+                          </a>
+                          <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
+                            </svg>
+                            All Dental Records
+                          </a>
+                        </div>
                         
                         <!-- Certificates Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
-                        <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                          </svg>
-                          All Requests
-                        </a>
-                        
-                        <div class="border-t border-gray-100 my-1"></div>
-                        
-                        <!-- Feedback Section -->
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feedback</div>
-                        <a href="{% url 'feedback:feedback_list' %}" class="dropdown-item block px-4 py-2 text-sm">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                          </svg>
-                          All Feedback
-                        </a>
-                        
+                        <div class="flex flex-col min-w-[150px] px-2">
+                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
+                          <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
+                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            All Requests
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -563,41 +528,38 @@
                   </div>
 
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
-                  
-                  <!-- Admin Dropdown -->
-                  <div class="relative inline-flex items-center" id="admin-dropdown">
-                    <button type="button" onclick="toggleAdminDropdown()" class="dropdown-button inline-flex items-center px-1 pt-1 text-sm font-medium">
-                      Management
-                      <svg class="ml-1 h-4 w-4 transition-transform" id="admin-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </button>
-                    <div id="admin-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                      <div class="py-1" role="menu">
-                        <a href="{% url 'core:user_management' %}" class="dropdown-item block px-4 py-2 text-sm" role="menuitem">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                          </svg>
-                          User Management
-                        </a>
-                        <a href="/admin/" class="dropdown-item block px-4 py-2 text-sm" role="menuitem">
-                          <svg class="inline-block w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                          </svg>
-                          Django Admin
-                        </a>
-                      </div>
-                    </div>
-                  </div>
                 {% endif %}
               </div>
             </div>
 
             <!-- Right side menu -->
             <div class="flex items-center">
+              <!-- Management Icon (admin only) -->
+              {% if user.role == 'admin' %}
+              <a href="{% url 'core:user_management' %}" title="User Management"
+                class="relative p-2 rounded-full transition-colors duration-150 mr-1
+                  {% if 'user_management' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
+                <span class="sr-only">User Management</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                </svg>
+              </a>
+              {% endif %}
+
+              <!-- Feedback Icon -->
+              <a href="{% url 'feedback:feedback_list' %}" title="Feedback"
+                class="relative p-2 rounded-full transition-colors duration-150 mr-1
+                  {% if 'feedback' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
+                <span class="sr-only">Feedback</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
+                </svg>
+              </a>
+
               <!-- Notifications -->
-              <a href="{% url 'core:notifications' %}" class="relative p-2 text-gray-400 hover:text-gray-500 mr-2">
+              <a href="{% url 'core:notifications' %}" title="Notifications"
+                class="relative p-2 rounded-full transition-colors duration-150 mr-1
+                  {% if 'notifications' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
                 <span class="sr-only">View notifications</span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
@@ -660,7 +622,7 @@
               {% if user.role == 'student' %}
                 <!-- Mobile Services Dropdown -->
                 <div class="border-l-4 border-transparent">
-                  <button type="button" onclick="toggleMobileDropdown('services')" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name or 'feedback' in request.resolver_match.view_name %}bg-purple-50 border-l-4 !border-purple-500 text-purple-700{% endif %}">
+                  <button type="button" onclick="toggleMobileDropdown('services')" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}bg-purple-50 border-l-4 !border-purple-500 text-purple-700{% endif %}">
                     <span>Services</span>
                     <svg id="mobile-services-arrow" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -715,23 +677,6 @@
                       </svg>
                       Request Certificate
                     </a>
-                    
-                    <div class="border-t border-gray-200 my-1"></div>
-                    
-                    <!-- Feedback Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feedback</div>
-                    <a href="{% url 'feedback:feedback_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                      </svg>
-                      View Feedback
-                    </a>
-                    <a href="{% url 'feedback:submit_feedback' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                      </svg>
-                      Submit Feedback
-                    </a>
                   </div>
                 </div>
 
@@ -739,7 +684,7 @@
               {% elif user.role == 'staff' or user.role == 'doctor' %}
                 <!-- Mobile Services Dropdown -->
                 <div class="border-l-4 border-transparent">
-                  <button type="button" onclick="toggleMobileDropdown('services')" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name or 'feedback' in request.resolver_match.view_name %}bg-purple-50 border-l-4 !border-purple-500 text-purple-700{% endif %}">
+                  <button type="button" onclick="toggleMobileDropdown('services')" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}bg-purple-50 border-l-4 !border-purple-500 text-purple-700{% endif %}">
                     <span>Services</span>
                     <svg id="mobile-services-arrow" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -781,17 +726,6 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                       </svg>
                       Review Requests
-                    </a>
-                    
-                    <div class="border-t border-gray-200 my-1"></div>
-                    
-                    <!-- Feedback Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feedback</div>
-                    <a href="{% url 'feedback:feedback_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                      </svg>
-                      View Feedback
                     </a>
                   </div>
                 </div>
@@ -899,16 +833,6 @@
                       All Requests
                     </a>
                     
-                    <div class="border-t border-gray-200 my-1"></div>
-                    
-                    <!-- Feedback Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feedback</div>
-                    <a href="{% url 'feedback:feedback_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
-                      </svg>
-                      All Feedback
-                    </a>
                   </div>
                 </div>
 
@@ -962,30 +886,9 @@
 
                 <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                 
-                <!-- Mobile Admin Dropdown -->
-                <div class="border-l-4 border-transparent">
-                  <button type="button" onclick="toggleMobileAdminDropdown()" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors">
-                    <span>Management</span>
-                    <svg id="mobile-admin-arrow" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </button>
-                  <div id="mobile-admin-submenu" class="hidden bg-gray-50">
-                    <a href="{% url 'core:user_management' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-                      </svg>
-                      User Management
-                    </a>
-                    <a href="/admin/" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                      </svg>
-                      Django Admin
-                    </a>
-                  </div>
-                </div>
+                <a href="{% url 'core:user_management' %}" class="mobile-nav-link {% if 'user_management' in request.resolver_match.view_name %}active{% endif %}">
+                  User Management
+                </a>
               {% endif %}
             </div>
           </div>

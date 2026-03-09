@@ -1,0 +1,359 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-5xl mx-auto">
+
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-start justify-between gap-4 flex-wrap">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                        <span class="text-primary-600"><i class="fas fa-tooth"></i></span>
+                        {{ title }}
+                    </h1>
+                    <p class="mt-2 text-gray-600">Complete the form below before your dental appointment</p>
+                </div>
+                <a href="{% url 'appointments:appointment_detail' appointment.id %}"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm">
+                    <i class="fas fa-arrow-left"></i> Back to Appointment
+                </a>
+            </div>
+        </div>
+
+        <!-- Appointment Info Banner -->
+        <div class="mb-6 rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div class="flex items-center gap-2 px-5 py-2.5 bg-gray-700">
+                <i class="fas fa-calendar-check text-white text-sm"></i>
+                <span class="text-white font-semibold text-sm tracking-wide">Appointment Details</span>
+            </div>
+            <div class="bg-gray-50 px-5 py-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-6 gap-y-3">
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Patient</p>
+                    <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ appointment.student.get_full_name }}</p>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Date</p>
+                    <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ appointment.date|date:"F d, Y" }}</p>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Time</p>
+                    <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ appointment.time|time:"g:i A" }}</p>
+                </div>
+                <div>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Doctor</p>
+                    <p class="text-sm font-semibold text-gray-800 mt-0.5">Dr. {{ appointment.doctor.get_full_name }}</p>
+                </div>
+                <div class="col-span-2 sm:col-span-3 lg:col-span-1">
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Reason</p>
+                    <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ appointment.reason }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Card -->
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+            <div class="p-8">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="mb-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4">
+                        <div class="flex items-start gap-3">
+                            <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
+                            <ul class="text-sm text-red-800 list-disc list-inside">
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Info note -->
+                    <div class="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                        <i class="fas fa-info-circle text-amber-500 mt-0.5"></i>
+                        <div class="text-sm text-amber-800">
+                            <p class="font-semibold">Please fill in your personal information and sign the consent forms.</p>
+                            <p class="mt-1">Your assigned doctor will complete the clinical examination during your appointment.
+                            <strong>Once submitted, you will not be able to edit this form.</strong></p>
+                        </div>
+                    </div>
+
+                    <!-- Personal Information Section -->
+                    <div class="mb-8">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
+                            <i class="fas fa-user-circle text-primary-600"></i> Personal Information
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                                <input type="text" value="{{ request.user.first_name }}" readonly
+                                       class="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                                <input type="text" value="{{ request.user.last_name }}" readonly
+                                       class="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed text-sm">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.middle_name.label }}</label>
+                                {{ form.middle_name }}
+                                {% if form.middle_name.errors %}<p class="text-red-600 text-xs mt-1">{{ form.middle_name.errors.0 }}</p>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Demographics Section -->
+                    <div class="mb-8">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
+                            <i class="fas fa-id-card text-primary-600"></i> Demographics
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.age.label }} <span class="text-red-500">*</span></label>
+                                {{ form.age }}
+                                {% if form.age.errors %}<p class="text-red-600 text-xs mt-1">{{ form.age.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.gender.label }} <span class="text-red-500">*</span></label>
+                                {{ form.gender }}
+                                {% if form.gender.errors %}<p class="text-red-600 text-xs mt-1">{{ form.gender.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.civil_status.label }} <span class="text-red-500">*</span></label>
+                                {{ form.civil_status }}
+                                {% if form.civil_status.errors %}<p class="text-red-600 text-xs mt-1">{{ form.civil_status.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.date_of_birth.label }} <span class="text-red-500">*</span></label>
+                                {{ form.date_of_birth }}
+                                {% if form.date_of_birth.errors %}<p class="text-red-600 text-xs mt-1">{{ form.date_of_birth.errors.0 }}</p>{% endif %}
+                            </div>
+                        </div>
+                        <div class="mt-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.place_of_birth.label }} <span class="text-red-500">*</span></label>
+                            {{ form.place_of_birth }}
+                            {% if form.place_of_birth.errors %}<p class="text-red-600 text-xs mt-1">{{ form.place_of_birth.errors.0 }}</p>{% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Contact Information Section -->
+                    <div class="mb-8">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
+                            <i class="fas fa-phone text-primary-600"></i> Contact Information
+                        </h2>
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.address.label }} <span class="text-red-500">*</span></label>
+                            {{ form.address }}
+                            {% if form.address.errors %}<p class="text-red-600 text-xs mt-1">{{ form.address.errors.0 }}</p>{% endif %}
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.email.label }} <span class="text-red-500">*</span></label>
+                                {{ form.email }}
+                                {% if form.email.errors %}<p class="text-red-600 text-xs mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div data-phone-wrapper>
+                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                                    <svg class="w-4 h-4 mr-2 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                                    </svg>
+                                    {{ form.contact_number.label }} <span class="text-red-500 ml-1">*</span>
+                                </label>
+                                <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500">
+                                    <span class="flex items-center px-3 bg-gray-100 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
+                                    {{ form.contact_number }}
+                                </div>
+                                <div class="mt-1 flex items-center justify-between">
+                                    <p class="text-xs text-gray-500">e.g. 917 123 4567</p>
+                                    <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span>
+                                </div>
+                                {% if form.contact_number.errors %}<p class="text-red-600 text-xs mt-1">{{ form.contact_number.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.telephone_number.label }}</label>
+                                {{ form.telephone_number }}
+                                {% if form.telephone_number.errors %}<p class="text-red-600 text-xs mt-1">{{ form.telephone_number.errors.0 }}</p>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Institutional Information Section -->
+                    <div class="mb-8">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
+                            <i class="fas fa-building text-primary-600"></i> Institutional Information
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.designation.label }} <span class="text-red-500">*</span></label>
+                                {{ form.designation }}
+                                {% if form.designation.errors %}<p class="text-red-600 text-xs mt-1">{{ form.designation.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.department_college_office.label }} <span class="text-red-500">*</span></label>
+                                {{ form.department_college_office }}
+                                {% if form.department_college_office.errors %}<p class="text-red-600 text-xs mt-1">{{ form.department_college_office.errors.0 }}</p>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Emergency Contact Section -->
+                    <div class="mb-8">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
+                            <i class="fas fa-user-shield text-primary-600"></i> Emergency Contact
+                        </h2>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.guardian_name.label }} <span class="text-red-500">*</span></label>
+                                {{ form.guardian_name }}
+                                {% if form.guardian_name.errors %}<p class="text-red-600 text-xs mt-1">{{ form.guardian_name.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div data-phone-wrapper>
+                                <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                                    <svg class="w-4 h-4 mr-2 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                                    </svg>
+                                    {{ form.guardian_contact.label }} <span class="text-red-500 ml-1">*</span>
+                                </label>
+                                <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500">
+                                    <span class="flex items-center px-3 bg-gray-100 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
+                                    {{ form.guardian_contact }}
+                                </div>
+                                <div class="mt-1 flex items-center justify-between">
+                                    <p class="text-xs text-gray-500">e.g. 917 123 4567</p>
+                                    <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span>
+                                </div>
+                                {% if form.guardian_contact.errors %}<p class="text-red-600 text-xs mt-1">{{ form.guardian_contact.errors.0 }}</p>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Consent & Authorization Section -->
+                    <div class="mb-8">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
+                            <i class="fas fa-file-signature text-primary-600"></i> Consent &amp; Authorization
+                        </h2>
+
+                        <!-- Data Accuracy Consent -->
+                        <div class="mb-6 p-5 bg-gray-50 border border-gray-200 rounded-xl">
+                            <h3 class="text-sm font-semibold text-gray-800 mb-3">Data Accuracy Consent</h3>
+                            <p class="text-sm text-gray-700 mb-4">
+                                I hereby certify that all the information I have provided in this form is true, complete, and accurate.
+                                I understand that providing false information may affect the quality of dental care I receive.
+                            </p>
+                            <div class="flex items-start gap-3">
+                                {{ form.consent_signed }}
+                                <label for="{{ form.consent_signed.id_for_label }}" class="text-sm font-medium text-gray-800 cursor-pointer">
+                                    {{ form.consent_signed.label }} <span class="text-red-500">*</span>
+                                </label>
+                            </div>
+                            {% if form.consent_signed.errors %}<p class="text-red-600 text-xs mt-1">{{ form.consent_signed.errors.0 }}</p>{% endif %}
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">{{ form.consent_date.label }}</label>
+                                {{ form.consent_date }}
+                            </div>
+                        </div>
+
+                        <!-- Informed Consent -->
+                        <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl">
+                            <h3 class="text-sm font-semibold text-gray-800 mb-3">Informed Consent</h3>
+                            <p class="text-sm text-gray-700 mb-4">
+                                I authorize the dental clinic of Jose Maria College Foundation, Inc. to perform necessary
+                                dental examination, diagnosis, and treatment procedures as deemed appropriate by my assigned dentist.
+                                I understand that I have the right to ask questions about any recommended procedure before giving my approval.
+                            </p>
+                            <div class="flex items-start gap-3">
+                                {{ form.informed_consent_signed }}
+                                <label for="{{ form.informed_consent_signed.id_for_label }}" class="text-sm font-medium text-gray-800 cursor-pointer">
+                                    {{ form.informed_consent_signed.label }} <span class="text-red-500">*</span>
+                                </label>
+                            </div>
+                            {% if form.informed_consent_signed.errors %}<p class="text-red-600 text-xs mt-1">{{ form.informed_consent_signed.errors.0 }}</p>{% endif %}
+                            <div class="mt-3">
+                                <label class="block text-xs font-medium text-gray-500 mb-1">{{ form.informed_consent_date.label }}</label>
+                                {{ form.informed_consent_date }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                        <a href="{% url 'appointments:appointment_detail' appointment.id %}"
+                           class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium">
+                            <i class="fas fa-arrow-left"></i>
+                            <span>Back to Appointment</span>
+                        </a>
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 px-8 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Submit Intake Form</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    input[type="text"],
+    input[type="email"],
+    input[type="number"],
+    input[type="date"],
+    input[type="tel"],
+    select,
+    textarea {
+        width: 100%;
+        padding: 0.625rem 1rem;
+        border: 1px solid #D1D5DB;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        transition: all 0.2s;
+    }
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    input[type="tel"]:focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #9333EA;
+        box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
+    }
+    textarea { min-height: 4rem; resize: vertical; }
+    input[type="checkbox"] { width: 1.25rem; height: 1.25rem; accent-color: #9333EA; }
+    [data-phone-wrapper] input[type="text"],
+    [data-phone-wrapper] input[type="tel"] {
+        border: none; border-radius: 0; box-shadow: none;
+    }
+    [data-phone-wrapper] input[type="text"]:focus,
+    [data-phone-wrapper] input[type="tel"]:focus {
+        border: none; box-shadow: none;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const today = new Date().toISOString().split('T')[0];
+
+        function wireConsent(checkboxId, dateId) {
+            const cb = document.getElementById(checkboxId);
+            const dt = document.getElementById(dateId);
+            if (!cb || !dt) return;
+            if (!dt.value) dt.value = today;
+            cb.addEventListener('change', function () {
+                if (cb.checked && !dt.value) dt.value = today;
+            });
+        }
+
+        wireConsent('{{ form.consent_signed.id_for_label }}', '{{ form.consent_date.id_for_label }}');
+        wireConsent('{{ form.informed_consent_signed.id_for_label }}', '{{ form.informed_consent_date.id_for_label }}');
+    });
+</script>
+<script src="{% static 'js/phone-input.js' %}"></script>
+{% endblock %}

@@ -131,9 +131,10 @@ class DentalRecordForm(forms.ModelForm):
                 'placeholder': 'email@example.com'
             }),
             'contact_number': forms.TextInput(attrs={
-                'class': 'w-full pl-12 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'placeholder': '0917 123 4567',
+                'class': 'flex-1 min-w-0 px-3 pr-8 py-2.5 border-0 focus:outline-none focus:ring-0 bg-transparent',
+                'placeholder': '917 123 4567',
                 'data-phone-input': 'true',
+                'data-phone-badge': 'true',
                 'inputmode': 'tel',
                 'autocomplete': 'tel',
                 'maxlength': '16',
@@ -154,9 +155,10 @@ class DentalRecordForm(forms.ModelForm):
                 'placeholder': 'Emergency Contact Name'
             }),
             'guardian_contact': forms.TextInput(attrs={
-                'class': 'w-full pl-12 pr-10 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'placeholder': '0917 123 4567',
+                'class': 'flex-1 min-w-0 px-3 pr-8 py-2.5 border-0 focus:outline-none focus:ring-0 bg-transparent',
+                'placeholder': '917 123 4567',
                 'data-phone-input': 'true',
+                'data-phone-badge': 'true',
                 'inputmode': 'tel',
                 'autocomplete': 'tel',
                 'maxlength': '16',
@@ -211,6 +213,148 @@ class DentalRecordForm(forms.ModelForm):
             'consent_date': 'Consent Date',
             'informed_consent_signed': 'Informed Consent Signed',
             'informed_consent_date': 'Informed Consent Date',
+        }
+
+
+class StudentDentalIntakeForm(forms.ModelForm):
+    """
+    Stripped-down dental record form for student self-intake.
+    Students fill in their own demographics and sign consent after a
+    doctor confirms their dental appointment. Clinical fields (examined_by,
+    appointment, date_of_examination) are handled by the view, not the student.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        today = timezone.now().date()
+        self.fields['consent_date'].initial = today
+        self.fields['informed_consent_date'].initial = today
+        self.fields['consent_signed'].required = True
+        self.fields['informed_consent_signed'].required = True
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not cleaned_data.get('consent_signed'):
+            self.add_error('consent_signed', 'You must give consent before submitting.')
+        if not cleaned_data.get('informed_consent_signed'):
+            self.add_error('informed_consent_signed', 'You must give informed consent before submitting.')
+        if cleaned_data.get('consent_signed') and not cleaned_data.get('consent_date'):
+            cleaned_data['consent_date'] = timezone.now().date()
+        if cleaned_data.get('informed_consent_signed') and not cleaned_data.get('informed_consent_date'):
+            cleaned_data['informed_consent_date'] = timezone.now().date()
+        return cleaned_data
+
+    def clean_contact_number(self):
+        return clean_philippine_phone(self.cleaned_data.get('contact_number'))
+
+    def clean_guardian_contact(self):
+        return clean_philippine_phone(self.cleaned_data.get('guardian_contact'))
+
+    class Meta:
+        model = DentalRecord
+        fields = [
+            'middle_name', 'age', 'gender', 'civil_status',
+            'address', 'date_of_birth', 'place_of_birth', 'email',
+            'contact_number', 'telephone_number', 'designation',
+            'department_college_office', 'guardian_name', 'guardian_contact',
+            'consent_signed', 'consent_date',
+            'informed_consent_signed', 'informed_consent_date',
+        ]
+        widgets = {
+            'middle_name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': 'Middle Name (optional)',
+            }),
+            'age': forms.NumberInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'min': '0', 'max': '150',
+            }),
+            'gender': forms.Select(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+            }),
+            'civil_status': forms.Select(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'rows': 3,
+                'placeholder': 'Complete residential address',
+            }),
+            'date_of_birth': forms.DateInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'type': 'date',
+            }),
+            'place_of_birth': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': 'City/Province',
+            }),
+            'email': forms.EmailInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': 'email@example.com',
+            }),
+            'contact_number': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': '09XX XXX XXXX',
+                'inputmode': 'tel',
+                'maxlength': '16',
+            }),
+            'telephone_number': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': 'Landline (optional)',
+            }),
+            'designation': forms.Select(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+            }),
+            'department_college_office': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': 'Department / College / Office',
+            }),
+            'guardian_name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': 'Emergency Contact Name',
+            }),
+            'guardian_contact': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'placeholder': '09XX XXX XXXX',
+                'inputmode': 'tel',
+                'maxlength': '16',
+            }),
+            'consent_signed': forms.CheckboxInput(attrs={
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600',
+            }),
+            'consent_date': forms.DateInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'type': 'date',
+                'readonly': 'readonly',
+            }),
+            'informed_consent_signed': forms.CheckboxInput(attrs={
+                'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600',
+            }),
+            'informed_consent_date': forms.DateInput(attrs={
+                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'type': 'date',
+                'readonly': 'readonly',
+            }),
+        }
+        labels = {
+            'middle_name': 'Middle Name',
+            'age': 'Age',
+            'gender': 'Gender',
+            'civil_status': 'Civil Status',
+            'address': 'Complete Address',
+            'date_of_birth': 'Date of Birth',
+            'place_of_birth': 'Place of Birth',
+            'email': 'Email Address',
+            'contact_number': 'Mobile Number',
+            'telephone_number': 'Telephone Number (optional)',
+            'designation': 'Designation',
+            'department_college_office': 'Department / College / Office',
+            'guardian_name': 'Emergency Contact Name',
+            'guardian_contact': 'Emergency Contact Number',
+            'consent_signed': 'I certify that all information provided is true and accurate.',
+            'consent_date': 'Date',
+            'informed_consent_signed': 'I authorize the dental clinic to perform necessary dental procedures.',
+            'informed_consent_date': 'Date',
         }
 
 

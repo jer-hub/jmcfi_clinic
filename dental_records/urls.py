@@ -41,4 +41,7 @@ urlpatterns = [
     # My Dental Records (Patient View)
     path('my-dental-records/', views.my_dental_records, name='my_dental_records'),
     path('my-dental-records/<int:record_id>/', views.my_dental_record_detail, name='my_dental_record_detail'),
+
+    # Student self-intake (after appointment is confirmed)
+    path('intake/<int:appointment_id>/', views.student_dental_intake, name='student_dental_intake'),
 ]

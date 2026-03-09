@@ -139,12 +139,24 @@
                                     </button>
                                 {% elif appointment.status == 'confirmed' %}
                                     {% if appointment.appointment_type == 'dental' %}
+                                        {% if appointment.dental_records.exists %}
+                            <a href="{% url 'dental_records:dental_record_edit' appointment.dental_records.first.id %}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                                Complete Dental Record
+                            </a>
+                            <div class="block w-full text-center px-4 py-2 rounded-md text-xs text-green-700 bg-green-50 border border-green-200">
+                                <svg class="inline-block w-3.5 h-3.5 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Student intake submitted
+                            </div>
+                                        {% else %}
                             <a href="{% url 'dental_records:dental_record_create' %}?patient={{ appointment.student.id }}&appointment={{ appointment.id }}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
                                 Create Dental Record
                             </a>
                             <a href="{% url 'dental_records:dental_record_list' %}" class="block w-full text-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md shadow-sm text-sm font-medium hover:bg-blue-50">
                                 Dental Records
                             </a>
+                                        {% endif %}
                                     {% else %}
                             <a href="{% url 'medical_records:create_medical_record' appointment.id %}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
                                 Create Medical Record
@@ -168,6 +180,24 @@
                             {% endif %}
                         {% endif %}
                         
+                        {% if user.role == 'student' and appointment.status == 'confirmed' %}
+                            {% if appointment.appointment_type == 'dental' %}
+                                {% if not appointment.dental_records.exists %}
+                            <a href="{% url 'dental_records:student_dental_intake' appointment_id=appointment.id %}"
+                               class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                                Fill Dental Intake Form
+                            </a>
+                                {% else %}
+                            <div class="block w-full text-center px-4 py-2 rounded-md text-sm font-medium bg-green-50 text-green-700 border border-green-200">
+                                <svg class="inline-block w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                Intake Form Submitted
+                            </div>
+                                {% endif %}
+                            {% endif %}
+                        {% endif %}
+
                         {% if user.role == 'student' and appointment.status == 'completed' %}
                             {% if appointment.appointment_type == 'dental' and appointment.dental_records.exists %}
                             <a href="{% url 'dental_records:dental_record_detail' appointment.dental_records.first.id %}" class="block w-full text-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md shadow-sm text-sm font-medium hover:bg-blue-50">

@@ -72,6 +72,27 @@
         return PH_MOBILE_RE.test(clean.replace(/\+/, '')) || PH_MOBILE_RE.test('+' + d);
     }
 
+    /** True when the input lives inside a +63 badge container. */
+    function hasBadge(input) {
+        return input.dataset.phoneBadge === 'true';
+    }
+
+    /**
+     * Format for badge inputs: show only the 10-digit mobile core.
+     *   917 123 4567  (no leading 0 or +63 — badge already shows that)
+     */
+    function formatPhone10(clean) {
+        const digits = clean.startsWith('+') ? clean.slice(1) : clean;
+        let core = digits.replace(/\D/g, '');
+        if (core.startsWith('63')) core = core.slice(2);
+        else if (core.startsWith('0')) core = core.slice(1);
+        core = core.slice(0, 10);
+        let out = core.slice(0, 3);
+        if (core.length > 3) out += ' ' + core.slice(3, 6);
+        if (core.length > 6) out += ' ' + core.slice(6, 10);
+        return out;
+    }
+
     /**
      * Format a digit-only string into a readable PH mobile number.
      *   +63 → +63 917 123 4567
@@ -207,6 +228,7 @@
         const input = e.target;
         const raw   = input.value;
         const clean = stripToDigits(raw);
+        const badge = hasBadge(input);
 
         // Limit total significant digits (country code + 10 mobile = 12, or 0 + 10 = 11)
         const digits = clean.replace(/\+/g, '');
@@ -219,7 +241,7 @@
             const trimmed = clean.startsWith('+')
                 ? '+' + digits.slice(0, maxDigits)
                 : digits.slice(0, maxDigits);
-            const formatted = formatPhone(trimmed);
+            const formatted = badge ? formatPhone10(trimmed) : formatPhone(trimmed);
             input.value = formatted;
             updateStatusIcon(input, trimmed);
             updateCounter(input, trimmed);
@@ -227,33 +249,54 @@
         }
 
         // Format and set
-        const formatted = formatPhone(clean);
-
-        // Calculate new cursor position
+        const formatted = badge ? formatPhone10(clean) : formatPhone(clean);
         const oldCursor = input.selectionStart;
-        const digitsBeforeCursor = stripToDigits(raw.slice(0, oldCursor)).replace(/\+/g, '').length;
 
-        input.value = formatted;
+        if (badge) {
+            // Count core digits (no prefix) before cursor in raw string
+            const rawBefore = raw.slice(0, oldCursor);
+            let coreBefore = rawBefore.replace(/\D/g, '');
+            if (coreBefore.startsWith('63')) coreBefore = coreBefore.slice(2);
+            else if (coreBefore.startsWith('0')) coreBefore = coreBefore.slice(1);
+            const coreDigitsBefore = coreBefore.length;
 
-        // Restore cursor: count digits in formatted string until we hit digitsBeforeCursor
-        let newCursor = 0;
-        let digitsSeen = 0;
-        for (let i = 0; i < formatted.length; i++) {
-            if (/\d/.test(formatted[i])) {
-                digitsSeen++;
-                if (digitsSeen === digitsBeforeCursor) {
-                    newCursor = i + 1;
-                    break;
+            input.value = formatted;
+
+            // Restore cursor by counting digits in formatted10 string
+            let newCursor = 0;
+            let digitsSeen = 0;
+            for (let i = 0; i < formatted.length; i++) {
+                if (/\d/.test(formatted[i])) {
+                    digitsSeen++;
+                    if (digitsSeen === coreDigitsBefore) { newCursor = i + 1; break; }
                 }
             }
-            // Account for + at position 0
-            if (formatted[i] === '+' && i === 0) continue;
-        }
-        if (digitsSeen < digitsBeforeCursor) {
-            newCursor = formatted.length;
-        }
+            if (digitsSeen < coreDigitsBefore) newCursor = formatted.length;
+            input.setSelectionRange(newCursor, newCursor);
+        } else {
+            // Original cursor logic
+            const digitsBeforeCursor = stripToDigits(raw.slice(0, oldCursor)).replace(/\+/g, '').length;
 
-        input.setSelectionRange(newCursor, newCursor);
+            input.value = formatted;
+
+            let newCursor = 0;
+            let digitsSeen = 0;
+            for (let i = 0; i < formatted.length; i++) {
+                if (/\d/.test(formatted[i])) {
+                    digitsSeen++;
+                    if (digitsSeen === digitsBeforeCursor) {
+                        newCursor = i + 1;
+                        break;
+                    }
+                }
+                // Account for + at position 0
+                if (formatted[i] === '+' && i === 0) continue;
+            }
+            if (digitsSeen < digitsBeforeCursor) {
+                newCursor = formatted.length;
+            }
+            input.setSelectionRange(newCursor, newCursor);
+        }
 
         // Visual feedback
         updateStatusIcon(input, clean);
@@ -269,6 +312,9 @@
             input.setCustomValidity('');
             return;
         }
+
+        // Re-format on blur in case user typed a raw number
+        input.value = hasBadge(input) ? formatPhone10(clean) : formatPhone(clean);
 
         if (isValid(clean)) {
             setInputState(input, 'valid');
@@ -338,7 +384,7 @@
             // Format any pre-filled value
             if (input.value) {
                 const clean = stripToDigits(input.value);
-                input.value = formatPhone(clean);
+                input.value = hasBadge(input) ? formatPhone10(clean) : formatPhone(clean);
                 updateStatusIcon(input, clean);
                 updateCounter(input, clean);
                 if (isValid(clean)) {

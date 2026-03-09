@@ -239,15 +239,23 @@ def create_system_notification(request):
         # Determine recipients
         if recipient_type == 'students':
             recipients = User.objects.filter(role='student')
-        elif recipient_type == 'staff':
+        elif recipient_type == 'staff_only':
+            recipients = User.objects.filter(role='staff')
+        elif recipient_type == 'doctors':
+            recipients = User.objects.filter(role='doctor')
+        elif recipient_type == 'admins':
+            recipients = User.objects.filter(role='admin')
+        elif recipient_type == 'staff_and_doctors':
             recipients = User.objects.filter(role__in=['staff', 'doctor'])
+        elif recipient_type == 'non_students':
+            recipients = User.objects.filter(role__in=['staff', 'doctor', 'admin'])
         else:  # all
-            recipients = User.objects.filter(role__in=['student', 'staff', 'doctor'])
+            recipients = User.objects.filter(role__in=['student', 'staff', 'doctor', 'admin'])
         
         # Create notifications
         created_count = len(create_bulk_notifications(recipients, title, message, notification_type))
         
-        messages.success(request, f'Successfully sent notification to {created_count} users.')
+        messages.success(request, 'Notification sent successfully.')
         return redirect('core:notifications')
     
     return render(request, 'core/create_system_notification.html')

@@ -1,133 +1,257 @@
-{% extends 'core/base.html' %}
+﻿{% extends 'core/base.html' %}
 
-{% block title %}{% if is_edit %}Edit{% else %}Configure{% endif %} Appointment Type Default{% endblock title %}
+{% block title %}{% if is_edit %}Edit{% else %}Configure{% endif %} Appointment Type{% endblock title %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+
         <!-- Header -->
         <div class="mb-6">
-            <a href="{% url 'appointments:appointment_type_settings' %}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            <a href="{% url 'appointments:appointment_type_settings' %}" class="inline-flex items-center text-sm text-gray-500 hover:text-gray-800 mb-4 gap-1.5 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 Back to Settings
             </a>
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
-                {% if is_edit %}Edit{% else %}Configure{% endif %} Default In-Charge
+                {% if is_edit %}Edit{% else %}Configure{% endif %} Appointment Type
             </h1>
-            <p class="mt-2 text-sm text-gray-600">
-                Set the default doctor for this appointment type
-            </p>
+            <p class="mt-1 text-sm text-gray-500">Assign doctors for this appointment type.</p>
         </div>
 
-        <!-- Form Card -->
-        <div class="bg-white shadow sm:rounded-lg">
-            <div class="px-4 py-5 sm:p-6">
-                <form method="POST" class="space-y-6">
-                    {% csrf_token %}
-                    
-                    <!-- Appointment Type -->
-                    <div>
-                        <label for="{{ form.appointment_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            {{ form.appointment_type.label }}
-                            <span class="text-red-500">*</span>
-                        </label>
-                        {{ form.appointment_type }}
-                        {% if form.appointment_type.help_text %}
-                            <p class="mt-2 text-sm text-gray-500">{{ form.appointment_type.help_text }}</p>
-                        {% endif %}
-                        {% if form.appointment_type.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ form.appointment_type.errors|first }}</p>
-                        {% endif %}
-                    </div>
+        <!-- Form Errors -->
+        {% if form.non_field_errors %}
+        <div class="mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg flex items-start gap-3">
+            <svg class="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+            </svg>
+            <p class="text-sm text-red-700">{{ form.non_field_errors|first }}</p>
+        </div>
+        {% endif %}
 
-                    <!-- Default Doctor -->
-                    <div>
-                        <label for="{{ form.default_doctor.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            {{ form.default_doctor.label }}
-                        </label>
-                        {{ form.default_doctor }}
-                        {% if form.default_doctor.help_text %}
-                            <p class="mt-2 text-sm text-gray-500">{{ form.default_doctor.help_text }}</p>
-                        {% endif %}
-                        {% if form.default_doctor.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ form.default_doctor.errors|first }}</p>
-                        {% endif %}
-                        <p class="mt-2 text-sm text-gray-500">
-                            <span class="font-medium">Note:</span> You can leave this empty if you don't want to set a default yet.
-                        </p>
-                    </div>
+        <!-- Card â€” overflow-visible so the doctor dropdown panel is never clipped -->
+        <div class="bg-white shadow sm:rounded-xl overflow-visible">
+            <form method="POST">
+                {% csrf_token %}
 
-                    <!-- Is Active -->
-                    <div>
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                                {{ form.is_active }}
-                            </div>
-                            <div class="ml-3 text-sm">
-                                <label for="{{ form.is_active.id_for_label }}" class="font-medium text-gray-700">
-                                    {{ form.is_active.label }}
-                                </label>
-                                {% if form.is_active.help_text %}
-                                    <p class="text-gray-500">{{ form.is_active.help_text }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% if form.is_active.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ form.is_active.errors|first }}</p>
-                        {% endif %}
-                    </div>
+                <!-- Table -->
+                <table class="min-w-full">
+                    <tbody class="divide-y divide-gray-100">
 
-                    <!-- Info Box -->
-                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-sm text-blue-700">
-                                    <strong>How this works:</strong> When students schedule an appointment of this type, the doctor field will be automatically filled with the selected default doctor and will be disabled (read-only). This ensures consistent assignment for specific appointment types.
+                        <!-- Appointment Type -->
+                        <tr class="align-top">
+                            <td class="px-6 py-4 w-44 bg-gray-50 border-r border-gray-100 rounded-tl-xl">
+                                <span class="block text-sm font-semibold text-gray-700 pt-1">
+                                    Appointment Type
+                                    {% if not is_edit %}<span class="text-red-500">*</span>{% endif %}
+                                </span>
+                                <p class="mt-0.5 text-xs text-gray-400">
+                                    {% if is_edit %}Cannot be changed after creation.{% else %}Select the type of appointment.{% endif %}
                                 </p>
-                            </div>
-                        </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                {% if is_edit %}
+                                    <!-- Show as read-only badge when editing -->
+                                    <input type="hidden" name="appointment_type" value="{{ appointment_default.appointment_type }}">
+                                    <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
+                                        {% if appointment_default.appointment_type == 'consultation' %}bg-blue-100 text-blue-800
+                                        {% elif appointment_default.appointment_type == 'checkup' %}bg-green-100 text-green-800
+                                        {% elif appointment_default.appointment_type == 'vaccination' %}bg-purple-100 text-purple-800
+                                        {% elif appointment_default.appointment_type == 'emergency' %}bg-red-100 text-red-800
+                                        {% elif appointment_default.appointment_type == 'dental' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-orange-100 text-orange-800{% endif %}">
+                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                        {{ appointment_default.get_appointment_type_display }}
+                                    </span>
+                                    <p class="mt-1.5 text-xs text-gray-400 flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                        </svg>
+                                        Locked â€” type cannot be changed
+                                    </p>
+                                {% else %}
+                                    {{ form.appointment_type }}
+                                    {% if form.appointment_type.errors %}
+                                    <p class="mt-1 text-xs text-red-600">{{ form.appointment_type.errors|first }}</p>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- Assigned Doctors -->
+                        <tr class="align-top">
+                            <td class="px-6 py-4 w-44 bg-gray-50 border-r border-gray-100">
+                                <span class="block text-sm font-semibold text-gray-700 pt-1">Assigned Doctors</span>
+                                <p class="mt-0.5 text-xs text-gray-400">Leave empty to allow all staff/doctors.</p>
+                            </td>
+                            <td class="px-6 py-4 relative">
+                                <div x-data="doctorDropdown()">
+
+                                    <!-- Trigger -->
+                                    <button type="button" @click="open = !open"
+                                        class="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-300 rounded-lg shadow-sm text-sm text-gray-700 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all duration-150">
+                                        <span class="flex items-center gap-2 min-w-0">
+                                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            </svg>
+                                            <span class="truncate font-medium" x-text="selectedLabel()"></span>
+                                        </span>
+                                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0 ml-2 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </button>
+
+                                    <!-- Panel â€” absolutely positioned, escapes table cell -->
+                                    <div x-show="open" x-cloak @click.outside="open = false"
+                                        x-transition:enter="transition ease-out duration-150"
+                                        x-transition:enter-start="opacity-0 translate-y-1"
+                                        x-transition:enter-end="opacity-100 translate-y-0"
+                                        x-transition:leave="transition ease-in duration-100"
+                                        x-transition:leave-start="opacity-100 translate-y-0"
+                                        x-transition:leave-end="opacity-0 translate-y-1"
+                                        style="position:absolute; left:1.5rem; right:1.5rem; top:calc(100% - 1rem); z-index:100;"
+                                        class="bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden">
+
+                                        <!-- Search -->
+                                        <div class="p-2.5 border-b border-gray-100">
+                                            <div class="relative">
+                                                <svg class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
+                                                </svg>
+                                                <input type="text" x-model="search" placeholder="Search doctors..."
+                                                    class="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-400 bg-gray-50">
+                                            </div>
+                                        </div>
+
+                                        <!-- Select All / Clear -->
+                                        <div class="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
+                                            <button type="button" @click="selectAll()" class="text-xs font-semibold text-primary-600 hover:text-primary-800 transition-colors">Select all</button>
+                                            <span class="text-gray-300 text-xs select-none">|</span>
+                                            <button type="button" @click="clearAll()" class="text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">Clear</button>
+                                        </div>
+
+                                        <!-- Checkbox List -->
+                                        <ul class="doctor-cb-list max-h-56 overflow-y-auto py-1">
+                                            {% for checkbox in form.assigned_doctors %}
+                                            <li x-show="!search || '{{ checkbox.choice_label|lower }}'.includes(search.toLowerCase())" class="group">
+                                                <label for="{{ checkbox.id_for_label }}"
+                                                    class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-primary-50 transition-colors duration-100 group-has-[:checked]:bg-primary-50">
+                                                    {{ checkbox.tag }}
+                                                    <span class="text-sm text-gray-700 group-has-[:checked]:text-primary-800 group-has-[:checked]:font-medium leading-snug">
+                                                        {{ checkbox.choice_label }}
+                                                    </span>
+                                                </label>
+                                            </li>
+                                            {% empty %}
+                                            <li class="px-3 py-4 text-center text-sm text-gray-400 italic">No doctors available.</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                                {% if form.assigned_doctors.errors %}
+                                <p class="mt-1.5 text-xs text-red-600">{{ form.assigned_doctors.errors|first }}</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- Active -->
+                        <tr class="align-middle">
+                            <td class="px-6 py-4 w-44 bg-gray-50 border-r border-gray-100 rounded-bl-xl">
+                                <span class="block text-sm font-semibold text-gray-700">Active</span>
+                                <p class="mt-0.5 text-xs text-gray-400">Enable this configuration.</p>
+                            </td>
+                            <td class="px-6 py-4">
+                                <label class="inline-flex items-center gap-3 cursor-pointer select-none group">
+                                    {{ form.is_active }}
+                                    <span class="text-sm text-gray-700 group-has-[:checked]:text-gray-900 group-has-[:checked]:font-medium">Enable this assignment</span>
+                                </label>
+                                {% if form.is_active.errors %}
+                                <p class="mt-1 text-xs text-red-600">{{ form.is_active.errors|first }}</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+
+                <!-- Footer actions -->
+                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between rounded-b-xl">
+                    <div class="bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 flex items-start gap-2 max-w-xs">
+                        <svg class="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <p class="text-xs text-blue-600">Only assigned doctors appear when students book. Empty = all available.</p>
                     </div>
-
-                    <!-- Form Errors -->
-                    {% if form.non_field_errors %}
-                        <div class="bg-red-50 border-l-4 border-red-400 p-4">
-                            <div class="flex">
-                                <div class="flex-shrink-0">
-                                    <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
-                                    <p class="text-sm text-red-700">{{ form.non_field_errors|first }}</p>
-                                </div>
-                            </div>
-                        </div>
-                    {% endif %}
-
-                    <!-- Action Buttons -->
-                    <div class="flex items-center justify-end space-x-4">
-                        <a href="{% url 'appointments:appointment_type_settings' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    <div class="flex items-center gap-3 ml-4 flex-shrink-0">
+                        <a href="{% url 'appointments:appointment_type_settings' %}"
+                           class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors">
                             Cancel
                         </a>
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        <button type="submit"
+                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 border border-transparent rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
                             </svg>
                             {% if is_edit %}Update Settings{% else %}Save Settings{% endif %}
                         </button>
                     </div>
-                </form>
-            </div>
+                </div>
+
+            </form>
         </div>
     </div>
 </div>
+
+<style>
+.doctor-cb-list input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    border: 1.5px solid #d1d5db;
+    cursor: pointer;
+    flex-shrink: 0;
+    accent-color: #7c3aed;
+    transition: box-shadow 0.15s;
+}
+.doctor-cb-list input[type="checkbox"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+}
+[x-cloak] { display: none !important; }
+</style>
+
+<script>
+function doctorDropdown() {
+    return {
+        open: false,
+        search: '',
+        count: 0,
+        init() {
+            this.updateCount();
+            this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => this.updateCount());
+            });
+        },
+        updateCount() {
+            this.count = this.$el.querySelectorAll('input[type="checkbox"]:checked').length;
+        },
+        selectedLabel() {
+            if (this.count === 0) return 'All doctors available';
+            if (this.count === 1) return '1 doctor assigned';
+            return `${this.count} doctors assigned`;
+        },
+        selectAll() {
+            this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = true; });
+            this.updateCount();
+        },
+        clearAll() {
+            this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+            this.updateCount();
+        }
+    }
+}
+</script>
 {% endblock content %}

@@ -55,8 +55,8 @@ class Appointment(models.Model):
 
 class AppointmentTypeDefault(models.Model):
     """
-    Stores default in-charge doctor for each appointment type.
-    Admin users can configure these defaults.
+    Stores assigned doctors for each appointment type.
+    Admin users can configure which doctors are available per type.
     """
     APPOINTMENT_TYPE_CHOICES = [
         ('consultation', 'General Consultation'),
@@ -73,14 +73,12 @@ class AppointmentTypeDefault(models.Model):
         unique=True,
         help_text="Type of appointment"
     )
-    default_doctor = models.ForeignKey(
-        User, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+    assigned_doctors = models.ManyToManyField(
+        User,
         blank=True,
-        related_name='appointment_type_defaults',
+        related_name='assigned_appointment_types',
         limit_choices_to={'role__in': ['staff', 'doctor']},
-        help_text="Default in-charge doctor for this appointment type"
+        help_text="Doctors allowed for this appointment type. If empty, all staff/doctors are available."
     )
     is_active = models.BooleanField(
         default=True,
@@ -103,26 +101,4 @@ class AppointmentTypeDefault(models.Model):
         verbose_name_plural = 'Appointment Type Defaults'
 
     def __str__(self):
-        if self.default_doctor:
-            doctor_name = f"{self.default_doctor.first_name} {self.default_doctor.last_name}".strip()
-            if not doctor_name:
-                doctor_name = self.default_doctor.email or self.default_doctor.username
-            doctor_display = f"Dr. {doctor_name}"
-        else:
-            doctor_display = "Not Set"
-        return f"{self.get_appointment_type_display()} → {doctor_display}"
-
-    @classmethod
-    def get_default_doctor(cls, appointment_type):
-        """
-        Get the default doctor for a specific appointment type.
-        Returns None if no default is set or if the default is inactive.
-        """
-        try:
-            default = cls.objects.get(
-                appointment_type=appointment_type,
-                is_active=True
-            )
-            return default.default_doctor
-        except cls.DoesNotExist:
-            return None
+        return self.get_appointment_type_display()

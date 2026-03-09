@@ -7,34 +7,40 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-white rounded-lg shadow-lg">
             <div class="px-6 py-4 border-b border-gray-200">
-                <div class="flex justify-between items-center">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-900">Notifications</h2>
-                        <p class="mt-1 text-sm text-gray-600">Stay updated with your appointments and health information</p>
-                    </div>
-                    <div class="flex space-x-3">
-                        {% if user.role == 'admin' %}
-                        <a href="{% url 'core:create_system_notification' %}" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                            Create System Notification
-                        </a>
-                        {% endif %}
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">Notifications</h2>
+                    <p class="mt-1 text-sm text-gray-600">Stay updated with your appointments and health information</p>
+                </div>
+                <div class="mt-3 flex flex-wrap items-center justify-end gap-2">
+                    {% if user.role == 'admin' %}
+                    <a href="{% url 'core:create_system_notification' %}" class="inline-flex items-center gap-1.5 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Create Notification
+                    </a>
+                    {% endif %}
+
+                    {% if unread_count > 0 or total_count > 0 %}
+                    <div class="flex items-center gap-2 {% if user.role == 'admin' %}pl-2 border-l border-gray-200{% endif %}">
                         {% if unread_count > 0 %}
-                        <a href="?mark_all_read=true" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                            Mark all as read
+                        <a href="?mark_all_read=true" class="inline-flex items-center gap-1.5 px-3 py-2 border border-primary-300 text-sm font-medium rounded-md text-primary-700 bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            Mark all read
                         </a>
                         {% endif %}
                         {% if total_count > 0 %}
-                        <button onclick="showClearAllModal()" class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button onclick="showClearAllModal()" class="inline-flex items-center gap-1.5 px-3 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
                             Clear All
                         </button>
                         {% endif %}
                     </div>
+                    {% endif %}
                 </div>
             </div>
 
@@ -336,16 +342,6 @@
                     </div>
                 </div>
             {% endif %}
-        </div>
-        
-        <!-- Back to Dashboard -->
-        <div class="mt-6 text-center">
-            <a href="{% url 'core:dashboard' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back to Dashboard
-            </a>
         </div>
     </div>
 </div>

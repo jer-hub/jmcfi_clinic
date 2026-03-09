@@ -14,7 +14,7 @@ class AppointmentAdmin(admin.ModelAdmin):
 
 @admin.register(AppointmentTypeDefault)
 class AppointmentTypeDefaultAdmin(admin.ModelAdmin):
-    list_display = ['appointment_type', 'default_doctor', 'is_active', 'updated_at', 'updated_by']
+    list_display = ['appointment_type', 'is_active', 'updated_at', 'updated_by']
     list_filter = ['is_active', 'appointment_type']
-    search_fields = ['default_doctor__first_name', 'default_doctor__last_name']
+    search_fields = ['appointment_type']
     ordering = ['appointment_type']

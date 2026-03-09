@@ -1,0 +1,138 @@
+{% extends 'core/base.html' %}
+{% block title %}PO-{{ order.order_number }} – Pharmacy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Breadcrumb -->
+    <div class="mb-4">
+      <nav class="text-sm text-gray-500">
+        <a href="{% url 'pharmacy:dashboard' %}" class="hover:text-primary-600">Pharmacy</a>
+        <span class="mx-2">›</span>
+        <a href="{% url 'pharmacy:purchase_order_list' %}" class="hover:text-primary-600">Purchase Orders</a>
+        <span class="mx-2">›</span>
+        <span class="text-gray-900">PO-{{ order.order_number }}</span>
+      </nav>
+    </div>
+
+    <!-- Order Header -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+      <div class="bg-gradient-to-r from-primary-50 to-primary-100 px-6 py-5 sm:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-file-invoice text-white text-2xl"></i>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">PO-{{ order.order_number }}</h1>
+              <p class="text-sm text-gray-600">{{ order.supplier.name }} · {{ order.order_date|date:"M d, Y" }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+              {% if order.status == 'draft' %}bg-gray-100 text-gray-800
+              {% elif order.status == 'submitted' %}bg-primary-100 text-primary-800
+              {% elif order.status == 'approved' %}bg-emerald-100 text-emerald-800
+              {% elif order.status == 'received' %}bg-blue-100 text-blue-800
+              {% elif order.status == 'cancelled' %}bg-red-100 text-red-800{% endif %}">
+              {{ order.get_status_display }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6">
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-wider">Ordered By</p>
+          <p class="text-sm font-medium text-gray-900">{{ order.ordered_by.first_name }} {{ order.ordered_by.last_name }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-wider">Expected Delivery</p>
+          <p class="text-sm font-medium text-gray-900">{{ order.expected_delivery|date:"M d, Y"|default:"Not set" }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-wider">Approved By</p>
+          <p class="text-sm font-medium text-gray-900">{{ order.approved_by.first_name|default:"—" }} {{ order.approved_by.last_name|default:"" }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-500 uppercase tracking-wider">Total Cost</p>
+          <p class="text-xl font-bold text-gray-900">₱{{ order.total_cost|floatformat:2 }}</p>
+        </div>
+      </div>
+
+      {% if order.notes %}
+      <div class="px-6 pb-6">
+        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Notes</p>
+        <p class="text-sm text-gray-700">{{ order.notes }}</p>
+      </div>
+      {% endif %}
+
+      <!-- Action Buttons -->
+      {% if order.status in 'draft,submitted' and request.user.role == 'admin' %}
+      <div class="px-6 pb-6">
+        <form method="post" action="{% url 'pharmacy:purchase_order_approve' order_id=order.pk %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 shadow-sm">
+            <i class="fas fa-check mr-2"></i>Approve Order
+          </button>
+        </form>
+      </div>
+      {% endif %}
+
+      {% if order.status == 'approved' %}
+      <div class="px-6 pb-6">
+        <form method="post" action="{% url 'pharmacy:purchase_order_receive' order_id=order.pk %}" class="inline">
+          {% csrf_token %}
+          <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm" onclick="return confirm('Mark this order as received? Stock will be updated automatically.')">
+            <i class="fas fa-box-open mr-2"></i>Mark as Received
+          </button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Order Items -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900"><i class="fas fa-list text-primary-500 mr-2"></i>Order Items</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Medicine</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Qty Ordered</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Qty Received</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Unit Cost</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Line Total</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {% for item in items %}
+            <tr class="hover:bg-primary-50/30">
+              <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ item.medicine.name }}</td>
+              <td class="px-6 py-3 text-center text-sm">{{ item.quantity_ordered }}</td>
+              <td class="px-6 py-3 text-center text-sm">{{ item.quantity_received }}</td>
+              <td class="px-6 py-3 text-center text-sm">₱{{ item.unit_cost|floatformat:2 }}</td>
+              <td class="px-6 py-3 text-right text-sm font-medium">₱{{ item.line_total|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5" class="px-6 py-8 text-center text-gray-400">No items in this order.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot class="bg-gray-50">
+            <tr>
+              <td colspan="4" class="px-6 py-3 text-right text-sm font-semibold text-gray-900">Total:</td>
+              <td class="px-6 py-3 text-right text-sm font-bold text-primary-700">₱{{ order.total_cost|floatformat:2 }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

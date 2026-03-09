@@ -1,0 +1,167 @@
+{% extends "core/base.html" %}
+{% block title %}Predictive Analytics{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+
+    <!-- Header -->
+    <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+          <svg class="inline-block w-8 h-8 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          Predictive Analytics
+        </h1>
+        <p class="mt-1 text-sm text-gray-500">AI-powered forecasts for clinic operations</p>
+      </div>
+      <a href="{% url 'analytics:dashboard' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">&larr; Back to Analytics</a>
+    </div>
+
+    <!-- Quick Predictions -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+      <div class="bg-white rounded-lg shadow p-4 sm:p-5 border-l-4 border-primary-500">
+        <h4 class="text-sm font-medium text-gray-500 mb-1">Predicted Peak Hour</h4>
+        <p class="text-2xl font-bold text-gray-900">{% if peak_hour is not None %}{{ peak_hour }}:00{% else %}N/A{% endif %}</p>
+        <p class="text-xs text-gray-400 mt-1">Based on {{ date_from|date:"M d" }} – {{ date_to|date:"M d" }} data</p>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 sm:p-5 border-l-4 border-blue-500">
+        <h4 class="text-sm font-medium text-gray-500 mb-1">Busiest Day</h4>
+        <p class="text-2xl font-bold text-gray-900">{{ busiest_day }}</p>
+        <p class="text-xs text-gray-400 mt-1">Highest average appointment volume</p>
+      </div>
+    </div>
+
+    <!-- Generate Insights (admin) -->
+    {% if request.user.role == 'admin' %}
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-8">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Generate New Insight</h3>
+      <form method="post" action="{% url 'analytics:generate_insight' %}" class="flex flex-wrap items-end gap-4">
+        {% csrf_token %}
+        <input type="hidden" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
+        <input type="hidden" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Insight Type</label>
+          <select name="insight_type" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm focus:ring-primary-500 focus:border-primary-500">
+            {% for value, label in insight_types %}
+            <option value="{{ value }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors">
+          Generate
+        </button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Hourly Appointment Distribution</h3>
+        {% if hourly_data %}
+        <canvas id="hourlyChart" height="250"></canvas>
+        {% else %}
+        <p class="text-sm text-gray-500">No data available.</p>
+        {% endif %}
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Day of Week Distribution</h3>
+        {% if weekday_data %}
+        <canvas id="weekdayChart" height="250"></canvas>
+        {% else %}
+        <p class="text-sm text-gray-500">No data available.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Filter Insights -->
+    <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-4">
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        <span class="text-sm font-medium text-gray-700">Filter:</span>
+        <a href="{% url 'analytics:predictive_analytics' %}" class="px-3 py-1 text-xs font-medium rounded-full {% if not selected_type %}bg-primary-100 text-primary-700{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %} transition">All</a>
+        {% for value, label in insight_types %}
+        <a href="?type={{ value }}" class="px-3 py-1 text-xs font-medium rounded-full {% if selected_type == value %}bg-primary-100 text-primary-700{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %} transition">{{ label }}</a>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Insights List -->
+    {% if insights %}
+    <div class="space-y-4">
+      {% for insight in insights %}
+      <div class="bg-white rounded-lg shadow p-4 sm:p-5 border-l-4 {% if insight.risk_level == 'critical' %}border-red-500{% elif insight.risk_level == 'high' %}border-orange-500{% elif insight.risk_level == 'moderate' %}border-yellow-500{% else %}border-green-500{% endif %}">
+        <div class="flex items-start justify-between">
+          <div>
+            <h4 class="text-base font-semibold text-gray-900">{{ insight.title }}</h4>
+            <p class="text-sm text-gray-500 mt-1">{{ insight.get_insight_type_display }} · {{ insight.period_start|date:"M d, Y" }} – {{ insight.period_end|date:"M d, Y" }}</p>
+          </div>
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+            {% if insight.risk_level == 'critical' %}bg-red-100 text-red-800
+            {% elif insight.risk_level == 'high' %}bg-orange-100 text-orange-800
+            {% elif insight.risk_level == 'moderate' %}bg-yellow-100 text-yellow-800
+            {% else %}bg-green-100 text-green-800{% endif %}">
+            {{ insight.get_risk_level_display }}
+          </span>
+        </div>
+        <p class="text-sm text-gray-700 mt-2">{{ insight.description }}</p>
+        <p class="text-xs text-gray-400 mt-2">Generated {{ insight.created_at|timesince }} ago{% if insight.generated_by %} by {{ insight.generated_by.get_full_name }}{% endif %}</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if insights.has_other_pages %}
+    <nav class="flex justify-center mt-6">
+      <ul class="inline-flex -space-x-px text-sm">
+        {% if insights.has_previous %}
+        <li><a href="?page={{ insights.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-l-md">Prev</a></li>
+        {% endif %}
+        {% for num in insights.paginator.page_range %}
+        <li><a href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="px-3 py-2 border border-gray-300 {% if insights.number == num %}bg-primary-50 text-primary-600 border-primary-300{% else %}bg-white text-gray-500 hover:bg-gray-100{% endif %}">{{ num }}</a></li>
+        {% endfor %}
+        {% if insights.has_next %}
+        <li><a href="?page={{ insights.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-r-md">Next</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="bg-white rounded-lg shadow p-8 text-center">
+      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      <h3 class="mt-2 text-sm font-medium text-gray-900">No insights yet</h3>
+      <p class="mt-1 text-sm text-gray-500">Generate your first predictive insight above.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+{% if hourly_data %}
+new Chart(document.getElementById('hourlyChart'), {
+  type: 'bar',
+  data: {
+    labels: [{% for item in hourly_data %}"{{ item.hour }}:00"{% if not forloop.last %},{% endif %}{% endfor %}],
+    datasets: [{label: 'Appointments', data: [{% for item in hourly_data %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: '#a855f7'}]
+  },
+  options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}}}
+});
+{% endif %}
+{% if weekday_data %}
+const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const rawWd = {};
+{% for item in weekday_data %}rawWd[{{ item.weekday }}] = {{ item.count }};
+{% endfor %}
+const wdL = []; const wdD = [];
+for(let i=1;i<=7;i++){wdL.push(dayNames[i-1]); wdD.push(rawWd[i]||0);}
+new Chart(document.getElementById('weekdayChart'), {
+  type: 'bar',
+  data: {labels: wdL, datasets: [{label: 'Appointments', data: wdD, backgroundColor: '#3b82f6'}]},
+  options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}}}
+});
+{% endif %}
+</script>
+{% endblock %}

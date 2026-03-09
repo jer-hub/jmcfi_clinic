@@ -1,0 +1,80 @@
+{% extends 'core/base.html' %}
+{% block title %}Medicine Categories – Pharmacy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+
+      <div class="bg-gradient-to-r from-primary-50 to-primary-100 px-6 py-5 sm:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-tags text-white text-xl"></i>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">Medicine Categories</h1>
+              <p class="text-sm text-gray-600 mt-1">Organize medicines by category</p>
+            </div>
+          </div>
+          <a href="{% url 'pharmacy:category_create' %}" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors shadow-sm">
+            <i class="fas fa-plus mr-2"></i>Add Category
+          </a>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Description</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Medicines</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {% for cat in categories %}
+            <tr class="hover:bg-primary-50/30 transition-colors">
+              <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ cat.name }}</td>
+              <td class="px-6 py-4 text-sm text-gray-600">{{ cat.description|truncatewords:15|default:"—" }}</td>
+              <td class="px-6 py-4 text-center">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">{{ cat.medicine_count }}</span>
+              </td>
+              <td class="px-6 py-4 text-right">
+                <a href="{% url 'pharmacy:category_edit' category_id=cat.pk %}" class="inline-flex items-center px-3 py-1 border border-primary-300 text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-md text-xs font-medium">
+                  <i class="fas fa-edit mr-1"></i>Edit
+                </a>
+                {% if request.user.role == 'admin' or request.user.role == 'staff' %}
+                <form method="post" action="{% url 'pharmacy:category_delete' category_id=cat.pk %}" class="inline-block" onsubmit="return confirm('Delete category \"{{ cat.name|escapejs }}\"? Medicines in this category will become uncategorized.');">
+                  {% csrf_token %}
+                  <button type="submit" class="inline-flex items-center px-3 py-1 border border-red-300 text-red-700 bg-red-50 hover:bg-red-100 rounded-md text-xs font-medium">
+                    <i class="fas fa-trash mr-1"></i>Delete
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-tags text-gray-400 text-2xl"></i>
+                  </div>
+                  <p class="text-gray-500 font-medium">No categories yet</p>
+                  <a href="{% url 'pharmacy:category_create' %}" class="mt-4 inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700">
+                    <i class="fas fa-plus mr-2"></i>Add Category
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

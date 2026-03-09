@@ -309,6 +309,7 @@
                   </div>
 
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                  <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% elif user.role == 'staff' or user.role == 'doctor' %}
                   <!-- Services Dropdown -->
                   <div class="relative inline-flex items-center" id="services-dropdown">
@@ -415,6 +416,8 @@
                   </div>
 
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                  <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
+                  <a href="{% url 'pharmacy:dashboard' %}" class="nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}">Pharmacy</a>
                 {% elif user.role == 'admin' %}
                   <!-- Services Dropdown -->
                   <div class="relative inline-flex items-center" id="services-dropdown">
@@ -528,6 +531,8 @@
                   </div>
 
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                  <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
+                  <a href="{% url 'pharmacy:dashboard' %}" class="nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}">Pharmacy</a>
                 {% endif %}
               </div>
             </div>
@@ -681,6 +686,7 @@
                 </div>
 
                 <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                <a href="{% url 'analytics:dashboard' %}" class="mobile-nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
               {% elif user.role == 'staff' or user.role == 'doctor' %}
                 <!-- Mobile Services Dropdown -->
                 <div class="border-l-4 border-transparent">
@@ -779,6 +785,8 @@
                 </div>
 
                 <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                <a href="{% url 'analytics:dashboard' %}" class="mobile-nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
+                <a href="{% url 'pharmacy:dashboard' %}" class="mobile-nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}">Pharmacy</a>
               {% elif user.role == 'admin' %}
                 <!-- Mobile Services Dropdown -->
                 <div class="border-l-4 border-transparent">
@@ -885,6 +893,8 @@
                 </div>
 
                 <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                <a href="{% url 'analytics:dashboard' %}" class="mobile-nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
+                <a href="{% url 'pharmacy:dashboard' %}" class="mobile-nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}">Pharmacy</a>
                 
                 <a href="{% url 'core:user_management' %}" class="mobile-nav-link {% if 'user_management' in request.resolver_match.view_name %}active{% endif %}">
                   User Management

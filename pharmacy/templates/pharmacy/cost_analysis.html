@@ -1,0 +1,130 @@
+{% extends 'core/base.html' %}
+{% block title %}Cost & Budget Analysis – Pharmacy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
+      <div class="bg-gradient-to-r from-primary-50 to-primary-100 px-6 py-5 sm:px-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
+              <i class="fas fa-peso-sign text-white text-xl"></i>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-gray-900">Cost & Budget Analysis</h1>
+              <p class="text-sm text-gray-600 mt-1">PHP-denominated breakdowns for medicines and supplies</p>
+            </div>
+          </div>
+          <button onclick="window.print()" class="inline-flex items-center px-4 py-2 bg-white border border-primary-300 text-primary-700 text-sm font-medium rounded-lg hover:bg-primary-50 transition-colors">
+            <i class="fas fa-print mr-2"></i>Print
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inventory Value -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-8 text-center">
+      <p class="text-sm text-gray-500 uppercase tracking-wider mb-2">Total Inventory Value</p>
+      <p class="text-4xl font-bold text-primary-700">₱{{ inventory_value|floatformat:2 }}</p>
+      <p class="text-sm text-gray-500 mt-1">Based on current stock levels and unit costs</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <!-- Supplier Costs (Current Month) -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900"><i class="fas fa-truck text-primary-500 mr-2"></i>Procurement by Supplier (This Month)</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Supplier</th>
+                <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Items</th>
+                <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Total Cost</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              {% for row in supplier_costs %}
+              <tr class="hover:bg-primary-50/30">
+                <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ row.purchase_order__supplier__name }}</td>
+                <td class="px-6 py-3 text-center text-sm">{{ row.total_items }}</td>
+                <td class="px-6 py-3 text-right text-sm font-bold text-primary-700">₱{{ row.total_cost|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3" class="px-6 py-8 text-center text-gray-400">No procurement this month.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Monthly Expenditure Trend -->
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900"><i class="fas fa-chart-line text-primary-500 mr-2"></i>Monthly Procurement Trend</h2>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Month</th>
+                <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              {% for row in monthly_trend %}
+              <tr class="hover:bg-primary-50/30">
+                <td class="px-6 py-3 text-sm text-gray-900">{{ row.month|date:"F Y" }}</td>
+                <td class="px-6 py-3 text-right text-sm font-bold text-primary-700">₱{{ row.total|floatformat:2 }}</td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="2" class="px-6 py-8 text-center text-gray-400">No procurement data this year.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cost per Medicine -->
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div class="px-6 py-4 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900"><i class="fas fa-coins text-amber-500 mr-2"></i>Stock Value by Medicine (Top 15)</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Medicine</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Stock Qty</th>
+              <th class="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Stock Value</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {% for row in medicine_costs %}
+            <tr class="hover:bg-primary-50/30">
+              <td class="px-6 py-3 text-sm font-medium text-gray-900">{{ row.medicine__name }}</td>
+              <td class="px-6 py-3 text-center text-sm">{{ row.total_qty }}</td>
+              <td class="px-6 py-3 text-right text-sm font-bold text-primary-700">₱{{ row.stock_value|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3" class="px-6 py-8 text-center text-gray-400">No inventory data available.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

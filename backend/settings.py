@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     "feedback",
     "health_tips",
     "health_forms_services",
+    "analytics",
+    "pharmacy",
 ]
 
 MIDDLEWARE = [

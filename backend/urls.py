@@ -30,6 +30,8 @@ urlpatterns = [
     path('feedback/', include('feedback.urls')),
     path('health-tips/', include('health_tips.urls')),
     path('health-forms/', include('health_forms_services.urls')),
+    path('analytics/', include('analytics.urls')),
+    path('pharmacy/', include('pharmacy.urls')),
     # Core (dashboard, profiles, notifications, user management)
     path('', include('core.urls')),
 ]

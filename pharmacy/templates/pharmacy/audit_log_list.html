@@ -1,0 +1,108 @@
+{% extends 'core/base.html' %}
+{% block title %}Audit Log – Pharmacy{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+
+      <div class="bg-gradient-to-r from-primary-50 to-primary-100 px-6 py-5 sm:px-8">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
+            <i class="fas fa-clipboard-list text-white text-xl"></i>
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">Audit Log</h1>
+            <p class="text-sm text-gray-600 mt-1">Complete history of all pharmacy transactions for accountability</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-gray-50/50 px-6 py-4 border-b border-gray-200">
+        <form method="get" class="flex flex-col sm:flex-row gap-3">
+          <select name="action" class="border border-gray-300 rounded-lg shadow-sm px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            <option value="">All Actions</option>
+            {% for value, label in action_choices %}
+            <option value="{{ value }}" {% if selected_action == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <input type="date" name="date_from" value="{{ date_from }}" class="border border-gray-300 rounded-lg shadow-sm px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="From">
+          <input type="date" name="date_to" value="{{ date_to }}" class="border border-gray-300 rounded-lg shadow-sm px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="To">
+          <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700">
+            <i class="fas fa-filter mr-2"></i>Filter
+          </button>
+          {% if selected_action or date_from or date_to %}
+          <a href="{% url 'pharmacy:audit_log_list' %}" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"><i class="fas fa-times mr-1"></i>Clear</a>
+          {% endif %}
+        </form>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Action</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Medicine</th>
+              <th class="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Qty</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Performed By</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Details</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            {% for log in logs %}
+            <tr class="hover:bg-primary-50/30 transition-colors">
+              <td class="px-6 py-3 text-sm text-gray-600 whitespace-nowrap">{{ log.created_at|date:"M d, Y H:i" }}</td>
+              <td class="px-6 py-3">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                  {% if log.action == 'stock_in' %}bg-emerald-100 text-emerald-800
+                  {% elif log.action == 'dispensed' %}bg-primary-100 text-primary-800
+                  {% elif log.action == 'adjustment' %}bg-amber-100 text-amber-800
+                  {% elif log.action == 'expired_disposed' %}bg-red-100 text-red-800
+                  {% else %}bg-blue-100 text-blue-800{% endif %}">
+                  {{ log.get_action_display }}
+                </span>
+              </td>
+              <td class="px-6 py-3 text-sm text-gray-900">{{ log.medicine.name|default:"—" }}</td>
+              <td class="px-6 py-3 text-center text-sm font-semibold">
+                {% if log.quantity > 0 %}+{% endif %}{{ log.quantity }}
+              </td>
+              <td class="px-6 py-3 text-sm text-gray-600">{{ log.performed_by.first_name }} {{ log.performed_by.last_name }}</td>
+              <td class="px-6 py-3 text-sm text-gray-600">{{ log.details|truncatewords:15 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6" class="px-6 py-12 text-center">
+                <div class="flex flex-col items-center">
+                  <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                    <i class="fas fa-clipboard-list text-gray-400 text-2xl"></i>
+                  </div>
+                  <p class="text-gray-500 font-medium">No audit logs yet</p>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if logs.has_other_pages %}
+      <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+        <p class="text-sm text-gray-600">Showing {{ logs.start_index }}-{{ logs.end_index }} of {{ logs.paginator.count }}</p>
+        <div class="flex gap-2">
+          {% if logs.has_previous %}
+          <a href="?page={{ logs.previous_page_number }}&action={{ selected_action }}&date_from={{ date_from }}&date_to={{ date_to }}" class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Previous</a>
+          {% endif %}
+          <span class="px-3 py-1 bg-primary-600 text-white rounded-md text-sm">{{ logs.number }}</span>
+          {% if logs.has_next %}
+          <a href="?page={{ logs.next_page_number }}&action={{ selected_action }}&date_from={{ date_from }}&date_to={{ date_to }}" class="px-3 py-1 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50">Next</a>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

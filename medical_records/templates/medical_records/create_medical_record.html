@@ -4,24 +4,42 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-6 sm:py-12">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'medical_records/_subnav.html' %}
+
         <div class="bg-white rounded-lg shadow-lg">
             <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center">
                     <div class="mb-4 sm:mb-0">
                         <h2 class="text-xl sm:text-2xl font-bold text-gray-900 break-words">Create Medical Record</h2>
-                        <p class="mt-1 text-xs sm:text-sm text-gray-600 break-words">Create a medical record for the appointment</p>
+                        <p class="mt-1 text-xs sm:text-sm text-gray-600 break-words">
+                            {% if appointment %}
+                                Create a medical record for the appointment
+                            {% else %}
+                                Create a medical record directly for a selected student
+                            {% endif %}
+                        </p>
                     </div>
+                    {% if appointment %}
                     <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                         <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>
                         <span class="break-words">Back to Appointment</span>
                     </a>
+                    {% else %}
+                    <a href="{% url 'medical_records:medical_records' %}" class="inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 rounded-md shadow-sm text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        <svg class="w-3 h-3 sm:w-4 sm:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                        </svg>
+                        <span class="break-words">Back to Medical Records</span>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
             <!-- Appointment Info -->
+            {% if appointment %}
             <div class="px-4 sm:px-6 py-4 bg-gray-50 border-b border-gray-200">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                     <div>
@@ -42,9 +60,28 @@
                     <span class="text-xs sm:text-sm text-gray-900 ml-2 break-words">{{ appointment.reason }}</span>
                 </div>
             </div>
+            {% else %}
+            <div class="px-4 sm:px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                    <div>
+                        <span class="text-xs sm:text-sm font-medium text-gray-500">Patient:</span>
+                        <span class="text-xs sm:text-sm text-gray-900 ml-2 break-words">
+                            {% if student %}{{ student.get_full_name|default:student.email }}{% else %}Not selected{% endif %}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-xs sm:text-sm font-medium text-gray-500">Date:</span>
+                        <span class="text-xs sm:text-sm text-gray-900 ml-2">{% now "F d, Y" %}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
             <form method="POST" class="p-4 sm:p-6">
                 {% csrf_token %}
+                {% if not appointment and student %}
+                <input type="hidden" name="student_id" value="{{ student.id }}">
+                {% endif %}
                 
                 <div class="space-y-4 sm:space-y-6">
                     <!-- Vital Signs -->
@@ -92,24 +129,39 @@
                     </div>
 
                     <!-- Follow-up -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <div class="flex items-center">
-                                <input id="follow_up_required" name="follow_up_required" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
-                                <label for="follow_up_required" class="ml-2 block text-sm text-gray-700">Follow-up required</label>
-                            </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center">
+                            <input id="follow_up_required" name="follow_up_required" type="checkbox" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                            <label for="follow_up_required" class="ml-2 block text-sm font-medium text-gray-700">Follow-up required</label>
                         </div>
-                        <div>
-                            <label for="follow_up_date" class="block text-sm font-medium text-gray-700">Follow-up Date</label>
-                            <input type="date" id="follow_up_date" name="follow_up_date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" disabled>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <div>
+                                <label for="follow_up_date" class="block text-sm font-medium text-gray-700">Follow-up Date</label>
+                                <input type="date" id="follow_up_date" name="follow_up_date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" disabled>
+                            </div>
+                            <div>
+                                <label for="follow_up_time" class="block text-sm font-medium text-gray-700">Follow-up Time</label>
+                                <input type="time" id="follow_up_time" name="follow_up_time" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" value="10:00" disabled>
+                            </div>
+                            <div>
+                                <label for="follow_up_reason" class="block text-sm font-medium text-gray-700">Follow-up Reason</label>
+                                <input type="text" id="follow_up_reason" name="follow_up_reason" placeholder="e.g., Check progress, Lab review" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" disabled>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Actions -->
                     <div class="flex justify-end space-x-3">
+                        {% if appointment %}
                         <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
                             Cancel
                         </a>
+                        {% else %}
+                        <a href="{% url 'medical_records:medical_records' %}" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Cancel
+                        </a>
+                        {% endif %}
                         <button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                             Create Medical Record
                         </button>
@@ -124,11 +176,18 @@
 document.addEventListener('DOMContentLoaded', function() {
     const followUpCheckbox = document.getElementById('follow_up_required');
     const followUpDate = document.getElementById('follow_up_date');
+    const followUpTime = document.getElementById('follow_up_time');
+    const followUpReason = document.getElementById('follow_up_reason');
     
     followUpCheckbox.addEventListener('change', function() {
         followUpDate.disabled = !this.checked;
+        followUpTime.disabled = !this.checked;
+        followUpReason.disabled = !this.checked;
+        
         if (!this.checked) {
             followUpDate.value = '';
+            followUpTime.value = '10:00';
+            followUpReason.value = '';
         }
     });
     

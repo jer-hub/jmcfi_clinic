@@ -31,4 +31,7 @@ urlpatterns = [
     path('users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
     path('users/<int:user_id>/toggle-status/', views.user_toggle_status, name='user_toggle_status'),
     path('users/<int:user_id>/reset-password/', views.user_reset_password, name='user_reset_password'),
+    
+    # Search
+    path('search/students/', views.search_students, name='search_students'),
 ]

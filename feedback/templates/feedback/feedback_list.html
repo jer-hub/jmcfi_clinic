@@ -5,6 +5,8 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8 sm:py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    {% include 'feedback/_subnav.html' %}
+
         <div class="bg-white rounded-lg shadow-lg">
             <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start space-y-4 sm:space-y-0">
@@ -107,34 +109,56 @@
                     </div>
                     <!-- Pagination -->
                     {% if feedbacks.has_other_pages %}
-                        <div class="px-4 sm:px-6 py-4 border-t border-gray-200">
-                            <div class="flex flex-col sm:flex-row sm:justify-between items-center space-y-3 sm:space-y-0">
-                                <div class="flex space-x-2">
-                                    {% if feedbacks.has_previous %}
-                                        <a href="?page={{ feedbacks.previous_page_number }}" class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                            Previous
-                                        </a>
-                                    {% else %}
-                                        <span class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
-                                            Previous
-                                        </span>
-                                    {% endif %}
-                                    
-                                    {% if feedbacks.has_next %}
-                                        <a href="?page={{ feedbacks.next_page_number }}" class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                            Next
-                                        </a>
-                                    {% else %}
-                                        <span class="relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed">
-                                            Next
-                                        </span>
-                                    {% endif %}
-                                </div>
-                                
-                                <span class="relative inline-flex items-center px-3 sm:px-4 py-2 text-sm font-medium text-gray-700">
-                                    Page {{ feedbacks.number }} of {{ feedbacks.paginator.num_pages }}
+                        <div class="px-4 sm:px-6 py-4 border-t border-gray-200 flex items-center justify-center gap-1">
+                            <!-- Previous Button -->
+                            {% if feedbacks.has_previous %}
+                                <a href="?page={{ feedbacks.previous_page_number }}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                </a>
+                            {% else %}
+                                <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                                    </svg>
                                 </span>
+                            {% endif %}
+                            
+                            <!-- Page Numbers -->
+                            <div class="flex items-center gap-1">
+                                {% for num in feedbacks.paginator.page_range %}
+                                    {% if num == feedbacks.number %}
+                                        <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ num }}</span>
+                                    {% elif num|add:"0" <= 2 %}
+                                        <a href="?page={{ num }}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
+                                    {% elif num|add:"0" >= feedbacks.paginator.num_pages|add:"-1" %}
+                                        {% if num|add:"0" == feedbacks.paginator.num_pages|add:"-1" and feedbacks.number not in feedbacks.paginator.page_range|slice:"-3:" %}
+                                            <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                        {% endif %}
+                                        <a href="?page={{ num }}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
+                                    {% elif num|add:"0" >= feedbacks.number|add:"-1" and num|add:"0" <= feedbacks.number|add:"1" %}
+                                        <a href="?page={{ num }}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
+                                    {% elif num|add:"0" == 3 and feedbacks.number > 4 %}
+                                        <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                    {% endif %}
+                                {% endfor %}
                             </div>
+                            
+                            <!-- Next Button -->
+                            {% if feedbacks.has_next %}
+                                <a href="?page={{ feedbacks.next_page_number }}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </a>
+                            {% else %}
+                                <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </span>
+                            {% endif %}
                         </div>
                     {% endif %}
                 {% else %}

@@ -1,0 +1,17 @@
+<div class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+  <div class="px-3 py-3 overflow-x-auto">
+    <div class="flex items-center gap-2 min-w-max">
+      <a href="{% url 'feedback:feedback_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'feedback:feedback_list' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-comments mr-2"></i>Feedback
+      </a>
+      <a href="{% url 'feedback:submit_feedback' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'feedback:submit_feedback' or request.resolver_match.view_name == 'feedback:submit_feedback_appointment' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-pen mr-2"></i>Submit
+      </a>
+      {% if request.user.role == 'admin' or request.user.role == 'staff' or request.user.role == 'doctor' %}
+      <a href="{% url 'feedback:feedback_stats' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'feedback:feedback_stats' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-chart-pie mr-2"></i>Statistics
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>

@@ -1,10 +1,12 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Request Certificate - JMCFI Clinic{% endblock title %}
+{% block title %}Request Document - JMCFI Clinic{% endblock title %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8 sm:py-12">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'document_request/_subnav.html' %}
+
         <div class="bg-white rounded-lg shadow-lg">
             <!-- Enhanced Header -->
             <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
@@ -17,29 +19,98 @@
                         </div>
                     </div>
                     <div>
-                        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Request Medical Certificate</h2>
-                        <p class="mt-1 text-sm text-gray-600">Submit a request for a medical certificate with all required information</p>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">
+                            {% if is_doctor_flow %}Create Request for Student{% else %}Request Clinic Document{% endif %}
+                        </h2>
+                        <p class="mt-1 text-sm text-gray-600">
+                            {% if is_doctor_flow %}
+                                Schedule a medical or dental request on behalf of a student
+                            {% else %}
+                                Submit a request for a medical certificate, medical record, or dental record
+                            {% endif %}
+                        </p>
                     </div>
                 </div>
             </div>
 
             <form method="POST" class="p-6 sm:p-8 space-y-6">
                 {% csrf_token %}
-                
-                <!-- Certificate Type (fixed to Medical Certificate) -->
+                {% if is_doctor_flow %}
+                <input type="hidden" name="source" value="doctor_on_behalf">
+                {% endif %}
+
+                {% if not is_doctor_flow %}
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p class="text-sm text-amber-800 font-medium mb-1">Record Request Schedule</p>
+                    {% if student_schedule and student_schedule.is_active %}
+                    <p class="text-sm text-amber-700">
+                        You may request medical/dental records during your configured window.
+                        Allowed days: {{ student_schedule.get_allowed_days_display }}.
+                        Time: {{ student_schedule.start_time|time:'g:i A' }} to {{ student_schedule.end_time|time:'g:i A' }}.
+                    </p>
+                    {% else %}
+                    <p class="text-sm text-amber-700">
+                        You currently do not have an active schedule for medical or dental record requests.
+                        Medical certificate requests remain available.
+                    </p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% if is_doctor_flow %}
                 <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">
+                    <label for="student_search" class="block text-sm font-medium text-gray-700">
+                        <div class="flex items-center space-x-2">
+                            <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            <span>Student *</span>
+                        </div>
+                    </label>
+                    <input type="hidden" id="student_id" name="student_id">
+                    <div class="relative">
+                        <input
+                            type="text"
+                            id="student_search"
+                            autocomplete="off"
+                            placeholder="Search by student name or email"
+                            class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-all duration-200 bg-white hover:border-primary-400"
+                        >
+                        <div id="student_search_results" class="hidden absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                            {% for student in students %}
+                            <button
+                                type="button"
+                                class="student-option hidden w-full text-left px-4 py-3 hover:bg-primary-50 focus:bg-primary-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+                                data-student-id="{{ student.id }}"
+                                data-student-label="{{ student.get_full_name|default:student.email }}"
+                                data-student-search="{{ student.get_full_name|default:student.email|lower }} {{ student.email|lower }}"
+                            >
+                                <div class="text-sm font-medium text-gray-900">{{ student.get_full_name|default:student.email }}</div>
+                                <div class="text-xs text-gray-500">{{ student.email }}</div>
+                            </button>
+                            {% endfor %}
+                            <div id="student_no_results" class="hidden px-4 py-3 text-sm text-gray-500">No matching students found.</div>
+                        </div>
+                    </div>
+                    <p id="student_selected_hint" class="text-xs text-gray-500">No student selected yet.</p>
+                </div>
+                {% endif %}
+                
+                <!-- Document Type -->
+                <div class="space-y-2">
+                    <label for="document_type" class="block text-sm font-medium text-gray-700">
                         <div class="flex items-center space-x-2">
                             <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            <span>Certificate Type</span>
+                            <span>Document Type *</span>
                         </div>
                     </label>
-                    <input type="hidden" name="certificate_type" value="medical_certificate">
-                    <div class="block w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-900 font-medium">
-                        Medical Certificate
-                    </div>
+                    <select id="document_type" name="document_type" required class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-all duration-200 bg-white hover:border-primary-400">
+                        {% for value, label in certificate_types %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <!-- Purpose -->
@@ -57,7 +128,26 @@
                            placeholder="e.g., Job application, Sports participation, Travel">
                 </div>
 
+                {% if is_doctor_flow %}
+                <div class="space-y-2">
+                    <label class="block text-sm font-medium text-gray-700">Optional Schedule</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="scheduled_for_date" class="block text-xs text-gray-600">Date</label>
+                            <input type="date" id="scheduled_for_date" name="scheduled_for_date"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                        <div>
+                            <label for="scheduled_for_time" class="block text-xs text-gray-600">Time</label>
+                            <input type="time" id="scheduled_for_time" name="scheduled_for_time"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Your Details (prefilled from profile) -->
+                {% if not is_doctor_flow %}
                 <div class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Your Details</label>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -88,6 +178,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
                 <!-- Additional Information -->
                 <div class="space-y-2">
@@ -121,13 +212,13 @@
                                     <svg class="w-4 h-4 text-primary-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span>Certificate requests are processed within 2-3 business days</span>
+                                    <span>Requests are typically processed within 2-3 business days</span>
                                 </div>
                                 <div class="flex items-start space-x-2">
                                     <svg class="w-4 h-4 text-primary-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5-5-5h5v-5a7.5 7.5 0 0 1 0-15v5H5" />
                                     </svg>
-                                    <span>You will receive a notification when your certificate is ready</span>
+                                    <span>You will receive a notification when your request is ready</span>
                                 </div>
                                 <div class="flex items-start space-x-2">
                                     <svg class="w-4 h-4 text-primary-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,7 +239,7 @@
 
                 <!-- Enhanced Submit Button -->
                 <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
-                    <a href="{% url 'core:dashboard' %}" 
+                          <a href="{% url 'document_request:document_requests' %}" 
                        class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -160,7 +251,7 @@
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                         </svg>
-                        Submit Request
+                        {% if is_doctor_flow %}Create Request{% else %}Submit Request{% endif %}
                     </button>
                 </div>
             </form>
@@ -178,4 +269,117 @@
         </div>
     </div>
 </div>
+
+{% if is_doctor_flow %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('form[method="POST"]');
+    const searchInput = document.getElementById('student_search');
+    const hiddenStudentId = document.getElementById('student_id');
+    const resultsPanel = document.getElementById('student_search_results');
+    const noResults = document.getElementById('student_no_results');
+    const selectedHint = document.getElementById('student_selected_hint');
+    const options = Array.from(document.querySelectorAll('.student-option'));
+
+    function normalize(value) {
+        return (value || '').toLowerCase().trim();
+    }
+
+    function closeResults() {
+        resultsPanel.classList.add('hidden');
+    }
+
+    function filterResults() {
+        const query = normalize(searchInput.value);
+        let visibleCount = 0;
+
+        options.forEach(function (option) {
+            const haystack = option.getAttribute('data-student-search') || '';
+            const isMatch = query.length > 0 && haystack.includes(query);
+            option.classList.toggle('hidden', !isMatch);
+            if (isMatch) {
+                visibleCount += 1;
+            }
+        });
+
+        noResults.classList.toggle('hidden', visibleCount !== 0 || query.length === 0);
+        resultsPanel.classList.toggle('hidden', query.length === 0);
+    }
+
+    function selectStudent(option) {
+        const studentId = option.getAttribute('data-student-id') || '';
+        const studentLabel = option.getAttribute('data-student-label') || '';
+        searchInput.value = studentLabel;
+        hiddenStudentId.value = studentId;
+        selectedHint.textContent = 'Selected: ' + studentLabel;
+        selectedHint.classList.remove('text-red-600');
+        searchInput.setCustomValidity('');
+        closeResults();
+    }
+
+    function syncStudentSelection() {
+        const inputValue = normalize(searchInput.value);
+        let selectedId = '';
+        options.forEach(function (opt) {
+            const label = normalize(opt.getAttribute('data-student-label'));
+            if (label === inputValue) {
+                selectedId = opt.getAttribute('data-student-id') || '';
+            }
+        });
+        hiddenStudentId.value = selectedId;
+        return !!selectedId;
+    }
+
+    options.forEach(function (option) {
+        option.addEventListener('click', function () {
+            selectStudent(option);
+        });
+    });
+
+    searchInput.addEventListener('input', function () {
+        hiddenStudentId.value = '';
+        selectedHint.textContent = 'No student selected yet.';
+        filterResults();
+        searchInput.setCustomValidity('');
+    });
+
+    searchInput.addEventListener('focus', function () {
+        filterResults();
+    });
+
+    searchInput.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape') {
+            closeResults();
+        }
+        if (event.key === 'Enter' && !resultsPanel.classList.contains('hidden')) {
+            event.preventDefault();
+            const firstVisible = options.find(function (opt) { return !opt.classList.contains('hidden'); });
+            if (firstVisible) {
+                selectStudent(firstVisible);
+            }
+        }
+    });
+
+    document.addEventListener('click', function (event) {
+        if (!resultsPanel.contains(event.target) && event.target !== searchInput) {
+            closeResults();
+        }
+    });
+
+    form.addEventListener('submit', function (event) {
+        const isValidSelection = syncStudentSelection();
+        if (!isValidSelection) {
+            event.preventDefault();
+            selectedHint.textContent = 'Please choose a student from the list before submitting.';
+            selectedHint.classList.add('text-red-600');
+            searchInput.setCustomValidity('Please select a student from the results list.');
+            searchInput.reportValidity();
+            filterResults();
+        } else {
+            selectedHint.classList.remove('text-red-600');
+        }
+    });
+});
+</script>
+{% endif %}
 {% endblock content %}

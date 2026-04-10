@@ -1,0 +1,30 @@
+<div class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+  <div class="px-3 py-3 overflow-x-auto">
+    <div class="flex items-center gap-2 min-w-max">
+      <a href="{% url 'health_forms_services:forms_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_forms_services:forms_list' or request.resolver_match.view_name == 'health_forms_services:form_detail' or request.resolver_match.view_name == 'health_forms_services:edit_form' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        Health Forms
+      </a>
+      <a href="{% url 'health_forms_services:dental_forms_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_forms_services:dental_forms_list' or request.resolver_match.view_name == 'health_forms_services:dental_form_detail' or request.resolver_match.view_name == 'health_forms_services:create_dental_form' or request.resolver_match.view_name == 'health_forms_services:edit_dental_form' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        Dental Forms
+      </a>
+      <a href="{% url 'health_forms_services:patient_chart_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_forms_services:patient_chart_list' or request.resolver_match.view_name == 'health_forms_services:patient_chart_detail' or request.resolver_match.view_name == 'health_forms_services:create_patient_chart' or request.resolver_match.view_name == 'health_forms_services:edit_patient_chart' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        Patient Charts
+      </a>
+      <a href="{% url 'health_forms_services:dental_services_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_forms_services:dental_services_list' or request.resolver_match.view_name == 'health_forms_services:dental_services_detail' or request.resolver_match.view_name == 'health_forms_services:create_dental_services' or request.resolver_match.view_name == 'health_forms_services:edit_dental_services' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        Dental Services
+      </a>
+      <a href="{% url 'health_forms_services:prescription_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_forms_services:prescription_list' or request.resolver_match.view_name == 'health_forms_services:prescription_detail' or request.resolver_match.view_name == 'health_forms_services:create_prescription' or request.resolver_match.view_name == 'health_forms_services:edit_prescription' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        Prescriptions
+      </a>
+      <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_forms_services:medical_certificate_list' or request.resolver_match.view_name == 'health_forms_services:medical_certificate_detail' or request.resolver_match.view_name == 'health_forms_services:create_medical_certificate' or request.resolver_match.view_name == 'health_forms_services:edit_medical_certificate' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        Medical Certificates
+      </a>
+      <a href="{% url 'health_forms_services:manual_entry' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_forms_services:manual_entry' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        New Health Form
+      </a>
+      <a href="{% url 'health_forms_services:my_signature' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_forms_services:my_signature' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        My Signature
+      </a>
+    </div>
+  </div>
+</div>

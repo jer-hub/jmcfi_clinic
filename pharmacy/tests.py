@@ -305,3 +305,108 @@ class MedicineFormValidationTest(TestCase):
             response.context['form'], 'opening_expiry_date',
             'Expiry date must be a date in the future.',
         )
+
+
+@override_settings(MIDDLEWARE=STRIPPED_MIDDLEWARE)
+class PharmacyRouteAccessTest(TestCase):
+    """Role-based access smoke tests for key pharmacy routes."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.admin = _make_user(role='admin', email='route-admin@test.example')
+        cls.staff = _make_user(role='staff', email='route-staff@test.example')
+        cls.doctor = _make_user(role='doctor', email='route-doctor@test.example')
+        cls.student = _make_user(role='student', email='route-student@test.example')
+
+    def _assert_allowed(self, user, url_name):
+        self.client.force_login(user)
+        response = self.client.get(reverse(url_name))
+        self.assertEqual(response.status_code, 200, f'{url_name} should be allowed for {user.role}')
+
+    def _assert_forbidden(self, user, url_name):
+        self.client.force_login(user)
+        response = self.client.get(reverse(url_name))
+        self.assertEqual(response.status_code, 403, f'{url_name} should be forbidden for {user.role}')
+
+    def test_anonymous_user_forbidden_on_protected_routes(self):
+        protected_urls = [
+            'pharmacy:dashboard',
+            'pharmacy:medicine_list',
+            'pharmacy:supplier_list',
+            'pharmacy:compliance_report',
+        ]
+        for name in protected_urls:
+            response = self.client.get(reverse(name))
+            self.assertEqual(response.status_code, 403, f'{name} should be forbidden for anonymous users')
+
+    def test_admin_can_access_all_key_routes(self):
+        admin_routes = [
+            'pharmacy:dashboard',
+            'pharmacy:medicine_list',
+            'pharmacy:medicine_create',
+            'pharmacy:category_list',
+            'pharmacy:batch_list',
+            'pharmacy:supplier_list',
+            'pharmacy:purchase_order_list',
+            'pharmacy:dispensing_list',
+            'pharmacy:adjustment_list',
+            'pharmacy:audit_log_list',
+            'pharmacy:compliance_report',
+            'pharmacy:cost_analysis',
+        ]
+        for name in admin_routes:
+            self._assert_allowed(self.admin, name)
+
+    def test_staff_access_matrix(self):
+        allowed = [
+            'pharmacy:dashboard',
+            'pharmacy:medicine_list',
+            'pharmacy:medicine_create',
+            'pharmacy:category_list',
+            'pharmacy:batch_list',
+            'pharmacy:supplier_list',
+            'pharmacy:purchase_order_list',
+            'pharmacy:dispensing_list',
+            'pharmacy:adjustment_list',
+            'pharmacy:audit_log_list',
+            'pharmacy:cost_analysis',
+        ]
+        denied = [
+            'pharmacy:compliance_report',
+        ]
+        for name in allowed:
+            self._assert_allowed(self.staff, name)
+        for name in denied:
+            self._assert_forbidden(self.staff, name)
+
+    def test_doctor_access_matrix(self):
+        allowed = [
+            'pharmacy:dashboard',
+            'pharmacy:medicine_list',
+            'pharmacy:dispensing_list',
+        ]
+        denied = [
+            'pharmacy:medicine_create',
+            'pharmacy:category_list',
+            'pharmacy:batch_list',
+            'pharmacy:supplier_list',
+            'pharmacy:purchase_order_list',
+            'pharmacy:adjustment_list',
+            'pharmacy:audit_log_list',
+            'pharmacy:compliance_report',
+            'pharmacy:cost_analysis',
+        ]
+        for name in allowed:
+            self._assert_allowed(self.doctor, name)
+        for name in denied:
+            self._assert_forbidden(self.doctor, name)
+
+    def test_student_forbidden_on_key_routes(self):
+        protected_urls = [
+            'pharmacy:dashboard',
+            'pharmacy:medicine_list',
+            'pharmacy:supplier_list',
+            'pharmacy:compliance_report',
+        ]
+        for name in protected_urls:
+            self._assert_forbidden(self.student, name)

@@ -24,6 +24,8 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8 lg:py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    {% include 'health_tips/_subnav.html' %}
+
         <!-- Header -->
         <div class="text-center mb-8">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Health Tips & Advice</h1>
@@ -154,33 +156,56 @@
 
         <!-- Pagination -->
         {% if tips.has_other_pages %}
-            <div class="flex justify-center mt-8">
-                <nav class="inline-flex rounded-md shadow-sm -space-x-px">
-                    {% if tips.has_previous %}
-                        <a href="?page={{ tips.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm text-gray-500 hover:bg-gray-50">
-                            <span class="sr-only">Previous</span>
-                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                        </a>
-                    {% endif %}
-                    
+            <div class="flex justify-center items-center gap-1 mt-8">
+                <!-- Previous Button -->
+                {% if tips.has_previous %}
+                    <a href="?page={{ tips.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </a>
+                {% else %}
+                    <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </span>
+                {% endif %}
+                
+                <!-- Page Numbers -->
+                <div class="flex items-center gap-1">
                     {% for num in tips.paginator.page_range %}
-                        {% if tips.number == num %}
-                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600">{{ num }}</span>
-                        {% elif num > tips.number|add:'-3' and num < tips.number|add:'3' %}
-                            <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">{{ num }}</a>
+                        {% if num == tips.number %}
+                            <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ num }}</span>
+                        {% elif num|add:"0" <= 2 %}
+                            <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
+                        {% elif num|add:"0" >= tips.paginator.num_pages|add:"-1" %}
+                            {% if num|add:"0" == tips.paginator.num_pages|add:"-1" and tips.number not in tips.paginator.page_range|slice:"-3:" %}
+                                <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                            {% endif %}
+                            <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
+                        {% elif num|add:"0" >= tips.number|add:"-1" and num|add:"0" <= tips.number|add:"1" %}
+                            <a href="?page={{ num }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
+                        {% elif num|add:"0" == 3 and tips.number > 4 %}
+                            <span class="px-2 py-1 text-sm text-gray-500">...</span>
                         {% endif %}
                     {% endfor %}
-                    
-                    {% if tips.has_next %}
-                        <a href="?page={{ tips.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm text-gray-500 hover:bg-gray-50">
-                            <span class="sr-only">Next</span>
-                            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-                            </svg>
-                        </a>
-                    {% endif %}
+                </div>
+                
+                <!-- Next Button -->
+                {% if tips.has_next %}
+                    <a href="?page={{ tips.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                {% else %}
+                    <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </span>
+                {% endif %}
                 </nav>
             </div>
         {% endif %}

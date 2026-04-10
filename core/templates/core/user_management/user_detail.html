@@ -5,6 +5,8 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'core/_subnav.html' %}
+
         <!-- Header -->
         <div class="mb-6">
             <a href="{% url 'core:user_management' %}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">

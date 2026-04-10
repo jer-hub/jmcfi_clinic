@@ -34,7 +34,9 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'health_forms_services/_subnav.html' %}
+
         <!-- Header -->
         <div class="mb-6">
             <a href="{% url 'health_forms_services:dental_services_detail' service_form.pk %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">

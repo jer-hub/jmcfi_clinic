@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 {% load role_tags %}
 <!DOCTYPE html>
 <html lang="en">
@@ -9,12 +9,9 @@
       {% block title %}
       {% endblock %}
     </title>
-    <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Alpine.js for interactive components -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <script>
       tailwind.config = {
@@ -39,873 +36,502 @@
       }
     </script>
     <style>
-      /* Navbar link transitions */
-      nav a {
-        transition: all 0.2s ease-in-out;
-      }
-      
-      /* Desktop navigation links */
       .nav-link {
-        position: relative;
         display: inline-flex;
         align-items: center;
-        padding-left: 0.25rem;
-        padding-right: 0.25rem;
-        padding-top: 0.25rem;
-        padding-bottom: 0.25rem;
-        border-bottom: 2px solid transparent;
+        gap: 0.375rem;
+        height: 2.5rem;
+        padding: 0 0.75rem;
+        border-radius: 0.5rem;
+        color: #4b5563;
         font-size: 0.875rem;
         font-weight: 500;
-        color: #6b7280;
-        transition: all 0.2s ease-in-out;
-        height: 100%;
+        transition: all 0.2s ease;
       }
-      
+
       .nav-link:hover {
-        border-bottom-color: #d1d5db;
-        color: #374151;
-      }
-      
-      .nav-link:active {
         color: #111827;
+        background: #f3f4f6;
       }
-      
+
       .nav-link.active {
-        border-bottom-color: #a855f7;
-        color: #111827;
+        color: #7c3aed;
+        background: #f3e8ff;
       }
-      
-      /* Override hover for active links to maintain purple border */
-      .nav-link.active:hover {
-        border-bottom-color: #a855f7;
-      }
-      
-      /* Desktop dropdown button */
-      .dropdown-button {
-        position: relative;
-        display: inline-flex;
-        align-items: center;
-        padding-left: 0.25rem;
-        padding-right: 0.25rem;
-        padding-top: 0.25rem;
-        padding-bottom: 0.25rem;
-        border-bottom: 2px solid transparent;
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: #6b7280;
-        transition: all 0.2s ease-in-out;
-        height: 100%;
-      }
-      
-      #services-dropdown:hover .dropdown-button,
-      #health-forms-dropdown:hover .dropdown-button,
-      #admin-dropdown:hover .dropdown-button {
-        color: #374151;
-        border-bottom-color: #d1d5db;
-      }
-      
-      #services-dropdown:active .dropdown-button,
-      #health-forms-dropdown:active .dropdown-button,
-      #admin-dropdown:active .dropdown-button {
-        color: #111827;
-      }
-      
-      .dropdown-button.active {
-        border-bottom-color: #a855f7;
-        color: #111827;
-      }
-      
-      .dropdown-button.active:hover {
-        border-bottom-color: #a855f7;
-      }
-      
-      /* Dropdown menu items */
-      .dropdown-item {
-        transition: all 0.2s ease-in-out;
-        color: #374151;
-      }
-      
-      .dropdown-item:hover {
-        background-color: #f3f4f6;
-        color: #111827;
-      }
-      
-      .dropdown-item:active {
-        background-color: #e5e7eb;
-        color: #000000;
-      }
-      
-      /* Dropdown menu container */
+
       .dropdown-menu {
         opacity: 0;
-        transform: translateY(-10px);
-        transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+        transform: translateY(-6px);
         pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.2s ease;
       }
-      
+
       .dropdown-menu.show {
         opacity: 1;
         transform: translateY(0);
         pointer-events: auto;
       }
-      
-      /* Mobile navigation links */
-      .mobile-nav-link {
+
+      .dropdown-item {
         display: block;
-        padding: 0.5rem 1rem 0.5rem 0.75rem;
-        border-left: 4px solid transparent;
-        font-size: 1rem;
-        font-weight: 500;
-        color: #4b5563;
-        transition: all 0.2s ease-in-out;
+        padding: 0.55rem 0.75rem;
+        border-radius: 0.5rem;
+        color: #374151;
+        font-size: 0.875rem;
+        transition: all 0.15s ease;
       }
-      
-      .mobile-nav-link:hover {
-        background-color: #f9fafb;
-        border-left-color: #d1d5db;
-        color: #1f2937;
-      }
-      
-      .mobile-nav-link:active {
-        background-color: #f3f4f6;
+
+      .dropdown-item:hover {
+        background: #f3f4f6;
         color: #111827;
       }
-      
-      .mobile-nav-link.active {
-        background-color: #faf5ff;
-        border-left-color: #a855f7;
+
+      .mobile-link {
+        display: block;
+        padding: 0.625rem 0.875rem;
+        border-radius: 0.5rem;
+        color: #374151;
+        font-size: 0.9375rem;
+        font-weight: 500;
+      }
+
+      .mobile-link:hover {
+        background: #f9fafb;
+      }
+
+      .mobile-link.active {
         color: #7c3aed;
-      }
-      
-      /* Override hover for active mobile links to maintain purple border */
-      .mobile-nav-link.active:hover {
-        background-color: #faf5ff;
-        border-left-color: #a855f7;
-        color: #7c3aed;
-      }
-      
-      /* Notification badge pulse animation */
-      @keyframes pulse {
-        0%, 100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: .5;
-        }
-      }
-      
-      .notification-badge {
-        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        background: #f3e8ff;
       }
     </style>
-    
-    <!-- Form Errors Styling -->
+
     <link rel="stylesheet" href="{% static 'css/form-errors.css' %}">
-    
+
     {% block head %}
     {% endblock %}
   </head>
-  <body class="bg-gray-50">
-    {% if not user.is_authenticated %}
-    {% endif %}
-
+  <body class="bg-gray-50" data-authenticated="{% if user.is_authenticated %}true{% endif %}">
     {% if user.is_authenticated %}
-      <!-- Navigation -->
-      <nav class="bg-white shadow-sm border-b">
+      <nav class="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div class="flex justify-between h-16">
-            <div class="flex">
-              <!-- Logo -->
-              <div class="flex-shrink-0 flex items-center">
-                <a href="{% url 'core:dashboard' %}" class="text-lg sm:text-xl font-bold text-primary-600">JMCFI Clinic</a>
-              </div>
+          <div class="h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <a href="{% url 'core:dashboard' %}" class="text-lg sm:text-xl font-bold text-primary-600 whitespace-nowrap">JMCFI Clinic</a>
 
-              <!-- Desktop Navigation Links -->
-              <div class="hidden lg:ml-6 lg:flex lg:space-x-8">
+              <div class="hidden lg:flex items-center gap-1">
                 <a href="{% url 'core:dashboard' %}" class="nav-link {% if request.resolver_match.view_name == 'core:dashboard' %}active{% endif %}">Dashboard</a>
 
                 {% if user.role == 'student' %}
-                  <!-- Services Dropdown -->
-                  <div class="relative inline-flex items-center" id="services-dropdown">
-                    <button type="button" onclick="toggleDropdown('services')" class="dropdown-button {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
+                  <div class="relative" data-dropdown="services">
+                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="services" aria-expanded="false">
                       Services
-                      <svg class="ml-1 h-4 w-4 transition-transform" id="services-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div id="services-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-auto min-w-max rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                      <div class="flex divide-x divide-gray-100 p-2">
-                        <!-- Appointments Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
-                          <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                            View Appointments
-                          </a>
-                          <a href="{% url 'appointments:schedule_appointment' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            Book Appointment
-                          </a>
-                        </div>
-                        
-                        <!-- Medical Records Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
-                          <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Medical Records
-                          </a>
-                          <a href="{% url 'dental_records:my_dental_records' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                            </svg>
-                            Dental Records
-                          </a>
-                        </div>
-                        
-                        <!-- Certificates Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
-                          <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            View Requests
-                          </a>
-                          <a href="{% url 'document_request:request_certificate' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            Request Certificate
-                          </a>
-                        </div>
-                        
-                        {% if request.user.role == 'staff' or request.user.role == 'doctor' %}
-                        <!-- Health Forms Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Health Forms</div>
-                          <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            My Health Forms
-                          </a>
-                          <a href="{% url 'health_forms_services:manual_entry' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                            </svg>
-                            New Health Form
-                          </a>
-                        </div>
-                        {% endif %}
-                      </div>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="services">
+                      <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">View Appointments</a>
+                      <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
+                      <a href="{% url 'dental_records:my_dental_records' %}" class="dropdown-item">Dental Records</a>
+                      <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item">Certificate Requests</a>
                     </div>
                   </div>
 
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
-                {% elif user.role == 'staff' or user.role == 'doctor' %}
-                  <!-- Services Dropdown -->
-                  <div class="relative inline-flex items-center" id="services-dropdown">
-                    <button type="button" onclick="toggleDropdown('services')" class="dropdown-button {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
+                {% elif user.role == 'doctor' %}
+                  <div class="relative" data-dropdown="services">
+                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="services" aria-expanded="false">
                       Services
-                      <svg class="ml-1 h-4 w-4 transition-transform" id="services-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div id="services-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-auto min-w-max rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                      <div class="flex divide-x divide-gray-100 p-2">
-                        <!-- Appointments Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
-                          <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                            View Appointments
-                          </a>
-                        </div>
-                        
-                        <!-- Medical Records Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
-                          <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            View Medical Records
-                          </a>
-                          <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                            </svg>
-                            Dental Records
-                          </a>
-                        </div>
-                        
-                        <!-- Certificates Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
-                          <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            Review Requests
-                          </a>
-                        </div>
-                      </div>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="services">
+                      <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">View Appointments</a>
+                      <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
+                      <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item">Dental Records</a>
+                      <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item">Certificate Requests</a>
                     </div>
                   </div>
 
-                  <!-- Health Form Services Dropdown -->
-                  <div class="relative inline-flex items-center" id="health-forms-dropdown">
-                    <button type="button" onclick="toggleDropdown('health-forms')" class="dropdown-button {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
+                  <div class="relative" data-dropdown="health-forms">
+                    <button type="button" class="nav-link {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="health-forms" aria-expanded="false">
                       Health Forms
-                      <svg class="ml-1 h-4 w-4 transition-transform" id="health-forms-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div id="health-forms-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50" style="width: 380px;">
-                      <div class="p-2">
-                        <div class="grid grid-cols-2 gap-0.5">
-                          <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Health Profile Forms
-                          </a>
-                          <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                            </svg>
-                            Dental Health Forms
-                          </a>
-                          <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                            </svg>
-                            Patient Charts
-                          </a>
-                          <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                            </svg>
-                            Dental Services
-                          </a>
-                          <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Prescriptions
-                          </a>
-                          <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                            </svg>
-                            Medical Certificates
-                          </a>
-                        </div>
-                      </div>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="health-forms">
+                      <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
+                      <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
+                      <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
+                      <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item">Dental Services</a>
+                      <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
+                      <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="dropdown-item">Medical Certificates</a>
                     </div>
                   </div>
 
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
-                  <a href="{% url 'pharmacy:dashboard' %}" class="nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}">Pharmacy</a>
+                {% elif user.role == 'staff' %}
+                  <div class="relative" data-dropdown="services">
+                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="services" aria-expanded="false">
+                      Services
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="services">
+                      <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">View Appointments</a>
+                      <a href="{% url 'appointments:schedule_for_student' %}" class="dropdown-item">Schedule for Student</a>
+                      <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
+                      <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item">Dental Records</a>
+                      <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item">Certificate Requests</a>
+                    </div>
+                  </div>
+
+                  <div class="relative" data-dropdown="health-forms">
+                    <button type="button" class="nav-link {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="health-forms" aria-expanded="false">
+                      Health Forms
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="health-forms">
+                      <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
+                      <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
+                      <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
+                      <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item">Dental Services</a>
+                      <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
+                      <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="dropdown-item">Medical Certificates</a>
+                    </div>
+                  </div>
+
+                  <div class="relative" data-dropdown="pharmacy">
+                    <button type="button" class="nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="pharmacy" aria-expanded="false">
+                      Pharmacy
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="pharmacy">
+                      <a href="{% url 'pharmacy:dashboard' %}" class="dropdown-item">Dashboard</a>
+                      <a href="{% url 'pharmacy:medicine_list' %}" class="dropdown-item">Medicines</a>
+                      <a href="{% url 'pharmacy:category_list' %}" class="dropdown-item">Categories</a>
+                      <a href="{% url 'pharmacy:batch_list' %}" class="dropdown-item">Batches</a>
+                      <a href="{% url 'pharmacy:supplier_list' %}" class="dropdown-item">Suppliers</a>
+                      <a href="{% url 'pharmacy:purchase_order_list' %}" class="dropdown-item">Purchase Orders</a>
+                      <a href="{% url 'pharmacy:dispensing_list' %}" class="dropdown-item">Dispensing</a>
+                      <a href="{% url 'pharmacy:adjustment_list' %}" class="dropdown-item">Stock Adjustments</a>
+                      <a href="{% url 'pharmacy:audit_log_list' %}" class="dropdown-item">Audit Log</a>
+                    </div>
+                  </div>
+
+                  <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                  <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% elif user.role == 'admin' %}
-                  <!-- Services Dropdown -->
-                  <div class="relative inline-flex items-center" id="services-dropdown">
-                    <button type="button" onclick="toggleDropdown('services')" class="dropdown-button {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
+                  <div class="relative" data-dropdown="services">
+                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="services" aria-expanded="false">
                       Services
-                      <svg class="ml-1 h-4 w-4 transition-transform" id="services-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div id="services-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 w-auto min-w-max rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                      <div class="flex divide-x divide-gray-100 p-2">
-                        <!-- Appointments Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
-                          <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                            </svg>
-                            All Appointments
-                          </a>
-                          <a href="{% url 'appointments:appointment_type_settings' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            </svg>
-                            Appointment Settings
-                          </a>
-                        </div>
-                        
-                        <!-- Medical Records Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
-                          <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            All Medical Records
-                          </a>
-                          <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                            </svg>
-                            All Dental Records
-                          </a>
-                        </div>
-                        
-                        <!-- Certificates Section -->
-                        <div class="flex flex-col min-w-[150px] px-2">
-                          <div class="px-2 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
-                          <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item flex items-center px-2 py-2 text-sm rounded-md">
-                            <svg class="inline-block w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            All Requests
-                          </a>
-                        </div>
-                      </div>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="services">
+                      <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">All Appointments</a>
+                      <a href="{% url 'appointments:appointment_type_settings' %}" class="dropdown-item">Appointment Settings</a>
+                      <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">All Medical Records</a>
+                      <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item">All Dental Records</a>
+                      <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item">Certificate Requests</a>
                     </div>
                   </div>
 
-                  <!-- Health Form Services Dropdown -->
-                  <div class="relative inline-flex items-center" id="health-forms-dropdown">
-                    <button type="button" onclick="toggleDropdown('health-forms')" class="dropdown-button {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %} inline-flex items-center px-1 pt-1 text-sm font-medium">
+                  <div class="relative" data-dropdown="health-forms">
+                    <button type="button" class="nav-link {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="health-forms" aria-expanded="false">
                       Health Forms
-                      <svg class="ml-1 h-4 w-4 transition-transform" id="health-forms-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div id="health-forms-menu" class="dropdown-menu hidden absolute top-full left-0 mt-2 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50" style="width: 380px;">
-                      <div class="p-2">
-                        <div class="grid grid-cols-2 gap-0.5">
-                          <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Health Profile Forms
-                          </a>
-                          <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                            </svg>
-                            Dental Health Forms
-                          </a>
-                          <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                            </svg>
-                            Patient Charts
-                          </a>
-                          <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                            </svg>
-                            Dental Services
-                          </a>
-                          <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Prescriptions
-                          </a>
-                          <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="dropdown-item flex items-center px-3 py-2.5 text-sm rounded-md">
-                            <svg class="w-4 h-4 mr-2.5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                            </svg>
-                            Medical Certificates
-                          </a>
-                        </div>
-                      </div>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="health-forms">
+                      <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
+                      <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
+                      <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
+                      <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item">Dental Services</a>
+                      <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
+                      <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="dropdown-item">Medical Certificates</a>
                     </div>
                   </div>
 
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
-                  <a href="{% url 'pharmacy:dashboard' %}" class="nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}">Pharmacy</a>
+                  <div class="relative" data-dropdown="pharmacy">
+                    <button type="button" class="nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="pharmacy" aria-expanded="false">
+                      Pharmacy
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="pharmacy">
+                      <a href="{% url 'pharmacy:dashboard' %}" class="dropdown-item">Dashboard</a>
+                      <a href="{% url 'pharmacy:medicine_list' %}" class="dropdown-item">Medicines</a>
+                      <a href="{% url 'pharmacy:category_list' %}" class="dropdown-item">Categories</a>
+                      <a href="{% url 'pharmacy:batch_list' %}" class="dropdown-item">Batches</a>
+                      <a href="{% url 'pharmacy:supplier_list' %}" class="dropdown-item">Suppliers</a>
+                      <a href="{% url 'pharmacy:purchase_order_list' %}" class="dropdown-item">Purchase Orders</a>
+                      <a href="{% url 'pharmacy:dispensing_list' %}" class="dropdown-item">Dispensing</a>
+                      <a href="{% url 'pharmacy:adjustment_list' %}" class="dropdown-item">Stock Adjustments</a>
+                      <a href="{% url 'pharmacy:audit_log_list' %}" class="dropdown-item">Audit Log</a>
+                      <a href="{% url 'pharmacy:compliance_report' %}" class="dropdown-item">Compliance Report</a>
+                      <a href="{% url 'pharmacy:cost_analysis' %}" class="dropdown-item">Cost Analysis</a>
+                    </div>
+                  </div>
                 {% endif %}
               </div>
             </div>
 
-            <!-- Right side menu -->
-            <div class="flex items-center">
-              <!-- Management Icon (admin only) -->
+            <div class="flex items-center gap-1 sm:gap-2">
               {% if user.role == 'admin' %}
-              <a href="{% url 'core:user_management' %}" title="User Management"
-                class="relative p-2 rounded-full transition-colors duration-150 mr-1
-                  {% if 'user_management' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
-                <span class="sr-only">User Management</span>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
-                </svg>
-              </a>
+                <a href="{% url 'core:user_management' %}" title="User Management"
+                  class="relative p-2 rounded-full transition-colors duration-150 {% if 'user_management' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
+                  <span class="sr-only">User Management</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+                  </svg>
+                </a>
               {% endif %}
 
-              <!-- Feedback Icon -->
               <a href="{% url 'feedback:feedback_list' %}" title="Feedback"
-                class="relative p-2 rounded-full transition-colors duration-150 mr-1
-                  {% if 'feedback' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
+                class="relative p-2 rounded-full transition-colors duration-150 {% if 'feedback' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
                 <span class="sr-only">Feedback</span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
                 </svg>
               </a>
 
-              <!-- Notifications -->
+              <a href="{% url 'messaging:inbox' %}" title="Messages"
+                class="relative p-2 rounded-full transition-colors duration-150 {% if 'messaging:' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
+                <span class="sr-only">Messages</span>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.338.197 2.69.347 4.054.45a1.125 1.125 0 0 1 .89.524l1.799 2.698a.75.75 0 0 0 1.248 0l1.799-2.698a1.125 1.125 0 0 1 .89-.524 48.108 48.108 0 0 0 4.054-.45 3.752 3.752 0 0 0 2.707-3.227V6.741a3.752 3.752 0 0 0-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513A3.752 3.752 0 0 0 2.25 6.741v6.018Z" />
+                </svg>
+                <span id="messages-unread-badge" data-unread-badge class="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 bg-emerald-500 rounded-full flex items-center justify-center {% if unread_messages_count == 0 %}hidden{% endif %}">
+                  <span id="messages-unread-count" data-unread-count class="text-xs font-medium text-white">{% if unread_messages_count > 9 %}9+{% else %}{{ unread_messages_count }}{% endif %}</span>
+                </span>
+              </a>
+
               <a href="{% url 'core:notifications' %}" title="Notifications"
-                class="relative p-2 rounded-full transition-colors duration-150 mr-1
-                  {% if 'notifications' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
+                class="relative p-2 rounded-full transition-colors duration-150 {% if 'notifications' in request.resolver_match.view_name %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
                 <span class="sr-only">View notifications</span>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                 </svg>
                 {% if unread_notifications_count > 0 %}
                 <span class="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 bg-red-500 rounded-full flex items-center justify-center">
-                  <span class="text-xs font-medium text-white">
-                    {% if unread_notifications_count > 9 %}9+{% else %}{{ unread_notifications_count }}{% endif %}
-                  </span>
+                  <span class="text-xs font-medium text-white">{% if unread_notifications_count > 9 %}9+{% else %}{{ unread_notifications_count }}{% endif %}</span>
                 </span>
                 {% endif %}
               </a>
 
-              <!-- User menu - Desktop -->
-              <div class="hidden sm:flex items-center space-x-2">
-                <a href="{% url 'core:profile' %}" class="text-xs sm:text-sm text-gray-700 hover:text-primary-600 truncate max-w-24 sm:max-w-none">{{ user.get_full_name }}</a>
-                <span class="inline-flex items-center px-2 sm:px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">{{ user.get_role_display }}</span>
+              <div class="hidden sm:flex items-center gap-2 ml-1">
+                <a href="{% url 'core:profile' %}" class="text-sm text-gray-700 hover:text-primary-600 truncate max-w-36">{{ user.get_full_name }}</a>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">{{ user.get_role_display }}</span>
                 <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-gray-500 p-1">
                   <span class="sr-only">Logout</span>
-                  <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </a>
-              </div>
-
-              <!-- Mobile menu button -->
-              <div class="lg:hidden">
-                <button type="button" onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500" aria-controls="mobile-menu" aria-expanded="false">
-                  <span class="sr-only">Open main menu</span>
-                  <svg id="menu-open" class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                  </svg>
-                  <svg id="menu-close" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Mobile menu -->
-          <div class="lg:hidden" id="mobile-menu" style="display: none;">
-            <div class="pt-2 pb-3 space-y-1 border-t border-gray-200">
-              <!-- Mobile User Info -->
-              <div class="flex items-center px-4 py-2 bg-gray-50">
-                <div class="flex-1 min-w-0">
-                  <a href="{% url 'core:profile' %}" class="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block">{{ user.get_full_name }}</a>
-                  <div class="text-xs text-gray-500">{{ user.get_role_display }}</div>
-                </div>
-                <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-gray-500">
                   <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
                 </a>
               </div>
 
-              <!-- Mobile Navigation Links -->
-              <a href="{% url 'core:dashboard' %}" class="mobile-nav-link {% if request.resolver_match.view_name == 'core:dashboard' %}active{% endif %}">Dashboard</a>
-              
-              {% if user.role == 'student' %}
-                <!-- Mobile Services Dropdown -->
-                <div class="border-l-4 border-transparent">
-                  <button type="button" onclick="toggleMobileDropdown('services')" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}bg-purple-50 border-l-4 !border-purple-500 text-purple-700{% endif %}">
-                    <span>Services</span>
-                    <svg id="mobile-services-arrow" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </button>
-                  <div id="mobile-services-submenu" class="hidden bg-gray-50">
-                    <!-- Appointments Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
-                    <a href="{% url 'appointments:appointment_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                      </svg>
-                      View Appointments
-                    </a>
-                    <a href="{% url 'appointments:schedule_appointment' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                      </svg>
-                      Book Appointment
-                    </a>
-                    
-                    <div class="border-t border-gray-200 my-1"></div>
-                    
-                    <!-- Medical Records Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
-                    <a href="{% url 'medical_records:medical_records' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      Medical Records
-                    </a>
-                    <a href="{% url 'dental_records:my_dental_records' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                      </svg>
-                      Dental Records
-                    </a>
-                    
-                    <div class="border-t border-gray-200 my-1"></div>
-                    
-                    <!-- Certificates Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
-                    <a href="{% url 'document_request:certificate_requests' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                      View Requests
-                    </a>
-                    <a href="{% url 'document_request:request_certificate' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                      </svg>
-                      Request Certificate
-                    </a>
-                  </div>
-                </div>
+              <button type="button" class="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100" aria-controls="mobile-menu" aria-expanded="false" id="mobile-menu-button">
+                <span class="sr-only">Open main menu</span>
+                <svg id="menu-open" class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <svg id="menu-close" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
 
-                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
-                <a href="{% url 'analytics:dashboard' %}" class="mobile-nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
-              {% elif user.role == 'staff' or user.role == 'doctor' %}
-                <!-- Mobile Services Dropdown -->
-                <div class="border-l-4 border-transparent">
-                  <button type="button" onclick="toggleMobileDropdown('services')" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}bg-purple-50 border-l-4 !border-purple-500 text-purple-700{% endif %}">
-                    <span>Services</span>
-                    <svg id="mobile-services-arrow" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </button>
-                  <div id="mobile-services-submenu" class="hidden bg-gray-50">
-                    <!-- Appointments Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
-                    <a href="{% url 'appointments:appointment_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                      </svg>
-                      View Appointments
-                    </a>
-                    
-                    <div class="border-t border-gray-200 my-1"></div>
-                    
-                    <!-- Medical Records Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
-                    <a href="{% url 'medical_records:medical_records' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      Medical Records
-                    </a>
-                    <a href="{% url 'dental_records:dental_record_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                      </svg>
-                      Dental Records
-                    </a>
-                    
-                    <div class="border-t border-gray-200 my-1"></div>
-                    
-                    <!-- Certificates Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
-                    <a href="{% url 'document_request:certificate_requests' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                      Review Requests
-                    </a>
-                  </div>
+          <div class="lg:hidden hidden border-t border-gray-200 py-3" id="mobile-menu">
+            <div class="px-1 space-y-1">
+              <div class="flex items-center px-2 py-2 bg-gray-50 rounded-lg mb-2">
+                <div class="flex-1 min-w-0">
+                  <a href="{% url 'core:profile' %}" class="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block">{{ user.get_full_name }}</a>
+                  <div class="text-xs text-gray-500">{{ user.get_role_display }}</div>
                 </div>
-
-                <!-- Mobile Health Forms Dropdown -->
-                <div class="border-l-4 border-transparent">
-                  <button type="button" onclick="toggleMobileDropdown('health-forms')" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors {% if 'health_forms_services' in request.resolver_match.view_name %}bg-purple-50 border-l-4 !border-purple-500 text-purple-700{% endif %}">
-                    <span>Health Forms</span>
-                    <svg id="mobile-health-forms-arrow" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </button>
-                  <div id="mobile-health-forms-submenu" class="hidden bg-gray-50">
-                    <a href="{% url 'health_forms_services:forms_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      Health Profile Forms
-                    </a>
-                    <a href="{% url 'health_forms_services:dental_forms_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                      </svg>
-                      Dental Health Forms
-                    </a>
-                    <a href="{% url 'health_forms_services:patient_chart_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                      </svg>
-                      Patient Charts
-                    </a>
-                    <a href="{% url 'health_forms_services:dental_services_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                      </svg>
-                      Dental Services
-                    </a>
-                    <a href="{% url 'health_forms_services:prescription_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      Prescriptions
-                    </a>
-                    <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                      </svg>
-                      Medical Certificates
-                    </a>
-                  </div>
-                </div>
-
-                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
-                <a href="{% url 'analytics:dashboard' %}" class="mobile-nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
-                <a href="{% url 'pharmacy:dashboard' %}" class="mobile-nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}">Pharmacy</a>
-              {% elif user.role == 'admin' %}
-                <!-- Mobile Services Dropdown -->
-                <div class="border-l-4 border-transparent">
-                  <button type="button" onclick="toggleMobileDropdown('services')" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name or 'feedback' in request.resolver_match.view_name %}bg-purple-50 border-l-4 !border-purple-500 text-purple-700{% endif %}">
-                    <span>Services</span>
-                    <svg id="mobile-services-arrow" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </button>
-                  <div id="mobile-services-submenu" class="hidden bg-gray-50">
-                    <!-- Appointments Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Appointments</div>
-                    <a href="{% url 'appointments:appointment_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                      </svg>
-                      All Appointments
-                    </a>
-                    <a href="{% url 'appointments:appointment_type_settings' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                      </svg>
-                      Appointment Settings
-                    </a>
-                    
-                    <div class="border-t border-gray-200 my-1"></div>
-                    
-                    <!-- Medical Records Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medical Records</div>
-                    <a href="{% url 'medical_records:medical_records' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      All Medical Records
-                    </a>
-                    <a href="{% url 'dental_records:dental_record_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                      </svg>
-                      All Dental Records
-                    </a>
-                    
-                    <div class="border-t border-gray-200 my-1"></div>
-                    
-                    <!-- Certificates Section -->
-                    <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Certificates</div>
-                    <a href="{% url 'document_request:certificate_requests' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                      </svg>
-                      All Requests
-                    </a>
-                    
-                  </div>
-                </div>
-
-                <!-- Mobile Health Forms Dropdown -->
-                <div class="border-l-4 border-transparent">
-                  <button type="button" onclick="toggleMobileDropdown('health-forms')" class="w-full text-left flex items-center justify-between pl-3 pr-4 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors {% if 'health_forms_services' in request.resolver_match.view_name %}bg-purple-50 border-l-4 !border-purple-500 text-purple-700{% endif %}">
-                    <span>Health Forms</span>
-                    <svg id="mobile-health-forms-arrow" class="h-5 w-5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </button>
-                  <div id="mobile-health-forms-submenu" class="hidden bg-gray-50">
-                    <a href="{% url 'health_forms_services:forms_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      Health Profile Forms
-                    </a>
-                    <a href="{% url 'health_forms_services:dental_forms_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path>
-                      </svg>
-                      Dental Health Forms
-                    </a>
-                    <a href="{% url 'health_forms_services:patient_chart_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
-                      </svg>
-                      Patient Charts
-                    </a>
-                    <a href="{% url 'health_forms_services:dental_services_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
-                      </svg>
-                      Dental Services
-                    </a>
-                    <a href="{% url 'health_forms_services:prescription_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      Prescriptions
-                    </a>
-                    <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="flex items-center pl-8 pr-4 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors">
-                      <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                      </svg>
-                      Medical Certificates
-                    </a>
-                  </div>
-                </div>
-
-                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
-                <a href="{% url 'analytics:dashboard' %}" class="mobile-nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
-                <a href="{% url 'pharmacy:dashboard' %}" class="mobile-nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}">Pharmacy</a>
-                
-                <a href="{% url 'core:user_management' %}" class="mobile-nav-link {% if 'user_management' in request.resolver_match.view_name %}active{% endif %}">
-                  User Management
+                <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-gray-500 p-1">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
                 </a>
+              </div>
+
+              <a href="{% url 'core:dashboard' %}" class="mobile-link {% if request.resolver_match.view_name == 'core:dashboard' %}active{% endif %}">Dashboard</a>
+
+              {% if user.role == 'student' %}
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="services" aria-expanded="false">
+                  <span>Services</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="services">
+                  <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">View Appointments</a>
+                  <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">Medical Records</a>
+                  <a href="{% url 'dental_records:my_dental_records' %}" class="mobile-link text-sm">Dental Records</a>
+                  <a href="{% url 'document_request:certificate_requests' %}" class="mobile-link text-sm">Certificate Requests</a>
+                </div>
+
+                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
+                <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
+              {% elif user.role == 'doctor' %}
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="services" aria-expanded="false">
+                  <span>Services</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="services">
+                  <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">View Appointments</a>
+                  <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">Medical Records</a>
+                  <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>
+                  <a href="{% url 'document_request:certificate_requests' %}" class="mobile-link text-sm">Certificate Requests</a>
+                </div>
+
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
+                  <span>Health Forms</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="health-forms">
+                  <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
+                  <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
+                  <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
+                  <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
+                  <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
+                  <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="mobile-link text-sm">Medical Certificates</a>
+                </div>
+
+                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
+                <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
+              {% elif user.role == 'staff' %}
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="services" aria-expanded="false">
+                  <span>Services</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="services">
+                  <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">View Appointments</a>
+                  <a href="{% url 'appointments:schedule_for_student' %}" class="mobile-link text-sm">Schedule for Student</a>
+                  <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">Medical Records</a>
+                  <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>
+                  <a href="{% url 'document_request:certificate_requests' %}" class="mobile-link text-sm">Certificate Requests</a>
+                </div>
+
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
+                  <span>Health Forms</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="health-forms">
+                  <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
+                  <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
+                  <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
+                  <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
+                  <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
+                  <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="mobile-link text-sm">Medical Certificates</a>
+                </div>
+
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="pharmacy" aria-expanded="false">
+                  <span>Pharmacy</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="pharmacy">
+                  <a href="{% url 'pharmacy:dashboard' %}" class="mobile-link text-sm">Dashboard</a>
+                  <a href="{% url 'pharmacy:medicine_list' %}" class="mobile-link text-sm">Medicines</a>
+                  <a href="{% url 'pharmacy:category_list' %}" class="mobile-link text-sm">Categories</a>
+                  <a href="{% url 'pharmacy:batch_list' %}" class="mobile-link text-sm">Batches</a>
+                  <a href="{% url 'pharmacy:supplier_list' %}" class="mobile-link text-sm">Suppliers</a>
+                  <a href="{% url 'pharmacy:purchase_order_list' %}" class="mobile-link text-sm">Purchase Orders</a>
+                  <a href="{% url 'pharmacy:dispensing_list' %}" class="mobile-link text-sm">Dispensing</a>
+                  <a href="{% url 'pharmacy:adjustment_list' %}" class="mobile-link text-sm">Stock Adjustments</a>
+                  <a href="{% url 'pharmacy:audit_log_list' %}" class="mobile-link text-sm">Audit Log</a>
+                </div>
+
+                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
+                <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
+              {% elif user.role == 'admin' %}
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="services" aria-expanded="false">
+                  <span>Services</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="services">
+                  <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">All Appointments</a>
+                  <a href="{% url 'appointments:appointment_type_settings' %}" class="mobile-link text-sm">Appointment Settings</a>
+                  <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">All Medical Records</a>
+                  <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">All Dental Records</a>
+                  <a href="{% url 'document_request:certificate_requests' %}" class="mobile-link text-sm">Certificate Requests</a>
+                </div>
+
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
+                  <span>Health Forms</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="health-forms">
+                  <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
+                  <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
+                  <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
+                  <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
+                  <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
+                  <a href="{% url 'health_forms_services:medical_certificate_list' %}" class="mobile-link text-sm">Medical Certificates</a>
+                </div>
+
+                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
+                <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="pharmacy" aria-expanded="false">
+                  <span>Pharmacy</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="pharmacy">
+                  <a href="{% url 'pharmacy:dashboard' %}" class="mobile-link text-sm">Dashboard</a>
+                  <a href="{% url 'pharmacy:medicine_list' %}" class="mobile-link text-sm">Medicines</a>
+                  <a href="{% url 'pharmacy:category_list' %}" class="mobile-link text-sm">Categories</a>
+                  <a href="{% url 'pharmacy:batch_list' %}" class="mobile-link text-sm">Batches</a>
+                  <a href="{% url 'pharmacy:supplier_list' %}" class="mobile-link text-sm">Suppliers</a>
+                  <a href="{% url 'pharmacy:purchase_order_list' %}" class="mobile-link text-sm">Purchase Orders</a>
+                  <a href="{% url 'pharmacy:dispensing_list' %}" class="mobile-link text-sm">Dispensing</a>
+                  <a href="{% url 'pharmacy:adjustment_list' %}" class="mobile-link text-sm">Stock Adjustments</a>
+                  <a href="{% url 'pharmacy:audit_log_list' %}" class="mobile-link text-sm">Audit Log</a>
+                  <a href="{% url 'pharmacy:compliance_report' %}" class="mobile-link text-sm">Compliance Report</a>
+                  <a href="{% url 'pharmacy:cost_analysis' %}" class="mobile-link text-sm">Cost Analysis</a>
+                </div>
+                <a href="{% url 'core:user_management' %}" class="mobile-link {% if 'user_management' in request.resolver_match.view_name %}active{% endif %}">User Management</a>
               {% endif %}
             </div>
           </div>
         </div>
       </nav>
 
-      <!-- Profile Completion Banner -->
       {% if profile_completion_required %}
       <div id="profile-banner" class="bg-blue-50 border-b border-blue-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
@@ -919,12 +545,8 @@
               </span>
             </div>
             <div class="flex items-center">
-              <a href="{% url 'core:edit_profile' %}" 
-                 class="text-sm text-blue-600 hover:text-blue-800 font-medium underline mr-3">
-                Complete Now
-              </a>
-              <button onclick="document.getElementById('profile-banner').style.display='none'" 
-                      class="text-blue-400 hover:text-blue-600">
+              <a href="{% url 'core:edit_profile' %}" class="text-sm text-blue-600 hover:text-blue-800 font-medium underline mr-3">Complete Now</a>
+              <button onclick="document.getElementById('profile-banner').style.display='none'" class="text-blue-400 hover:text-blue-600">
                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                 </svg>
@@ -934,148 +556,150 @@
         </div>
       </div>
       {% endif %}
-
     {% endif %}
 
     {% block header %}
     {% endblock %}
-    
-    <!-- Messages Display -->
+
     {% if user.is_authenticated %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
-        {% include 'partials/messages.html' %}
+      {% include 'partials/messages.html' %}
     </div>
     {% endif %}
-    
+
     {% block content %}
     {% endblock %}
     {% block scripts %}
     {% endblock %}
 
-    <!-- Mobile Menu JavaScript -->
     <script>
-      function toggleMobileMenu() {
-        const mobileMenu = document.getElementById('mobile-menu');
-        const menuOpen = document.getElementById('menu-open');
-        const menuClose = document.getElementById('menu-close');
-        
-        if (mobileMenu.style.display === 'none' || mobileMenu.style.display === '') {
-          mobileMenu.style.display = 'block';
-          menuOpen.classList.add('hidden');
-          menuClose.classList.remove('hidden');
-        } else {
-          mobileMenu.style.display = 'none';
-          menuOpen.classList.remove('hidden');
-          menuClose.classList.add('hidden');
-        }
-      }
-
-      // Toggle desktop dropdowns
-      function toggleDropdown(dropdownName) {
-        const dropdownMenu = document.getElementById(dropdownName + '-menu');
-        const arrow = document.getElementById(dropdownName + '-arrow');
-        
-        // Close all other dropdowns first
-        const allDropdowns = ['services', 'health-forms', 'admin'];
-        allDropdowns.forEach(name => {
-          if (name !== dropdownName) {
-            const menu = document.getElementById(name + '-menu');
-            const arr = document.getElementById(name + '-arrow');
-            if (menu && !menu.classList.contains('hidden')) {
-              menu.classList.remove('show');
-              menu.classList.add('hidden');
-              if (arr) arr.style.transform = 'rotate(0deg)';
-            }
-          }
+      function closeAllDesktopDropdowns() {
+        document.querySelectorAll('[data-dropdown-menu]').forEach((menu) => {
+          const name = menu.getAttribute('data-dropdown-menu');
+          const trigger = document.querySelector('[data-dropdown-trigger="' + name + '"]');
+          const arrow = document.querySelector('[data-dropdown-arrow="' + name + '"]');
+          menu.classList.remove('show');
+          menu.classList.add('hidden');
+          if (trigger) trigger.setAttribute('aria-expanded', 'false');
+          if (arrow) arrow.style.transform = 'rotate(0deg)';
         });
-        
-        if (dropdownMenu.classList.contains('hidden')) {
-          dropdownMenu.classList.remove('hidden');
-          setTimeout(() => dropdownMenu.classList.add('show'), 10);
-          arrow.style.transform = 'rotate(180deg)';
-        } else {
-          dropdownMenu.classList.remove('show');
-          setTimeout(() => dropdownMenu.classList.add('hidden'), 200);
-          arrow.style.transform = 'rotate(0deg)';
+      }
+
+      function toggleDesktopDropdown(name) {
+        const menu = document.querySelector('[data-dropdown-menu="' + name + '"]');
+        const trigger = document.querySelector('[data-dropdown-trigger="' + name + '"]');
+        const arrow = document.querySelector('[data-dropdown-arrow="' + name + '"]');
+        if (!menu || !trigger) return;
+
+        const isOpen = !menu.classList.contains('hidden');
+        closeAllDesktopDropdowns();
+
+        if (!isOpen) {
+          menu.classList.remove('hidden');
+          setTimeout(() => menu.classList.add('show'), 10);
+          trigger.setAttribute('aria-expanded', 'true');
+          if (arrow) arrow.style.transform = 'rotate(180deg)';
         }
       }
 
-      // Desktop Admin Dropdown
-      function toggleAdminDropdown() {
-        toggleDropdown('admin');
-      }
-
-      // Mobile Admin Dropdown
-      function toggleMobileAdminDropdown() {
-        const submenu = document.getElementById('mobile-admin-submenu');
-        const arrow = document.getElementById('mobile-admin-arrow');
-        
-        if (submenu.classList.contains('hidden')) {
-          submenu.classList.remove('hidden');
-          arrow.style.transform = 'rotate(180deg)';
-        } else {
-          submenu.classList.add('hidden');
-          arrow.style.transform = 'rotate(0deg)';
-        }
-      }
-
-      // Toggle mobile dropdowns
-      function toggleMobileDropdown(dropdownName) {
-        const submenu = document.getElementById('mobile-' + dropdownName + '-submenu');
-        const arrow = document.getElementById('mobile-' + dropdownName + '-arrow');
-        
-        if (submenu.classList.contains('hidden')) {
-          submenu.classList.remove('hidden');
-          arrow.style.transform = 'rotate(180deg)';
-        } else {
-          submenu.classList.add('hidden');
-          arrow.style.transform = 'rotate(0deg)';
-        }
-      }
-
-      // Close desktop dropdown when clicking outside
-      document.addEventListener('click', function(event) {
-        const dropdownNames = ['services', 'health-forms', 'admin'];
-        
-        dropdownNames.forEach(name => {
-          const dropdown = document.getElementById(name + '-dropdown');
-          const dropdownMenu = document.getElementById(name + '-menu');
-          const arrow = document.getElementById(name + '-arrow');
-          
-          if (dropdown && dropdownMenu && !dropdown.contains(event.target)) {
-            dropdownMenu.classList.remove('show');
-            if (!dropdownMenu.classList.contains('hidden')) {
-              setTimeout(() => dropdownMenu.classList.add('hidden'), 200);
-            }
-            if (arrow) arrow.style.transform = 'rotate(0deg)';
-          }
+      document.querySelectorAll('[data-dropdown-trigger]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          const name = event.currentTarget.getAttribute('data-dropdown-trigger');
+          toggleDesktopDropdown(name);
         });
       });
 
-      // Close mobile menu when clicking outside
+      const mobileMenuButton = document.getElementById('mobile-menu-button');
+      const mobileMenu = document.getElementById('mobile-menu');
+      const menuOpen = document.getElementById('menu-open');
+      const menuClose = document.getElementById('menu-close');
+
+      function setMobileMenuState(open) {
+        if (!mobileMenu || !mobileMenuButton || !menuOpen || !menuClose) return;
+        mobileMenu.classList.toggle('hidden', !open);
+        menuOpen.classList.toggle('hidden', open);
+        menuClose.classList.toggle('hidden', !open);
+        mobileMenuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+      }
+
+      if (mobileMenuButton) {
+        mobileMenuButton.addEventListener('click', () => {
+          const isOpen = !mobileMenu.classList.contains('hidden');
+          setMobileMenuState(!isOpen);
+        });
+      }
+
+      function toggleMobilePanel(name) {
+        const panel = document.querySelector('[data-mobile-panel="' + name + '"]');
+        const trigger = document.querySelector('[data-mobile-trigger="' + name + '"]');
+        const arrow = document.querySelector('[data-mobile-arrow="' + name + '"]');
+        if (!panel || !trigger) return;
+
+        const isOpen = !panel.classList.contains('hidden');
+        panel.classList.toggle('hidden', isOpen);
+        trigger.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+        if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+      }
+
+      document.querySelectorAll('[data-mobile-trigger]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+          const name = event.currentTarget.getAttribute('data-mobile-trigger');
+          toggleMobilePanel(name);
+        });
+      });
+
       document.addEventListener('click', function(event) {
-        const mobileMenu = document.getElementById('mobile-menu');
-        const mobileMenuButton = event.target.closest('button[aria-controls="mobile-menu"]');
-        
-        if (!mobileMenuButton && mobileMenu && !mobileMenu.contains(event.target)) {
-          if (mobileMenu.style.display === 'block') {
-            toggleMobileMenu();
-          }
+        const inDesktopDropdown = event.target.closest('[data-dropdown]');
+        if (!inDesktopDropdown) {
+          closeAllDesktopDropdowns();
+        }
+
+        const clickedMobileButton = event.target.closest('#mobile-menu-button');
+        if (!clickedMobileButton && mobileMenu && !mobileMenu.classList.contains('hidden') && !mobileMenu.contains(event.target)) {
+          setMobileMenuState(false);
         }
       });
 
-      // Close mobile menu when window is resized to desktop
       window.addEventListener('resize', function() {
-        const mobileMenu = document.getElementById('mobile-menu');
-        if (window.innerWidth >= 1024 && mobileMenu) { // lg breakpoint
-          mobileMenu.style.display = 'none';
-          const menuOpen = document.getElementById('menu-open');
-          const menuClose = document.getElementById('menu-close');
-          if (menuOpen) menuOpen.classList.remove('hidden');
-          if (menuClose) menuClose.classList.add('hidden');
+        if (window.innerWidth >= 1024) {
+          setMobileMenuState(false);
         }
+      });
+
+      document.addEventListener('DOMContentLoaded', function () {
+        if (!window.WebSocket || !document.body || !document.body.dataset.authenticated) {
+          return;
+        }
+
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const socket = new WebSocket(protocol + '://' + window.location.host + '/ws/messages/unread/');
+
+        function updateMessageBadge(count) {
+          const badge = document.getElementById('messages-unread-badge');
+          const countNode = document.getElementById('messages-unread-count');
+          if (!badge || !countNode) {
+            return;
+          }
+
+          if (!count || count < 1) {
+            badge.classList.add('hidden');
+            countNode.textContent = '0';
+            return;
+          }
+
+          badge.classList.remove('hidden');
+          countNode.textContent = count > 9 ? '9+' : String(count);
+        }
+
+        socket.onmessage = function (event) {
+          const payload = JSON.parse(event.data);
+          if (payload.type === 'unread_count') {
+            updateMessageBadge(payload.unread_count || 0);
+          }
+        };
       });
     </script>
+
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         const forms = document.querySelectorAll('form');

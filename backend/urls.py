@@ -22,6 +22,7 @@ from django.urls import path, include
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
+    path('messages/', include('messaging.urls')),
     # Service apps
     path('appointments/', include('appointments.urls')),
     path('medical-records/', include('medical_records.urls')),

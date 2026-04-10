@@ -7,6 +7,8 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8 sm:py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'dental_records/_subnav.html' %}
+
         <div class="bg-white rounded-lg shadow-lg">
             <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
@@ -308,48 +310,60 @@
                 {% if page_obj.has_other_pages %}
                     <div class="px-6 sm:px-8 py-6 border-t border-gray-200 bg-gray-50/30">
                         <div class="flex flex-col sm:flex-row sm:justify-between items-center space-y-4 sm:space-y-0">
-                            <div class="flex items-center space-x-4">
-                                <div class="text-sm text-gray-700">
-                                    Showing <span class="font-medium text-gray-900">{{ page_obj.start_index }}</span> to 
-                                    <span class="font-medium text-gray-900">{{ page_obj.end_index }}</span> of 
-                                    <span class="font-medium text-gray-900">{{ page_obj.paginator.count }}</span> results
-                                </div>
+                            <!-- Results Counter -->
+                            <div class="text-sm text-gray-700">
+                                Showing <span class="font-medium text-gray-900">{{ page_obj.start_index }}</span> to 
+                                <span class="font-medium text-gray-900">{{ page_obj.end_index }}</span> of 
+                                <span class="font-medium text-gray-900">{{ page_obj.paginator.count }}</span> results
                             </div>
                             
-                            <div class="flex items-center space-x-2">
+                            <!-- Pagination Controls -->
+                            <div class="flex items-center justify-center gap-1">
+                                <!-- Previous Button -->
                                 {% if page_obj.has_previous %}
-                                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                                         </svg>
-                                        Previous
                                     </a>
                                 {% else %}
-                                    <span class="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
-                                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
                                         </svg>
-                                        Previous
                                     </span>
                                 {% endif %}
 
-                                <div class="flex items-center space-x-1">
-                                    <span class="px-3 py-2 text-sm text-gray-600">Page</span>
-                                    <span class="px-3 py-2 bg-primary-100 text-primary-800 text-sm font-medium rounded-md">{{ page_obj.number }}</span>
-                                    <span class="px-3 py-2 text-sm text-gray-600">of {{ page_obj.paginator.num_pages }}</span>
+                                <!-- Page Numbers -->
+                                <div class="flex items-center gap-1">
+                                    {% for pn in page_obj.paginator.page_range %}
+                                        {% if pn == page_obj.number %}
+                                            <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ pn }}</span>
+                                        {% elif pn|add:"0" <= 2 %}
+                                            <a href="?page={{ pn }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ pn }}</a>
+                                        {% elif pn|add:"0" >= page_obj.paginator.num_pages|add:"-1" %}
+                                            {% if pn|add:"0" == page_obj.paginator.num_pages|add:"-1" and page_obj.number not in page_obj.paginator.page_range|slice:"-3:" %}
+                                                <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                            {% endif %}
+                                            <a href="?page={{ pn }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ pn }}</a>
+                                        {% elif pn|add:"0" >= page_obj.number|add:"-1" and pn|add:"0" <= page_obj.number|add:"1" %}
+                                            <a href="?page={{ pn }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ pn }}</a>
+                                        {% elif pn|add:"0" == 3 and page_obj.number > 4 %}
+                                            <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                        {% endif %}
+                                    {% endfor %}
                                 </div>
-                                
+
+                                <!-- Next Button -->
                                 {% if page_obj.has_next %}
-                                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md">
-                                        Next
-                                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                         </svg>
                                     </a>
                                 {% else %}
-                                    <span class="inline-flex items-center px-4 py-2 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
-                                        Next
-                                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                                         </svg>
                                     </span>

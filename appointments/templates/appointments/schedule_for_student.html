@@ -1,0 +1,149 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Schedule Appointment for Student - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl sm:text-3xl font-bold text-gray-900">Schedule for a Student</h2>
+                        <p class="mt-1 text-sm text-gray-600">Book an appointment on behalf of a student.</p>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" id="schedule-for-student-form" class="p-6 sm:p-8 space-y-8">
+                {% csrf_token %}
+                
+                <!-- Student Selection -->
+                <div class="space-y-3">
+                    <label for="student-search" class="block text-lg font-semibold text-gray-800">1. Select Student</label>
+                    <div class="relative">
+                        <input type="text" id="student-search" placeholder="Search by name or email..." class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                        <div id="student-search-results" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
+                    </div>
+                    <input type="hidden" name="student" id="student-id">
+                    <div id="selected-student-display" class="mt-3 hidden">
+                        <div class="flex items-center p-4 bg-primary-50 border border-primary-200 rounded-lg">
+                            <svg class="w-6 h-6 mr-3 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            <p class="text-gray-800 font-medium">Selected Student: <span id="selected-student-name" class="font-bold"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Appointment Details -->
+                <div class="space-y-3">
+                    <label class="block text-lg font-semibold text-gray-800">2. Appointment Details</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="appointment_type" class="block text-sm font-medium text-gray-700 mb-2">Appointment Type</label>
+                            <select name="appointment_type" id="appointment_type" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors" required>
+                                <option value="">Select a type...</option>
+                                {% for type_key, type_display in appointment_types %}
+                                    <option value="{{ type_key }}">{{ type_display }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="reason" class="block text-sm font-medium text-gray-700 mb-2">Reason for Appointment</label>
+                            <input type="text" name="reason" id="reason" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors" required>
+                        </div>
+                        <div>
+                            <label for="date" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                            <input type="date" name="date" id="date" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors" required>
+                        </div>
+                        <div>
+                            <label for="time" class="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                            <input type="time" name="time" id="time" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors" required>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Submission -->
+                <div class="pt-6 border-t border-gray-200">
+                    <div class="flex justify-end space-x-4">
+                        <a href="{% url 'appointments:appointment_list' %}" class="px-6 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all">Cancel</a>
+                        <button type="submit" class="px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-all">
+                            Schedule Appointment
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('student-search');
+    const resultsContainer = document.getElementById('student-search-results');
+    const studentIdInput = document.getElementById('student-id');
+    const selectedStudentDisplay = document.getElementById('selected-student-display');
+    const selectedStudentName = document.getElementById('selected-student-name');
+
+    let searchTimeout;
+
+    searchInput.addEventListener('keyup', function() {
+        clearTimeout(searchTimeout);
+        const query = searchInput.value;
+
+        if (query.length < 2) {
+            resultsContainer.innerHTML = '';
+            resultsContainer.classList.add('hidden');
+            return;
+        }
+
+        searchTimeout = setTimeout(() => {
+            fetch(`{% url 'core:search_students' %}?q=${query}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultsContainer.innerHTML = '';
+                    if (data.length > 0) {
+                        resultsContainer.classList.remove('hidden');
+                        data.forEach(student => {
+                            const item = document.createElement('div');
+                            item.className = 'p-3 hover:bg-primary-50 cursor-pointer';
+                            item.textContent = `${student.name} (${student.email})`;
+                            item.dataset.id = student.id;
+                            item.dataset.name = student.name;
+                            item.addEventListener('click', function() {
+                                selectStudent(student.id, student.name);
+                            });
+                            resultsContainer.appendChild(item);
+                        });
+                    } else {
+                        resultsContainer.innerHTML = '<div class="p-3 text-gray-500">No students found.</div>';
+                        resultsContainer.classList.remove('hidden');
+                    }
+                });
+        }, 300);
+    });
+
+    function selectStudent(id, name) {
+        studentIdInput.value = id;
+        selectedStudentName.textContent = name;
+        selectedStudentDisplay.classList.remove('hidden');
+        searchInput.value = '';
+        resultsContainer.classList.add('hidden');
+    }
+
+    document.addEventListener('click', function(e) {
+        if (!resultsContainer.contains(e.target) && e.target !== searchInput) {
+            resultsContainer.classList.add('hidden');
+        }
+    });
+});
+</script>
+{% endblock content %}

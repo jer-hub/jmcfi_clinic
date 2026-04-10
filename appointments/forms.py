@@ -15,7 +15,7 @@ class AppointmentTypeDefaultForm(forms.ModelForm):
             'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
         }),
         label='Assigned Doctors',
-        help_text='Select one or more doctors available for this appointment type. If none are selected, all staff/doctors will be available.',
+        help_text='Select one or more doctors available for this appointment type. If none are selected, all active doctors will be available.',
     )
 
     class Meta:
@@ -41,7 +41,7 @@ class AppointmentTypeDefaultForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         doctors_qs = User.objects.filter(
-            role__in=['staff', 'doctor'],
+            role='doctor',
             is_active=True
         ).order_by('first_name', 'last_name')
 

@@ -37,7 +37,7 @@ def _log(action, user, medicine=None, batch=None, quantity=0, details=''):
 # ─── Dashboard ───────────────────────────────────────────────────────────────
 
 @login_required
-@role_required('admin', 'staff', 'doctor')
+@role_required('admin', 'staff')
 def pharmacy_dashboard(request):
     """Pharmacy overview with KPIs and alerts."""
     today = timezone.now().date()
@@ -110,7 +110,7 @@ def pharmacy_dashboard(request):
 # ─── Medicine CRUD ───────────────────────────────────────────────────────────
 
 @login_required
-@role_required('admin', 'staff', 'doctor')
+@role_required('admin', 'staff')
 def medicine_list(request):
     qs = Medicine.objects.select_related('category').all()
     # Search
@@ -148,7 +148,7 @@ def medicine_list(request):
 
 
 @login_required
-@role_required('admin', 'staff', 'doctor')
+@role_required('admin', 'staff')
 def medicine_detail(request, medicine_id):
     medicine = get_object_or_404(Medicine, pk=medicine_id)
     batches = medicine.batches.all()
@@ -352,7 +352,7 @@ def batch_edit(request, batch_id):
 @login_required
 @role_required('admin', 'staff')
 def supplier_list(request):
-    qs = Supplier.objects.annotate(order_count=Count('purchase_orders'))
+    qs = Supplier.objects.annotate(order_count=Count('purchase_orders')).order_by('name', 'id')
     q = request.GET.get('q', '').strip()
     if q:
         qs = qs.filter(Q(name__icontains=q) | Q(contact_person__icontains=q))
@@ -497,7 +497,7 @@ def purchase_order_receive(request, order_id):
 # ─── Dispensing ──────────────────────────────────────────────────────────────
 
 @login_required
-@role_required('admin', 'staff', 'doctor')
+@role_required('admin', 'staff')
 def dispensing_list(request):
     qs = Dispensing.objects.select_related(
         'patient', 'dispensed_by', 'batch__medicine', 'prescribing_doctor'
@@ -515,7 +515,7 @@ def dispensing_list(request):
 
 
 @login_required
-@role_required('admin', 'staff', 'doctor')
+@role_required('admin', 'staff')
 def dispensing_create(request):
     if request.method == 'POST':
         form = DispensingForm(request.POST)

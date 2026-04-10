@@ -1,11 +1,21 @@
 from django.contrib import admin
-from .models import DocumentRequest
+from .models import DocumentRequest, StudentRequestSchedule
 
 
 @admin.register(DocumentRequest)
 class DocumentRequestAdmin(admin.ModelAdmin):
-    list_display = ['student', 'document_type', 'purpose', 'status', 'medical_certificate', 'created_at', 'processed_by']
-    list_filter = ['status', 'document_type', 'created_at']
+    list_display = [
+        'student',
+        'document_type',
+        'request_origin',
+        'created_by',
+        'purpose',
+        'status',
+        'medical_certificate',
+        'created_at',
+        'processed_by',
+    ]
+    list_filter = ['status', 'document_type', 'request_origin', 'created_at']
     search_fields = ['student__email', 'student__first_name', 'student__last_name', 'purpose']
     readonly_fields = ['created_at', 'updated_at']
     ordering = ['-created_at']
@@ -13,7 +23,16 @@ class DocumentRequestAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Request Information', {
-            'fields': ('student', 'document_type', 'purpose', 'additional_info')
+            'fields': (
+                'student',
+                'document_type',
+                'request_origin',
+                'created_by',
+                'purpose',
+                'additional_info',
+                'scheduled_for_date',
+                'scheduled_for_time',
+            )
         }),
         ('Status', {
             'fields': ('status', 'processed_by', 'rejection_reason')
@@ -27,3 +46,11 @@ class DocumentRequestAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(StudentRequestSchedule)
+class StudentRequestScheduleAdmin(admin.ModelAdmin):
+    list_display = ['student', 'is_active', 'start_time', 'end_time', 'updated_by', 'updated_at']
+    list_filter = ['is_active', 'allowed_days']
+    search_fields = ['student__email', 'student__first_name', 'student__last_name']
+    readonly_fields = ['created_at', 'updated_at']

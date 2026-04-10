@@ -1,0 +1,17 @@
+<div class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+  <div class="px-3 py-3 overflow-x-auto">
+    <div class="flex items-center gap-2 min-w-max">
+      <a href="{% url 'core:profile' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'core:profile' or request.resolver_match.view_name == 'core:edit_profile' or request.resolver_match.view_name == 'core:quick_edit_profile' or request.resolver_match.view_name == 'core:profile_required' or request.resolver_match.view_name == 'core:complete_profile' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-user mr-2"></i>Profile
+      </a>
+      <a href="{% url 'core:notifications' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'core:notifications' or request.resolver_match.view_name == 'core:create_system_notification' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-bell mr-2"></i>Notifications
+      </a>
+      {% if request.user.role == 'admin' %}
+      <a href="{% url 'core:user_management' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'core:user_management' or request.resolver_match.view_name == 'core:user_create' or request.resolver_match.view_name == 'core:user_detail' or request.resolver_match.view_name == 'core:user_edit' or request.resolver_match.view_name == 'core:user_delete' or request.resolver_match.view_name == 'core:user_toggle_status' or request.resolver_match.view_name == 'core:user_reset_password' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-users-cog mr-2"></i>Users
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>

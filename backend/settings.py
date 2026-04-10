@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "channels",
     'django.contrib.sites',  # Required for django-allauth
     'allauth',
     'allauth.account',
@@ -43,6 +44,7 @@ INSTALLED_APPS = [
     "health_forms_services",
     "analytics",
     "pharmacy",
+    "messaging",
 ]
 
 MIDDLEWARE = [
@@ -92,6 +94,7 @@ SOCIALACCOUNT_ADAPTER = 'core.adapters.GoogleOnlyAdapter'  # Google-only social 
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # Don't require email verification
 
 ROOT_URLCONF = "backend.urls"
+ASGI_APPLICATION = "backend.asgi.application"
 
 TEMPLATES = [
     {
@@ -113,6 +116,24 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "backend.wsgi.application"
+
+REDIS_URL = config("REDIS_URL", default="")
+
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        }
+    }
 
 
 # Database

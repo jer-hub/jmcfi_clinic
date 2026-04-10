@@ -1,0 +1,14 @@
+<div class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+  <div class="px-3 py-3 overflow-x-auto">
+    <div class="flex items-center gap-2 min-w-max">
+      <a href="{% url 'health_tips:health_tips_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_tips:health_tips_list' or request.resolver_match.view_name == 'health_tips:health_tip_detail' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-heartbeat mr-2"></i>Health Tips
+      </a>
+      {% if request.user.role == 'admin' or request.user.role == 'staff' or request.user.role == 'doctor' %}
+      <a href="{% url 'health_tips:create_health_tip' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'health_tips:create_health_tip' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-plus mr-2"></i>Create Tip
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</div>

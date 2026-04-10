@@ -7,6 +7,7 @@ urlpatterns = [
     # Appointment CRUD
     path('', views.appointment_list, name='appointment_list'),
     path('schedule/', views.schedule_appointment, name='schedule_appointment'),
+    path('schedule-for-student/', views.schedule_for_student, name='schedule_for_student'),
     path('<int:appointment_id>/', views.appointment_detail, name='appointment_detail'),
     
     # Appointment Settings (Admin Only)

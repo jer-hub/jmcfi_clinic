@@ -1,0 +1,12 @@
+<div class="mb-2 mt-0 flex flex-col items-start gap-2 rounded-2xl border border-gray-200 bg-white px-3 py-2.5 shadow-sm sm:mb-3 sm:mt-0 sm:flex-row sm:items-center sm:justify-between sm:px-4 sm:py-2">
+    <div>
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-primary-600 sm:text-sm sm:tracking-[0.2em]">Communication</p>
+        <h2 class="text-base font-semibold text-gray-900 sm:text-lg">Secure Messaging</h2>
+    </div>
+    <div class="flex w-full flex-wrap gap-2 sm:w-auto">
+        <a href="{% url 'messaging:inbox' %}" class="inline-flex flex-1 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 {% if request.resolver_match.view_name == 'messaging:inbox' or request.resolver_match.view_name == 'messaging:conversation_detail' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">Inbox</a>
+        {% if user.role == 'student' or user.role == 'staff' or user.role == 'doctor' %}
+        <a href="{% url 'messaging:start_conversation' %}" class="inline-flex flex-1 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 {% if request.resolver_match.view_name == 'messaging:start_conversation' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">New Message</a>
+        {% endif %}
+    </div>
+</div>

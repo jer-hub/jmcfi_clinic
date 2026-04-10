@@ -4,6 +4,7 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    {% include 'analytics/_subnav.html' %}
 
     <!-- Header -->
     <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -57,19 +58,57 @@
     </div>
 
     {% if reports.has_other_pages %}
-    <nav class="flex justify-center mt-6">
-      <ul class="inline-flex -space-x-px text-sm">
+    <div class="flex items-center justify-center gap-1 mt-6">
+        <!-- Previous Button -->
         {% if reports.has_previous %}
-        <li><a href="?page={{ reports.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-l-md">Prev</a></li>
+            <a href="?page={{ reports.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </a>
+        {% else %}
+            <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </span>
         {% endif %}
-        {% for num in reports.paginator.page_range %}
-        <li><a href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="px-3 py-2 border border-gray-300 {% if reports.number == num %}bg-primary-50 text-primary-600{% else %}bg-white text-gray-500 hover:bg-gray-100{% endif %}">{{ num }}</a></li>
-        {% endfor %}
+        
+        <!-- Page Numbers -->
+        <div class="flex items-center gap-1">
+            {% for num in reports.paginator.page_range %}
+                {% if num == reports.number %}
+                    <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ num }}</span>
+                {% elif num|add:"0" <= 2 %}
+                    <a href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
+                {% elif num|add:"0" >= reports.paginator.num_pages|add:"-1" %}
+                    {% if num|add:"0" == reports.paginator.num_pages|add:"-1" and reports.number not in reports.paginator.page_range|slice:"-3:" %}
+                        <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                    {% endif %}
+                    <a href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
+                {% elif num|add:"0" >= reports.number|add:"-1" and num|add:"0" <= reports.number|add:"1" %}
+                    <a href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
+                {% elif num|add:"0" == 3 and reports.number > 4 %}
+                    <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        <!-- Next Button -->
         {% if reports.has_next %}
-        <li><a href="?page={{ reports.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-r-md">Next</a></li>
+            <a href="?page={{ reports.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+        {% else %}
+            <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </span>
         {% endif %}
-      </ul>
-    </nav>
+    </div>
     {% endif %}
     {% else %}
     <div class="bg-white rounded-lg shadow p-8 text-center">

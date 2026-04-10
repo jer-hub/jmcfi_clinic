@@ -1,0 +1,407 @@
+INFO:     Will watch for changes in these directories: ['D:\\jmcfi_clinic']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [13060] using WatchFiles
+INFO:     Started server process [6620]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'messaging\views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [6620]
+WARNING:  WatchFiles detected changes in 'messaging\urls.py'. Reloading...
+Process SpawnProcess-2:
+Traceback (most recent call last):
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\multiprocessing\process.py", line 313, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\jmcfi_clinic\.venv\Lib\site-packages\uvicorn\_subprocess.py", line 76, in subprocess_started
+    config.configure_logging()
+    ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\jmcfi_clinic\.venv\Lib\site-packages\uvicorn\config.py", line 372, in configure_logging
+    logging.config.dictConfig(self.log_config)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\logging\config.py", line 935, in dictConfig
+    dictConfigClass(config).configure()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\logging\config.py", line 577, in configure
+    _clearExistingHandlers()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\logging\config.py", line 290, in _clearExistingHandlers
+    logging.shutdown(logging._handlerList[:])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\logging\__init__.py", line 2243, in shutdown
+    h.flush()
+    ~~~~~~~^^
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\logging\__init__.py", line 1134, in flush
+    with self.lock:
+         ^^^^^^^^^
+KeyboardInterrupt
+INFO:     Started server process [12228]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+D:\jmcfi_clinic\.venv\Lib\site-packages\django\core\handlers\asgi.py:332: Warning: StreamingHttpResponse must consume synchronous iterators in order to serve them asynchronously. Use an asynchronous iterator instead.
+  async for part in content:
+INFO:     127.0.0.1:60507 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:8811 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:24501 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:2003 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'messaging\urls.py', 'messaging\views.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Finished server process [12228]
+INFO:     Started server process [3784]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:35346 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:60177 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'messaging\views.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Finished server process [3784]
+INFO:     Started server process [5164]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:18009 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:15493 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:10225 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:44849 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:49429 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:17460 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:35364 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:1278 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:13719 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:30378 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:40978 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:6640 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:5636 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'messaging\views.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Finished server process [5164]
+INFO:     Started server process [25196]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:64220 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:26749 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'messaging\views.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Finished server process [25196]
+INFO:     Started server process [25312]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'messaging\views.py'. Reloading...
+INFO:     Shutting down
+INFO:     Finished server process [25312]
+WARNING:  WatchFiles detected changes in 'messaging\views.py'. Reloading...
+Process SpawnProcess-8:
+Traceback (most recent call last):
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\multiprocessing\process.py", line 313, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\jmcfi_clinic\.venv\Lib\site-packages\uvicorn\_subprocess.py", line 73, in subprocess_started
+    sys.stdin = os.fdopen(stdin_fileno)  # pragma: full coverage
+                ~~~~~~~~~^^^^^^^^^^^^^^
+  File "<frozen os>", line 1068, in fdopen
+  File "<frozen codecs>", line 312, in __init__
+KeyboardInterrupt
+INFO:     Started server process [16120]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:47025 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:59199 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:22428 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:60816 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:3648 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:40553 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:51429 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:14968 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:13222 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:35578 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:26183 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:7552 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:45697 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:32593 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:27792 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:28111 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+D:\jmcfi_clinic\.venv\Lib\site-packages\django\core\handlers\asgi.py:332: Warning: StreamingHttpResponse must consume synchronous iterators in order to serve them asynchronously. Use an asynchronous iterator instead.
+  async for part in content:
+INFO:     127.0.0.1:5332 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:38279 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+Not Found: /favicon.ico
+INFO:     connection closed
+INFO:     127.0.0.1:31691 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:20873 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:3876 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:24988 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:23024 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:42196 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+Not Found: /favicon.ico
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:51712 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:37850 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:14933 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:58615 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:19634 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:46730 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:2631 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+Not Found: /.well-known/appspecific/com.chrome.devtools.json
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:56992 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:56015 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:43801 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:47304 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:37700 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:42440 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:53441 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+WARNING:  WatchFiles detected changes in 'messaging\views.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     Finished server process [16120]
+INFO:     Started server process [1596]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:29991 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+D:\jmcfi_clinic\.venv\Lib\site-packages\django\core\handlers\asgi.py:332: Warning: StreamingHttpResponse must consume synchronous iterators in order to serve them asynchronously. Use an asynchronous iterator instead.
+  async for part in content:
+INFO:     127.0.0.1:5718 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:11740 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:1726 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:24011 - "WebSocket /ws/messages/3/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:1308 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:2480 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:49725 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:49661 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:20267 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:1495 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+WARNING:  WatchFiles detected changes in 'messaging\services.py'. Reloading...
+INFO:     Shutting down
+INFO:     connection closed
+INFO:     connection closed
+INFO:     Finished server process [1596]
+WARNING:  WatchFiles detected changes in 'core\context_processors.py', 'messaging\tests.py', 'core\views.py'. Reloading...
+Process SpawnProcess-11:
+Traceback (most recent call last):
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\multiprocessing\process.py", line 313, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\jerwi\AppData\Roaming\uv\python\cpython-3.13.0-windows-x86_64-none\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\jmcfi_clinic\.venv\Lib\site-packages\uvicorn\_subprocess.py", line 73, in subprocess_started
+    sys.stdin = os.fdopen(stdin_fileno)  # pragma: full coverage
+                ~~~~~~~~~^^^^^^^^^^^^^^
+  File "<frozen os>", line 1068, in fdopen
+  File "<frozen codecs>", line 312, in __init__
+KeyboardInterrupt
+INFO:     Started server process [16904]
+INFO:     Waiting for application startup.
+INFO:     ASGI 'lifespan' protocol appears unsupported.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:21293 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:47516 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:64111 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:5032 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:26836 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:58171 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:50311 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:16104 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:38271 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:5515 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:5964 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:64487 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:5517 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:51427 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+D:\jmcfi_clinic\.venv\Lib\site-packages\django\core\handlers\asgi.py:332: Warning: StreamingHttpResponse must consume synchronous iterators in order to serve them asynchronously. Use an asynchronous iterator instead.
+  async for part in content:
+INFO:     127.0.0.1:37745 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:13673 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     127.0.0.1:62347 - "WebSocket /ws/messages/3/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:55675 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:51023 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:8642 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open
+INFO:     connection closed
+INFO:     connection closed
+INFO:     127.0.0.1:55051 - "WebSocket /ws/messages/1/" [accepted]
+INFO:     connection open
+INFO:     127.0.0.1:15879 - "WebSocket /ws/messages/unread/" [accepted]
+INFO:     connection open

@@ -4,7 +4,9 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8 sm:py-12">
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'document_request/_subnav.html' %}
+
         <!-- Enhanced Header -->
         <div class="bg-white rounded-lg shadow-lg mb-8">
             <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
@@ -209,7 +211,11 @@
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
+                                {% if cert_request.document_type == 'medical_certificate' %}
                                 Review & Edit
+                                {% else %}
+                                Mark as Completed
+                                {% endif %}
                             </button>
 
                             <!-- Reject -->

@@ -4,7 +4,9 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'appointments/_subnav.html' %}
+
         <!-- Header -->
         <div class="mb-6">
             <a href="{% url 'appointments:appointment_type_settings' %}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">

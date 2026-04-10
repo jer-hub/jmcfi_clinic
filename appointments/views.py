@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Case, When, Value, IntegerField
 import json
 
 from .models import Appointment, AppointmentTypeDefault
@@ -44,23 +44,53 @@ def appointment_list(request):
         appointments = Appointment.objects.all()
     else:
         appointments = Appointment.objects.none()
-    
-    # Apply filters
+
+    # Get filter parameters
     status = request.GET.get('status')
-    date_from = parse_date(request.GET.get('date_from')) if request.GET.get('date_from') else None
-    date_to = parse_date(request.GET.get('date_to')) if request.GET.get('date_to') else None
-    
+    date_from_str = request.GET.get('date_from')
+    date_to_str = request.GET.get('date_to')
+    doctor_id = request.GET.get('doctor')
+    appointment_type = request.GET.get('appointment_type')
+
+    # Apply filters
     if status:
         appointments = appointments.filter(status=status)
-    if date_from:
-        appointments = appointments.filter(date__gte=date_from)
-    if date_to:
-        appointments = appointments.filter(date__lte=date_to)
-    
+    if date_from_str:
+        date_from = parse_date(date_from_str)
+        if date_from:
+            appointments = appointments.filter(date__gte=date_from)
+    if date_to_str:
+        date_to = parse_date(date_to_str)
+        if date_to:
+            appointments = appointments.filter(date__lte=date_to)
+    if doctor_id:
+        appointments = appointments.filter(doctor_id=doctor_id)
+    if appointment_type:
+        appointments = appointments.filter(appointment_type=appointment_type)
+
+    # Order by latest date and time first
     appointments = appointments.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set').order_by('-date', '-time')
-    appointments = paginate_queryset(appointments, request)
     
-    return render(request, 'appointments/appointment_list.html', {'appointments': appointments})
+    paginated_appointments = paginate_queryset(appointments, request)
+
+    # Get data for filter dropdowns
+    doctors = User.objects.filter(role='doctor').order_by('first_name', 'last_name')
+    appointment_types = Appointment.APPOINTMENT_TYPE_CHOICES
+
+    context = {
+        'appointments': paginated_appointments,
+        'doctors': doctors,
+        'appointment_types': appointment_types,
+        'current_filters': {
+            'status': status,
+            'date_from': date_from_str,
+            'date_to': date_to_str,
+            'doctor': int(doctor_id) if doctor_id else None,
+            'appointment_type': appointment_type,
+        }
+    }
+    
+    return render(request, 'appointments/appointment_list.html', context)
 
 
 @login_required
@@ -96,7 +126,7 @@ def schedule_appointment(request):
                 messages.error(request, 'Appointments are not available on weekends.')
                 return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
             
-            doctor = User.objects.get(id=doctor_id, role__in=['staff', 'doctor'])
+            doctor = User.objects.get(id=doctor_id, role='doctor', is_active=True)
             
             # Validate that the selected doctor is allowed for this appointment type
             type_default = AppointmentTypeDefault.objects.filter(
@@ -134,16 +164,6 @@ def schedule_appointment(request):
                 user=doctor,
                 title='New Appointment Request',
                 message=f'New appointment request from {request.user.get_full_name()} for {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}',
-                notification_type='appointment',
-                transaction_type='appointment_scheduled',
-                related_id=appointment.id
-            )
-            
-            # Create notification for student
-            Notification.objects.create(
-                user=request.user,
-                title='Appointment Scheduled',
-                message=f'Your appointment with Dr. {doctor.get_full_name()} has been scheduled for {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}',
                 notification_type='appointment',
                 transaction_type='appointment_scheduled',
                 related_id=appointment.id
@@ -223,7 +243,7 @@ def _get_schedule_context():
     Build the full context for the schedule-appointment page.
     Only includes active AppointmentTypeDefault records,
     and only the doctors assigned to those types (or all active
-    staff/doctors when a type has no restriction).
+    doctors when a type has no restriction).
     """
     active_defaults = (
         AppointmentTypeDefault.objects
@@ -237,22 +257,24 @@ def _get_schedule_context():
     has_unrestricted_type = False
 
     for default in active_defaults:
-        assigned = list(default.assigned_doctors.values_list('id', flat=True))
+        assigned = list(
+            default.assigned_doctors.filter(role='doctor', is_active=True).values_list('id', flat=True)
+        )
         type_doctor_map[default.appointment_type] = assigned
         if assigned:
             all_assigned_ids.update(assigned)
         else:
             has_unrestricted_type = True  # this type allows all doctors
 
-    # If any type is unrestricted (no assigned doctors), show all active staff/doctors.
+    # If any type is unrestricted (no assigned doctors), show all active doctors.
     # Otherwise show only those who appear in at least one type.
     if has_unrestricted_type or not active_defaults.exists():
         doctors = User.objects.filter(
-            role__in=['staff', 'doctor'], is_active=True
+            role='doctor', is_active=True
         ).select_related('staff_profile').order_by('first_name', 'last_name')
     else:
         doctors = User.objects.filter(
-            id__in=all_assigned_ids, is_active=True
+            id__in=all_assigned_ids, role='doctor', is_active=True
         ).select_related('staff_profile').order_by('first_name', 'last_name')
 
     return {
@@ -451,3 +473,94 @@ def delete_appointment_type_default(request, default_id):
         )
     
     return redirect('appointments:appointment_type_settings')
+
+
+@login_required
+@role_required('doctor', 'admin')
+def schedule_for_student(request):
+    """
+    Allows doctors or admins to schedule an appointment for a student.
+    """
+    if request.method == 'POST':
+        student_id = request.POST.get('student')
+        appointment_type = request.POST.get('appointment_type')
+        date_str = request.POST.get('date')
+        time_str = request.POST.get('time')
+        reason = request.POST.get('reason')
+
+        # --- Validation ---
+        if not all([student_id, appointment_type, date_str, time_str, reason]):
+            messages.error(request, 'All fields are required.')
+            return redirect('appointments:schedule_for_student')
+
+        try:
+            student = User.objects.get(id=student_id, role='student')
+            doctor = request.user
+            from datetime import datetime
+            appointment_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            appointment_time = datetime.strptime(time_str, '%H:%M').time()
+
+            # 1. Check if date is in the past
+            if appointment_date < timezone.now().date():
+                messages.error(request, 'Cannot schedule appointments for past dates.')
+                return redirect('appointments:schedule_for_student')
+
+            # 2. Check for student conflict
+            student_conflict = Appointment.objects.filter(
+                student=student,
+                date=appointment_date,
+                time=appointment_time,
+                status__in=['pending', 'confirmed']
+            ).exists()
+            if student_conflict:
+                messages.error(request, f'{student.get_full_name()} already has a pending or confirmed appointment at this time.')
+                return redirect('appointments:schedule_for_student')
+
+            # 3. Check for doctor conflict
+            doctor_conflict = Appointment.objects.filter(
+                doctor=doctor,
+                date=appointment_date,
+                time=appointment_time,
+                status__in=['pending', 'confirmed']
+            ).exists()
+            if doctor_conflict:
+                messages.error(request, 'You already have an appointment scheduled at this time.')
+                return redirect('appointments:schedule_for_student')
+
+            # --- Create Appointment ---
+            appointment = Appointment.objects.create(
+                student=student,
+                doctor=doctor,
+                appointment_type=appointment_type,
+                date=appointment_date,
+                time=appointment_time,
+                reason=reason,
+                status='confirmed'  # Automatically confirmed
+            )
+
+            # --- Create Notification for Student ---
+            Notification.objects.create(
+                user=student,
+                title='Appointment Scheduled for You',
+                message=f'Dr. {doctor.get_full_name()} has scheduled a new appointment for you on {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}.',
+                notification_type='appointment',
+                transaction_type='appointment_confirmed',
+                related_id=appointment.id
+            )
+
+            messages.success(request, f'Appointment successfully scheduled for {student.get_full_name()}.')
+            return redirect('appointments:appointment_list')
+
+        except User.DoesNotExist:
+            messages.error(request, 'Invalid student selected.')
+        except ValueError:
+            messages.error(request, 'Invalid date or time format.')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {e}')
+        
+        return redirect('appointments:schedule_for_student')
+
+    context = {
+        'appointment_types': Appointment.APPOINTMENT_TYPE_CHOICES
+    }
+    return render(request, 'appointments/schedule_for_student.html', context)

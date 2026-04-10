@@ -261,6 +261,8 @@ class Notification(models.Model):
         ('system_maintenance', 'System Maintenance'),
         ('general_announcement', 'General Announcement'),
         ('feedback_request', 'Feedback Request'),
+        ('direct_message', 'Direct Message'),
+        ('announcement_posted', 'Announcement Posted'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')

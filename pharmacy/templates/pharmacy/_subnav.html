@@ -1,0 +1,36 @@
+<div class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm">
+  <div class="px-3 py-3 overflow-x-auto">
+    <div class="flex items-center gap-2 min-w-max">
+      <a href="{% url 'pharmacy:dashboard' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'pharmacy:dashboard' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-gauge-high mr-2"></i>Dashboard
+      </a>
+      <a href="{% url 'pharmacy:medicine_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'medicine' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-capsules mr-2"></i>Medicines
+      </a>
+      <a href="{% url 'pharmacy:category_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'category' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-tags mr-2"></i>Categories
+      </a>
+      <a href="{% url 'pharmacy:batch_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'batch' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-boxes-stacked mr-2"></i>Batches
+      </a>
+      <a href="{% url 'pharmacy:supplier_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'supplier' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-truck-field mr-2"></i>Suppliers
+      </a>
+      <a href="{% url 'pharmacy:purchase_order_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'purchase_order' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-file-invoice mr-2"></i>Orders
+      </a>
+      <a href="{% url 'pharmacy:dispensing_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'dispensing' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-hand-holding-medical mr-2"></i>Dispensing
+      </a>
+      <a href="{% url 'pharmacy:adjustment_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'adjustment' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-sliders mr-2"></i>Adjustments
+      </a>
+      <a href="{% url 'pharmacy:audit_log_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'audit_log' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-clipboard-list mr-2"></i>Audit Log
+      </a>
+      <a href="{% url 'pharmacy:compliance_report' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'compliance_report' in request.resolver_match.view_name or 'cost_analysis' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-chart-column mr-2"></i>Reports
+      </a>
+    </div>
+  </div>
+</div>

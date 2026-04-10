@@ -14,9 +14,10 @@ from .utils import (
     get_user_profile, create_notification, paginate_queryset,
     create_bulk_notifications
 )
-from .decorators import admin_required
+from .decorators import admin_required, role_required
 
 User = get_user_model()
+MESSAGE_NOTIFICATION_TYPES = ("direct_message", "announcement_posted")
 
 
 # =====================
@@ -72,6 +73,8 @@ def dashboard(request):
             'unread_notifications': Notification.objects.filter(
                 user=request.user, 
                 is_read=False
+            ).exclude(
+                transaction_type__in=MESSAGE_NOTIFICATION_TYPES
             ).count(),
             'pending_certificates': CertificateRequest.objects.filter(
                 student=request.user,
@@ -142,7 +145,9 @@ def dashboard(request):
 @login_required
 def notifications(request):
     """Display user notifications"""
-    notifications_qs = Notification.objects.filter(user=request.user).order_by('-created_at')
+    notifications_qs = Notification.objects.filter(user=request.user).exclude(
+        transaction_type__in=MESSAGE_NOTIFICATION_TYPES
+    ).order_by('-created_at')
     
     # Filter by read/unread status
     status = request.GET.get('status')
@@ -167,8 +172,12 @@ def notifications(request):
     notifications_page = paginator.get_page(page)
     
     # Get counts for filters
-    total_count = Notification.objects.filter(user=request.user).count()
-    unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
+    total_count = Notification.objects.filter(user=request.user).exclude(
+        transaction_type__in=MESSAGE_NOTIFICATION_TYPES
+    ).count()
+    unread_count = Notification.objects.filter(user=request.user, is_read=False).exclude(
+        transaction_type__in=MESSAGE_NOTIFICATION_TYPES
+    ).count()
     read_count = total_count - unread_count
     
     context = {
@@ -197,7 +206,9 @@ def mark_notification_read(request, notification_id):
 def mark_all_notifications_read(request):
     """Mark all notifications as read for the current user"""
     if request.method == 'POST':
-        updated_count = Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        updated_count = Notification.objects.filter(user=request.user, is_read=False).exclude(
+            transaction_type__in=MESSAGE_NOTIFICATION_TYPES
+        ).update(is_read=True)
         return JsonResponse({
             'status': 'success', 
             'message': f'{updated_count} notifications marked as read'
@@ -209,8 +220,11 @@ def mark_all_notifications_read(request):
 def clear_all_notifications(request):
     """Delete all notifications for the current user"""
     if request.method == 'POST':
-        deleted_count = Notification.objects.filter(user=request.user).count()
-        Notification.objects.filter(user=request.user).delete()
+        notifications_qs = Notification.objects.filter(user=request.user).exclude(
+            transaction_type__in=MESSAGE_NOTIFICATION_TYPES
+        )
+        deleted_count = notifications_qs.count()
+        notifications_qs.delete()
         return JsonResponse({
             'status': 'success', 
             'message': f'{deleted_count} notifications cleared',
@@ -813,3 +827,36 @@ def user_reset_password(request, user_id):
     }
     
     return render(request, 'core/user_management/user_reset_password.html', context)
+
+
+# =====================
+# Search Views
+# =====================
+
+@login_required
+@role_required('doctor', 'admin')
+def search_students(request):
+    """
+    AJAX endpoint to search for students by name or email.
+    Used in forms where a doctor/admin needs to select a student.
+    """
+    query = request.GET.get('q', '')
+    if len(query) < 2:
+        return JsonResponse([], safe=False)
+
+    students = User.objects.filter(
+        Q(role='student') &
+        (Q(first_name__icontains=query) |
+         Q(last_name__icontains=query) |
+         Q(email__icontains=query))
+    )[:10]
+
+    results = [
+        {
+            'id': student.id,
+            'name': student.get_full_name(),
+            'email': student.email
+        }
+        for student in students
+    ]
+    return JsonResponse(results, safe=False)

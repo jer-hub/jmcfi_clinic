@@ -1,0 +1,225 @@
+<aside class="flex h-full w-full flex-col border-b border-gray-200 bg-white lg:w-[23rem] lg:border-b-0 lg:border-r lg:border-gray-200">
+    <div class="border-b border-gray-200 px-3 py-3 sm:px-4">
+        <div class="flex items-center justify-between gap-2">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-[0.22em] text-primary-700">Messages</p>
+                <h2 class="mt-0.5 text-lg font-bold text-gray-900">Chats</h2>
+            </div>
+            <div class="flex items-center gap-2">
+                {% if can_start_direct %}
+                <a href="{% url 'messaging:start_conversation' %}" class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary-600 text-white transition hover:bg-primary-700" title="New message" aria-label="New message">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="mt-3">
+            <label for="conversation-search" class="sr-only">Search conversations</label>
+            <div class="relative">
+                <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-4 w-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-4.35-4.35m0 0A7.5 7.5 0 1 0 5.4 5.4a7.5 7.5 0 0 0 11.25 11.25Z" />
+                    </svg>
+                </span>
+                <input id="conversation-search" type="search" placeholder="Search chats" class="block w-full rounded-full border border-gray-300 bg-gray-50 py-2 pl-9 pr-3 text-sm text-gray-900 focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-100">
+            </div>
+        </div>
+    </div>
+
+    <div id="conversation-list" class="min-h-0 flex-1 overflow-y-auto">
+        {% if conversations %}
+            {% for item in conversations %}
+            <a
+                href="{% url 'messaging:conversation_detail' item.id %}"
+                data-conversation-item
+                data-conversation-id="{{ item.id }}"
+                data-search="{{ item.display_title|lower }} {{ item.last_message_excerpt|default:''|lower }}"
+                class="block border-b border-gray-100 px-3 py-2.5 transition hover:bg-gray-50 sm:px-4 {% if conversation and item.id == conversation.id %}bg-primary-50{% endif %}"
+            >
+                <div class="flex items-start gap-2.5">
+                    <div class="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
+                        {{ item.display_title|first|upper }}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="truncate text-sm font-semibold text-gray-900">{{ item.display_title }}</p>
+                            <p class="shrink-0 text-xs text-gray-500">
+                                {% if item.last_message_at %}
+                                {{ item.last_message_at|date:'g:i A' }}
+                                {% else %}
+                                {{ item.created_at|date:'M d' }}
+                                {% endif %}
+                            </p>
+                        </div>
+                        <p class="mt-1 truncate text-xs text-gray-600">{{ item.last_message_excerpt|default:'No messages yet.' }}</p>
+                    </div>
+                    {% if item.unread_count > 0 %}
+                    <span class="mt-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary-600 px-1.5 py-0.5 text-[10px] font-semibold text-white" data-unread-badge-{{ item.id }}>{{ item.unread_count }}</span>
+                    {% else %}
+                    <span class="mt-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary-600 px-1.5 py-0.5 text-[10px] font-semibold text-white hidden" data-unread-badge-{{ item.id }}></span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+            <div class="px-6 py-10 text-center text-sm text-gray-500">No conversations yet.</div>
+        {% endif %}
+    </div>
+</aside>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const search = document.getElementById('conversation-search');
+    const items = document.querySelectorAll('[data-conversation-item]');
+    if (!search) {
+      return;
+    }
+
+    search.addEventListener('input', function () {
+      const term = (search.value || '').toLowerCase().trim();
+      items.forEach(function (item) {
+        const haystack = item.dataset.search || '';
+        item.style.display = !term || haystack.indexOf(term) !== -1 ? '' : 'none';
+      });
+    });
+
+    // Real-time unread count and conversation updates via WebSocket
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const socketUrl = protocol + '://' + window.location.host + '/ws/messages/unread/';
+    let socket = null;
+    let reconnectAttempts = 0;
+    let reconnectTimer = null;
+
+    // Debouncing for grouped notifications from same sender
+    const pendingConversationUpdates = {};
+    const pendingUnreadUpdates = {};
+    const UPDATE_DEBOUNCE_MS = 1500; // Wait 1.5 seconds for more messages from same person
+
+    function getSenderKey(senderId, fallbackKey) {
+      if (senderId !== null && senderId !== undefined && senderId !== '') {
+        return 'sender_' + String(senderId);
+      }
+      return fallbackKey;
+    }
+
+    function debouncedTotalUnreadUpdate(totalUnreadCount, senderId) {
+      const key = getSenderKey(senderId, 'unread_fallback');
+      if (pendingUnreadUpdates[key]) {
+        clearTimeout(pendingUnreadUpdates[key].timeoutId);
+      }
+
+      pendingUnreadUpdates[key] = {
+        count: totalUnreadCount,
+        timeoutId: setTimeout(function () {
+          updateTotalUnreadCount(pendingUnreadUpdates[key].count);
+          delete pendingUnreadUpdates[key];
+        }, UPDATE_DEBOUNCE_MS),
+      };
+    }
+
+    function debouncedConversationUpdate(conversationData) {
+      const senderKey = getSenderKey(conversationData.sender_id, 'conversation_' + String(conversationData.conversation_id));
+
+      if (pendingConversationUpdates[senderKey]) {
+        clearTimeout(pendingConversationUpdates[senderKey].timeoutId);
+      }
+
+      pendingConversationUpdates[senderKey] = {
+        data: conversationData,
+        timeoutId: setTimeout(function () {
+          updateConversationInSidebar(pendingConversationUpdates[senderKey].data);
+          delete pendingConversationUpdates[senderKey];
+        }, UPDATE_DEBOUNCE_MS),
+      };
+    }
+
+    function connectUnreadSocket() {
+      if (!window.WebSocket) {
+        return;
+      }
+
+      socket = new WebSocket(socketUrl);
+      
+      socket.onopen = function () {
+        reconnectAttempts = 0;
+        console.log('Connected to unread messages WebSocket');
+      };
+
+      socket.onmessage = function (event) {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'unread_count') {
+          debouncedTotalUnreadUpdate(payload.unread_count, payload.sender_id);
+        } else if (payload.type === 'conversation_update') {
+          debouncedConversationUpdate(payload);
+        }
+      };
+
+      socket.onclose = function () {
+        reconnectAttempts += 1;
+        if (reconnectAttempts <= 5) {
+          const delay = Math.min(1000 * reconnectAttempts, 5000);
+          reconnectTimer = window.setTimeout(connectUnreadSocket, delay);
+        }
+      };
+
+      socket.onerror = function (error) {
+        console.error('Unread messages socket error:', error);
+      };
+    }
+
+    function updateTotalUnreadCount(totalUnreadCount) {
+      // Update total unread count in navbar badge
+      const countElement = document.querySelector('[data-unread-count]');
+      const badgeElement = document.querySelector('[data-unread-badge]');
+      
+      if (countElement && badgeElement) {
+        if (totalUnreadCount > 0) {
+          countElement.textContent = totalUnreadCount > 9 ? '9+' : totalUnreadCount;
+          badgeElement.classList.remove('hidden');
+        } else {
+          badgeElement.classList.add('hidden');
+        }
+      }
+    }
+
+    function updateConversationInSidebar(conversationData) {
+      const conversationId = conversationData.conversation_id;
+      const unreadCount = conversationData.unread_count;
+      const link = document.querySelector('[data-conversation-item][href*="' + conversationId + '"]');
+      
+      if (!link) {
+        // Conversation not in list yet, could reload sidebar
+        return;
+      }
+
+      // Update unread count badge
+      const badge = link.querySelector('[data-unread-badge-' + conversationId + ']');
+      if (badge) {
+        if (unreadCount > 0) {
+          badge.textContent = unreadCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+          badge.textContent = '';
+        }
+      }
+
+      // Update last message preview
+      const preview = link.querySelector('.text-xs.text-gray-600');
+      if (preview && conversationData.last_message_preview) {
+        preview.textContent = conversationData.last_message_preview;
+      }
+
+      // Move conversation to top of list
+      const list = document.getElementById('conversation-list');
+      if (list) {
+        // Move this link to the top of the list (before all other items)
+        list.insertBefore(link, list.firstChild);
+      }
+    }
+
+    connectUnreadSocket();
+  });
+</script>

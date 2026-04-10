@@ -1,16 +1,51 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib.auth import get_user_model
-from datetime import timedelta
+from datetime import datetime
+from django.db import IntegrityError
 
-from .models import DocumentRequest
+from .models import DocumentRequest, StudentRequestSchedule
 from core.models import Notification
 from health_forms_services.models import MedicalCertificate
 
 User = get_user_model()
+
+
+SCHEDULED_RECORD_TYPES = {'medical_record', 'dental_record'}
+
+
+def _build_request_form_context(user, extra_context=None):
+    context = {
+        'certificate_types': DocumentRequest.DOCUMENT_TYPES,
+        'is_doctor_flow': user.role in ['doctor', 'admin'],
+        'students': User.objects.filter(role='student').order_by('last_name', 'first_name') if user.role in ['doctor', 'admin'] else None,
+    }
+    if hasattr(user, 'student_profile') and user.student_profile:
+        context['student_profile'] = user.student_profile
+    if user.role == 'student':
+        context['student_schedule'] = getattr(user, 'record_request_schedule', None)
+    if extra_context:
+        context.update(extra_context)
+    return context
+
+
+def _validate_schedule_window(student, target_type):
+    """Return (is_allowed, error_message). Only medical/dental record types are schedule-gated."""
+    if target_type not in SCHEDULED_RECORD_TYPES:
+        return True, ''
+
+    schedule = getattr(student, 'record_request_schedule', None)
+    if not schedule or not schedule.is_active:
+        return False, 'You do not have an active request schedule for this record type. Please contact the clinic.'
+
+    if not schedule.is_current_time_allowed():
+        return False, 'You can only request this record during your configured schedule window.'
+
+    return True, ''
 
 
 @login_required
@@ -78,12 +113,7 @@ def request_document(request):
         messages.error(request, 'Only students can request certificates')
         return redirect('core:dashboard')
 
-    # Base context used for all renders (GET and POST error paths)
-    base_context = {
-        'certificate_types': DocumentRequest.DOCUMENT_TYPES,
-    }
-    if hasattr(request.user, 'student_profile') and request.user.student_profile:
-        base_context['student_profile'] = request.user.student_profile
+    base_context = _build_request_form_context(request.user)
 
     if request.method == 'POST':
         document_type = request.POST.get('certificate_type') or request.POST.get('document_type')
@@ -109,6 +139,12 @@ def request_document(request):
             messages.error(request, 'Invalid certificate type selected.')
             return render(request, 'document_request/request_document.html', base_context)
         
+        # Check if request falls inside active schedule for medical/dental records
+        is_allowed, schedule_message = _validate_schedule_window(request.user, document_type)
+        if not is_allowed:
+            messages.error(request, schedule_message)
+            return render(request, 'document_request/request_document.html', base_context)
+
         # Check for existing pending requests (prevent duplicate pending requests)
         pending_request = DocumentRequest.objects.filter(
             student=request.user,
@@ -127,53 +163,56 @@ def request_document(request):
             # Create the document request
             doc_request = DocumentRequest.objects.create(
                 student=request.user,
+                created_by=request.user,
+                request_origin='student',
                 document_type=document_type,
                 purpose=purpose,
                 additional_info=additional_info,
                 status='pending'  # Will be updated when certificate is created
             )
-            
-            # Auto-create a new MedicalCertificate for this student
-            student = request.user
 
-            # Allow submitted profile overrides (age/gender/address) -- fall back to stored profile
-            posted_age = request.POST.get('age')
-            posted_gender = request.POST.get('gender')
-            posted_address = request.POST.get('address')
+            if doc_request.requires_medical_certificate:
+                # Auto-create a new MedicalCertificate for this student
+                student = request.user
 
-            profile_data = {}
-            if posted_age or posted_gender or posted_address:
-                try:
-                    age_val = int(posted_age) if posted_age else None
-                except Exception:
-                    age_val = None
-                profile_data = {
-                    'age': age_val,
-                    'gender': posted_gender or '',
-                    'address': posted_address or '',
-                }
-            else:
-                if hasattr(student, 'student_profile') and student.student_profile:
-                    profile = student.student_profile
+                # Allow submitted profile overrides (age/gender/address) -- fall back to stored profile
+                posted_age = request.POST.get('age')
+                posted_gender = request.POST.get('gender')
+                posted_address = request.POST.get('address')
+
+                profile_data = {}
+                if posted_age or posted_gender or posted_address:
+                    try:
+                        age_val = int(posted_age) if posted_age else None
+                    except Exception:
+                        age_val = None
                     profile_data = {
-                        'age': profile.age,
-                        'gender': profile.gender,
-                        'address': profile.address,
+                        'age': age_val,
+                        'gender': posted_gender or '',
+                        'address': posted_address or '',
                     }
+                else:
+                    if hasattr(student, 'student_profile') and student.student_profile:
+                        profile = student.student_profile
+                        profile_data = {
+                            'age': profile.age,
+                            'gender': profile.gender,
+                            'address': profile.address,
+                        }
 
-            cert = MedicalCertificate.objects.create(
-                user=student,
-                status=MedicalCertificate.Status.PENDING,
-                certificate_date=timezone.now().date(),
-                patient_name=student.get_full_name(),
-                consultation_date=timezone.now().date(),
-                remarks_recommendations=additional_info or '',
-                **profile_data  # Auto-fill age, gender, address from student profile or submitted values
-            )
-            
-            # Link the certificate to the request
-            doc_request.medical_certificate = cert
-            doc_request.save()
+                cert = MedicalCertificate.objects.create(
+                    user=student,
+                    status=MedicalCertificate.Status.PENDING,
+                    certificate_date=timezone.now().date(),
+                    patient_name=student.get_full_name(),
+                    consultation_date=timezone.now().date(),
+                    remarks_recommendations=additional_info or '',
+                    **profile_data  # Auto-fill age, gender, address from student profile or submitted values
+                )
+
+                # Link the certificate to the request
+                doc_request.medical_certificate = cert
+                doc_request.save(update_fields=['medical_certificate', 'updated_at'])
             
             # Create notification for authorized processors
             staff_users = User.objects.filter(role__in=['admin', 'doctor'])
@@ -187,11 +226,13 @@ def request_document(request):
                     related_id=doc_request.id
                 )
             
-            messages.success(request, 'Your certificate request has been submitted successfully. You will be notified once it is ready for review.')
+            messages.success(request, f'Your {doc_request.get_document_type_display().lower()} request has been submitted successfully.')
             
             # Redirect to document requests page to show status
             return redirect('document_request:document_requests')
-            
+        except IntegrityError:
+            messages.warning(request, 'You already have a pending request of this type.')
+            return redirect('document_request:document_requests')
         except Exception as e:
             messages.error(request, 'An error occurred while submitting your request. Please try again.')
             return render(request, 'document_request/request_document.html', base_context)
@@ -221,12 +262,28 @@ def process_document(request, request_id):
 
         if action == 'review':
             # Redirect to edit the medical certificate (already created)
-            if doc_request.medical_certificate:
+            if doc_request.requires_medical_certificate and doc_request.medical_certificate:
                 messages.info(request, 'Please review and complete the medical certificate details.')
                 return redirect('health_forms_services:edit_medical_certificate', pk=doc_request.medical_certificate.pk)
-            else:
+            elif doc_request.requires_medical_certificate:
                 messages.error(request, 'No medical certificate found for this request.')
                 return redirect('document_request:document_requests')
+
+            # For medical/dental record requests, mark complete after doctor review.
+            doc_request.status = 'completed'
+            doc_request.processed_by = request.user
+            doc_request.save(update_fields=['status', 'processed_by', 'updated_at'])
+
+            Notification.objects.create(
+                user=doc_request.student,
+                title='Record Request Completed',
+                message=f'Your {doc_request.get_document_type_display()} request is now ready.',
+                notification_type='certificate',
+                transaction_type='certificate_ready',
+                related_id=doc_request.id
+            )
+            messages.success(request, 'Record request marked as completed.')
+            return redirect('document_request:document_requests')
 
         elif action == 'reject':
             if not rejection_reason:
@@ -238,7 +295,7 @@ def process_document(request, request_id):
             doc_request.processed_by = request.user
 
             # Also reject the linked certificate if any
-            if doc_request.medical_certificate:
+            if doc_request.requires_medical_certificate and doc_request.medical_certificate:
                 doc_request.medical_certificate.status = MedicalCertificate.Status.REJECTED
                 doc_request.medical_certificate.save()
 

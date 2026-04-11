@@ -132,7 +132,7 @@
                     <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="services">
                       <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">View Appointments</a>
                       <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
-                      <a href="{% url 'dental_records:my_dental_records' %}" class="dropdown-item">Dental Records</a>
+                      <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item">Dental Records</a>
                       <a href="{% url 'document_request:certificate_requests' %}" class="dropdown-item">Certificate Requests</a>
                     </div>
                   </div>
@@ -383,7 +383,7 @@
                 <div class="hidden px-2 pb-2" data-mobile-panel="services">
                   <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">View Appointments</a>
                   <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">Medical Records</a>
-                  <a href="{% url 'dental_records:my_dental_records' %}" class="mobile-link text-sm">Dental Records</a>
+                  <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>
                   <a href="{% url 'document_request:certificate_requests' %}" class="mobile-link text-sm">Certificate Requests</a>
                 </div>
 

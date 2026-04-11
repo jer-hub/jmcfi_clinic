@@ -38,10 +38,6 @@ urlpatterns = [
     path('api/search-patients/', views.search_patients, name='search_patients'),
     path('api/patient/<int:patient_id>/profile/', views.get_patient_profile, name='get_patient_profile'),
     
-    # My Dental Records (Patient View)
-    path('my-dental-records/', views.my_dental_records, name='my_dental_records'),
-    path('my-dental-records/<int:record_id>/', views.my_dental_record_detail, name='my_dental_record_detail'),
-
     # Student self-intake (after appointment is confirmed)
     path('intake/<int:appointment_id>/', views.student_dental_intake, name='student_dental_intake'),
 ]

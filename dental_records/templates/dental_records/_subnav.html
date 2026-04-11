@@ -1,14 +1,10 @@
 <div class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm">
   <div class="px-3 py-3 overflow-x-auto">
     <div class="flex items-center gap-2 min-w-max">
-      {% if request.user.role == 'student' %}
-      <a href="{% url 'dental_records:my_dental_records' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'dental_records:my_dental_records' or request.resolver_match.view_name == 'dental_records:my_dental_record_detail' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
-        <i class="fas fa-tooth mr-2"></i>My Dental Records
+      <a href="{% url 'dental_records:dental_record_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'dental_records:dental_record_list' or request.resolver_match.view_name == 'dental_records:dental_record_detail' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+        <i class="fas fa-tooth mr-2"></i>Dental Records
       </a>
-      {% else %}
-      <a href="{% url 'dental_records:dental_record_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'dental_records:dental_record_list' or request.resolver_match.view_name == 'dental_records:dental_record_detail' or request.resolver_match.view_name == 'dental_records:dental_record_edit' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
-        <i class="fas fa-file-medical mr-2"></i>Dental Records
-      </a>
+      {% if request.user.role != 'student' %}
       <a href="{% url 'dental_records:dental_record_create' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'dental_records:dental_record_create' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
         <i class="fas fa-plus mr-2"></i>New Record
       </a>

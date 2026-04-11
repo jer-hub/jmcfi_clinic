@@ -87,7 +87,7 @@ def dental_record_detail(request, record_id):
     # Students cannot view pending records
     if request.user.role == 'student' and dental_record.status != 'completed':
         messages.warning(request, 'This dental record is still being processed. You will be able to view it once it is marked as completed by the clinic staff.')
-        return redirect('dental_records:my_dental_records')
+        return redirect('dental_records:dental_record_list')
     
     # Get related records if they exist
     try:
@@ -566,97 +566,7 @@ def dental_record_delete(request, record_id):
     return redirect('dental_records:dental_record_detail', record_id=record_id)
 
 
-@login_required
-def my_dental_records(request):
-    """List all dental records for the logged-in patient"""
-    # Get all dental records for the current user, ordered by most recent first
-    dental_records = DentalRecord.objects.filter(patient=request.user).select_related('examined_by', 'appointment').order_by('-date_of_examination')
-    
-    context = {
-        'dental_records': dental_records,
-    }
-    
-    return render(request, 'dental_records/my_dental_records.html', context)
 
-
-@login_required
-def my_dental_record_detail(request, record_id):
-    """View detailed dental record for the logged-in patient"""
-    dental_record = get_object_or_404(DentalRecord, pk=record_id, patient=request.user)
-    
-    # Block access if the record is still pending
-    if dental_record.status != 'completed':
-        messages.warning(request, 'This dental record is still being processed. You will be able to view it once it is marked as completed by the clinic staff.')
-        return redirect('dental_records:my_dental_records')
-    
-    # Get related records
-    try:
-        examination = dental_record.examination
-    except DentalExamination.DoesNotExist:
-        examination = None
-    
-    try:
-        vital_signs = dental_record.vital_signs
-    except DentalVitalSigns.DoesNotExist:
-        vital_signs = None
-    
-    try:
-        health_questionnaire = dental_record.health_questionnaire
-    except DentalHealthQuestionnaire.DoesNotExist:
-        health_questionnaire = None
-    
-    try:
-        systems_review = dental_record.systems_review
-    except DentalSystemsReview.DoesNotExist:
-        systems_review = None
-    
-    try:
-        dental_history = dental_record.dental_history
-    except DentalHistory.DoesNotExist:
-        dental_history = None
-    
-    try:
-        pediatric_history = dental_record.pediatric_history
-    except PediatricDentalHistory.DoesNotExist:
-        pediatric_history = None
-    
-    dental_chart = dental_record.dental_chart.all().prefetch_related('surfaces')
-    
-    # Serialize dental chart data as JSON for interactive chart display
-    dental_chart_json = []
-    for tooth in dental_chart:
-        surfaces_data = []
-        for surface in tooth.surfaces.all():
-            surfaces_data.append({
-                'id': surface.id,
-                'surface': surface.surface,
-                'condition': surface.condition,
-                'notes': surface.notes,
-            })
-        dental_chart_json.append({
-            'id': tooth.id,
-            'tooth_number': tooth.tooth_number,
-            'tooth_type': tooth.tooth_type,
-            'condition': tooth.condition,
-            'notes': tooth.notes,
-            'quadrant': tooth.fdi_quadrant,
-            'quadrant_name': tooth.quadrant_name,
-            'surfaces': surfaces_data,
-        })
-    
-    context = {
-        'dental_record': dental_record,
-        'examination': examination,
-        'vital_signs': vital_signs,
-        'health_questionnaire': health_questionnaire,
-        'systems_review': systems_review,
-        'dental_history': dental_history,
-        'pediatric_history': pediatric_history,
-        'dental_chart': dental_chart,
-        'dental_chart_json': json.dumps(dental_chart_json),
-    }
-    
-    return render(request, 'dental_records/my_dental_record_detail.html', context)
 
 
 # ============================================
@@ -695,7 +605,7 @@ def student_dental_intake(request, appointment_id):
             existing = DentalRecord.objects.filter(appointment=appointment).first()
             if existing:
                 messages.info(request, 'Your dental intake has already been submitted.')
-                return redirect('dental_records:my_dental_records')
+                return redirect('dental_records:dental_record_list')
             messages.warning(request, 'This appointment is already completed.')
         else:
             messages.warning(request, 'This appointment is not available for intake.')
@@ -709,7 +619,7 @@ def student_dental_intake(request, appointment_id):
             'You have already submitted your dental intake form for this appointment. '
             'The doctor will complete your record during your visit.'
         )
-        return redirect('dental_records:my_dental_records')
+        return redirect('dental_records:dental_record_list')
 
     if request.method == 'POST':
         form = StudentDentalIntakeForm(request.POST)
@@ -727,7 +637,7 @@ def student_dental_intake(request, appointment_id):
                             request,
                             'Your dental intake form has already been submitted.'
                         )
-                        return redirect('dental_records:my_dental_records')
+                        return redirect('dental_records:dental_record_list')
 
                     dental_record = form.save(commit=False)
                     dental_record.patient = request.user
@@ -750,7 +660,7 @@ def student_dental_intake(request, appointment_id):
                     'Your dental intake form has been submitted successfully! '
                     'Your assigned doctor will complete the examination during your appointment.'
                 )
-                return redirect('dental_records:my_dental_records')
+                return redirect('dental_records:dental_record_list')
             except Exception as e:
                 messages.error(request, f'An error occurred while saving your form: {str(e)}')
         else:

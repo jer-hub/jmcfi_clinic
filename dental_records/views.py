@@ -33,9 +33,12 @@ User = get_user_model()
 @login_required
 def dental_record_list(request):
     """List all dental records with search and filtering"""
-    # Students can only see their own records
+    # Students can only see their own completed records
     if request.user.role == 'student':
-        dental_records = DentalRecord.objects.filter(patient=request.user).select_related('patient', 'examined_by')
+        dental_records = DentalRecord.objects.filter(
+            patient=request.user,
+            status='completed'
+        ).select_related('patient', 'examined_by')
     else:
         # Staff, doctors, and admins can see all records
         dental_records = DentalRecord.objects.select_related('patient', 'examined_by').all()
@@ -58,6 +61,12 @@ def dental_record_list(request):
         dental_records = dental_records.filter(date_of_examination__gte=date_from)
     if date_to:
         dental_records = dental_records.filter(date_of_examination__lte=date_to)
+
+    # Status totals for the currently filtered result set
+    status_totals = {
+        'pending': dental_records.filter(status='pending').count(),
+        'completed': dental_records.filter(status='completed').count(),
+    }
     
     # Pagination
     paginator = Paginator(dental_records, 20)
@@ -66,6 +75,7 @@ def dental_record_list(request):
     
     context = {
         'page_obj': page_obj,
+        'status_totals': status_totals,
         'search_query': search_query,
         'date_from': date_from,
         'date_to': date_to,

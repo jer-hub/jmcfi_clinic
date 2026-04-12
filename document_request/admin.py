@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import DocumentRequest, StudentRequestSchedule
+from .models import DocumentRequest, MedicalCertificate, DoctorSignature
 
 
 @admin.register(DocumentRequest)
@@ -30,8 +30,6 @@ class DocumentRequestAdmin(admin.ModelAdmin):
                 'created_by',
                 'purpose',
                 'additional_info',
-                'scheduled_for_date',
-                'scheduled_for_time',
             )
         }),
         ('Status', {
@@ -39,7 +37,7 @@ class DocumentRequestAdmin(admin.ModelAdmin):
         }),
         ('Linked Medical Certificate', {
             'fields': ('medical_certificate',),
-            'description': 'Link this request to a Medical Certificate from Health Forms Services'
+            'description': 'Link this request to a Medical Certificate managed by Document Request'
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
@@ -48,9 +46,17 @@ class DocumentRequestAdmin(admin.ModelAdmin):
     )
 
 
-@admin.register(StudentRequestSchedule)
-class StudentRequestScheduleAdmin(admin.ModelAdmin):
-    list_display = ['student', 'is_active', 'start_time', 'end_time', 'updated_by', 'updated_at']
-    list_filter = ['is_active', 'allowed_days']
-    search_fields = ['student__email', 'student__first_name', 'student__last_name']
+@admin.register(MedicalCertificate)
+class MedicalCertificateAdmin(admin.ModelAdmin):
+    list_display = ['id', 'patient_name', 'user', 'status', 'certificate_date', 'physician_name', 'signed_by', 'signed_at', 'created_at']
+    list_filter = ['status', 'gender', 'created_at']
+    search_fields = ['patient_name', 'user__email', 'physician_name', 'diagnosis']
+    readonly_fields = ['created_at', 'updated_at', 'signed_by', 'signed_at', 'signature_hash', 'signature_snapshot']
+
+
+@admin.register(DoctorSignature)
+class DoctorSignatureAdmin(admin.ModelAdmin):
+    list_display = ['doctor', 'is_active', 'updated_by', 'updated_at']
+    list_filter = ['is_active', 'updated_at']
+    search_fields = ['doctor__first_name', 'doctor__last_name', 'doctor__email']
     readonly_fields = ['created_at', 'updated_at']

@@ -1,0 +1,54 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Certificate Preview - {{ certificate.patient_name }} - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-6 sm:py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'document_request/_subnav.html' %}
+
+        <!-- Nav Buttons -->
+        <div class="mb-6 flex flex-col sm:flex-row gap-3">
+            {% if linked_doc_request %}
+            <a href="{% url 'document_request:process_document' linked_doc_request.id %}" 
+               class="inline-flex items-center justify-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to Request
+            </a>
+            {% else %}
+            <a href="{% url 'document_request:document_requests' %}" 
+               class="inline-flex items-center justify-center px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back
+            </a>
+            {% endif %}
+            {% if user.role == 'doctor' or user.role == 'admin' %}
+            <a href="{% url 'document_request:edit_medical_certificate' certificate.pk %}" 
+               class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Edit
+            </a>
+            {% endif %}
+            <a href="{% url 'document_request:download_medical_certificate_pdf' certificate.pk %}" 
+               class="inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2m0 0v-8m0 8H3m14.348-12l-3.612.918A9 9 0 0012 5.25a9 9 0 00-6.348 9.668c.867 3.61 4.087 6.4 7.977 6.4.555 0 1.106-.029 1.653-.089l4.115-.654m0 0a9 9 0 01-8.949 8.848A9.009 9.009 0 0012 24c4.486 0 8.268-2.944 9.543-7.131"></path>
+                </svg>
+                Download PDF
+            </a>
+        </div>
+
+        <!-- Professional Certificate Display -->
+        <div class="bg-white shadow-lg rounded-lg overflow-hidden">
+            {% include 'document_request/_medical_certificate_content.html' %}
+        </div>
+    </div>
+</div>
+{% endblock %}

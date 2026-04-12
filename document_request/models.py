@@ -6,90 +6,6 @@ from django.utils import timezone
 User = get_user_model()
 
 
-class StudentRequestSchedule(models.Model):
-    """Allowed schedule window for a student to submit record requests."""
-
-    DAY_CHOICES = [
-        ('mon', 'Monday'),
-        ('tue', 'Tuesday'),
-        ('wed', 'Wednesday'),
-        ('thu', 'Thursday'),
-        ('fri', 'Friday'),
-        ('sat', 'Saturday'),
-        ('sun', 'Sunday'),
-    ]
-
-    WEEKDAY_TO_CODE = {
-        0: 'mon',
-        1: 'tue',
-        2: 'wed',
-        3: 'thu',
-        4: 'fri',
-        5: 'sat',
-        6: 'sun',
-    }
-
-    student = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name='record_request_schedule',
-        limit_choices_to={'role': 'student'},
-    )
-    allowed_days = models.JSONField(
-        default=list,
-        help_text='List of day codes (mon..sun) when requests are allowed.',
-    )
-    start_time = models.TimeField(help_text='Allowed request window start time.')
-    end_time = models.TimeField(help_text='Allowed request window end time.')
-    is_active = models.BooleanField(default=True)
-    updated_by = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='updated_record_request_schedules',
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['student__last_name', 'student__first_name']
-        verbose_name = 'Student Request Schedule'
-        verbose_name_plural = 'Student Request Schedules'
-
-    def __str__(self):
-        name = self.student.get_full_name() or self.student.email or self.student.username
-        return f"{name} request schedule"
-
-    def is_current_time_allowed(self, dt=None):
-        """Return True when a datetime falls in this active schedule window."""
-        if not self.is_active:
-            return False
-
-        current_dt = timezone.localtime(dt) if dt else timezone.localtime()
-        day_code = self.WEEKDAY_TO_CODE[current_dt.weekday()]
-        if day_code not in (self.allowed_days or []):
-            return False
-
-        current_time = current_dt.time().replace(second=0, microsecond=0)
-        return self.start_time <= current_time <= self.end_time
-
-    def get_allowed_days_display(self):
-        labels = dict(self.DAY_CHOICES)
-        return ', '.join(labels.get(day, day) for day in (self.allowed_days or []))
-
-    def clean(self):
-        super().clean()
-        if self.start_time and self.end_time and self.start_time >= self.end_time:
-            from django.core.exceptions import ValidationError
-            raise ValidationError('Start time must be earlier than end time.')
-
-        invalid_days = [d for d in (self.allowed_days or []) if d not in {c[0] for c in self.DAY_CHOICES}]
-        if invalid_days:
-            from django.core.exceptions import ValidationError
-            raise ValidationError({'allowed_days': 'Allowed days contains invalid values.'})
-
-
 class DocumentRequest(models.Model):
     """Model for certificate/document requests from students."""
     
@@ -127,8 +43,6 @@ class DocumentRequest(models.Model):
     document_type = models.CharField(max_length=30, choices=DOCUMENT_TYPES, default='medical_certificate')
     purpose = models.CharField(max_length=200)
     additional_info = models.TextField(blank=True)
-    scheduled_for_date = models.DateField(null=True, blank=True)
-    scheduled_for_time = models.TimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     processed_by = models.ForeignKey(
         User, 
@@ -138,7 +52,7 @@ class DocumentRequest(models.Model):
         related_name='processed_documents'
     )
     medical_certificate = models.ForeignKey(
-        'health_forms_services.MedicalCertificate',
+        'MedicalCertificate',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -174,3 +88,100 @@ class DocumentRequest(models.Model):
 
 # Backwards compatibility alias for existing code that uses CertificateRequest
 CertificateRequest = DocumentRequest
+
+
+class DoctorSignature(models.Model):
+    """Single active signature file per doctor for certificate signing."""
+
+    doctor = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='doctor_signature',
+        limit_choices_to={'role': 'doctor'},
+    )
+    signature_image = models.ImageField(upload_to='signatures/doctors/')
+    is_active = models.BooleanField(default=True)
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='updated_doctor_signatures',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['doctor__last_name', 'doctor__first_name']
+        verbose_name = 'Doctor Signature'
+        verbose_name_plural = 'Doctor Signatures'
+        db_table = 'health_forms_services_doctorsignature'
+
+    def __str__(self):
+        return f"Signature - {self.doctor.get_full_name() or self.doctor.email}"
+
+
+class MedicalCertificate(models.Model):
+    """Medical certificate issued by clinic physician."""
+
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending Review'
+        COMPLETED = 'completed', 'Completed'
+        REJECTED = 'rejected', 'Rejected'
+
+    class Gender(models.TextChoices):
+        MALE = 'male', 'Male'
+        FEMALE = 'female', 'Female'
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='medical_certificates'
+    )
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    reviewed_at = models.DateTimeField(blank=True, null=True)
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_medical_certificates'
+    )
+    review_notes = models.TextField(blank=True)
+
+    certificate_date = models.DateField(blank=True, null=True, help_text='Date printed on certificate')
+    patient_name = models.CharField(max_length=200, help_text='Complete Name')
+    age = models.PositiveIntegerField(blank=True, null=True)
+    gender = models.CharField(max_length=10, choices=Gender.choices, blank=True)
+    address = models.TextField(blank=True)
+    consultation_date = models.DateField(blank=True, null=True, help_text='Date patient came in for consult')
+    diagnosis = models.TextField(blank=True, help_text='Diagnosis / medical findings')
+    remarks_recommendations = models.TextField(blank=True, help_text='Remarks and recommendations')
+    physician_name = models.CharField(max_length=200, blank=True)
+    license_no = models.CharField(max_length=100, blank=True)
+    ptr_no = models.CharField(max_length=100, blank=True, verbose_name='PTR No.')
+
+    signed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='signed_medical_certificates'
+    )
+    signed_at = models.DateTimeField(blank=True, null=True)
+    signature_snapshot = models.ImageField(upload_to='signatures/certificate_snapshots/', blank=True)
+    signature_hash = models.CharField(max_length=64, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Medical Certificate'
+        verbose_name_plural = 'Medical Certificates'
+        db_table = 'health_forms_services_medicalcertificate'
+
+    def __str__(self):
+        return f"Medical Certificate - {self.patient_name} ({self.created_at.strftime('%Y-%m-%d')})"
+
+    def get_full_name(self):
+        return self.patient_name

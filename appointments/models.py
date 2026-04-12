@@ -51,6 +51,23 @@ class Appointment(models.Model):
         if not name:
             name = self.student.email or self.student.username
         return f"{name} - {self.date} {self.time}"
+    
+    def has_conflict(self, interval_minutes=None):
+        """
+        Check if this appointment has conflicts with other bookings.
+        Considers 30-min buffer interval before and after.
+        
+        Returns: True if conflict exists, False otherwise
+        """
+        from .appointment_utils import check_appointment_availability
+        is_available, _ = check_appointment_availability(
+            self.doctor, 
+            self.date, 
+            self.time, 
+            appointment_id=self.id,
+            exclude_statuses=['cancelled']
+        )
+        return not is_available
 
 
 class AppointmentTypeDefault(models.Model):

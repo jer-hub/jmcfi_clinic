@@ -1,0 +1,367 @@
+<style>
+    .certificate-page {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 2rem;
+    }
+
+    .letterhead {
+        text-align: center;
+        margin-bottom: 1rem;
+        line-height: 1.05;
+    }
+
+    .institution-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #000;
+        font-family: "Old English Text MT", "Goudy Text MT", "Bookman Old Style", serif;
+        line-height: 1;
+        margin: 0;
+    }
+
+    .institution-sub {
+        font-size: 0.65rem;
+        font-weight: bold;
+        color: #000;
+        letter-spacing: 0.15rem;
+        margin-top: 0.08rem;
+        line-height: 1;
+    }
+
+    .institution-address {
+        font-size: 0.65rem;
+        color: #000;
+        margin-top: 0.15rem;
+        line-height: 1.15;
+    }
+
+    .department {
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: #000;
+        margin-top: 0.42rem;
+        line-height: 1;
+    }
+
+    .cert-title {
+        text-align: center;
+        font-size: 1rem;
+        font-weight: bold;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .date-row {
+        text-align: right;
+        font-size: 0.85rem;
+        margin-top: 0.75rem;
+        margin-bottom: 0.5rem;
+        padding-right: 2rem;
+    }
+
+    .field-value {
+        text-decoration: underline;
+        display: inline;
+        padding: 0 0.125rem;
+        font-weight: bold;
+    }
+
+    .cert-body {
+        font-size: 0.85rem;
+        line-height: 1.6;
+        margin-top: 0.75rem;
+        text-align: justify;
+    }
+
+    .section-header {
+        font-size: 0.9rem;
+        font-weight: bold;
+        margin-top: 1.25rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .section-lines {
+        line-height: 1.6;
+    }
+
+    .content-line {
+        display: block;
+        min-height: 1.4em;
+        font-size: 0.85rem;
+        text-align: justify;
+    }
+
+    .bottom-fixed {
+        margin-top: auto;
+        padding-top: 1rem;
+    }
+
+    .physician-block {
+        text-align: right;
+        font-size: 0.85rem;
+        padding-right: 0;
+    }
+
+    .physician-signature {
+        display: block;
+        height: 3rem;
+        width: auto;
+        margin: 0 0 0.25rem auto;
+        object-fit: contain;
+    }
+
+    .physician-name {
+        font-weight: bold;
+        border-top: 1px solid #000;
+        display: inline-block;
+        padding-top: 0.25rem;
+        min-width: 11rem;
+        text-align: center;
+    }
+
+    .license-line,
+    .ptr-line {
+        font-weight: normal;
+        margin-top: 0.125rem;
+    }
+
+    .form-footer {
+        font-size: 0.65rem;
+        font-style: italic;
+        text-align: center;
+        padding-top: 1rem;
+        padding-bottom: 0.25rem;
+        line-height: 1.3;
+        color: #000;
+    }
+
+    /* PDF render overrides for stable layout and font rendering */
+    body.pdf-render .certificate-page {
+        display: block;
+        position: relative;
+        min-height: 9.5in;
+        padding: 0;
+        padding-bottom: 140pt;
+    }
+
+    body.pdf-render .certificate-page,
+    body.pdf-render .letterhead,
+    body.pdf-render .cert-title,
+    body.pdf-render .date-row,
+    body.pdf-render .cert-body,
+    body.pdf-render .section-header,
+    body.pdf-render .section-lines,
+    body.pdf-render .content-line,
+    body.pdf-render .bottom-fixed,
+    body.pdf-render .physician-block,
+    body.pdf-render .license-line,
+    body.pdf-render .ptr-line,
+    body.pdf-render .form-footer {
+        display: block;
+        width: 100%;
+    }
+
+    body.pdf-render .letterhead > div {
+        display: block;
+        width: 100%;
+    }
+
+    body.pdf-render .letterhead {
+        margin-bottom: 5pt;
+        line-height: 1;
+    }
+
+    body.pdf-render .institution-name {
+        font-family: 'OldEnglish', "Old English Text MT", "Goudy Text MT", "Bookman Old Style", serif !important;
+        font-size: 26pt;
+        font-weight: normal;
+        line-height: 1;
+        margin: 0;
+    }
+
+    body.pdf-render .institution-sub {
+        font-family: "Times New Roman", serif;
+        font-size: 10pt;
+        letter-spacing: 1.8pt;
+        margin-top: 1pt;
+        margin-bottom: 0;
+        line-height: 1;
+    }
+
+    body.pdf-render .institution-address {
+        font-family: "Times New Roman", serif;
+        font-size: 9.5pt;
+        margin-top: 1pt;
+        line-height: 1.05;
+    }
+
+    body.pdf-render .department {
+        font-size: 15pt;
+        font-weight: 700;
+        margin-top: 4pt;
+        line-height: 1;
+    }
+
+    body.pdf-render .cert-title {
+        font-size: 13pt;
+        margin-top: 14pt;
+        margin-bottom: 8pt;
+        line-height: 1;
+    }
+
+    body.pdf-render .date-row,
+    body.pdf-render .cert-body,
+    body.pdf-render .content-line,
+    body.pdf-render .physician-block {
+        font-size: 11pt;
+    }
+
+    body.pdf-render .date-row {
+        padding-right: 24pt;
+        margin-top: 10pt;
+        margin-bottom: 8pt;
+        text-align: right;
+    }
+
+    body.pdf-render .cert-body,
+    body.pdf-render .section-lines {
+        line-height: 1.45;
+    }
+
+    body.pdf-render .section-header {
+        font-size: 11pt;
+        margin-top: 10pt;
+        margin-bottom: 4pt;
+    }
+
+    body.pdf-render .section-lines {
+        margin-bottom: 4pt;
+    }
+
+    body.pdf-render .content-line {
+        min-height: 14pt;
+        margin-bottom: 1pt;
+        text-align: left;
+    }
+
+    body.pdf-render .bottom-fixed {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        margin-top: 0;
+        padding-top: 0;
+    }
+
+    body.pdf-render .physician-signature {
+        display: block;
+        height: 42pt;
+        width: 140pt;
+        margin: 0 0 4pt auto;
+    }
+
+    body.pdf-render .physician-block {
+        margin-bottom: 22pt;
+        text-align: right;
+    }
+
+    body.pdf-render .physician-name {
+        min-width: 220pt;
+        display: inline-block;
+        width: auto;
+    }
+
+    body.pdf-render .license-line,
+    body.pdf-render .ptr-line {
+        margin-top: 2pt;
+    }
+
+    body.pdf-render .form-footer {
+        clear: both;
+        font-size: 8pt;
+        padding-top: 0;
+        line-height: 1.3;
+        text-align: center;
+        margin: 0;
+    }
+</style>
+
+<div class="certificate-page">
+    <div class="letterhead">
+        <div class="institution-name">JOSE MARIA COLLEGE</div>
+        <div class="institution-sub">FOUNDATION, INC.</div>
+        <div class="institution-address">PHILIPPINE-JAPAN FRIENDSHIP HIGHWAY, SASA, DAVAO CITY, 8000</div>
+        <div class="department">HEALTH SERVICES</div>
+    </div>
+
+    <div class="cert-title">MEDICAL CERTIFICATE</div>
+
+    <div class="date-row">
+        <span class="field-value">{{ certificate.certificate_date|date:"m/d/Y"|default:"" }}</span>
+    </div>
+
+    <div class="cert-body">
+        This certifies that
+        <span class="field-value">{{ certificate.patient_name|default_if_none:"" }}</span>,
+        <span class="field-value">{% if certificate.age %}{{ certificate.age }}{% endif %}{% if certificate.age and certificate.gender %} / {% endif %}{% if certificate.gender %}{{ certificate.get_gender_display }}{% endif %}</span>
+        residing at
+        <span class="field-value">{{ certificate.address|default_if_none:"" }}</span>
+        came in for consult on
+        <span class="field-value">{{ certificate.consultation_date|date:"m/d/Y"|default:"" }}</span>.
+    </div>
+
+    <div class="section-header">DIAGNOSIS</div>
+    <div class="section-lines">
+        {% if diagnosis_lines %}
+            {% for line in diagnosis_lines %}
+            <div class="content-line"><u>{{ line }}</u></div>
+            {% endfor %}
+        {% else %}
+            <div class="content-line"><u></u></div>
+        {% endif %}
+    </div>
+
+    <div class="section-header">REMARKS/RECOMMENDATIONS</div>
+    <div class="section-lines">
+        {% if remarks_lines %}
+            {% for line in remarks_lines %}
+            <div class="content-line"><u>{{ line }}</u></div>
+            {% endfor %}
+        {% else %}
+            <div class="content-line"><u></u></div>
+        {% endif %}
+    </div>
+
+    <div class="bottom-fixed">
+        <div class="physician-block">
+            {% if physician_signature %}
+                {% if is_pdf and physician_signature_uri %}
+            <img src="{{ physician_signature_uri }}" alt="Physician signature" class="physician-signature">
+                {% else %}
+            <img src="{{ physician_signature.signature_image.url }}" alt="Physician signature" class="physician-signature">
+                {% endif %}
+            {% elif certificate.signature_snapshot %}
+                {% if is_pdf and physician_signature_uri %}
+            <img src="{{ physician_signature_uri }}" alt="Physician signature" class="physician-signature">
+                {% else %}
+            <img src="{{ certificate.signature_snapshot.url }}" alt="Physician signature" class="physician-signature">
+                {% endif %}
+            {% endif %}
+            <div class="physician-name">
+                {% if certificate.physician_name %}{{ certificate.physician_name }}, MD{% else %}__________________________ MD{% endif %}
+            </div>
+            <div class="license-line">
+                License No. {% if certificate.license_no %}{{ certificate.license_no }}{% else %}____________________{% endif %}
+            </div>
+            <div class="ptr-line">
+                PTR No. {% if certificate.ptr_no %}{{ certificate.ptr_no }}{% else %}______________________{% endif %}
+            </div>
+        </div>
+
+        <div class="form-footer">
+            This certificate is issued upon the request of the abovementioned patient for whatever purpose it may serve him/her except cases concerning medico-legal matters.
+        </div>
+    </div>
+</div>

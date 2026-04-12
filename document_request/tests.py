@@ -5,7 +5,7 @@ from django.test.utils import override_settings
 from django.conf import settings
 
 from core.models import StaffProfile, StudentProfile, User
-from document_request.models import DocumentRequest, StudentRequestSchedule
+from document_request.models import DocumentRequest
 
 
 @override_settings(
@@ -67,22 +67,11 @@ class DocumentRequestFlowTests(TestCase):
 			).exists()
 		)
 
-	def test_student_medical_record_request_succeeds_inside_schedule(self):
-		now = timezone.localtime()
-		day_code = StudentRequestSchedule.WEEKDAY_TO_CODE[now.weekday()]
-		StudentRequestSchedule.objects.create(
-			student=self.student,
-			allowed_days=[day_code],
-			start_time='00:00',
-			end_time='23:59',
-			is_active=True,
-			updated_by=self.doctor,
-		)
-
+	def test_student_medical_certificate_request_succeeds(self):
 		self.client.force_login(self.student)
 		response = self.client.post(
 			reverse('document_request:request_document'),
-			{'document_type': 'medical_record', 'purpose': 'Scholarship requirement'},
+			{'document_type': 'medical_certificate', 'purpose': 'Scholarship requirement'},
 			follow=True,
 		)
 
@@ -90,7 +79,7 @@ class DocumentRequestFlowTests(TestCase):
 		self.assertEqual(response.request['PATH_INFO'], reverse('document_request:document_requests'))
 		created = DocumentRequest.objects.filter(
 			student=self.student,
-			document_type='medical_record',
+			document_type='medical_certificate',
 		).first()
 		self.assertIsNotNone(created)
 		self.assertEqual(created.request_origin, 'student')

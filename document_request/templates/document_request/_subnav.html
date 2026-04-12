@@ -1,14 +1,11 @@
 <div class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm">
   <div class="px-3 py-3 overflow-x-auto">
     <div class="flex items-center gap-2 min-w-max">
-      <a href="{% url 'document_request:document_requests' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'document_request:document_requests' or request.resolver_match.view_name == 'document_request:process_document' or request.resolver_match.view_name == 'document_request:view_document' or request.resolver_match.view_name == 'document_request:print_document' or request.resolver_match.view_name == 'document_request:certificate_requests' or request.resolver_match.view_name == 'document_request:process_certificate' or request.resolver_match.view_name == 'document_request:view_certificate' or request.resolver_match.view_name == 'document_request:print_certificate' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+      <a href="{% url 'document_request:document_requests' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'document_request:document_requests' or request.resolver_match.view_name == 'document_request:process_document' or request.resolver_match.view_name == 'document_request:view_document' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
         <i class="fas fa-file-medical mr-2"></i>Requests
       </a>
-      <a href="{% url 'document_request:request_document' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'document_request:request_document' or request.resolver_match.view_name == 'document_request:request_certificate' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
+      <a href="{% url 'document_request:request_document' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'document_request:request_document' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
         <i class="fas fa-plus mr-2"></i>New Request
-      </a>
-      <a href="{% url 'appointments:appointment_list' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if 'appointments:' in request.resolver_match.view_name %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
-        <i class="fas fa-calendar-check mr-2"></i>Appointments
       </a>
     </div>
   </div>

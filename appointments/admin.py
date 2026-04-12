@@ -4,12 +4,19 @@ from .models import Appointment, AppointmentTypeDefault
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ['id', 'student', 'doctor', 'appointment_type', 'date', 'time', 'status', 'created_at']
+    list_display = ['id', 'student', 'doctor', 'appointment_type', 'date', 'time', 'status', 'has_scheduling_conflict', 'created_at']
     list_filter = ['status', 'appointment_type', 'date']
     search_fields = ['student__first_name', 'student__last_name', 'student__email', 
                      'doctor__first_name', 'doctor__last_name', 'reason']
     ordering = ['-date', '-time']
     date_hierarchy = 'date'
+    
+    def has_scheduling_conflict(self, obj):
+        """Display whether appointment has scheduling conflicts with others."""
+        if obj.status == 'cancelled':
+            return 'N/A'
+        return 'Yes' if obj.has_conflict() else 'No'
+    has_scheduling_conflict.short_description = 'Conflict?'
 
 
 @admin.register(AppointmentTypeDefault)

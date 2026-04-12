@@ -22,23 +22,7 @@
                         </svg>
                         Back to Requests
                     </a>
-                          {% if cert_request.status == 'completed' %}
-                          {% if user.role == 'doctor' or user.role == 'admin' %}
-                    <a href="{% url 'document_request:print_document' cert_request.id %}" 
-                       class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-                       target="_blank">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H9.5a2 2 0 01-1.414-.586l-.707-.707A2 2 0 006.828 7H4a2 2 0 00-2 2v9a2 2 0 002 2h2"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 8a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        Print Certificate
-                    </a>
-                    {% else %}
-                    <span class="inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm">
-                        Printing restricted to authorized clinicians
-                    </span>
-                    {% endif %}
-                    {% endif %}
+
                 </div>
             </div>
         </div>

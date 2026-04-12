@@ -22,8 +22,6 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 py-8 sm:py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% include 'health_forms_services/_subnav.html' %}
-
         <!-- Enhanced Header -->
         <div class="bg-white rounded-lg shadow-lg mb-8">
             <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
@@ -43,7 +41,7 @@
             </div>
         </div>
 
-        {% if linked_doc_requests %}
+        {% if linked_doc_request %}
         <!-- Linked Document Request Banner -->
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div class="flex items-start">
@@ -53,25 +51,20 @@
                     </svg>
                 </div>
                 <div class="ml-3 flex-1">
-                    <h3 class="text-sm font-semibold text-blue-800">Linked to Document Request{{ linked_doc_requests|length|pluralize }}</h3>
+                    <h3 class="text-sm font-semibold text-blue-800">Document Request</h3>
                     <div class="mt-2 space-y-2">
-                        {% for doc_req in linked_doc_requests %}
                         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                            <span class="text-blue-700 font-medium">{{ doc_req.student.get_full_name }}</span>
-                            <span class="text-blue-600">{{ doc_req.get_document_type_display }}</span>
-                            <span class="text-blue-500 text-xs">Purpose: {{ doc_req.purpose }}</span>
+                            <span class="text-blue-700 font-medium">{{ linked_doc_request.student.get_full_name }}</span>
+                            <span class="text-blue-600">{{ linked_doc_request.get_document_type_display }}</span>
+                            <span class="text-blue-500 text-xs">Purpose: {{ linked_doc_request.purpose }}</span>
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                                {% if doc_req.status == 'approved' %}bg-blue-100 text-blue-800
-                                {% elif doc_req.status == 'ready' %}bg-green-100 text-green-800
-                                {% elif doc_req.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% if linked_doc_request.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif linked_doc_request.status == 'approved' %}bg-blue-100 text-blue-800
+                                {% elif linked_doc_request.status == 'pending' %}bg-yellow-100 text-yellow-800
                                 {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ doc_req.get_status_display }}
+                                {{ linked_doc_request.get_status_display }}
                             </span>
-                            <a href="{% url 'document_request:process_document' doc_req.id %}" class="text-blue-600 hover:text-blue-800 text-xs underline">
-                                View Request
-                            </a>
                         </div>
-                        {% endfor %}
                     </div>
                     <p class="text-xs text-blue-600 mt-2">Complete the certificate details below, then update the status to "Completed" when ready.</p>
                 </div>
@@ -83,9 +76,9 @@
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
             <div class="flex items-center justify-between gap-3">
                 <p class="text-sm text-amber-800">
-                    Your active signature is not set. You won’t be able to mark this certificate as completed until you upload one.
+                    Your active signature is not set. You won't be able to mark this certificate as completed until you upload one.
                 </p>
-                <a href="{% url 'health_forms_services:my_signature' %}"
+                <a href="{% url 'document_request:document_requests' %}"
                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-amber-900 bg-amber-100 hover:bg-amber-200 transition-colors">
                     Set My Signature
                 </a>
@@ -129,35 +122,39 @@
             </div>
 
             <!-- Status & Review Section -->
-            {% if review_form %}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Certificate Status</h2>
-                    <p class="text-sm text-gray-500 mt-1">Update the certificate status after completing the details above</p>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            {{ review_form.status }}
-                            {% if review_form.status.errors %}<p class="text-red-600 text-xs mt-1">{{ review_form.status.errors.0 }}</p>{% endif %}
-                        </div>
-                        <div class="md:col-span-1">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
-                            {{ review_form.review_notes }}
-                            {% if review_form.review_notes.errors %}<p class="text-red-600 text-xs mt-1">{{ review_form.review_notes.errors.0 }}</p>{% endif %}
-                        </div>
+            <!-- Note: Review form is handled in the document_request:process_document view -->
+
+            <!-- Certificate Preview Button -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-blue-900">Preview Certificate</p>
+                        <p class="text-xs text-blue-700 mt-1">View how the certificate will look when issued</p>
                     </div>
+                    <a href="{% url 'document_request:preview_medical_certificate' certificate.pk %}"
+                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        View Preview
+                    </a>
                 </div>
             </div>
-            {% endif %}
 
             <!-- Submit -->
             <div class="flex justify-end gap-4">
-                <a href="{% url 'health_forms_services:medical_certificate_detail' certificate.pk %}"
-                   class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
-                    Cancel
-                </a>
+                {% if linked_doc_request %}
+                    <a href="{% url 'document_request:process_document' linked_doc_request.pk %}"
+                       class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+                        Cancel
+                    </a>
+                {% else %}
+                    <a href="{% url 'document_request:document_requests' %}"
+                       class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
+                        Cancel
+                    </a>
+                {% endif %}
                 <button type="submit"
                         class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
                     Save Changes

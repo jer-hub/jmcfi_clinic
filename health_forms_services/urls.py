@@ -9,6 +9,7 @@ urlpatterns = [
     path('new/', views.manual_entry, name='manual_entry'),
     path('<int:pk>/', views.form_detail, name='form_detail'),
     path('<int:pk>/edit/', views.edit_form, name='edit_form'),
+    path('<int:pk>/edit/section/', views.load_form_section, name='load_form_section'),
     path('<int:pk>/review/', views.review_form, name='review_form'),
     path('<int:pk>/delete/', views.delete_form, name='delete_form'),
     path('<int:pk>/export/', views.export_form_json, name='export_form'),
@@ -59,13 +60,4 @@ urlpatterns = [
     path('prescription/<int:pk>/item/add/', views.add_prescription_item, name='add_prescription_item'),
     path('prescription/<int:pk>/item/<int:item_id>/delete/', views.delete_prescription_item, name='delete_prescription_item'),
 
-    # Medical Certificates (F-HSS-20-0005)
-    path('medical-certificate/', views.medical_certificate_list, name='medical_certificate_list'),
-    path('medical-certificate/new/', views.create_medical_certificate, name='create_medical_certificate'),
-    path('medical-certificate/<int:pk>/', views.medical_certificate_detail, name='medical_certificate_detail'),
-    path('medical-certificate/<int:pk>/edit/', views.edit_medical_certificate, name='edit_medical_certificate'),
-    path('medical-certificate/<int:pk>/review/', views.review_medical_certificate, name='review_medical_certificate'),
-    path('medical-certificate/<int:pk>/delete/', views.delete_medical_certificate, name='delete_medical_certificate'),
-    path('medical-certificate/<int:pk>/export/docx/', views.export_medical_certificate_docx, name='export_medical_certificate_docx'),
-    path('medical-certificate/my-signature/', views.my_signature, name='my_signature'),
 ]

@@ -1,0 +1,47 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+    {% if old_english_font_uri %}
+    @font-face {
+        font-family: 'OldEnglish';
+        src: url("{{ old_english_font_uri }}");
+        font-weight: normal;
+        font-style: normal;
+    }
+    @font-face {
+        font-family: 'OldEnglish';
+        src: url("{{ old_english_font_uri }}") format('truetype');
+        font-weight: normal;
+        font-style: normal;
+    }
+    {% endif %}
+
+    @page {
+        size: Letter;
+        margin: 0;
+    }
+
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        color: #000;
+        font-size: 11pt;
+    }
+
+    /* PDF-only content box so preview styles can stay unchanged */
+    .certificate-page {
+        box-sizing: border-box;
+        padding: 0.1in 0.05in 0.05in 0.05in !important;
+        width: 100%;
+    }
+</style>
+</head>
+<body>
+{% include 'document_request/_medical_certificate_content.html' %}
+</body>
+</html>

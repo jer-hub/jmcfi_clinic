@@ -5,52 +5,71 @@ from django.contrib import messages
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+from django.conf import settings
 from datetime import datetime
 from django.db import IntegrityError
+import pdfkit
+from pathlib import Path
 
-from .models import DocumentRequest, StudentRequestSchedule
+from .models import DocumentRequest, MedicalCertificate, DoctorSignature
 from core.models import Notification
-from health_forms_services.models import MedicalCertificate
+from .forms import DoctorSignatureForm, MedicalCertificateForm
 
 User = get_user_model()
 
 
-SCHEDULED_RECORD_TYPES = {'medical_record', 'dental_record'}
+ALLOWED_DOCUMENT_TYPES = [('medical_certificate', 'Medical Certificate')]
+
+
+def _resolve_wkhtmltopdf_path():
+    """Resolve wkhtmltopdf executable path for pdfkit."""
+    configured = getattr(settings, 'WKHTMLTOPDF_CMD', '')
+    candidates = [
+        configured,
+        r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe",
+        r"C:\Program Files (x86)\wkhtmltopdf\bin\wkhtmltopdf.exe",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).exists():
+            return candidate
+    return None
 
 
 def _build_request_form_context(user, extra_context=None):
     context = {
-        'certificate_types': DocumentRequest.DOCUMENT_TYPES,
+        'certificate_types': ALLOWED_DOCUMENT_TYPES,
         'is_doctor_flow': user.role in ['doctor', 'admin'],
         'students': User.objects.filter(role='student').order_by('last_name', 'first_name') if user.role in ['doctor', 'admin'] else None,
     }
     if hasattr(user, 'student_profile') and user.student_profile:
         context['student_profile'] = user.student_profile
-    if user.role == 'student':
-        context['student_schedule'] = getattr(user, 'record_request_schedule', None)
     if extra_context:
         context.update(extra_context)
     return context
 
 
-def _validate_schedule_window(student, target_type):
-    """Return (is_allowed, error_message). Only medical/dental record types are schedule-gated."""
-    if target_type not in SCHEDULED_RECORD_TYPES:
-        return True, ''
-
-    schedule = getattr(student, 'record_request_schedule', None)
-    if not schedule or not schedule.is_active:
-        return False, 'You do not have an active request schedule for this record type. Please contact the clinic.'
-
-    if not schedule.is_current_time_allowed():
-        return False, 'You can only request this record during your configured schedule window.'
-
-    return True, ''
-
-
 @login_required
 def document_requests(request):
     """View list of document/certificate requests."""
+    signature = None
+    signature_form = None
+
+    if request.user.role == 'doctor':
+        signature = DoctorSignature.objects.filter(doctor=request.user).first()
+        signature_form = DoctorSignatureForm(instance=signature)
+
+        if request.method == 'POST' and request.POST.get('signature_action') == 'save_signature':
+            signature_form = DoctorSignatureForm(request.POST, request.FILES, instance=signature)
+            if signature_form.is_valid():
+                signature = signature_form.save(commit=False)
+                signature.doctor = request.user
+                signature.updated_by = request.user
+                signature.save()
+                messages.success(request, 'Your signature has been updated successfully.')
+                return redirect('document_request:document_requests')
+
     if request.user.role == 'student':
         requests_qs = DocumentRequest.objects.filter(student=request.user)
     elif request.user.role in ['admin', 'doctor']:
@@ -67,6 +86,11 @@ def document_requests(request):
     
     if document_type:
         requests_qs = requests_qs.filter(document_type=document_type)
+
+    # Status totals for the currently filtered result set
+    pending_count = requests_qs.filter(status='pending').count()
+    completed_count = requests_qs.filter(status='completed').count()
+    rejected_count = requests_qs.filter(status='rejected').count()
     
     requests_qs = requests_qs.order_by('-created_at')
     
@@ -74,13 +98,8 @@ def document_requests(request):
     page = request.GET.get('page')
     requests_page = paginator.get_page(page)
     
-    # Get counts for filtering
-    if request.user.role == 'student':
-        total_count = DocumentRequest.objects.filter(student=request.user).count()
-        pending_count = DocumentRequest.objects.filter(student=request.user, status='pending').count()
-    else:
-        total_count = DocumentRequest.objects.count()
-        pending_count = DocumentRequest.objects.filter(status='pending').count()
+    # Total count for the currently filtered result set
+    total_count = requests_qs.count()
     
     # Build status choices based on role
     if request.user.role == 'student':
@@ -97,10 +116,17 @@ def document_requests(request):
         'requests': requests_page,
         'total_count': total_count,
         'pending_count': pending_count,
+        'status_totals': {
+            'pending': pending_count,
+            'completed': completed_count,
+            'rejected': rejected_count,
+        },
         'current_status': status,
         'current_type': document_type,
-        'certificate_types': DocumentRequest.DOCUMENT_TYPES,
+        'certificate_types': ALLOWED_DOCUMENT_TYPES,
         'status_choices': status_choices,
+        'signature': signature,
+        'signature_form': signature_form,
     }
     
     return render(request, 'document_request/document_requests.html', context)
@@ -109,8 +135,8 @@ def document_requests(request):
 @login_required
 def request_document(request):
     """Submit a new document/certificate request."""
-    if request.user.role != 'student':
-        messages.error(request, 'Only students can request certificates')
+    if request.user.role not in ['student', 'doctor', 'admin']:
+        messages.error(request, 'Only students, doctors, and admins can request documents')
         return redirect('core:dashboard')
 
     base_context = _build_request_form_context(request.user)
@@ -119,6 +145,14 @@ def request_document(request):
         document_type = request.POST.get('certificate_type') or request.POST.get('document_type')
         purpose = request.POST.get('purpose')
         additional_info = request.POST.get('additional_info', '')
+        student = request.user
+
+        if request.user.role in ['doctor', 'admin']:
+            student_id = request.POST.get('student_id')
+            if not student_id:
+                messages.error(request, 'Student is required.')
+                return render(request, 'document_request/request_document.html', base_context)
+            student = get_object_or_404(User, pk=student_id, role='student')
         
         # Validation with enhanced messages
         validation_errors = []
@@ -133,38 +167,32 @@ def request_document(request):
                 messages.error(request, error)
             return render(request, 'document_request/request_document.html', base_context)
         
-        # Check if document type is valid
-        valid_types = [choice[0] for choice in DocumentRequest.DOCUMENT_TYPES]
-        if document_type not in valid_types:
-            messages.error(request, 'Invalid certificate type selected.')
-            return render(request, 'document_request/request_document.html', base_context)
-        
-        # Check if request falls inside active schedule for medical/dental records
-        is_allowed, schedule_message = _validate_schedule_window(request.user, document_type)
-        if not is_allowed:
-            messages.error(request, schedule_message)
+        # Only medical certificate requests are accepted for now.
+        if document_type != 'medical_certificate':
+            messages.error(request, 'Only Medical Certificate requests are accepted at this time.')
             return render(request, 'document_request/request_document.html', base_context)
 
         # Check for existing pending requests (prevent duplicate pending requests)
         pending_request = DocumentRequest.objects.filter(
-            student=request.user,
+            student=student,
             document_type=document_type,
             status='pending'
         ).first()
         
         if pending_request:
             messages.warning(
-                request, 
-                'You already have a pending certificate request. '
-                'Please wait for it to be processed.'            )
+                request,
+                'You already have a pending document request. '
+                'Please wait for it to be processed.'
+            )
             return redirect('document_request:document_requests')
         
         try:
             # Create the document request
             doc_request = DocumentRequest.objects.create(
-                student=request.user,
+                student=student,
                 created_by=request.user,
-                request_origin='student',
+                request_origin='doctor' if request.user.role in ['doctor', 'admin'] else 'student',
                 document_type=document_type,
                 purpose=purpose,
                 additional_info=additional_info,
@@ -173,8 +201,6 @@ def request_document(request):
 
             if doc_request.requires_medical_certificate:
                 # Auto-create a new MedicalCertificate for this student
-                student = request.user
-
                 # Allow submitted profile overrides (age/gender/address) -- fall back to stored profile
                 posted_age = request.POST.get('age')
                 posted_gender = request.POST.get('gender')
@@ -206,6 +232,8 @@ def request_document(request):
                     certificate_date=timezone.now().date(),
                     patient_name=student.get_full_name(),
                     consultation_date=timezone.now().date(),
+                    diagnosis='',
+                    physician_name=request.user.get_full_name() or request.user.email if request.user.role in ['doctor', 'admin'] else '',
                     remarks_recommendations=additional_info or '',
                     **profile_data  # Auto-fill age, gender, address from student profile or submitted values
                 )
@@ -241,6 +269,89 @@ def request_document(request):
 
 
 @login_required
+def edit_medical_certificate(request, cert_id):
+    """Edit a medical certificate linked to a document request."""
+    certificate = get_object_or_404(MedicalCertificate, id=cert_id)
+    
+    # Check permissions - only doctors and admins can edit
+    if request.user.role not in ['doctor', 'admin']:
+        messages.error(request, 'Access denied')
+        return redirect('document_request:document_requests')
+    
+    # Get the linked document request (if any)
+    linked_doc_request = DocumentRequest.objects.filter(medical_certificate=certificate).first()
+    
+    # Check for missing signature
+    signature = DoctorSignature.objects.filter(doctor=request.user).first()
+    missing_signature_warning = not signature
+    
+    if request.method == 'POST':
+        form = MedicalCertificateForm(request.POST, instance=certificate)
+        
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Certificate details saved successfully.')
+            
+            # Redirect back to the document request process page if linked
+            if linked_doc_request:
+                return redirect('document_request:process_document', request_id=linked_doc_request.id)
+            else:
+                return redirect('document_request:document_requests')
+    else:
+        # Prefill physician and student details when certificate fields empty
+        initial = {}
+        try:
+            student = certificate.user
+            if hasattr(student, 'student_profile') and student.student_profile:
+                profile = student.student_profile
+                if not certificate.age and profile.age:
+                    initial['age'] = profile.age
+                if (not certificate.gender or certificate.gender == '') and profile.gender:
+                    initial['gender'] = profile.gender
+                if (not certificate.address or certificate.address == '') and profile.address:
+                    initial['address'] = profile.address
+                if (not certificate.patient_name or certificate.patient_name == ''):
+                    initial['patient_name'] = student.get_full_name()
+        except Exception:
+            initial = {}
+
+        # Prefill physician details from current user when available
+        try:
+            user = request.user
+            if user and user.role in ['doctor', 'admin']:
+                if not certificate.physician_name and not initial.get('physician_name'):
+                    initial['physician_name'] = user.get_full_name() or user.email or ''
+
+                # License number: try staff_profile then common attributes
+                lic = ''
+                if hasattr(user, 'staff_profile') and getattr(user, 'staff_profile'):
+                    lic = getattr(user.staff_profile, 'license_number', '') or ''
+                lic = lic or getattr(user, 'license_number', '') or getattr(user, 'license_no', '') or ''
+                if lic and not certificate.license_no and not initial.get('license_no'):
+                    initial['license_no'] = lic
+
+                # PTR no: try common attributes on user or staff_profile
+                ptr = getattr(user, 'ptr_no', '') or getattr(user, 'ptrno', '') or ''
+                if not ptr and hasattr(user, 'staff_profile') and getattr(user, 'staff_profile'):
+                    ptr = getattr(user.staff_profile, 'ptr_no', '') or getattr(user.staff_profile, 'ptrno', '') or ''
+                if ptr and not certificate.ptr_no and not initial.get('ptr_no'):
+                    initial['ptr_no'] = ptr
+        except Exception:
+            pass
+
+        form = MedicalCertificateForm(instance=certificate, initial=initial)
+    
+    context = {
+        'certificate': certificate,
+        'form': form,
+        'linked_doc_request': linked_doc_request,
+        'missing_signature_warning': missing_signature_warning,
+    }
+    
+    return render(request, 'document_request/edit_medical_certificate.html', context)
+
+
+@login_required
 def process_document(request, request_id):
     """Process a document/certificate request - accessible to all roles for viewing."""
     doc_request = get_object_or_404(DocumentRequest, id=request_id)
@@ -261,18 +372,30 @@ def process_document(request, request_id):
         rejection_reason = request.POST.get('rejection_reason', '')
 
         if action == 'review':
-            # Redirect to edit the medical certificate (already created)
-            if doc_request.requires_medical_certificate and doc_request.medical_certificate:
-                messages.info(request, 'Please review and complete the medical certificate details.')
-                return redirect('health_forms_services:edit_medical_certificate', pk=doc_request.medical_certificate.pk)
-            elif doc_request.requires_medical_certificate:
-                messages.error(request, 'No medical certificate found for this request.')
-                return redirect('document_request:document_requests')
+            # Mark complete after cert review
+            if doc_request.requires_medical_certificate:
+                if not doc_request.medical_certificate:
+                    messages.error(request, 'No medical certificate found for this request.')
+                    return render(request, 'document_request/process_document.html', {
+                        'cert_request': doc_request, 
+                        'can_process': can_process
+                    })
+                # Check if diagnosis/recommendations filled
+                if not doc_request.medical_certificate.diagnosis or not doc_request.medical_certificate.remarks_recommendations:
+                    messages.warning(request, 'Please fill in diagnosis and remarks before completing.')
+                    return render(request, 'document_request/process_document.html', {
+                        'cert_request': doc_request, 
+                        'can_process': can_process
+                    })
 
-            # For medical/dental record requests, mark complete after doctor review.
             doc_request.status = 'completed'
             doc_request.processed_by = request.user
             doc_request.save(update_fields=['status', 'processed_by', 'updated_at'])
+
+            # Mark cert as completed
+            if doc_request.medical_certificate:
+                doc_request.medical_certificate.status = MedicalCertificate.Status.COMPLETED
+                doc_request.medical_certificate.save()
 
             Notification.objects.create(
                 user=doc_request.student,
@@ -288,7 +411,10 @@ def process_document(request, request_id):
         elif action == 'reject':
             if not rejection_reason:
                 messages.error(request, 'Please provide a reason for rejection.')
-                return render(request, 'document_request/process_document.html', {'cert_request': doc_request, 'can_process': can_process})
+                return render(request, 'document_request/process_document.html', {
+                    'cert_request': doc_request, 
+                    'can_process': can_process
+                })
 
             doc_request.status = 'rejected'
             doc_request.rejection_reason = rejection_reason
@@ -314,9 +440,15 @@ def process_document(request, request_id):
             return redirect('document_request:document_requests')
         else:
             messages.error(request, 'Invalid action.')
-            return render(request, 'document_request/process_document.html', {'cert_request': doc_request, 'can_process': can_process})
+            return render(request, 'document_request/process_document.html', {
+                'cert_request': doc_request, 
+                'can_process': can_process
+            })
 
-    return render(request, 'document_request/process_document.html', {'cert_request': doc_request, 'can_process': can_process})
+    return render(request, 'document_request/process_document.html', {
+        'cert_request': doc_request, 
+        'can_process': can_process
+    })
 
 
 @login_required
@@ -336,35 +468,135 @@ def view_document(request, request_id):
     return redirect('document_request:process_document', request_id=request_id)
 
 
-@login_required 
-def print_document(request, request_id):
-    """Print a certificate – redirects to the health_forms_services print template."""
-    doc_request = get_object_or_404(DocumentRequest, id=request_id)
-
-    if request.user.role not in ['doctor', 'admin']:
-        messages.error(request, 'Access denied. Printing certificates is restricted to authorized clinicians.')
-        return redirect('document_request:document_requests')
+@login_required
+def preview_medical_certificate(request, cert_id):
+    """Preview medical certificate on dedicated page."""
+    certificate = get_object_or_404(MedicalCertificate, id=cert_id)
     
-    # Check permissions
-    if request.user.role == 'student' and doc_request.student != request.user:
+    # Check permissions - students can only view their own, doctors/admins can view all
+    if request.user.role == 'student' and certificate.user != request.user:
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
     elif request.user.role not in ['student', 'doctor', 'admin']:
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
     
-    # Check status and provide appropriate messaging
-    if doc_request.status == 'rejected':
-        messages.error(request, 'This certificate request has been rejected. Please check the rejection reason and submit a new request if needed.')
+    # Get linked document request (if any)
+    linked_doc_request = DocumentRequest.objects.filter(medical_certificate=certificate).first()
+    
+    # Get physician signature (do not rely on requesting user, which may be student)
+    physician_signature = None
+    if certificate.signed_by:
+        physician_signature = DoctorSignature.objects.filter(doctor=certificate.signed_by).first()
+    if not physician_signature and certificate.reviewed_by:
+        physician_signature = DoctorSignature.objects.filter(doctor=certificate.reviewed_by).first()
+    if not physician_signature:
+        physician_signature = DoctorSignature.objects.filter(is_active=True).first()
+    
+    # Split multi-line text for template rendering
+    diagnosis_lines = [line.strip() for line in (certificate.diagnosis or '').split('\n') if line.strip()][:5]
+    remarks_lines = [line.strip() for line in (certificate.remarks_recommendations or '').split('\n') if line.strip()][:7]
+    while len(diagnosis_lines) < 5:
+        diagnosis_lines.append('')
+    while len(remarks_lines) < 7:
+        remarks_lines.append('')
+    
+    context = {
+        'medical_certificate': certificate,
+        'certificate': certificate,
+        'linked_doc_request': linked_doc_request,
+        'issue_date': certificate.certificate_date,
+        'physician_signature': physician_signature,
+        'diagnosis_lines': diagnosis_lines or [''],
+        'remarks_lines': remarks_lines or [''],
+    }
+    
+    return render(request, 'document_request/preview_medical_certificate.html', context)
+
+
+@login_required
+def download_medical_certificate_pdf(request, cert_id):
+    """Download medical certificate as PDF."""
+    certificate = get_object_or_404(MedicalCertificate, id=cert_id)
+    
+    # Check permissions
+    if request.user.role == 'student' and certificate.user != request.user:
+        messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
-    elif doc_request.status != 'completed':
-        messages.info(request, 'Your certificate is being prepared. Please check back later.')
+    elif request.user.role not in ['student', 'doctor', 'admin']:
+        messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
     
-    # Redirect to the official medical certificate print template
-    if doc_request.medical_certificate:
-        return redirect('health_forms_services:export_medical_certificate_docx', pk=doc_request.medical_certificate.pk)
+    # Get physician signature (do not rely on requesting user, which may be student)
+    physician_signature = None
+    if certificate.signed_by:
+        physician_signature = DoctorSignature.objects.filter(doctor=certificate.signed_by).first()
+    if not physician_signature and certificate.reviewed_by:
+        physician_signature = DoctorSignature.objects.filter(doctor=certificate.reviewed_by).first()
+    if not physician_signature:
+        physician_signature = DoctorSignature.objects.filter(is_active=True).first()
     
-    # No linked certificate
-    messages.info(request, 'Your certificate is being prepared. Please check back later.')
-    return redirect('document_request:document_requests')
+    # Split multi-line text for template rendering
+    diagnosis_lines = [line.strip() for line in (certificate.diagnosis or '').split('\n') if line.strip()]
+    remarks_lines = [line.strip() for line in (certificate.remarks_recommendations or '').split('\n') if line.strip()]
+    
+    # Prefer collected staticfiles font, then STATIC_ROOT, then source static directory.
+    font_candidates = [
+        Path(settings.BASE_DIR) / 'staticfiles' / 'fonts' / 'old-english-text-mt.ttf',
+    ]
+    static_root = getattr(settings, 'STATIC_ROOT', None)
+    if static_root:
+        font_candidates.append(Path(static_root) / 'fonts' / 'old-english-text-mt.ttf')
+    font_candidates.append(Path(settings.BASE_DIR) / 'static' / 'fonts' / 'old-english-text-mt.ttf')
+
+    font_path = next((candidate for candidate in font_candidates if candidate.exists()), None)
+    old_english_font_uri = font_path.resolve().as_uri() if font_path else ''
+
+    physician_signature_uri = ''
+    if physician_signature and getattr(physician_signature, 'signature_image', None):
+        try:
+            sig_path = Path(physician_signature.signature_image.path)
+            if sig_path.exists():
+                physician_signature_uri = sig_path.resolve().as_uri()
+        except Exception:
+            physician_signature_uri = ''
+    elif certificate.signature_snapshot:
+        try:
+            snap_path = Path(certificate.signature_snapshot.path)
+            if snap_path.exists():
+                physician_signature_uri = snap_path.resolve().as_uri()
+        except Exception:
+            physician_signature_uri = ''
+    
+    context = {
+        'certificate': certificate,
+        'physician_signature': physician_signature,
+        'diagnosis_lines': diagnosis_lines,
+        'remarks_lines': remarks_lines,
+        'is_pdf': True,  # Flag to hide screen controls in template
+        'old_english_font_uri': old_english_font_uri,
+        'physician_signature_uri': physician_signature_uri,
+    }
+    html_string = render_to_string('document_request/certificate_pdf.html', context)
+
+    wkhtmltopdf_path = _resolve_wkhtmltopdf_path()
+    if not wkhtmltopdf_path:
+        messages.error(request, 'wkhtmltopdf not found. Install it or set WKHTMLTOPDF_CMD in settings.')
+        return redirect('document_request:preview_medical_certificate', cert_id=cert_id)
+
+    options = {
+        'page-size': 'Letter',
+        'margin-top': '0.75in',
+        'margin-right': '0.75in',
+        'margin-bottom': '0.75in',
+        'margin-left': '0.75in',
+        'encoding': 'UTF-8',
+        'enable-local-file-access': None,
+        'quiet': None,
+    }
+    config = pdfkit.configuration(wkhtmltopdf=wkhtmltopdf_path)
+    pdf_bytes = pdfkit.from_string(html_string, False, options=options, configuration=config)
+
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="certificate_{certificate.id}.pdf"'
+    return response

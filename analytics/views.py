@@ -50,17 +50,50 @@ def _get_date_range(request):
     return date_from, date_to
 
 
-def _illness_stats(date_from, date_to):
-    """Aggregate diagnosis data from MedicalRecord + DentalRecord."""
+def _friendly_diagnosis_label(value):
+    """Normalize diagnosis labels for chart/list display."""
+    text = (value or '').strip()
+    if not text:
+        return 'Unspecified Diagnosis'
+    return ' '.join(text.replace('_', ' ').split())
+
+
+def _illness_stats(date_from, date_to, doctor=None):
+    """Aggregate diagnosis signals from medical records plus dental encounters.
+
+    Optional `doctor` scope limits results to records handled by that clinician.
+    """
     from medical_records.models import MedicalRecord
-    stats = (
-        MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to)
-        .exclude(diagnosis='')
-        .values('diagnosis')
-        .annotate(count=Count('id'))
-        .order_by('-count')
+    from dental_records.models import DentalRecord
+
+    medical_qs = MedicalRecord.objects.filter(
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to,
+    ).exclude(diagnosis='')
+
+    dental_qs = DentalRecord.objects.filter(
+        date_of_examination__gte=date_from,
+        date_of_examination__lte=date_to,
     )
-    return list(stats)
+
+    if doctor is not None:
+        medical_qs = medical_qs.filter(doctor=doctor)
+        dental_qs = dental_qs.filter(examined_by=doctor)
+
+    aggregated = defaultdict(int)
+
+    for item in medical_qs.values('diagnosis').annotate(count=Count('id')):
+        diagnosis = _friendly_diagnosis_label(item['diagnosis'])
+        aggregated[diagnosis] += item['count']
+
+    dental_count = dental_qs.count()
+    if dental_count:
+        aggregated['Dental Consultation'] += dental_count
+
+    return [
+        {'diagnosis': diagnosis, 'count': count}
+        for diagnosis, count in sorted(aggregated.items(), key=lambda x: x[1], reverse=True)
+    ]
 
 
 def _appointment_volume(date_from, date_to):
@@ -179,16 +212,26 @@ def analytics_dashboard(request):
             'total_records': records.count(),
             'total_appointments': appointments.count(),
             'completed_appointments': appointments.filter(status='completed').count(),
-            'recent_diagnoses': list(
-                records.exclude(diagnosis='').values('diagnosis')
-                .annotate(count=Count('id')).order_by('-count')[:10]
-            ),
+            'recent_diagnoses': [],
             'appointment_history': list(
                 appointments.annotate(
                     month=TruncMonth(Cast('date', output_field=models.DateTimeField()))
                 ).values('month').annotate(count=Count('id')).order_by('month')
             ),
         })
+
+        recent_diag_raw = list(
+            records.exclude(diagnosis='').values('diagnosis')
+            .annotate(count=Count('id')).order_by('-count')[:25]
+        )
+        recent_diag_map = defaultdict(int)
+        for item in recent_diag_raw:
+            recent_diag_map[_friendly_diagnosis_label(item['diagnosis'])] += item['count']
+        context['recent_diagnoses'] = [
+            {'diagnosis': diagnosis, 'count': count}
+            for diagnosis, count in sorted(recent_diag_map.items(), key=lambda x: x[1], reverse=True)[:10]
+        ]
+
         return render(request, 'analytics/dashboard_student.html', context)
 
     elif user.role in ['staff', 'doctor']:
@@ -204,7 +247,7 @@ def analytics_dashboard(request):
                 my_appointments.values(day=F('date'))
                 .annotate(count=Count('id')).order_by('day')
             ),
-            'top_diagnoses': _illness_stats(date_from, date_to)[:10],
+            'top_diagnoses': _illness_stats(date_from, date_to, doctor=user)[:10],
             'hourly_distribution': _appointment_by_hour(date_from, date_to),
         })
         return render(request, 'analytics/dashboard_staff.html', context)

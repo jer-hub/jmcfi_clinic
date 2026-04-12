@@ -9,6 +9,7 @@ import json
 
 from .models import Appointment, AppointmentTypeDefault
 from .forms import AppointmentTypeDefaultForm
+from .appointment_utils import check_appointment_availability, get_available_time_slots, format_conflict_message
 from core.models import Notification
 from core.decorators import role_required, admin_required
 
@@ -68,6 +69,14 @@ def appointment_list(request):
     if appointment_type:
         appointments = appointments.filter(appointment_type=appointment_type)
 
+    # Status totals for the currently filtered result set
+    status_totals = {
+        'pending': appointments.filter(status='pending').count(),
+        'confirmed': appointments.filter(status='confirmed').count(),
+        'completed': appointments.filter(status='completed').count(),
+        'cancelled': appointments.filter(status='cancelled').count(),
+    }
+
     # Order by latest date and time first
     appointments = appointments.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set').order_by('-date', '-time')
     
@@ -79,6 +88,7 @@ def appointment_list(request):
 
     context = {
         'appointments': paginated_appointments,
+        'status_totals': status_totals,
         'doctors': doctors,
         'appointment_types': appointment_types,
         'current_filters': {
@@ -138,16 +148,12 @@ def schedule_appointment(request):
                     messages.error(request, 'The selected doctor is not available for this appointment type.')
                     return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
 
-            # Check for conflicts
-            existing_appointment = Appointment.objects.filter(
-                doctor=doctor,
-                date=appointment_date,
-                time=appointment_time,
-                status__in=['pending', 'confirmed']
-            ).exists()
+            # Check for conflicts using interval-based validation (30 min buffer)
+            is_available, conflicts = check_appointment_availability(doctor, appointment_date, appointment_time)
             
-            if existing_appointment:
-                messages.error(request, 'This time slot is already booked. Please choose a different time.')
+            if not is_available:
+                conflict_msg = format_conflict_message(doctor, conflicts)
+                messages.error(request, conflict_msg)
                 return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
             
             appointment = Appointment.objects.create(

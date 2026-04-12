@@ -3,7 +3,7 @@ from django.utils import timezone
 
 from core.models import StudentProfile, StaffProfile
 from document_request.models import DocumentRequest
-from health_forms_services.models import MedicalCertificate
+from document_request.models import MedicalCertificate
 
 User = get_user_model()
 

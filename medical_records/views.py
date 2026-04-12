@@ -57,6 +57,15 @@ def medical_records(request):
         records = records.filter(created_at__date__gte=date_from)
     if date_to:
         records = records.filter(created_at__date__lte=date_to)
+
+    # Status totals for the currently filtered result set
+    completed_total = records.filter(appointment__status='completed').count()
+    follow_up_required_total = records.filter(
+        follow_up_required=True
+    ).exclude(appointment__status='completed').count()
+    monitoring_total = records.exclude(appointment__status='completed').exclude(
+        follow_up_required=True
+    ).count()
     
     records = records.select_related('student', 'doctor', 'appointment').order_by('-created_at')
     records = paginate_queryset(records, request)
@@ -64,6 +73,11 @@ def medical_records(request):
     context = {
         'records': records,
         'total_count': records.paginator.count if records else 0,
+        'status_totals': {
+            'completed': completed_total,
+            'requires_follow_up': follow_up_required_total,
+            'monitoring': monitoring_total,
+        },
     }
     
     return render(request, 'medical_records/medical_records.html', context)

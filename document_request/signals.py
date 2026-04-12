@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from health_forms_services.models import MedicalCertificate
+from .models import MedicalCertificate
 
 
 @receiver(post_save, sender=MedicalCertificate)

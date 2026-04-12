@@ -1,0 +1,90 @@
+<!-- Certificate Preview Card -->
+<div class="bg-white rounded-lg shadow-sm border border-gray-200">
+    <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+            <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            Certificate Preview
+        </h2>
+    </div>
+    
+    <div class="p-6">
+        <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
+            <!-- Header -->
+            <div class="text-center mb-6 pb-4 border-b-2 border-gray-300">
+                <h3 class="text-base font-bold text-gray-900">JMCFI CLINIC</h3>
+                <p class="text-xs text-gray-600 uppercase tracking-wider">Medical Certificate</p>
+            </div>
+
+            <!-- Greeting -->
+            <p class="text-sm text-gray-800 mb-4">
+                <span class="font-semibold">TO WHOM IT MAY CONCERN:</span>
+            </p>
+
+            <!-- Certificate Body -->
+            <div class="space-y-3 text-sm text-gray-800">
+                <p>
+                    This is to certify that 
+                    <span class="font-bold underline">{{ certificate.patient_name }}</span>,
+                    <span class="underline">{{ certificate.age }} years old</span>,
+                    <span class="underline">{{ certificate.gender }}</span>
+                    from 
+                    <span class="underline">{{ certificate.address }}</span>
+                    consulted at this clinic on 
+                    <span class="underline">{{ certificate.consultation_date|date:"F d, Y"|default:"-" }}</span>.
+                </p>
+
+                <!-- Diagnosis Section -->
+                {% if certificate.diagnosis %}
+                <div class="mt-4">
+                    <p class="font-semibold text-gray-900">Diagnosis/Clinical Findings:</p>
+                    <p class="text-gray-700 pl-4 italic">{{ certificate.diagnosis }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Remarks Section -->
+                {% if certificate.remarks_recommendations %}
+                <div class="mt-4">
+                    <p class="font-semibold text-gray-900">Remarks/Recommendations:</p>
+                    <p class="text-gray-700 pl-4 italic">{{ certificate.remarks_recommendations }}</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Physician Signature Section -->
+            <div class="mt-8 pt-6 border-t border-gray-300">
+                <p class="text-xs text-gray-600 mb-8">Prepared by:</p>
+                
+                <div class="grid grid-cols-2 gap-8">
+                    <div>
+                        <div class="h-16 border-b border-gray-400 mb-2"></div>
+                        <p class="text-xs font-medium text-gray-900">{{ certificate.physician_name|default:"Physician Signature" }}</p>
+                        {% if certificate.license_no %}
+                        <p class="text-xs text-gray-600">License #: {{ certificate.license_no }}</p>
+                        {% endif %}
+                        {% if certificate.ptr_no %}
+                        <p class="text-xs text-gray-600">PTR #: {{ certificate.ptr_no }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-600">Date Issued:</p>
+                        <p class="text-sm font-medium">{{ certificate.certificate_date|date:"F d, Y"|default:"-" }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status Badge -->
+            <div class="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center">
+                <span class="text-xs font-medium text-gray-600">Certificate Status:</span>
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
+                    {% if certificate.status == 'completed' %}bg-green-100 text-green-800
+                    {% elif certificate.status == 'rejected' %}bg-red-100 text-red-800
+                    {% elif certificate.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ certificate.get_status_display }}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>

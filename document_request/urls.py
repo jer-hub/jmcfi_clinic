@@ -14,16 +14,16 @@ urlpatterns = [
     # Process Request (Doctor/Admin)
     path('process/<int:request_id>/', views.process_document, name='process_document'),
     
+    # Edit Medical Certificate
+    path('certificate/<int:cert_id>/edit/', views.edit_medical_certificate, name='edit_medical_certificate'),
+    
+    # Preview Medical Certificate
+    path('certificate/<int:cert_id>/preview/', views.preview_medical_certificate, name='preview_medical_certificate'),
+    
+    # Download Medical Certificate PDF
+    path('certificate/<int:cert_id>/download/', views.download_medical_certificate_pdf, name='download_medical_certificate_pdf'),
+    
     # View Certificate
     path('view/<int:request_id>/', views.view_document, name='view_document'),
     
-    # Print Certificate
-    path('print/<int:request_id>/', views.print_document, name='print_document'),
-    
-    # Backwards compatibility URLs (aliased from old certificate URLs)
-    path('certificates/', views.document_requests, name='certificate_requests'),
-    path('certificates/request/', views.request_document, name='request_certificate'),
-    path('certificates/process/<int:request_id>/', views.process_document, name='process_certificate'),
-    path('certificates/view/<int:request_id>/', views.view_document, name='view_certificate'),
-    path('certificates/print/<int:request_id>/', views.print_document, name='print_certificate'),
 ]

@@ -24,9 +24,9 @@
                         </h2>
                         <p class="mt-1 text-sm text-gray-600">
                             {% if is_doctor_flow %}
-                                Schedule a medical or dental request on behalf of a student
+                                Create a medical certificate request on behalf of a student
                             {% else %}
-                                Submit a request for a medical certificate, medical record, or dental record
+                                Submit a request for a medical certificate
                             {% endif %}
                         </p>
                     </div>
@@ -37,24 +37,6 @@
                 {% csrf_token %}
                 {% if is_doctor_flow %}
                 <input type="hidden" name="source" value="doctor_on_behalf">
-                {% endif %}
-
-                {% if not is_doctor_flow %}
-                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <p class="text-sm text-amber-800 font-medium mb-1">Record Request Schedule</p>
-                    {% if student_schedule and student_schedule.is_active %}
-                    <p class="text-sm text-amber-700">
-                        You may request medical/dental records during your configured window.
-                        Allowed days: {{ student_schedule.get_allowed_days_display }}.
-                        Time: {{ student_schedule.start_time|time:'g:i A' }} to {{ student_schedule.end_time|time:'g:i A' }}.
-                    </p>
-                    {% else %}
-                    <p class="text-sm text-amber-700">
-                        You currently do not have an active schedule for medical or dental record requests.
-                        Medical certificate requests remain available.
-                    </p>
-                    {% endif %}
-                </div>
                 {% endif %}
 
                 {% if is_doctor_flow %}
@@ -128,58 +110,6 @@
                            placeholder="e.g., Job application, Sports participation, Travel">
                 </div>
 
-                {% if is_doctor_flow %}
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Optional Schedule</label>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="scheduled_for_date" class="block text-xs text-gray-600">Date</label>
-                            <input type="date" id="scheduled_for_date" name="scheduled_for_date"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        </div>
-                        <div>
-                            <label for="scheduled_for_time" class="block text-xs text-gray-600">Time</label>
-                            <input type="time" id="scheduled_for_time" name="scheduled_for_time"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Your Details (prefilled from profile) -->
-                {% if not is_doctor_flow %}
-                <div class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Your Details</label>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="age" class="block text-xs text-gray-600">Age</label>
-                            <input type="number" id="age" name="age" min="0"
-                                   value="{% if student_profile %}{{ student_profile.age }}{% endif %}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        </div>
-                        <div>
-                            <label for="gender" class="block text-xs text-gray-600">Gender</label>
-                            <select name="gender" id="gender" class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                                <option value="">Select</option>
-                                <option value="male" {% if student_profile and student_profile.gender == 'male' %}selected{% endif %}>Male</option>
-                                <option value="female" {% if student_profile and student_profile.gender == 'female' %}selected{% endif %}>Female</option>
-                                <option value="other" {% if student_profile and student_profile.gender == 'other' %}selected{% endif %}>Other</option>
-                            </select>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label for="date_of_birth" class="block text-xs text-gray-600">Date of Birth</label>
-                            <input type="date" id="date_of_birth" name="date_of_birth"
-                                   value="{% if student_profile and student_profile.date_of_birth %}{{ student_profile.date_of_birth|date:"Y-m-d" }}{% endif %}"
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label for="address" class="block text-xs text-gray-600">Address</label>
-                            <textarea id="address" name="address" rows="2" class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">{% if student_profile %}{{ student_profile.address }}{% endif %}</textarea>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
                 <!-- Additional Information -->
                 <div class="space-y-2">
                     <label for="additional_info" class="block text-sm font-medium text-gray-700">
@@ -239,7 +169,7 @@
 
                 <!-- Enhanced Submit Button -->
                 <div class="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200">
-                          <a href="{% url 'document_request:document_requests' %}" 
+                        <a href="{% url 'document_request:document_requests' %}" 
                        class="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -257,16 +187,6 @@
             </form>
         </div>
         
-        <!-- Back to Certificates -->
-        <div class="mt-8 text-center">
-            <a href="{% url 'document_request:document_requests' %}" 
-               class="inline-flex items-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                View All Document Requests
-            </a>
-        </div>
     </div>
 </div>
 

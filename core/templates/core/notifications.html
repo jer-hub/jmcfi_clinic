@@ -103,19 +103,19 @@
                             {% if notification.related_id %}
                                 {% url 'document_request:view_document' notification.related_id as notification_url %}
                             {% else %}
-                                {% url 'document_request:certificate_requests' as notification_url %}
+                                {% url 'document_request:document_requests' as notification_url %}
                             {% endif %}
                         {% elif notification.transaction_type == 'certificate_approved' or notification.transaction_type == 'certificate_ready' %}
                             {% if notification.related_id %}
                                 {% url 'document_request:view_document' notification.related_id as notification_url %}
                             {% else %}
-                                {% url 'document_request:certificate_requests' as notification_url %}
+                                {% url 'document_request:document_requests' as notification_url %}
                             {% endif %}
                         {% elif notification.transaction_type == 'certificate_rejected' %}
                             {% if notification.related_id %}
                                 {% url 'document_request:view_document' notification.related_id as notification_url %}
                             {% else %}
-                                {% url 'document_request:certificate_requests' as notification_url %}
+                                {% url 'document_request:document_requests' as notification_url %}
                             {% endif %}
                         {% elif notification.transaction_type == 'health_tip_new' or notification.transaction_type == 'health_tip_updated' %}
                             {% url 'health_tips:health_tips_list' as notification_url %}

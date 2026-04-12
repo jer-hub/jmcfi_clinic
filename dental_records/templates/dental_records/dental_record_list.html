@@ -63,6 +63,14 @@
                     </div>
                     {% endif %}
                 </div>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                        Pending: {{ status_totals.pending }}
+                    </span>
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                        Completed: {{ status_totals.completed }}
+                    </span>
+                </div>
             </div>
 
             <!-- Advanced Filters -->

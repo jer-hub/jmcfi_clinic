@@ -844,6 +844,66 @@ document.addEventListener('DOMContentLoaded', function() {
         heightInput.addEventListener('input', calculateBMI);
         weightInput.addEventListener('input', calculateBMI);
     }
+
+    // ===== AJAX Auto-Save for Form Sections =====
+    const forms = document.querySelectorAll('form');
+    const statusIndicator = document.createElement('div');
+    statusIndicator.id = 'save-status';
+    statusIndicator.className = 'fixed top-4 right-4 px-4 py-2 rounded-lg text-sm font-medium opacity-0 transition-opacity duration-300 pointer-events-none z-50';
+    document.body.appendChild(statusIndicator);
+
+    forms.forEach(form => {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+
+            try {
+                const formData = new FormData(form);
+                const response = await fetch(form.action || window.location.href, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                    submitBtn.textContent = originalText;
+                    // Auto-dismiss status after 3 seconds
+                    setTimeout(() => hideStatus(), 3000);
+                } else {
+                    const errorMsg = Object.values(data.errors || {}).flat().join(', ') || 'An error occurred';
+                    showStatus(errorMsg, 'error');
+                    submitBtn.textContent = originalText;
+                }
+            } catch (error) {
+                showStatus('Network error. Please try again.', 'error');
+                submitBtn.textContent = originalText;
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    });
+
+    function showStatus(message, type) {
+        statusIndicator.textContent = message;
+        statusIndicator.className = `fixed top-4 right-4 px-4 py-2 rounded-lg text-sm font-medium opacity-100 transition-opacity duration-300 z-50 ${
+            type === 'success' 
+                ? 'bg-green-100 text-green-800 border border-green-200'
+                : 'bg-red-100 text-red-800 border border-red-200'
+        }`;
+    }
+
+    function hideStatus() {
+        statusIndicator.className += ' opacity-0';
+    }
 });
 </script>
 <script src="{% static 'js/phone-input.js' %}"></script>

@@ -215,6 +215,9 @@ STATIC_ROOT = BASE_DIR / "static"
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# PDF generation engine path (wkhtmltopdf)
+WKHTMLTOPDF_CMD = config("WKHTMLTOPDF_CMD", default="")
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -249,3 +252,8 @@ LOGGING = {
         },
     },
 }
+
+# Appointment Scheduling Configuration
+# Buffer interval between consecutive appointments (in minutes)
+# Prevents double-booking; minimum 15, maximum 120 recommended
+APPOINTMENT_INTERVAL_MINUTES = 30

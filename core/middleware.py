@@ -5,6 +5,11 @@ from django.urls import reverse
 from django.contrib import messages
 from django.conf import settings
 from .utils import get_user_profile
+from .profile_policy import (
+    STUDENT_PROFILE_REQUIRED_FIELDS,
+    STAFF_PROFILE_REQUIRED_FIELDS,
+    DOCTOR_PROFILE_REQUIRED_FIELDS,
+)
 
 
 class SessionTimeoutMiddleware:
@@ -93,7 +98,7 @@ class ProfileCompleteMiddleware:
             and not self._is_exempt_url(request.path)
         ):
             # Session-cache the result to avoid a DB hit on every request
-            session_key = f'profile_complete_{request.user.id}'
+            session_key = f'profile_complete_{request.user.id}_{request.user.role}'
             profile_complete = request.session.get(session_key)
 
             if profile_complete is None:
@@ -129,8 +134,10 @@ class ProfileCompleteMiddleware:
 
             if user.role == 'student':
                 return self._is_student_profile_complete(profile)
-            elif user.role in ['staff', 'doctor']:
+            elif user.role == 'staff':
                 return self._is_staff_profile_complete(profile)
+            elif user.role == 'doctor':
+                return self._is_doctor_profile_complete(profile)
             
             return True
         except Exception:
@@ -138,12 +145,7 @@ class ProfileCompleteMiddleware:
 
     def _is_student_profile_complete(self, profile):
         """Check if student profile is complete with all required fields"""
-        required_fields = [
-            'student_id', 'date_of_birth', 'phone', 
-            'emergency_contact', 'emergency_phone', 'blood_type'
-        ]
-        
-        for field in required_fields:
+        for field in STUDENT_PROFILE_REQUIRED_FIELDS:
             value = getattr(profile, field, None)
             if not value or (isinstance(value, str) and not value.strip()):
                 return False
@@ -152,15 +154,18 @@ class ProfileCompleteMiddleware:
 
     def _is_staff_profile_complete(self, profile):
         """Check if staff profile is complete with all required fields"""
-        required_fields = [
-            'staff_id', 'department', 'phone',
-            # Professional / licensing fields required for clinical staff
-            'license_number', 'ptr_no',
-        ]
-        
-        for field in required_fields:
+        for field in STAFF_PROFILE_REQUIRED_FIELDS:
             value = getattr(profile, field, None)
             if not value or (isinstance(value, str) and not value.strip()):
                 return False
         
+        return True
+
+    def _is_doctor_profile_complete(self, profile):
+        """Check if doctor profile is complete with all required fields"""
+        for field in DOCTOR_PROFILE_REQUIRED_FIELDS:
+            value = getattr(profile, field, None)
+            if not value or (isinstance(value, str) and not value.strip()):
+                return False
+
         return True

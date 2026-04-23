@@ -4,6 +4,11 @@ from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.contrib import messages
 from .utils import get_user_profile
+from .profile_policy import (
+    STUDENT_PROFILE_REQUIRED_FIELDS,
+    STAFF_PROFILE_REQUIRED_FIELDS,
+    DOCTOR_PROFILE_REQUIRED_FIELDS,
+)
 
 def role_required(*roles):
     def decorator(view_func):
@@ -70,8 +75,10 @@ def _is_profile_complete(user):
 
         if user.role == 'student':
             return _is_student_profile_complete(profile)
-        elif user.role in ['staff', 'doctor']:
+        elif user.role == 'staff':
             return _is_staff_profile_complete(profile)
+        elif user.role == 'doctor':
+            return _is_doctor_profile_complete(profile)
         
         return True
     except Exception:
@@ -79,12 +86,7 @@ def _is_profile_complete(user):
 
 def _is_student_profile_complete(profile):
     """Check if student profile is complete with all required fields"""
-    required_fields = [
-        'student_id', 'date_of_birth', 'phone', 
-        'emergency_contact', 'emergency_phone', 'blood_type'
-    ]
-    
-    for field in required_fields:
+    for field in STUDENT_PROFILE_REQUIRED_FIELDS:
         value = getattr(profile, field, None)
         if not value or (isinstance(value, str) and not value.strip()):
             return False
@@ -93,27 +95,19 @@ def _is_student_profile_complete(profile):
 
 def _is_staff_profile_complete(profile):
     """Check if staff profile is complete with all required fields"""
-    required_fields = [
-        'staff_id', 'department', 'phone'
-    ]
-
-    for field in required_fields:
+    for field in STAFF_PROFILE_REQUIRED_FIELDS:
         value = getattr(profile, field, None)
         if not value or (isinstance(value, str) and not value.strip()):
             return False
 
-    # If this staff member is a doctor, require professional credentials
-    try:
-        user = getattr(profile, 'user', None)
-        if user and getattr(user, 'role', '') == 'doctor':
-            # license_number and ptr_no must be present
-            lic = getattr(profile, 'license_number', None)
-            ptr = getattr(profile, 'ptr_no', None)
-            if not lic or (isinstance(lic, str) and not lic.strip()):
-                return False
-            if not ptr or (isinstance(ptr, str) and not ptr.strip()):
-                return False
-    except Exception:
-        return False
+    return True
+
+
+def _is_doctor_profile_complete(profile):
+    """Check if doctor profile is complete with all required fields"""
+    for field in DOCTOR_PROFILE_REQUIRED_FIELDS:
+        value = getattr(profile, field, None)
+        if not value or (isinstance(value, str) and not value.strip()):
+            return False
 
     return True

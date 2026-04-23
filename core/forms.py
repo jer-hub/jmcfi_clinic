@@ -1,9 +1,22 @@
+import re
+
 from django import forms
 from django.contrib.auth import get_user_model
-from .models import StudentProfile, StaffProfile
-from .utils import clean_philippine_phone
+from .models import (
+    StudentProfile,
+    StaffProfile,
+    CollegeDepartment,
+    CourseProgram,
+    YearLevelOption,
+)
 
 User = get_user_model()
+PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
+OPTIONAL_COURSE_DEPARTMENTS = {
+    'IBED - Primary',
+    'IBED - Junior High School',
+    'IBED - Junior Highschool',
+}
 
 
 # ---------------------------------------------------------------------------
@@ -12,17 +25,30 @@ User = get_user_model()
 
 PHONE_WIDGET_ATTRS = {
     'class': (
-        'block w-full pl-12 pr-10 py-2.5 border border-gray-300 rounded-lg '
-        'shadow-sm placeholder-gray-400 text-sm tracking-wide '
-        'focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 '
-        'transition-colors duration-200'
+        'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm '
+        'placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 '
+        'focus:border-primary-500 sm:text-sm'
     ),
-    'placeholder': '0917 123 4567',
-    'inputmode': 'tel',
+    'type': 'tel',
+    'placeholder': '9XXXXXXXXX',
+    'inputmode': 'numeric',
     'autocomplete': 'tel',
-    'maxlength': '16',
-    'data-phone-input': 'true',
+    'pattern': '^\+63\d{10}$',
+    'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
+    'maxlength': '13',
+    'minlength': '13',
 }
+
+
+def clean_strict_ph_number(value, required=False):
+    value = (value or '').strip()
+    if not value:
+        if required:
+            raise forms.ValidationError('This field is required.')
+        return ''
+    if not PH_STRICT_E164_RE.fullmatch(value):
+        raise forms.ValidationError('Enter a valid Philippine number in +63XXXXXXXXXX format.')
+    return value
 
 
 class StudentProfileForm(forms.ModelForm):
@@ -65,7 +91,8 @@ class StudentProfileForm(forms.ModelForm):
             }),
             'middle_name': forms.TextInput(attrs={
                 'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
-                'placeholder': 'Middle Name'
+                'placeholder': 'Middle Name',
+                'required': True,
             }),
             'gender': forms.Select(attrs={
                 'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
@@ -98,8 +125,8 @@ class StudentProfileForm(forms.ModelForm):
                 'required': True
             }),
             'telephone_number': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
-                'placeholder': 'Landline (optional)'
+                **PHONE_WIDGET_ATTRS,
+                'required': False,
             }),
             'emergency_contact': forms.TextInput(attrs={
                 'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
@@ -146,19 +173,64 @@ class StudentProfileForm(forms.ModelForm):
         
         # Set required fields
         required_fields = [
-            'student_id', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth', 'age',
+            'student_id', 'middle_name', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth', 'age',
             'address', 'phone', 'emergency_contact', 'emergency_phone',
-            'course', 'year_level', 'department', 'blood_type'
+            'year_level', 'department', 'blood_type'
         ]
         for field_name in required_fields:
             if field_name in self.fields:
                 self.fields[field_name].required = True
 
+        # Required student contact fields prefill +63.
+        for contact_field in ['phone', 'emergency_phone']:
+            current_value = self.initial.get(contact_field)
+            if not current_value and self.instance and self.instance.pk:
+                current_value = getattr(self.instance, contact_field, '')
+            if not current_value:
+                self.initial[contact_field] = '+63'
+
     def clean_phone(self):
-        return clean_philippine_phone(self.cleaned_data.get('phone'))
+        return clean_strict_ph_number(self.cleaned_data.get('phone'), required=True)
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        department = (cleaned_data.get('department') or '').strip()
+        course = (cleaned_data.get('course') or '').strip()
+        year_level = (cleaned_data.get('year_level') or '').strip()
+
+        if not department:
+            return cleaned_data
+
+        if not CollegeDepartment.objects.filter(is_active=True, name=department).exists():
+            self.add_error('department', 'Select a valid College/Department.')
+            return cleaned_data
+
+        course_is_optional = department in OPTIONAL_COURSE_DEPARTMENTS
+        if not course and not course_is_optional:
+            self.add_error('course', 'Course/Program is required for the selected College/Department.')
+
+        if course and not CourseProgram.objects.filter(
+            is_active=True,
+            college_department__name=department,
+            name=course,
+        ).exists():
+            self.add_error('course', 'Course/Program must match the selected College/Department.')
+
+        if year_level and not YearLevelOption.objects.filter(
+            is_active=True,
+            college_department__name=department,
+            name=year_level,
+        ).exists():
+            self.add_error('year_level', 'Year Level must match the selected College/Department.')
+
+        return cleaned_data
+
+    def clean_telephone_number(self):
+        return clean_strict_ph_number(self.cleaned_data.get('telephone_number'), required=False)
 
     def clean_emergency_phone(self):
-        return clean_philippine_phone(self.cleaned_data.get('emergency_phone'))
+        return clean_strict_ph_number(self.cleaned_data.get('emergency_phone'), required=True)
 
     def clean_student_id(self):
         student_id = self.cleaned_data.get('student_id')
@@ -242,8 +314,7 @@ class StaffProfileForm(forms.ModelForm):
                 'required': True
             }),
             'telephone_number': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
-                'placeholder': 'Landline (optional)'
+                **PHONE_WIDGET_ATTRS,
             }),
             'emergency_contact': forms.TextInput(attrs={
                 'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
@@ -288,7 +359,15 @@ class StaffProfileForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+
+        role = None
+        if self.user is not None:
+            role = getattr(self.user, 'role', None)
+        elif self.instance and self.instance.pk and getattr(self.instance, 'user', None):
+            role = getattr(self.instance.user, 'role', None)
+
         # Add empty choice for select fields
         self.fields['blood_type'].empty_label = "Select your blood type (optional)"
         self.fields['gender'].empty_label = "Select gender"
@@ -304,17 +383,39 @@ class StaffProfileForm(forms.ModelForm):
             if field_name in self.fields:
                 self.fields[field_name].required = True
 
-        # Make license and PTR required for medical staff (doctors)
-        if 'license_number' in self.fields:
-            self.fields['license_number'].required = True
-        if 'ptr_no' in self.fields:
-            self.fields['ptr_no'].required = True
+        # Required staff contact field prefill +63.
+        current_phone = self.initial.get('phone')
+        if not current_phone and self.instance and self.instance.pk:
+            current_phone = getattr(self.instance, 'phone', '')
+        if not current_phone:
+            self.initial['phone'] = '+63'
+
+        # Doctor onboarding: force doctor-only credentials and hide unrelated health-self fields.
+        if role == 'doctor':
+            if 'license_number' in self.fields:
+                self.fields['license_number'].required = True
+            if 'ptr_no' in self.fields:
+                self.fields['ptr_no'].required = True
+            if 'position' in self.fields:
+                self.fields['position'].required = True
+
+            for hidden_field in ['blood_type', 'allergies', 'medical_conditions']:
+                if hidden_field in self.fields:
+                    self.fields.pop(hidden_field)
+        else:
+            if 'license_number' in self.fields:
+                self.fields['license_number'].required = False
+            if 'ptr_no' in self.fields:
+                self.fields['ptr_no'].required = False
 
     def clean_phone(self):
-        return clean_philippine_phone(self.cleaned_data.get('phone'))
+        return clean_strict_ph_number(self.cleaned_data.get('phone'), required=True)
+
+    def clean_telephone_number(self):
+        return clean_strict_ph_number(self.cleaned_data.get('telephone_number'), required=False)
 
     def clean_emergency_phone(self):
-        return clean_philippine_phone(self.cleaned_data.get('emergency_phone'))
+        return clean_strict_ph_number(self.cleaned_data.get('emergency_phone'), required=False)
 
     def clean_staff_id(self):
         staff_id = self.cleaned_data.get('staff_id')

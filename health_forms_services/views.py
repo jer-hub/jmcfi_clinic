@@ -259,7 +259,7 @@ def delete_form(request, pk):
     """Delete a health profile form"""
     user = request.user
     
-    if user.role in ['staff', 'admin']:
+    if user.role in ['staff', 'doctor', 'admin']:
         health_form = get_object_or_404(HealthProfileForm, pk=pk)
     else:
         health_form = get_object_or_404(HealthProfileForm, pk=pk, user=user)
@@ -549,7 +549,7 @@ def delete_dental_form(request, pk):
     """Delete a dental records form"""
     user = request.user
     
-    if user.role in ['staff', 'admin']:
+    if user.role in ['staff', 'doctor', 'admin']:
         dental_form = get_object_or_404(DentalHealthForm, pk=pk)
     else:
         dental_form = get_object_or_404(DentalHealthForm, pk=pk, user=user)
@@ -915,7 +915,7 @@ def delete_patient_chart(request, pk):
     """Delete a patient chart"""
     user = request.user
 
-    if user.role in ['staff', 'admin']:
+    if user.role in ['staff', 'doctor', 'admin']:
         chart = get_object_or_404(PatientChart, pk=pk)
     else:
         chart = get_object_or_404(PatientChart, pk=pk, user=user)
@@ -1125,7 +1125,7 @@ def delete_dental_services(request, pk):
     """Delete a dental services request"""
     user = request.user
 
-    if user.role in ['staff', 'admin']:
+    if user.role in ['staff', 'doctor', 'admin']:
         service_form = get_object_or_404(DentalServicesRequest, pk=pk)
     else:
         service_form = get_object_or_404(DentalServicesRequest, pk=pk, user=user)
@@ -1288,7 +1288,7 @@ def delete_prescription(request, pk):
     """Delete a prescription"""
     user = request.user
 
-    if user.role in ['staff', 'admin']:
+    if user.role in ['staff', 'doctor', 'admin']:
         prescription = get_object_or_404(Prescription, pk=pk)
     else:
         prescription = get_object_or_404(Prescription, pk=pk, user=user)

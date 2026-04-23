@@ -6,6 +6,11 @@ from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
+from .profile_policy import (
+    STUDENT_PROFILE_REQUIRED_FIELDS,
+    STAFF_PROFILE_REQUIRED_FIELDS,
+    DOCTOR_PROFILE_REQUIRED_FIELDS,
+)
 
 User = get_user_model()
 
@@ -86,8 +91,10 @@ def is_profile_complete(user):
 
         if user.role == 'student':
             return is_student_profile_complete(profile)
-        elif user.role in ['staff', 'doctor']:
+        elif user.role == 'staff':
             return is_staff_profile_complete(profile)
+        elif user.role == 'doctor':
+            return is_doctor_profile_complete(profile)
         
         return True
     except Exception:
@@ -96,12 +103,7 @@ def is_profile_complete(user):
 
 def is_student_profile_complete(profile):
     """Check if student profile is complete with all required fields"""
-    required_fields = [
-        'student_id', 'date_of_birth', 'phone', 
-        'emergency_contact', 'emergency_phone', 'blood_type'
-    ]
-    
-    for field in required_fields:
+    for field in STUDENT_PROFILE_REQUIRED_FIELDS:
         value = getattr(profile, field, None)
         if not value or (isinstance(value, str) and not value.strip()):
             return False
@@ -111,13 +113,7 @@ def is_student_profile_complete(profile):
 
 def is_staff_profile_complete(profile):
     """Check if staff profile is complete with all required fields"""
-    required_fields = [
-        'staff_id', 'department', 'phone',
-        # Professional / licensing fields required for clinical staff
-        'license_number', 'ptr_no',
-    ]
-    
-    for field in required_fields:
+    for field in STAFF_PROFILE_REQUIRED_FIELDS:
         value = getattr(profile, field, None)
         if not value or (isinstance(value, str) and not value.strip()):
             return False
@@ -125,29 +121,42 @@ def is_staff_profile_complete(profile):
     return True
 
 
+def is_doctor_profile_complete(profile):
+    """Check if doctor profile is complete with all required fields"""
+    for field in DOCTOR_PROFILE_REQUIRED_FIELDS:
+        value = getattr(profile, field, None)
+        if not value or (isinstance(value, str) and not value.strip()):
+            return False
+
+    return True
+
+
 # Human-readable labels for profile fields shown on the "profile required" page
 FIELD_LABELS = {
     'student_id':        'Student ID',
+    'middle_name':       'Middle Name',
+    'gender':            'Gender',
+    'civil_status':      'Civil Status',
     'date_of_birth':     'Date of Birth',
+    'place_of_birth':    'Place of Birth',
+    'age':               'Age',
+    'address':           'Address',
     'phone':             'Phone Number',
+    'telephone_number':  'Telephone Number',
     'emergency_contact': 'Emergency Contact Name',
     'emergency_phone':   'Emergency Contact Number',
+    'department':        'Department',
     'blood_type':        'Blood Type',
     'staff_id':          'Staff ID',
-    'department':        'Department',
     'license_number':    'License Number',
     'ptr_no':            'PTR No. (Professional Tax Receipt)',
+    'position':          'Position / Title',
 }
 
 # Required fields per role
-STUDENT_REQUIRED = [
-    'student_id', 'date_of_birth', 'phone',
-    'emergency_contact', 'emergency_phone', 'blood_type',
-]
-STAFF_REQUIRED = [
-    'staff_id', 'department', 'phone',
-    'license_number', 'ptr_no',
-]
+STUDENT_REQUIRED = STUDENT_PROFILE_REQUIRED_FIELDS
+STAFF_REQUIRED = STAFF_PROFILE_REQUIRED_FIELDS
+DOCTOR_REQUIRED = DOCTOR_PROFILE_REQUIRED_FIELDS
 
 
 def get_missing_profile_fields(user):
@@ -156,8 +165,10 @@ def get_missing_profile_fields(user):
 
     if user.role == 'student':
         required_fields = STUDENT_REQUIRED
-    elif user.role in ['staff', 'doctor']:
+    elif user.role == 'staff':
         required_fields = STAFF_REQUIRED
+    elif user.role == 'doctor':
+        required_fields = DOCTOR_REQUIRED
     else:
         return []
 

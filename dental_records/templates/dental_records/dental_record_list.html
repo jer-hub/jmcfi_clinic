@@ -74,7 +74,7 @@
             </div>
 
             <!-- Advanced Filters -->
-            {% if user.role == 'admin' or user.role == 'staff' or user.role == 'doctor' %}
+            {% if user.role == 'admin' or user.role == 'staff' or user.role == 'doctor' or user.role == 'student' %}
             <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gray-50/50">
                 <div class="mb-4">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -85,13 +85,16 @@
                     </h3>
                     <p class="text-sm text-gray-600">Search and filter dental records by various criteria</p>
                 </div>
-                <form method="GET" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <form method="GET" class="grid grid-cols-1 {% if user.role == 'student' %}md:grid-cols-2 lg:grid-cols-3{% else %}md:grid-cols-3 lg:grid-cols-4{% endif %} gap-4">
+                    {% if user.role != 'student' %}
                     <div class="relative">
-                        <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Search Patient</label>
+                        <label for="search" class="block text-sm font-medium text-gray-700 mb-2">
+                            {% if user.role == 'student' %}Search Records{% else %}Search Patient{% endif %}
+                        </label>
                         <div class="relative">
                             <input type="text" id="search" name="search" value="{{ search_query }}" 
                                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors"
-                                   placeholder="Name or email...">
+                                   placeholder="{% if user.role == 'student' %}Keyword...{% else %}Name or email...{% endif %}">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -99,6 +102,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                     
                     <div>
                         <label for="date_from" class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
@@ -133,7 +137,7 @@
             {% endif %}
 
             <div class="overflow-hidden">
-                {% if page_obj %}
+                {% if page_obj.object_list %}
                 <div>
                     <table class="min-w-full">
                         <thead>
@@ -192,11 +196,18 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-100">
-                            {% for record in page_obj %}
+                            {% for row in page_obj %}
+                            {% if row.row_type == 'record' %}
+                            {% with record=row.record %}
                             <tr class="group hover:bg-primary-50/30 transition-all duration-200 {% cycle 'bg-white' 'bg-gray-50/30' %}">
                                 <td class="px-2 py-3 align-middle whitespace-nowrap text-xs">
                                     <div class="flex flex-col">
-                                        <div class="font-medium text-gray-900">{{ record.date_of_examination|date:"M d, Y" }}</div>
+                                        <div class="font-medium text-gray-900">Requested: {{ record.created_at|date:"M d, Y g:i A" }}</div>
+                                        {% if record.appointment %}
+                                        <div class="text-gray-500 mt-0.5">Appointment: {{ record.appointment.date|date:"M d, Y" }} {{ record.appointment.time|time:"g:i A" }}</div>
+                                        {% else %}
+                                        <div class="text-gray-500 mt-0.5">Appointment: {{ record.date_of_examination|date:"M d, Y" }}</div>
+                                        {% endif %}
                                         <div class="text-gray-500 flex items-center mt-0.5">
                                             <svg class="w-2.5 h-2.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -305,13 +316,83 @@
                                     </div>
                                 </td>
                             </tr>
+                            {% endwith %}
+                            {% else %}
+                            {% with appointment=row.appointment %}
+                            <tr class="group {% if appointment.status == 'cancelled' %}hover:bg-red-50/40{% else %}hover:bg-amber-50/40{% endif %} transition-all duration-200 {% cycle 'bg-white' 'bg-gray-50/30' %}">
+                                <td class="px-2 py-3 align-middle whitespace-nowrap text-xs">
+                                    <div class="flex flex-col">
+                                        <div class="font-medium text-gray-900">Appointment: {{ appointment.date|date:"M d, Y" }}</div>
+                                        <div class="text-gray-500 mt-0.5">{{ appointment.time|time:"g:i A" }}</div>
+                                        <div class="text-gray-500 mt-0.5">Requested: {{ appointment.created_at|date:"M d, Y g:i A" }}</div>
+                                        <div class="{% if appointment.status == 'cancelled' %}text-red-700{% else %}text-amber-700{% endif %} flex items-center mt-0.5 font-medium">
+                                            <svg class="w-2.5 h-2.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Appointment: {{ appointment.get_status_display }}
+                                        </div>
+                                    </div>
+                                </td>
+                                {% if user.role != 'student' %}
+                                <td class="px-3 py-3 align-middle min-w-48">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-8 w-8">
+                                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+                                                <span class="text-xs font-medium text-white">{{ appointment.student.first_name.0 }}{{ appointment.student.last_name.0 }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="ml-2 min-w-0">
+                                            <div class="text-xs font-medium text-gray-900 truncate">{{ appointment.student.last_name }}, {{ appointment.student.first_name }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                {% endif %}
+                                <td class="px-3 py-3 align-middle">
+                                    <div class="text-xs text-gray-900 break-words line-clamp-2" title="{{ appointment.reason }}">
+                                        Dental Appointment Request
+                                    </div>
+                                </td>
+                                <td class="px-3 py-3 align-middle min-w-48">
+                                    <div class="flex items-center min-w-0">
+                                        <div class="text-xs font-medium text-gray-900 truncate">Dr. {{ appointment.doctor.get_full_name }}</div>
+                                    </div>
+                                </td>
+                                <td class="px-2 py-3 align-middle">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if appointment.status == 'cancelled' %}bg-red-100 text-red-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                                        <svg class="w-2.5 h-2.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                                        </svg>
+                                        Not Yet Available
+                                    </span>
+                                </td>
+                                <td class="px-2 py-3 align-middle">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if appointment.status == 'cancelled' %}bg-red-100 text-red-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                                        <svg class="w-2.5 h-2.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {{ appointment.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-2 py-3 align-middle text-right">
+                                    <div class="flex flex-wrap items-center justify-end gap-1">
+                                        <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="inline-flex items-center justify-center p-1 border border-amber-300 text-xs rounded text-amber-700 bg-amber-50 hover:bg-amber-100 transition-colors" title="View Appointment">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endwith %}
+                            {% endif %}
+
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
 
                 <!-- Enhanced Pagination -->
-                {% if page_obj.has_other_pages %}
+                {% if page_obj.paginator.count %}
                     <div class="px-6 sm:px-8 py-6 border-t border-gray-200 bg-gray-50/30">
                         <div class="flex flex-col sm:flex-row sm:justify-between items-center space-y-4 sm:space-y-0">
                             <!-- Results Counter -->
@@ -340,22 +421,53 @@
 
                                 <!-- Page Numbers -->
                                 <div class="flex items-center gap-1">
-                                    {% for pn in page_obj.paginator.page_range %}
-                                        {% if pn == page_obj.number %}
-                                            <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ pn }}</span>
-                                        {% elif pn|add:"0" <= 2 %}
-                                            <a href="?page={{ pn }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ pn }}</a>
-                                        {% elif pn|add:"0" >= page_obj.paginator.num_pages|add:"-1" %}
-                                            {% if pn|add:"0" == page_obj.paginator.num_pages|add:"-1" and page_obj.number not in page_obj.paginator.page_range|slice:"-3:" %}
+                                    {% with num_pages=page_obj.paginator.num_pages current_page=page_obj.number %}
+                                        {% if num_pages <= 7 %}
+                                            {% for page_num in page_obj.paginator.page_range %}
+                                                {% if page_num == current_page %}
+                                                    <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ page_num }}</span>
+                                                {% else %}
+                                                    <a href="?page={{ page_num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% else %}
+                                            {% if current_page <= 3 %}
+                                                {% for page_num in page_obj.paginator.page_range|slice:":5" %}
+                                                    {% if page_num == current_page %}
+                                                        <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ page_num }}</span>
+                                                    {% else %}
+                                                        <a href="?page={{ page_num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
+                                                    {% endif %}
+                                                {% endfor %}
                                                 <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                                <a href="?page={{ num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num_pages }}</a>
+                                            {% elif current_page >= num_pages|add:"-2" %}
+                                                <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">1</a>
+                                                <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                                {% for page_num in page_obj.paginator.page_range|slice:"-5:" %}
+                                                    {% if page_num == current_page %}
+                                                        <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ page_num }}</span>
+                                                    {% else %}
+                                                        <a href="?page={{ page_num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% else %}
+                                                <a href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">1</a>
+                                                <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                                {% for page_num in page_obj.paginator.page_range %}
+                                                    {% if page_num >= current_page|add:"-1" and page_num <= current_page|add:"1" %}
+                                                        {% if page_num == current_page %}
+                                                            <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ page_num }}</span>
+                                                        {% else %}
+                                                            <a href="?page={{ page_num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                                <a href="?page={{ num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num_pages }}</a>
                                             {% endif %}
-                                            <a href="?page={{ pn }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ pn }}</a>
-                                        {% elif pn|add:"0" >= page_obj.number|add:"-1" and pn|add:"0" <= page_obj.number|add:"1" %}
-                                            <a href="?page={{ pn }}{% if search_query %}&search={{ search_query }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ pn }}</a>
-                                        {% elif pn|add:"0" == 3 and page_obj.number > 4 %}
-                                            <span class="px-2 py-1 text-sm text-gray-500">...</span>
                                         {% endif %}
-                                    {% endfor %}
+                                    {% endwith %}
                                 </div>
 
                                 <!-- Next Button -->

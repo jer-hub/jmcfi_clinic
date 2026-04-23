@@ -68,7 +68,7 @@
             </div>
 
             <!-- Advanced Filters -->
-            {% if user.role == 'admin' or user.role == 'staff' or user.role == 'doctor' %}
+            {% if user.role == 'admin' or user.role == 'staff' or user.role == 'doctor' or user.role == 'student' %}
             <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gray-50/50">
                 <div class="mb-4">
                     <h3 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -79,7 +79,8 @@
                     </h3>
                     <p class="text-sm text-gray-600">Search and filter medical records by various criteria</p>
                 </div>
-                <form method="GET" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <form method="GET" class="grid grid-cols-1 {% if user.role == 'student' %}md:grid-cols-2 lg:grid-cols-3{% else %}md:grid-cols-3 lg:grid-cols-4{% endif %} gap-4">
+                    {% if user.role != 'student' %}
                     <div class="relative">
                         <label for="student_id" class="block text-sm font-medium text-gray-700 mb-2">Student ID</label>
                         <div class="relative">
@@ -93,6 +94,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                     
                     <div>
                         <label for="date_from" class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
@@ -188,17 +190,23 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-100">
-                            {% for record in records %}
+                            {% for row in records %}
+                            {% if row.row_type == 'record' %}
+                            {% with record=row.record %}
                             <tr class="group hover:bg-primary-50/30 transition-all duration-200 {% cycle 'bg-white' 'bg-gray-50/30' %}">
                                 <td class="px-3 py-3 whitespace-nowrap text-sm">
                                     <div class="flex flex-col">
-                                        <div class="font-medium text-gray-900">{{ record.created_at|date:"M d, Y" }}</div>
+                                        <div class="font-medium text-gray-900">Requested: {{ record.created_at|date:"M d, Y" }}</div>
                                         <div class="text-xs text-gray-500 flex items-center mt-0.5">
                                             <svg class="w-2.5 h-2.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                             </svg>
                                             {{ record.created_at|time:"g:i A" }}
                                         </div>
+                                        {% if record.appointment %}
+                                        <div class="text-xs text-gray-500 mt-0.5">Appointment: {{ record.appointment.date|date:"M d, Y" }} {{ record.appointment.time|time:"g:i A" }}</div>
+                                        {% endif %}
+                                        <div class="text-xs text-primary-700 font-medium mt-0.5">Medical Record</div>
                                     </div>
                                 </td>
                                 {% if user.role != 'student' %}
@@ -290,6 +298,121 @@
                                     </div>
                                 </td>
                             </tr>
+                            {% endwith %}
+                            {% else %}
+                            {% with appointment=row.appointment %}
+                            <tr class="group hover:bg-amber-50/40 transition-all duration-200 {% cycle 'bg-white' 'bg-gray-50/30' %}">
+                                <td class="px-3 py-3 whitespace-nowrap text-sm">
+                                    <div class="flex flex-col">
+                                        <div class="font-medium text-gray-900">Appointment: {{ appointment.date|date:"M d, Y" }}</div>
+                                        <div class="text-xs text-gray-500 flex items-center mt-0.5">
+                                            <svg class="w-2.5 h-2.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            {{ appointment.time|time:"g:i A" }}
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-0.5">Requested: {{ appointment.created_at|date:"M d, Y g:i A" }}</div>
+                                        <div class="text-xs text-amber-700 font-medium mt-0.5">Appointment</div>
+                                    </div>
+                                </td>
+                                {% if user.role != 'student' %}
+                                <td class="px-3 py-3 min-w-48">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-8 w-8">
+                                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
+                                                <span class="text-xs font-medium text-white">{{ appointment.student.first_name.0 }}{{ appointment.student.last_name.0 }}</span>
+                                            </div>
+                                        </div>
+                                        <div class="ml-2 min-w-0">
+                                            <div class="text-xs font-medium text-gray-900 truncate">{{ appointment.student.get_full_name }}</div>
+                                            {% if appointment.student.student_profile %}
+                                            <div class="text-xs text-gray-500 truncate">{{ appointment.student.student_profile.student_id }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                {% endif %}
+                                {% if user.role == 'admin' %}
+                                <td class="px-3 py-3 min-w-48">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-8 w-8">
+                                            <div class="h-8 w-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center">
+                                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-2 min-w-0">
+                                            <div class="text-xs font-medium text-gray-900 truncate">Dr. {{ appointment.doctor.first_name }} {{ appointment.doctor.last_name }}</div>
+                                            {% if appointment.doctor.staff_profile %}
+                                            <div class="text-xs text-gray-500 truncate">{{ appointment.doctor.staff_profile.department|truncatechars:15 }}</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                {% endif %}
+                                <td class="px-3 py-3 text-sm min-w-56">
+                                    <p class="text-gray-900 line-clamp-2 text-xs break-words">{{ appointment.get_appointment_type_display }}</p>
+                                </td>
+                                <td class="px-3 py-3 text-sm min-w-56">
+                                    <p class="text-gray-900 line-clamp-2 text-xs break-words">{{ appointment.reason }}</p>
+                                </td>
+                                <td class="px-3 py-3 whitespace-nowrap text-xs">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                                        {% if appointment.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
+                                        {% elif appointment.status == 'confirmed' %}bg-blue-100 text-blue-800
+                                        {% else %}bg-amber-100 text-amber-800{% endif %}">
+                                        {{ appointment.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-3 whitespace-nowrap text-right">
+                                    <div class="flex items-center justify-end gap-1.5">
+                                        {% if user.role == 'staff' or user.role == 'doctor' %}
+                                            {% if appointment.status == 'pending' %}
+                                            <form method="post" action="{% url 'appointments:appointment_detail' appointment.id %}" class="inline-flex">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="status" value="confirmed">
+                                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                                <button type="submit" class="inline-flex items-center justify-center p-1 border border-green-300 text-xs rounded text-green-700 bg-green-50 hover:bg-green-100 transition-colors" title="Confirm Appointment">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+
+                                            {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
+                                            <form method="post" action="{% url 'appointments:appointment_detail' appointment.id %}" class="inline-flex">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="status" value="cancelled">
+                                                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                                                <button type="submit" class="inline-flex items-center justify-center p-1 border border-red-300 text-xs rounded text-red-700 bg-red-50 hover:bg-red-100 transition-colors" title="Reject Appointment">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                    </svg>
+                                                </button>
+                                            </form>
+                                            {% endif %}
+
+                                            {% if appointment.status == 'confirmed' or appointment.status == 'completed' or appointment.status == 'pending' and appointment.appointment_type != 'consultation' %}
+                                            <a href="{% url 'medical_records:create_medical_record' appointment.id %}" class="inline-flex items-center justify-center p-1 border border-primary-300 text-xs rounded text-primary-700 bg-primary-50 hover:bg-primary-100 transition-colors" title="Create Medical Record">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                                </svg>
+                                            </a>
+                                            {% endif %}
+                                        {% endif %}
+                                        <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="inline-flex items-center justify-center p-1 border border-gray-300 text-xs rounded text-gray-700 bg-white hover:bg-gray-50 transition-colors" title="View Appointment">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endwith %}
+                            {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>

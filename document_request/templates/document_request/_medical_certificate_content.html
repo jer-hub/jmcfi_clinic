@@ -104,11 +104,17 @@
         padding-right: 0;
     }
 
+    .physician-anchor {
+        display: inline-block;
+        min-width: 11rem;
+        text-align: center;
+    }
+
     .physician-signature {
         display: block;
         height: 3rem;
         width: auto;
-        margin: 0 0 0.25rem auto;
+        margin: 0 auto 0.25rem;
         object-fit: contain;
     }
 
@@ -259,12 +265,16 @@
         display: block;
         height: 42pt;
         width: 140pt;
-        margin: 0 0 4pt auto;
+        margin: 0 auto 4pt;
     }
 
     body.pdf-render .physician-block {
         margin-bottom: 22pt;
         text-align: right;
+    }
+
+    body.pdf-render .physician-anchor {
+        min-width: 220pt;
     }
 
     body.pdf-render .physician-name {
@@ -286,6 +296,7 @@
         text-align: center;
         margin: 0;
     }
+
 </style>
 
 <div class="certificate-page">
@@ -336,21 +347,23 @@
 
     <div class="bottom-fixed">
         <div class="physician-block">
-            {% if physician_signature %}
-                {% if is_pdf and physician_signature_uri %}
-            <img src="{{ physician_signature_uri }}" alt="Physician signature" class="physician-signature">
-                {% else %}
-            <img src="{{ physician_signature.signature_image.url }}" alt="Physician signature" class="physician-signature">
+            <div class="physician-anchor">
+                {% if physician_signature %}
+                    {% if is_pdf and physician_signature_uri %}
+                <img src="{{ physician_signature_uri }}" alt="Physician signature" class="physician-signature">
+                    {% else %}
+                <img src="{{ physician_signature.signature_image.url }}" alt="Physician signature" class="physician-signature">
+                    {% endif %}
+                {% elif certificate.signature_snapshot %}
+                    {% if is_pdf and physician_signature_uri %}
+                <img src="{{ physician_signature_uri }}" alt="Physician signature" class="physician-signature">
+                    {% else %}
+                <img src="{{ certificate.signature_snapshot.url }}" alt="Physician signature" class="physician-signature">
+                    {% endif %}
                 {% endif %}
-            {% elif certificate.signature_snapshot %}
-                {% if is_pdf and physician_signature_uri %}
-            <img src="{{ physician_signature_uri }}" alt="Physician signature" class="physician-signature">
-                {% else %}
-            <img src="{{ certificate.signature_snapshot.url }}" alt="Physician signature" class="physician-signature">
-                {% endif %}
-            {% endif %}
-            <div class="physician-name">
-                {% if certificate.physician_name %}{{ certificate.physician_name }}, MD{% else %}__________________________ MD{% endif %}
+                <div class="physician-name">
+                    {% if certificate.physician_name %}{{ certificate.physician_name }}, MD{% else %}__________________________ MD{% endif %}
+                </div>
             </div>
             <div class="license-line">
                 License No. {% if certificate.license_no %}{{ certificate.license_no }}{% else %}____________________{% endif %}

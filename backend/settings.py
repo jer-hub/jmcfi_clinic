@@ -62,11 +62,15 @@ MIDDLEWARE = [
 ]
 
 # Provider specific settings
+GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='')
+GOOGLE_CLIENT_SECRET = config('GOOGLE_CLIENT_SECRET', default='')
+GOOGLE_ALLOWED_DOMAINS = config('GOOGLE_ALLOWED_DOMAINS', default='', cast=Csv())
+
 SOCIALACCOUNT_PROVIDERS = {
     'google': {
         'APP': {
-            'client_id': '936663134353-d6q81jljo4l9sgbvui75snb0cejuvntu.apps.googleusercontent.com',
-            'secret': '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',
+            'client_id': GOOGLE_CLIENT_ID,
+            'secret': GOOGLE_CLIENT_SECRET,
         },
         'SCOPE': [
             'profile',
@@ -85,7 +89,7 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']  # Required signu
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # No username field
 SOCIALACCOUNT_AUTO_SIGNUP = True  # Skip the signup form if possible
 SOCIALACCOUNT_LOGIN_ON_GET = True  # Skip the intermediate page on login
-ACCOUNT_LOGOUT_ON_GET = True  # Allow logout via GET request
+ACCOUNT_LOGOUT_ON_GET = False  # Require POST logout to avoid CSRF/logout-forcing
 SOCIALACCOUNT_QUERY_EMAIL = True  # Request email from provider
 ACCOUNT_ADAPTER = 'core.adapters.NoPasswordAdapter'  # Disable password login
 SOCIALACCOUNT_ADAPTER = 'core.adapters.GoogleOnlyAdapter'  # Google-only social login

@@ -1,7 +1,12 @@
 <!-- Student Profile Fields -->
-<div class="space-y-8">
+<div class="space-y-8"
+      x-data="studentAcademicEditForm(
+          '{{ form.department.value|default_if_none:""|escapejs }}',
+          '{{ form.course.value|default_if_none:""|escapejs }}',
+          '{{ form.year_level.value|default_if_none:""|escapejs }}'
+      )">
     <!-- Demographics Section -->
-    <div class="border-b-2 border-gray-200 pb-8">
+     <div class="border-b-2 border-gray-200 pb-8">
         <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
             <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mr-3 shadow-md">
                 <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -33,7 +38,7 @@
             <!-- Middle Name -->
             <div class="form-group">
                 <label for="{{ form.middle_name.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Middle Name
+                    Middle Name <span class="text-red-600">*</span>
                 </label>
                 {{ form.middle_name }}
                 {% if form.middle_name.errors %}
@@ -176,7 +181,7 @@
             <!-- Telephone Number -->
             <div class="form-group">
                 <label for="{{ form.telephone_number.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Landline / Telephone <span class="text-gray-400 text-xs">(Optional)</span>
+                    Telephone Number <span class="text-gray-400 text-xs">(Optional)</span>
                 </label>
                 {{ form.telephone_number }}
                 {% if form.telephone_number.errors %}
@@ -227,13 +232,54 @@
         </h3>
         
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Department -->
+            <div class="form-group">
+                <label for="{{ form.department.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Department / College <span class="text-red-600">*</span>
+                </label>
+                <select name="department"
+                        id="{{ form.department.id_for_label }}"
+                        x-model="department"
+                        @change="onDepartmentChange()"
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                        required>
+                    <option value="">Select college/department</option>
+                    {% for option in college_options %}
+                        <option value="{{ option|escape }}" {% if form.department.value == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Select your college/department first</p>
+                {% if form.department.errors %}
+                    {% for error in form.department.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
             <!-- Course -->
             <div class="form-group">
                 <label for="{{ form.course.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Course / Program <span class="text-red-600">*</span>
+                    Course / Program
+                    <span x-show="!isCourseOptional" class="text-red-600">*</span>
+                    <span x-show="isCourseOptional" class="text-gray-400 text-xs">(Optional)</span>
                 </label>
-                {{ form.course }}
-                <p class="mt-1 text-xs text-gray-500">e.g., BS Computer Science</p>
+                <select name="course"
+                        id="{{ form.course.id_for_label }}"
+                        x-ref="courseSelect"
+                        x-model="course"
+                        :required="!isCourseOptional"
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                    <option value="">Select course/program</option>
+                    {% for option in initial_course_options %}
+                        <option value="{{ option|escape }}" {% if form.course.value == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Filtered by selected college/department</p>
                 {% if form.course.errors %}
                     {% for error in form.course.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">
@@ -251,29 +297,20 @@
                 <label for="{{ form.year_level.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Year Level <span class="text-red-600">*</span>
                 </label>
-                {{ form.year_level }}
-                <p class="mt-1 text-xs text-gray-500">Current year (1st, 2nd, 3rd, 4th)</p>
+                <select name="year_level"
+                        id="{{ form.year_level.id_for_label }}"
+                        x-ref="yearLevelSelect"
+                        x-model="yearLevel"
+                        required
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                    <option value="">Select year level</option>
+                    {% for option in initial_year_level_options %}
+                        <option value="{{ option|escape }}" {% if form.year_level.value == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Filtered by selected college/department</p>
                 {% if form.year_level.errors %}
                     {% for error in form.year_level.errors %}
-                        <p class="mt-2 text-sm text-red-600 flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            {{ error }}
-                        </p>
-                    {% endfor %}
-                {% endif %}
-            </div>
-
-            <!-- Department -->
-            <div class="form-group">
-                <label for="{{ form.department.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Department / College <span class="text-red-600">*</span>
-                </label>
-                {{ form.department }}
-                <p class="mt-1 text-xs text-gray-500">e.g., College of Engineering</p>
-                {% if form.department.errors %}
-                    {% for error in form.department.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">
                             <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
@@ -317,12 +354,34 @@
             </div>
 
             <!-- Allergies -->
-            <div class="form-group md:col-span-2">
+            <div class="form-group md:col-span-2" x-data="studentListField('{{ form.allergies.value|default_if_none:""|escapejs }}')">
                 <label for="{{ form.allergies.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Allergies <span class="text-gray-400 text-xs">(Optional)</span>
                 </label>
-                {{ form.allergies }}
-                <p class="mt-1 text-xs text-gray-500">List any allergies to food, medication, or environmental factors. Write "None" if you have no allergies.</p>
+                <div class="space-y-3 rounded-lg border border-gray-200 bg-white p-3">
+                    <div class="flex gap-2">
+                        <input type="text"
+                               x-model="listInput"
+                               @keydown.enter.prevent="addItem()"
+                               placeholder="Type allergy then press Enter"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <button type="button"
+                                @click="addItem()"
+                                class="px-3 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 text-sm font-medium">Add</button>
+                    </div>
+                    <div class="flex flex-wrap gap-2" x-show="listItems.length > 0">
+                        <template x-for="(item, idx) in listItems" :key="idx">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-800 text-xs border border-purple-200">
+                                <span x-text="item"></span>
+                                <button type="button" @click="removeItem(idx)" class="text-purple-600 hover:text-purple-900">x</button>
+                            </span>
+                        </template>
+                    </div>
+                    <p class="text-xs text-gray-500">Enter one item at a time. Press Enter or Add.</p>
+                </div>
+                <textarea name="allergies" id="{{ form.allergies.id_for_label }}" class="hidden" x-model="serializedValue"></textarea>
+                <p class="mt-1 text-xs text-gray-500">List food, medication, or environmental allergies. Leave empty if none.</p>
+                <p x-show="validationError" x-text="validationError" class="mt-2 text-sm text-red-600"></p>
                 {% if form.allergies.errors %}
                     {% for error in form.allergies.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">
@@ -336,12 +395,34 @@
             </div>
 
             <!-- Medical Conditions -->
-            <div class="form-group md:col-span-2">
+            <div class="form-group md:col-span-2" x-data="studentListField('{{ form.medical_conditions.value|default_if_none:""|escapejs }}')">
                 <label for="{{ form.medical_conditions.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Pre-existing Medical Conditions <span class="text-gray-400 text-xs">(Optional)</span>
                 </label>
-                {{ form.medical_conditions }}
-                <p class="mt-1 text-xs text-gray-500">List any chronic illnesses, ongoing medical conditions, or health concerns. Write "None" if you have no conditions.</p>
+                <div class="space-y-3 rounded-lg border border-gray-200 bg-white p-3">
+                    <div class="flex gap-2">
+                        <input type="text"
+                               x-model="listInput"
+                               @keydown.enter.prevent="addItem()"
+                               placeholder="Type condition then press Enter"
+                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        <button type="button"
+                                @click="addItem()"
+                                class="px-3 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 text-sm font-medium">Add</button>
+                    </div>
+                    <div class="flex flex-wrap gap-2" x-show="listItems.length > 0">
+                        <template x-for="(item, idx) in listItems" :key="idx">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-800 text-xs border border-purple-200">
+                                <span x-text="item"></span>
+                                <button type="button" @click="removeItem(idx)" class="text-purple-600 hover:text-purple-900">x</button>
+                            </span>
+                        </template>
+                    </div>
+                    <p class="text-xs text-gray-500">Enter one item at a time. Press Enter or Add.</p>
+                </div>
+                <textarea name="medical_conditions" id="{{ form.medical_conditions.id_for_label }}" class="hidden" x-model="serializedValue"></textarea>
+                <p class="mt-1 text-xs text-gray-500">List chronic illnesses or conditions. Leave empty if none.</p>
+                <p x-show="validationError" x-text="validationError" class="mt-2 text-sm text-red-600"></p>
                 {% if form.medical_conditions.errors %}
                     {% for error in form.medical_conditions.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">

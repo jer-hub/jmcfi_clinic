@@ -7,8 +7,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         {% include 'document_request/_subnav.html' %}
 
-        <!-- Enhanced Header -->
-        <div class="bg-white rounded-lg shadow-lg mb-8">
+        <div class="bg-white rounded-lg shadow-lg">
             <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
                 <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
                     <div class="flex items-center space-x-4">
@@ -30,8 +29,15 @@
                             </p>
                         </div>
                     </div>
-                    {% if user.role == 'student' %}
+                    {% if total_count %}
                     <div class="flex items-center space-x-2">
+                        <div class="bg-white rounded-lg px-4 py-2 shadow-sm border border-primary-100">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-2 h-2 bg-primary-400 rounded-full"></div>
+                                <span class="text-sm font-medium text-gray-700">{{ total_count }} request{{ total_count|pluralize }}</span>
+                            </div>
+                        </div>
+                        {% if user.role == 'student' %}
                         <a href="{% url 'document_request:request_document' %}" 
                            class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm transition-all duration-200 hover:shadow-md">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -39,9 +45,7 @@
                             </svg>
                             New Request
                         </a>
-                    </div>
-                    {% elif user.role == 'doctor' or user.role == 'admin' %}
-                    <div class="flex items-center space-x-2">
+                        {% endif %}
                     </div>
                     {% endif %}
                 </div>
@@ -57,10 +61,9 @@
                     </span>
                 </div>
             </div>
-        </div>
 
         {% if signature_form %}
-        <div class="bg-white rounded-lg shadow-lg mb-8 border border-gray-200">
+        <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gray-50/50">
             <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
                 <div class="flex items-center space-x-2">
                     <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -114,9 +117,8 @@
         </div>
         {% endif %}
 
-        <!-- Enhanced Filters -->
-        <div class="bg-white rounded-lg shadow-lg mb-8">
-            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+        <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gray-50/50">
+            <div class="mb-4">
                 <div class="flex items-center space-x-2">
                     <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
@@ -125,8 +127,7 @@
                 </div>
                 <p class="text-sm text-gray-600 mt-1">Search and filter document requests by various criteria</p>
             </div>
-            <div class="p-6">
-                <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <form method="GET" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                     <div>
                         <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                         <select name="status" id="status" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
@@ -154,12 +155,10 @@
                             Clear Filters
                         </a>
                     </div>
-                </form>
-            </div>
+            </form>
         </div>
 
-        <!-- Enhanced Requests List -->
-        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div class="overflow-hidden">
             {% if requests %}
             <div class="overflow-x-auto">
                 <table class="min-w-full">
@@ -397,22 +396,53 @@
                             </span>
                         {% endif %}
 
-                        {% for page_num in requests.paginator.page_range %}
-                            {% if page_num == requests.number %}
-                                <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ page_num }}</span>
-                            {% elif page_num|add:"0" <= 2 %}
-                                <a href="?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
-                            {% elif page_num|add:"0" >= requests.paginator.num_pages|add:"-1" %}
-                                {% if page_num|add:"0" == requests.paginator.num_pages|add:"-1" and requests.number not in requests.paginator.page_range|slice:"-3:" %}
+                        {% with num_pages=requests.paginator.num_pages current_page=requests.number %}
+                            {% if num_pages <= 7 %}
+                                {% for page_num in requests.paginator.page_range %}
+                                    {% if page_num == current_page %}
+                                        <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ page_num }}</span>
+                                    {% else %}
+                                        <a href="?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                {% if current_page <= 3 %}
+                                    {% for page_num in requests.paginator.page_range|slice:":5" %}
+                                        {% if page_num == current_page %}
+                                            <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ page_num }}</span>
+                                        {% else %}
+                                            <a href="?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
+                                        {% endif %}
+                                    {% endfor %}
                                     <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                    <a href="?page={{ num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num_pages }}</a>
+                                {% elif current_page >= num_pages|add:"-2" %}
+                                    <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">1</a>
+                                    <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                    {% for page_num in requests.paginator.page_range|slice:"-5:" %}
+                                        {% if page_num == current_page %}
+                                            <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ page_num }}</span>
+                                        {% else %}
+                                            <a href="?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <a href="?page=1{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">1</a>
+                                    <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                    {% for page_num in requests.paginator.page_range %}
+                                        {% if page_num >= current_page|add:"-1" and page_num <= current_page|add:"1" %}
+                                            {% if page_num == current_page %}
+                                                <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ page_num }}</span>
+                                            {% else %}
+                                                <a href="?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endfor %}
+                                    <span class="px-2 py-1 text-sm text-gray-500">...</span>
+                                    <a href="?page={{ num_pages }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num_pages }}</a>
                                 {% endif %}
-                                <a href="?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
-                            {% elif page_num|add:"0" >= requests.number|add:"-1" and page_num|add:"0" <= requests.number|add:"1" %}
-                                <a href="?page={{ page_num }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ page_num }}</a>
-                            {% elif page_num|add:"0" == 3 and requests.number > 4 %}
-                                <span class="px-2 py-1 text-sm text-gray-500">...</span>
                             {% endif %}
-                        {% endfor %}
+                        {% endwith %}
 
                         {% if requests.has_next %}
                             <a href="?page={{ requests.next_page_number }}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_type %}&type={{ current_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200" aria-label="Next page">
@@ -450,14 +480,14 @@
                     {% if user.role == 'student' %}
                     <div class="space-y-4">
                         <a href="{% url 'document_request:request_document' %}" 
-                           class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 hover:shadow-lg">
+                           class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 transition-all duration-200 hover:shadow-lg">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             Request Certificate
                         </a>
                         <div class="text-sm text-gray-500">
-                            Or <a href="{% url 'core:dashboard' %}" class="text-blue-600 hover:text-blue-800 font-medium">return to dashboard</a>
+                            Or <a href="{% url 'core:dashboard' %}" class="text-primary-600 hover:text-primary-800 font-medium">return to dashboard</a>
                         </div>
                     </div>
                     {% endif %}

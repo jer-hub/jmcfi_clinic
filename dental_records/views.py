@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from datetime import datetime
 
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
@@ -33,15 +34,14 @@ User = get_user_model()
 @login_required
 def dental_record_list(request):
     """List all dental records with search and filtering"""
-    # Students can only see their own completed records
+    # Students can only see their own records
     if request.user.role == 'student':
         dental_records = DentalRecord.objects.filter(
-            patient=request.user,
-            status='completed'
-        ).select_related('patient', 'examined_by')
+            patient=request.user
+        ).select_related('patient', 'examined_by', 'appointment')
     else:
         # Staff, doctors, and admins can see all records
-        dental_records = DentalRecord.objects.select_related('patient', 'examined_by').all()
+        dental_records = DentalRecord.objects.select_related('patient', 'examined_by', 'appointment').all()
     
     # Search functionality
     search_query = request.GET.get('search', '')
@@ -62,14 +62,61 @@ def dental_record_list(request):
     if date_to:
         dental_records = dental_records.filter(date_of_examination__lte=date_to)
 
+    # Include dental appointments still waiting doctor confirmation and not yet converted to records
+    pending_dental_appointments = Appointment.objects.filter(
+        appointment_type='dental',
+        status__in=['pending', 'cancelled']
+    ).exclude(
+        dental_records__isnull=False
+    ).select_related('student', 'doctor').distinct()
+
+    if request.user.role == 'student':
+        pending_dental_appointments = pending_dental_appointments.filter(student=request.user)
+
+    if search_query:
+        pending_dental_appointments = pending_dental_appointments.filter(
+            models.Q(student__first_name__icontains=search_query)
+            | models.Q(student__last_name__icontains=search_query)
+            | models.Q(student__email__icontains=search_query)
+        )
+
+    if date_from:
+        pending_dental_appointments = pending_dental_appointments.filter(date__gte=date_from)
+    if date_to:
+        pending_dental_appointments = pending_dental_appointments.filter(date__lte=date_to)
+
     # Status totals for the currently filtered result set
     status_totals = {
         'pending': dental_records.filter(status='pending').count(),
         'completed': dental_records.filter(status='completed').count(),
     }
     
+    # Merge records + appointment-only rows, then sort by latest date/time
+    table_rows = []
+
+    for record in dental_records:
+        if record.appointment and record.appointment.time:
+            row_time = record.appointment.time
+        else:
+            row_time = record.created_at.time()
+
+        table_rows.append({
+            'row_type': 'record',
+            'record': record,
+            'sort_datetime': datetime.combine(record.date_of_examination, row_time),
+        })
+
+    for appointment in pending_dental_appointments:
+        table_rows.append({
+            'row_type': 'appointment',
+            'appointment': appointment,
+            'sort_datetime': datetime.combine(appointment.date, appointment.time),
+        })
+
+    table_rows.sort(key=lambda row: row['sort_datetime'], reverse=True)
+
     # Pagination
-    paginator = Paginator(dental_records, 20)
+    paginator = Paginator(table_rows, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     

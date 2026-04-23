@@ -337,12 +337,15 @@
               <div class="hidden sm:flex items-center gap-2 ml-1">
                 <a href="{% url 'core:profile' %}" class="text-sm text-gray-700 hover:text-primary-600 truncate max-w-36">{{ user.get_full_name }}</a>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">{{ user.get_role_display }}</span>
-                <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-gray-500 p-1">
-                  <span class="sr-only">Logout</span>
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </a>
+                <form method="post" action="{% url 'account_logout' %}" class="inline">
+                  {% csrf_token %}
+                  <button type="submit" class="text-gray-400 hover:text-gray-500 p-1">
+                    <span class="sr-only">Logout</span>
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </button>
+                </form>
               </div>
 
               <button type="button" class="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100" aria-controls="mobile-menu" aria-expanded="false" id="mobile-menu-button">
@@ -364,11 +367,14 @@
                   <a href="{% url 'core:profile' %}" class="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block">{{ user.get_full_name }}</a>
                   <div class="text-xs text-gray-500">{{ user.get_role_display }}</div>
                 </div>
-                <a href="{% url 'account_logout' %}" class="text-gray-400 hover:text-gray-500 p-1">
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                  </svg>
-                </a>
+                <form method="post" action="{% url 'account_logout' %}" class="inline">
+                  {% csrf_token %}
+                  <button type="submit" class="text-gray-400 hover:text-gray-500 p-1">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                  </button>
+                </form>
               </div>
 
               <a href="{% url 'core:dashboard' %}" class="mobile-link {% if request.resolver_match.view_name == 'core:dashboard' %}active{% endif %}">Dashboard</a>
@@ -532,30 +538,7 @@
         </div>
       </nav>
 
-      {% if profile_completion_required %}
-      <div id="profile-banner" class="bg-blue-50 border-b border-blue-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center">
-              <svg class="h-4 w-4 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-              </svg>
-              <span class="text-sm text-blue-700">
-                <strong>Profile Setup:</strong> Complete your profile to access all features.
-              </span>
-            </div>
-            <div class="flex items-center">
-              <a href="{% url 'core:edit_profile' %}" class="text-sm text-blue-600 hover:text-blue-800 font-medium underline mr-3">Complete Now</a>
-              <button onclick="document.getElementById('profile-banner').style.display='none'" class="text-blue-400 hover:text-blue-600">
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      {% endif %}
+      <!-- Profile setup banner removed by request -->
     {% endif %}
 
     {% block header %}

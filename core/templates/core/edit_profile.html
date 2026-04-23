@@ -40,25 +40,7 @@
         </div>
 
         <div class="bg-white shadow rounded-lg overflow-hidden">
-            <!-- Progress Indicator for First Time Users -->
-            {% if is_first_time %}
-            <div class="px-8 py-4 bg-primary-50 border-b border-primary-100">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-primary-800 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
-                        </svg>
-                        Profile Setup Required
-                    </h3>
-                    <div class="flex items-center text-sm text-primary-700 font-medium">
-                        <svg class="w-5 h-5 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                        </svg>
-                        Fields marked with <span class="text-red-600 mx-1">*</span> are required
-                    </div>
-                </div>
-            </div>
-            {% endif %}
+            <!-- First-time setup banner removed by request -->
             
             <form method="post" enctype="multipart/form-data" class="space-y-0">
                 {% csrf_token %}
@@ -202,6 +184,147 @@
 </div>
 
 <script>
+{% if user.role == 'student' %}
+const EDIT_PROFILE_COLLEGE_OPTIONS = {{ college_options_json|safe }};
+const EDIT_PROFILE_COURSE_OPTIONS_BY_COLLEGE = {{ course_options_by_college_json|safe }};
+const EDIT_PROFILE_YEAR_LEVEL_OPTIONS_BY_COLLEGE = {{ year_level_options_by_college_json|safe }};
+
+function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel) {
+    return {
+        department: initialDepartment || '',
+        course: initialCourse || '',
+        yearLevel: initialYearLevel || '',
+        optionalCourseDepartments: ['IBED - Primary', 'IBED - Junior High School', 'IBED - Junior Highschool'],
+
+        get collegeOptions() {
+            return EDIT_PROFILE_COLLEGE_OPTIONS || [];
+        },
+
+        get filteredCourseOptions() {
+            return EDIT_PROFILE_COURSE_OPTIONS_BY_COLLEGE[this.department] || [];
+        },
+
+        get filteredYearLevelOptions() {
+            return EDIT_PROFILE_YEAR_LEVEL_OPTIONS_BY_COLLEGE[this.department] || [];
+        },
+
+        get isCourseOptional() {
+            return this.optionalCourseDepartments.includes((this.department || '').trim());
+        },
+
+        rebuildSelectOptions(selectEl, options, placeholder, currentValue) {
+            if (!selectEl) return;
+
+            const previousValue = currentValue || selectEl.value || '';
+            selectEl.innerHTML = '';
+
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = placeholder;
+            selectEl.appendChild(emptyOption);
+
+            (options || []).forEach((option) => {
+                const opt = document.createElement('option');
+                opt.value = option;
+                opt.textContent = option;
+                selectEl.appendChild(opt);
+            });
+
+            selectEl.value = (options || []).includes(previousValue) ? previousValue : '';
+        },
+
+        onDepartmentChange() {
+            const alignedCourseOptions = this.filteredCourseOptions;
+            const alignedYearOptions = this.filteredYearLevelOptions;
+
+            this.rebuildSelectOptions(this.$refs.courseSelect, alignedCourseOptions, 'Select course/program', this.course);
+            this.rebuildSelectOptions(this.$refs.yearLevelSelect, alignedYearOptions, 'Select year level', this.yearLevel);
+
+            this.course = (alignedCourseOptions || []).includes(this.course) ? this.course : '';
+            this.yearLevel = (alignedYearOptions || []).includes(this.yearLevel) ? this.yearLevel : '';
+        },
+
+        sanitizeAcademicValues() {
+            const alignedCourseOptions = this.filteredCourseOptions;
+            const alignedYearOptions = this.filteredYearLevelOptions;
+
+            if (!(alignedCourseOptions || []).includes(this.course)) {
+                this.course = '';
+            }
+
+            if (!(alignedYearOptions || []).includes(this.yearLevel)) {
+                this.yearLevel = '';
+            }
+        },
+
+        init() {
+            this.$nextTick(() => {
+                this.onDepartmentChange();
+
+                const formEl = this.$el.closest('form');
+                if (formEl) {
+                    formEl.addEventListener('submit', () => {
+                        // Final guard: avoid submitting stale values that don't match department.
+                        this.sanitizeAcademicValues();
+                    });
+                }
+            });
+        },
+    };
+}
+
+function studentListField(initialValue) {
+    return {
+        listItems: [],
+        listInput: '',
+        validationError: '',
+
+        get serializedValue() {
+            return this.listItems.join('\n');
+        },
+
+        set serializedValue(value) {
+            this.listItems = this.parseListValue(value || '');
+        },
+
+        parseListValue(value) {
+            return (value || '')
+                .split(/[\n,;]+/)
+                .map((item) => item.trim())
+                .filter((item, idx, arr) => item && arr.indexOf(item) === idx);
+        },
+
+        addItem() {
+            const item = (this.listInput || '').trim();
+            if (!item) return;
+            if (item.length > 120) {
+                this.validationError = 'Each list item must be 120 characters or fewer.';
+                return;
+            }
+            if (!this.listItems.includes(item)) {
+                this.listItems.push(item);
+            }
+            if (this.listItems.length > 30) {
+                this.listItems.pop();
+                this.validationError = 'Maximum 30 items allowed.';
+                return;
+            }
+            this.listInput = '';
+            this.validationError = '';
+        },
+
+        removeItem(index) {
+            this.listItems.splice(index, 1);
+            this.validationError = '';
+        },
+
+        init() {
+            this.listItems = this.parseListValue(initialValue || '');
+        },
+    };
+}
+{% endif %}
+
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('profile-image-input');
     const currentImage = document.getElementById('current-image');

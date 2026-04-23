@@ -1,11 +1,23 @@
 # templatetags/role_tags.py
 from django import template
+import re
 
 register = template.Library()
 
 @register.filter
 def has_role(user, role):
     return user.role == role
+
+
+@register.filter
+def split_list_items(value):
+    """Split multiline/comma-separated text into cleaned non-empty items."""
+    if not value:
+        return []
+
+    text = str(value)
+    parts = re.split(r'[\n,;]+', text)
+    return [item.strip() for item in parts if item and item.strip()]
 
 # Navigation helpers
 @register.simple_tag(takes_context=True)

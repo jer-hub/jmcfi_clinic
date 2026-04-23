@@ -1,6 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from .models import StudentProfile, StaffProfile, Notification
+from .models import (
+    StudentProfile,
+    StaffProfile,
+    Notification,
+    CourseProgram,
+    CollegeDepartment,
+    YearLevelOption,
+)
 
 User = get_user_model()
 
@@ -58,3 +65,24 @@ class NotificationAdmin(admin.ModelAdmin):
     def mark_as_unread(self, request, queryset):
         queryset.update(is_read=False)
     mark_as_unread.short_description = "Mark selected notifications as unread"
+
+
+@admin.register(CourseProgram)
+class CourseProgramAdmin(admin.ModelAdmin):
+    list_display = ('name', 'college_department', 'is_active', 'updated_at')
+    search_fields = ('name',)
+    list_filter = ('college_department', 'is_active',)
+
+
+@admin.register(CollegeDepartment)
+class CollegeDepartmentAdmin(admin.ModelAdmin):
+    list_display = ('name', 'is_active', 'updated_at')
+    search_fields = ('name',)
+    list_filter = ('is_active',)
+
+
+@admin.register(YearLevelOption)
+class YearLevelOptionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'college_department', 'sort_order', 'is_active', 'updated_at')
+    search_fields = ('name', 'college_department__name')
+    list_filter = ('college_department', 'is_active')

@@ -56,6 +56,9 @@
                                 {% if field.errors %}
                                     <p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>
                                 {% endif %}
+                                {% if field.help_text %}
+                                    <p class="text-xs text-gray-500 mt-1">{{ field.help_text }}</p>
+                                {% endif %}
                             </div>
                         {% endfor %}
                     </div>

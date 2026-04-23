@@ -326,6 +326,7 @@
         </div>
     </div>
 
+    {% if user.role != 'doctor' %}
     <!-- Medical Information Section -->
     <div>
         <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
@@ -395,4 +396,5 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </div>

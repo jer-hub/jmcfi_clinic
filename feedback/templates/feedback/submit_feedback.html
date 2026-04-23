@@ -132,19 +132,56 @@
                             <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
                         </div>
                     {% elif recent_appointments %}
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                Link to a recent appointment (optional)
+                        <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 sm:p-5">
+                            <label class="block text-sm font-semibold text-gray-800 mb-2">
+                                Link to a recent appointment <span class="text-gray-500 font-normal">(optional)</span>
                             </label>
-                            <select name="appointment_id" class="w-full px-4 py-3 rounded-xl border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white text-sm">
-                                <option value="">— No specific appointment —</option>
-                                {% for apt in recent_appointments %}
-                                    <option value="{{ apt.id }}">
-                                        {{ apt.date|date:"M d, Y" }} at {{ apt.time|time:"h:i A" }}
-                                        {% if apt.doctor %} - Dr. {{ apt.doctor.get_full_name }}{% endif %}
-                                    </option>
-                                {% endfor %}
-                            </select>
+                            <p class="text-xs text-gray-600 mb-3">Search by date, time, or doctor name to find appointment faster.</p>
+
+                            <div class="relative mb-3">
+                                <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-4.65a6 6 0 11-12 0 6 6 0 0112 0z"></path>
+                                    </svg>
+                                </span>
+                                <input
+                                    type="text"
+                                    id="appointment-search"
+                                    class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white text-sm"
+                                    placeholder="Search appointment..."
+                                    autocomplete="off">
+                            </div>
+
+                            <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                                <div class="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+                                    <p class="text-xs font-semibold tracking-wide uppercase text-slate-600">Recent Appointments</p>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 text-xs font-medium">Pick one</span>
+                                </div>
+                                <input type="hidden" id="appointment-id" name="appointment_id" value="">
+                                <div id="appointment-option-list" class="max-h-64 overflow-y-auto p-2 space-y-2" role="listbox" aria-label="Recent appointments">
+                                    <button
+                                        type="button"
+                                        data-appointment-option
+                                        data-value=""
+                                        data-search="no specific appointment none"
+                                        class="w-full text-left rounded-xl border border-slate-200 bg-white px-3 py-2.5 hover:border-primary-300 hover:bg-primary-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                        <span class="text-sm font-medium text-slate-800">No specific appointment</span>
+                                        <p class="text-xs text-slate-500 mt-0.5">Use this for general service feedback.</p>
+                                    </button>
+                                    {% for apt in recent_appointments %}
+                                        <button
+                                            type="button"
+                                            data-appointment-option
+                                            data-value="{{ apt.id }}"
+                                            data-search="{{ apt.date|date:'M d, Y'|lower }} {{ apt.date|date:'F d, Y'|lower }} {{ apt.time|time:'h:i A'|lower }} {% if apt.doctor %}dr {{ apt.doctor.get_full_name|lower }}{% endif %}"
+                                            class="w-full text-left rounded-xl border border-slate-200 bg-white px-3 py-2.5 hover:border-primary-300 hover:bg-primary-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                            <p class="text-sm font-semibold text-slate-800">{{ apt.date|date:"M d, Y" }} <span class="font-normal">at {{ apt.time|time:"h:i A" }}</span></p>
+                                            <p class="text-xs text-slate-500 mt-0.5">{% if apt.doctor %}Dr. {{ apt.doctor.get_full_name }}{% else %}No assigned doctor{% endif %}</p>
+                                        </button>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <p id="appointment-search-result" class="text-xs text-gray-500 mt-2">Showing all recent appointments</p>
                         </div>
                     {% endif %}
                     
@@ -504,10 +541,80 @@
     document.addEventListener('DOMContentLoaded', function() {
         const commentsField = document.getElementById('comments');
         const commentCount = document.getElementById('comment-count');
+        const appointmentSearchField = document.getElementById('appointment-search');
+        const appointmentInput = document.getElementById('appointment-id');
+        const appointmentOptionList = document.getElementById('appointment-option-list');
+        const appointmentOptionButtons = appointmentOptionList
+            ? Array.from(appointmentOptionList.querySelectorAll('[data-appointment-option]'))
+            : [];
+        const appointmentSearchResult = document.getElementById('appointment-search-result');
         
         commentsField.addEventListener('input', function() {
             commentCount.textContent = this.value.length;
         });
+
+        if (appointmentSearchField && appointmentInput && appointmentOptionButtons.length) {
+            const selectAppointmentOption = function(optionButton) {
+                const optionValue = optionButton.dataset.value || '';
+                appointmentInput.value = optionValue;
+
+                appointmentOptionButtons.forEach((btn) => {
+                    const isSelected = btn === optionButton;
+                    btn.classList.toggle('border-primary-500', isSelected);
+                    btn.classList.toggle('bg-primary-50', isSelected);
+                    btn.classList.toggle('ring-1', isSelected);
+                    btn.classList.toggle('ring-primary-300', isSelected);
+                });
+            };
+
+            appointmentOptionButtons.forEach((optionButton, index) => {
+                optionButton.addEventListener('click', function() {
+                    selectAppointmentOption(optionButton);
+                });
+
+                // Default selection: no specific appointment.
+                if (index === 0) {
+                    selectAppointmentOption(optionButton);
+                }
+            });
+
+            const filterAppointments = function() {
+                const term = (appointmentSearchField.value || '').trim().toLowerCase();
+                let visibleCount = 0;
+
+                appointmentOptionButtons.forEach((optionButton) => {
+                    const optionValue = optionButton.dataset.value || '';
+                    if (!optionValue) {
+                        optionButton.classList.remove('hidden');
+                        return;
+                    }
+
+                    const searchableText = (optionButton.dataset.search || optionButton.textContent || '').toLowerCase();
+                    const isMatch = !term || searchableText.includes(term);
+                    optionButton.classList.toggle('hidden', !isMatch);
+
+                    if (isMatch) {
+                        visibleCount += 1;
+                    }
+
+                    if (!isMatch && appointmentInput.value === optionValue) {
+                        const noSpecificButton = appointmentOptionButtons.find((btn) => (btn.dataset.value || '') === '');
+                        if (noSpecificButton) {
+                            selectAppointmentOption(noSpecificButton);
+                        }
+                    }
+                });
+
+                if (appointmentSearchResult) {
+                    appointmentSearchResult.textContent = term
+                        ? `${visibleCount} appointment${visibleCount === 1 ? '' : 's'} match your search`
+                        : 'Showing all recent appointments';
+                }
+            };
+
+            appointmentSearchField.addEventListener('input', filterAppointments);
+            filterAppointments();
+        }
         
         // Form validation before submit
         document.getElementById('feedback-form').addEventListener('submit', function(e) {

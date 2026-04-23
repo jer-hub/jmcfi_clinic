@@ -306,6 +306,8 @@ def appointment_detail(request, appointment_id):
         return redirect('appointments:appointment_list')
     
     if request.method == 'POST':
+        next_url = request.POST.get('next')
+
         if request.user.role in ['staff', 'doctor', 'admin']:
             status = request.POST.get('status')
             notes = request.POST.get('notes')
@@ -356,6 +358,9 @@ def appointment_detail(request, appointment_id):
             else:
                 messages.error(request, 'Cannot cancel this appointment')
         
+        if next_url and next_url.startswith('/'):
+            return redirect(next_url)
+
         return redirect('appointments:appointment_detail', appointment_id=appointment.id)
     
     return render(request, 'appointments/appointment_detail.html', {'appointment': appointment})

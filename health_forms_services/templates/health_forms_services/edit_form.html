@@ -203,6 +203,8 @@
                         <select name="designation" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                             <option value="">Select</option>
                             <option value="student" {% if health_form.designation == 'student' %}selected{% endif %}>Student</option>
+                            <option value="staff" {% if health_form.designation == 'staff' %}selected{% endif %}>Staff</option>
+                            <option value="doctor" {% if health_form.designation == 'doctor' %}selected{% endif %}>Doctor</option>
                             <option value="employee" {% if health_form.designation == 'employee' %}selected{% endif %}>Employee</option>
                         </select>
                     </div>

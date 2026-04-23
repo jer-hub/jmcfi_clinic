@@ -225,6 +225,58 @@ class StaffProfile(models.Model):
         return None
 
 
+class CourseProgram(models.Model):
+    college_department = models.ForeignKey(
+        'CollegeDepartment',
+        on_delete=models.PROTECT,
+        related_name='course_programs',
+    )
+    name = models.CharField(max_length=120)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['college_department__name', 'name']
+        unique_together = [('college_department', 'name')]
+
+    def __str__(self):
+        return f"{self.name} ({self.college_department.name})"
+
+
+class CollegeDepartment(models.Model):
+    name = models.CharField(max_length=120, unique=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
+class YearLevelOption(models.Model):
+    college_department = models.ForeignKey(
+        'CollegeDepartment',
+        on_delete=models.PROTECT,
+        related_name='year_levels',
+    )
+    name = models.CharField(max_length=50)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['college_department__name', 'sort_order', 'name']
+        unique_together = [('college_department', 'name')]
+
+    def __str__(self):
+        return f"{self.name} ({self.college_department.name})"
+
+
 # Notification Model
 class Notification(models.Model):
     TYPE_CHOICES = [

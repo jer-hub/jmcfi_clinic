@@ -1,10 +1,12 @@
+import re
+
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from core.utils import clean_philippine_phone
 from .models import HealthProfileForm, DentalHealthForm, DentalServicesRequest, PatientChart, PatientChartEntry, Prescription, PrescriptionItem
 
 User = get_user_model()
+PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
 
 
 class HealthProfilePersonalInfoForm(forms.ModelForm):
@@ -18,7 +20,9 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'religion', 'civil_status', 'place_of_birth',
             'date_of_birth', 'citizenship', 'age', 'gender',
             'email_address', 'mobile_number', 'telephone_number',
-            'designation', 'department_college_office',
+            'designation', 'institution_id', 'department_college_office',
+            'course', 'year_level', 'position', 'specialization',
+            'license_number', 'ptr_no', 'blood_type', 'medical_conditions',
             'guardian_name', 'guardian_contact',
         ]
         widgets = {
@@ -37,24 +41,49 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'email_address': forms.EmailInput(attrs={'class': 'form-input'}),
             'mobile_number': forms.TextInput(attrs={
-                'class': 'form-input pl-12 pr-10',
-                'data-phone-input': 'true',
-                'placeholder': '0917 123 4567',
-                'inputmode': 'tel',
+                'class': 'form-input',
+                'type': 'tel',
+                'placeholder': '9XXXXXXXXX',
                 'autocomplete': 'tel',
-                'maxlength': '16',
+                'inputmode': 'numeric',
+                'pattern': '^\+63\d{10}$',
+                'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
+                'maxlength': '13',
+                'minlength': '13',
             }),
-            'telephone_number': forms.TextInput(attrs={'class': 'form-input'}),
+            'telephone_number': forms.TextInput(attrs={
+                'class': 'form-input',
+                'type': 'tel',
+                'placeholder': '9XXXXXXXXX',
+                'autocomplete': 'tel',
+                'inputmode': 'numeric',
+                'pattern': '^\+63\d{10}$',
+                'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
+                'maxlength': '13',
+                'minlength': '13',
+            }),
             'designation': forms.Select(attrs={'class': 'form-select'}),
+            'institution_id': forms.TextInput(attrs={'class': 'form-input'}),
             'department_college_office': forms.TextInput(attrs={'class': 'form-input'}),
+            'course': forms.TextInput(attrs={'class': 'form-input'}),
+            'year_level': forms.TextInput(attrs={'class': 'form-input'}),
+            'position': forms.TextInput(attrs={'class': 'form-input'}),
+            'specialization': forms.TextInput(attrs={'class': 'form-input'}),
+            'license_number': forms.TextInput(attrs={'class': 'form-input'}),
+            'ptr_no': forms.TextInput(attrs={'class': 'form-input'}),
+            'blood_type': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g., O+'}),
+            'medical_conditions': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
             'guardian_name': forms.TextInput(attrs={'class': 'form-input'}),
             'guardian_contact': forms.TextInput(attrs={
-                'class': 'form-input pl-12 pr-10',
-                'data-phone-input': 'true',
-                'placeholder': '0917 123 4567',
-                'inputmode': 'tel',
+                'class': 'form-input',
+                'type': 'tel',
+                'placeholder': '9XXXXXXXXX',
                 'autocomplete': 'tel',
-                'maxlength': '16',
+                'inputmode': 'numeric',
+                'pattern': '^\+63\d{10}$',
+                'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
+                'maxlength': '13',
+                'minlength': '13',
             }),
         }
 
@@ -69,11 +98,39 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             if name in self.fields:
                 self.fields[name].required = True
 
+        # Strict contact policy: +63 followed by 10 digits only.
+        if 'mobile_number' in self.fields:
+            self.fields['mobile_number'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
+        if 'telephone_number' in self.fields:
+            self.fields['telephone_number'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
+        if 'guardian_contact' in self.fields:
+            self.fields['guardian_contact'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
+
+        # Prefill +63 for empty contact fields so users enter only 10 remaining digits.
+        for contact_field in ['mobile_number', 'telephone_number', 'guardian_contact']:
+            if contact_field in self.fields:
+                current_value = self.initial.get(contact_field)
+                if not current_value and self.instance and self.instance.pk:
+                    current_value = getattr(self.instance, contact_field, '')
+                if not current_value:
+                    self.initial[contact_field] = '+63'
+
+    def _clean_strict_ph(self, value):
+        value = (value or '').strip()
+        if not value:
+            return value
+        if not PH_STRICT_E164_RE.fullmatch(value):
+            raise ValidationError('Enter a valid Philippine number in +63XXXXXXXXXX format.')
+        return value
+
     def clean_mobile_number(self):
-        return clean_philippine_phone(self.cleaned_data.get('mobile_number'))
+        return self._clean_strict_ph(self.cleaned_data.get('mobile_number'))
+
+    def clean_telephone_number(self):
+        return self._clean_strict_ph(self.cleaned_data.get('telephone_number'))
 
     def clean_guardian_contact(self):
-        return clean_philippine_phone(self.cleaned_data.get('guardian_contact'))
+        return self._clean_strict_ph(self.cleaned_data.get('guardian_contact'))
 
 
 class HealthProfileMedicalHistoryForm(forms.ModelForm):

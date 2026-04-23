@@ -13,6 +13,8 @@ class HealthProfileForm(models.Model):
     
     class Designation(models.TextChoices):
         STUDENT = 'student', 'Student'
+        STAFF = 'staff', 'Staff'
+        DOCTOR = 'doctor', 'Doctor'
         EMPLOYEE = 'employee', 'Employee'
     
     class Gender(models.TextChoices):
@@ -62,7 +64,16 @@ class HealthProfileForm(models.Model):
     mobile_number = models.CharField(max_length=20, blank=True)
     telephone_number = models.CharField(max_length=20, blank=True)
     designation = models.CharField(max_length=20, choices=Designation.choices, blank=True)
+    institution_id = models.CharField(max_length=30, blank=True, help_text='Student ID or Staff ID')
     department_college_office = models.CharField(max_length=200, blank=True)
+    course = models.CharField(max_length=100, blank=True)
+    year_level = models.CharField(max_length=20, blank=True)
+    position = models.CharField(max_length=100, blank=True)
+    specialization = models.CharField(max_length=100, blank=True)
+    license_number = models.CharField(max_length=50, blank=True)
+    ptr_no = models.CharField(max_length=100, blank=True, help_text='Professional Tax Receipt or PTR number')
+    blood_type = models.CharField(max_length=5, blank=True)
+    medical_conditions = models.TextField(blank=True)
     
     # Emergency Contact
     guardian_name = models.CharField(max_length=200, blank=True)

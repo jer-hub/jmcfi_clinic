@@ -117,6 +117,7 @@ JMCFI Clinic Management System is a Django-based web application designed to str
    DEBUG=True
    GOOGLE_CLIENT_ID=your-google-client-id
    GOOGLE_CLIENT_SECRET=your-google-client-secret
+   GOOGLE_ALLOWED_DOMAINS=jmc.edu.ph,jmcfi.edu.ph
    ```
 
 6. **Run database migrations**

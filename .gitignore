@@ -10,6 +10,9 @@ wheels/
 .venv
 venv
 
+# Local environment secrets
+.env
+
 # Media files (uploaded content)
 media/
 

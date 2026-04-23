@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
+from datetime import datetime
 
 from .models import MedicalRecord
 from core.models import Notification
@@ -39,12 +40,16 @@ def medical_records(request):
     # Get records based on user role
     if request.user.role == 'student':
         records = MedicalRecord.objects.filter(student=request.user)
+        appointments = Appointment.objects.filter(student=request.user)
     elif request.user.role in ['staff', 'doctor']:
         records = MedicalRecord.objects.filter(doctor=request.user)
+        appointments = Appointment.objects.filter(doctor=request.user)
     elif request.user.role == 'admin':
         records = MedicalRecord.objects.all()
+        appointments = Appointment.objects.all()
     else:
         records = MedicalRecord.objects.none()
+        appointments = Appointment.objects.none()
     
     # Apply filters
     student_id = request.GET.get('student_id')
@@ -53,10 +58,13 @@ def medical_records(request):
     
     if student_id and request.user.role in ['staff', 'doctor', 'admin']:
         records = records.filter(student__student_profile__student_id__icontains=student_id)
+        appointments = appointments.filter(student__student_profile__student_id__icontains=student_id)
     if date_from:
         records = records.filter(created_at__date__gte=date_from)
+        appointments = appointments.filter(date__gte=date_from)
     if date_to:
         records = records.filter(created_at__date__lte=date_to)
+        appointments = appointments.filter(date__lte=date_to)
 
     # Status totals for the currently filtered result set
     completed_total = records.filter(appointment__status='completed').count()
@@ -68,7 +76,35 @@ def medical_records(request):
     ).count()
     
     records = records.select_related('student', 'doctor', 'appointment').order_by('-created_at')
-    records = paginate_queryset(records, request)
+    appointments = appointments.exclude(appointment_type='dental').exclude(
+        medicalrecord__isnull=False
+    ).select_related('student', 'doctor').order_by('-date', '-time')
+
+    timeline_rows = []
+
+    for record in records:
+        timeline_rows.append({
+            'row_type': 'record',
+            'record': record,
+            'sort_datetime': record.created_at,
+        })
+
+    for appointment in appointments:
+        appointment_datetime = datetime.combine(appointment.date, appointment.time)
+        if timezone.is_naive(appointment_datetime):
+            appointment_datetime = timezone.make_aware(
+                appointment_datetime,
+                timezone.get_current_timezone()
+            )
+
+        timeline_rows.append({
+            'row_type': 'appointment',
+            'appointment': appointment,
+            'sort_datetime': appointment_datetime,
+        })
+
+    timeline_rows.sort(key=lambda row: row['sort_datetime'], reverse=True)
+    records = paginate_queryset(timeline_rows, request)
     
     context = {
         'records': records,
@@ -221,6 +257,11 @@ def create_medical_record(request, appointment_id):
         return redirect('core:dashboard')
     
     appointment = get_object_or_404(Appointment, id=appointment_id, doctor=request.user)
+
+    # General consultation must be confirmed before a medical record can be created.
+    if appointment.appointment_type == 'consultation' and appointment.status == 'pending':
+        messages.warning(request, 'General consultation appointments must be confirmed first before creating a medical record.')
+        return redirect('appointments:appointment_detail', appointment_id=appointment.id)
     
     # Check if medical record already exists
     if MedicalRecord.objects.filter(appointment=appointment).exists():

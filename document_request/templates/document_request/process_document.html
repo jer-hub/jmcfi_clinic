@@ -153,25 +153,6 @@
                     </div>
                 </div>
 
-                <!-- Certificate Preview Link -->
-                {% if cert_request.medical_certificate %}
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-6">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm font-medium text-blue-900">View Certificate</p>
-                            <p class="text-xs text-blue-700 mt-1">Open detailed certificate preview</p>
-                        </div>
-                        <a href="{% url 'document_request:preview_medical_certificate' cert_request.medical_certificate.pk %}"
-                           class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                            </svg>
-                            View Full Preview
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
             </div>
 
             <!-- Actions Panel -->
@@ -218,6 +199,17 @@
                     </div>
 
                     <div class="p-4">
+                        {% if cert_request.medical_certificate %}
+                        <a href="{% url 'document_request:preview_medical_certificate' cert_request.medical_certificate.pk %}"
+                           class="w-full inline-flex items-center justify-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium mb-3">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            View Full Preview
+                        </a>
+                        {% endif %}
+
                         {% if can_process %}
                         <form method="POST" id="processForm" class="space-y-3">
                             {% csrf_token %}
@@ -259,9 +251,6 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                     </svg>
                                     <p class="text-sm font-medium text-red-700">Request Rejected</p>
-                                    {% if cert_request.rejection_reason %}
-                                    <p class="text-xs text-red-600 mt-1">See rejection reason above</p>
-                                    {% endif %}
                                 </div>
                                 {% else %}
                                 <p class="text-sm">No actions available for this request.</p>

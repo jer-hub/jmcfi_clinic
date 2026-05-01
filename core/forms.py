@@ -2,6 +2,8 @@ import re
 
 from django import forms
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import (
     StudentProfile,
     StaffProfile,
@@ -49,6 +51,43 @@ def clean_strict_ph_number(value, required=False):
     if not PH_STRICT_E164_RE.fullmatch(value):
         raise forms.ValidationError('Enter a valid Philippine number in +63XXXXXXXXXX format.')
     return value
+
+
+class AdminLoginForm(forms.Form):
+    """Password login form restricted to admin-role authentication flow."""
+
+    email = forms.EmailField(
+        widget=forms.EmailInput(
+            attrs={
+                'class': (
+                    'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm '
+                    'placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 '
+                    'focus:border-primary-500 sm:text-sm'
+                ),
+                'placeholder': 'admin@jmcfi.edu.ph',
+                'autocomplete': 'email',
+                'required': True,
+            }
+        )
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={
+                'class': (
+                    'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm '
+                    'placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 '
+                    'focus:border-primary-500 sm:text-sm'
+                ),
+                'placeholder': 'Enter password',
+                'autocomplete': 'current-password',
+                'required': True,
+            }
+        )
+    )
+    remember_me = forms.BooleanField(required=False)
+
+    def clean_email(self):
+        return (self.cleaned_data.get('email') or '').strip().lower()
 
 
 class StudentProfileForm(forms.ModelForm):
@@ -408,6 +447,21 @@ class StaffProfileForm(forms.ModelForm):
             if 'ptr_no' in self.fields:
                 self.fields['ptr_no'].required = False
 
+        if role == 'admin':
+            # Admin profiles should not collect professional or medical-health details.
+            for hidden_field in [
+                'department',
+                'position',
+                'specialization',
+                'license_number',
+                'ptr_no',
+                'blood_type',
+                'allergies',
+                'medical_conditions',
+            ]:
+                if hidden_field in self.fields:
+                    self.fields.pop(hidden_field)
+
     def clean_phone(self):
         return clean_strict_ph_number(self.cleaned_data.get('phone'), required=True)
 
@@ -432,6 +486,15 @@ class StaffProfileForm(forms.ModelForm):
 
 class UserCreationForm(forms.ModelForm):
     """Form for creating new users (students or staff)"""
+
+    activate_now = forms.BooleanField(
+        required=False,
+        initial=False,
+        label='Activate account now',
+        widget=forms.CheckboxInput(attrs={
+            'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
+        })
+    )
     
     password1 = forms.CharField(
         label='Password',
@@ -492,40 +555,69 @@ class UserCreationForm(forms.ModelForm):
         
         if password1 and password2 and password1 != password2:
             raise forms.ValidationError("Passwords don't match")
-        
-        if password1 and len(password1) < 8:
-            raise forms.ValidationError("Password must be at least 8 characters long")
+
+        if password1:
+            user_for_validation = User(
+                email=(self.cleaned_data.get('email') or '').strip().lower(),
+                username=self.cleaned_data.get('username') or None,
+                first_name=(self.cleaned_data.get('first_name') or '').strip(),
+                last_name=(self.cleaned_data.get('last_name') or '').strip(),
+                role=self.cleaned_data.get('role') or User.ROLE.STUDENT,
+            )
+            try:
+                validate_password(password1, user=user_for_validation)
+            except DjangoValidationError as exc:
+                raise forms.ValidationError(exc.messages)
         
         return password2
     
     def clean_email(self):
-        email = self.cleaned_data.get('email')
-        if User.objects.filter(email=email).exists():
+        email = (self.cleaned_data.get('email') or '').strip().lower()
+        if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError("A user with this email already exists")
         return email
+
+    def clean_username(self):
+        username = (self.cleaned_data.get('username') or '').strip()
+        if not username:
+            return None
+
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("A user with this username already exists")
+        return username
     
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data['password1'])
+        if self.cleaned_data.get('activate_now'):
+            user.is_active = True
+            user.onboarding_status = User.ONBOARDING_STATUS.ACTIVE
+        else:
+            user.is_active = False
+            user.onboarding_status = User.ONBOARDING_STATUS.PENDING_ACTIVATION
         
         if commit:
             user.save()
             # Create profile based on role
             if user.role == 'student':
-                StudentProfile.objects.create(
+                StudentProfile.objects.get_or_create(
                     user=user,
-                    student_id=f'TEMP_{user.id}',
-                    phone='',
-                    emergency_contact='',
-                    emergency_phone='',
-                    date_of_birth='2000-01-01'
+                    defaults={
+                        'student_id': f'TEMP_{user.id}',
+                        'phone': '',
+                        'emergency_contact': '',
+                        'emergency_phone': '',
+                        'date_of_birth': '2000-01-01',
+                    }
                 )
             elif user.role in ['staff', 'doctor']:
-                StaffProfile.objects.create(
+                StaffProfile.objects.get_or_create(
                     user=user,
-                    staff_id=f'TEMP_{user.id}',
-                    phone='',
-                    department='Pending'
+                    defaults={
+                        'staff_id': f'TEMP_{user.id}',
+                        'phone': '',
+                        'department': 'Pending',
+                    }
                 )
         
         return user
@@ -576,15 +668,28 @@ class UserEditForm(forms.ModelForm):
         self.fields['username'].required = False
     
     def clean_email(self):
-        email = self.cleaned_data.get('email')
+        email = (self.cleaned_data.get('email') or '').strip().lower()
         # Check if email exists for other users
-        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+        if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("A user with this email already exists")
         return email
+
+    def clean_username(self):
+        username = (self.cleaned_data.get('username') or '').strip()
+        if not username:
+            return None
+
+        if User.objects.filter(username__iexact=username).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("A user with this username already exists")
+        return username
 
 
 class PasswordResetForm(forms.Form):
     """Form for resetting user password by admin"""
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
     
     new_password1 = forms.CharField(
         label='New Password',
@@ -607,8 +712,11 @@ class PasswordResetForm(forms.Form):
         
         if password1 and password2 and password1 != password2:
             raise forms.ValidationError("Passwords don't match")
-        
-        if password1 and len(password1) < 8:
-            raise forms.ValidationError("Password must be at least 8 characters long")
+
+        if password1:
+            try:
+                validate_password(password1, user=self.user)
+            except DjangoValidationError as exc:
+                raise forms.ValidationError(exc.messages)
         
         return password2

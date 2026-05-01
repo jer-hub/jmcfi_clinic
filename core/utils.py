@@ -10,6 +10,7 @@ from .profile_policy import (
     STUDENT_PROFILE_REQUIRED_FIELDS,
     STAFF_PROFILE_REQUIRED_FIELDS,
     DOCTOR_PROFILE_REQUIRED_FIELDS,
+    ADMIN_PROFILE_REQUIRED_FIELDS,
 )
 
 User = get_user_model()
@@ -73,7 +74,7 @@ def get_user_profile(user):
             return user.student_profile
         except StudentProfile.DoesNotExist:
             return None
-    elif user.role in ['staff', 'doctor']:
+    elif user.role in ['staff', 'doctor', 'admin']:
         try:
             return user.staff_profile
         except StaffProfile.DoesNotExist:
@@ -95,6 +96,8 @@ def is_profile_complete(user):
             return is_staff_profile_complete(profile)
         elif user.role == 'doctor':
             return is_doctor_profile_complete(profile)
+        elif user.role == 'admin':
+            return is_staff_profile_complete(profile)
         
         return True
     except Exception:
@@ -133,6 +136,8 @@ def is_doctor_profile_complete(profile):
 
 # Human-readable labels for profile fields shown on the "profile required" page
 FIELD_LABELS = {
+    'first_name':        'First Name',
+    'last_name':         'Last Name',
     'student_id':        'Student ID',
     'middle_name':       'Middle Name',
     'gender':            'Gender',
@@ -157,6 +162,7 @@ FIELD_LABELS = {
 STUDENT_REQUIRED = STUDENT_PROFILE_REQUIRED_FIELDS
 STAFF_REQUIRED = STAFF_PROFILE_REQUIRED_FIELDS
 DOCTOR_REQUIRED = DOCTOR_PROFILE_REQUIRED_FIELDS
+ADMIN_REQUIRED = ADMIN_PROFILE_REQUIRED_FIELDS
 
 
 def get_missing_profile_fields(user):
@@ -169,6 +175,8 @@ def get_missing_profile_fields(user):
         required_fields = STAFF_REQUIRED
     elif user.role == 'doctor':
         required_fields = DOCTOR_REQUIRED
+    elif user.role == 'admin':
+        required_fields = ADMIN_REQUIRED
     else:
         return []
 
@@ -178,7 +186,10 @@ def get_missing_profile_fields(user):
 
     missing = []
     for field in required_fields:
-        value = getattr(profile, field, None)
+        if field in {'first_name', 'last_name'}:
+            value = getattr(user, field, None)
+        else:
+            value = getattr(profile, field, None)
         if not value or (isinstance(value, str) and not value.strip()):
             missing.append((field, FIELD_LABELS.get(field, field.replace('_', ' ').title())))
     return missing

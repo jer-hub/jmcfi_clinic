@@ -72,16 +72,36 @@
                         {% endif %}
                     </div>
 
-                    <!-- Active Status (Edit only) -->
-                    {% if action == 'Edit' %}
+                    {% if action == 'Create' %}
                     <div>
-                        <label for="{{ form.is_active.id_for_label }}" class="flex items-center space-x-2 mt-8">
-                            {{ form.is_active }}
-                            <span class="text-sm font-medium text-gray-700">Account Active</span>
+                        <label for="{{ form.activate_now.id_for_label }}" class="flex items-center space-x-2 mt-8">
+                            {{ form.activate_now }}
+                            <span class="text-sm font-medium text-gray-700">Activate account now</span>
                         </label>
+                        {% if form.activate_now.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.activate_now.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-1 text-xs text-gray-500">If unchecked, user is created as pending activation.</p>
+                    </div>
+                    {% endif %}
+
+                                        <!-- Active Status (Edit only) -->
+                    {% if action == 'Edit' %}
+                    <div class="flex items-center space-x-3 mt-8">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   name="{{ form.is_active.name }}" 
+                                   class="sr-only peer" 
+                                   {% if viewed_user.is_active %}checked{% endif %}>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                        </label>
+                        <span class="text-sm font-medium text-gray-700">
+                            {% if viewed_user.is_active %}Account Active{% else %}Activate Account{% endif %}
+                        </span>
                         {% if form.is_active.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
                         {% endif %}
+                        <div class="hidden">{{ form.is_active }}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -129,6 +149,7 @@
             <h3 class="text-sm font-medium text-blue-800 mb-2">📝 Note:</h3>
             <ul class="text-sm text-blue-700 space-y-1">
                 <li>• A temporary profile will be created for the user</li>
+                <li>• Unchecked activation creates the user in pending activation state</li>
                 <li>• The user should complete their profile after first login</li>
                 <li>• A welcome notification will be sent to the user</li>
             </ul>

@@ -1,0 +1,76 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+  Admin Login - JMCFI Clinic
+{% endblock %}
+
+{% block content %}
+  <div class="min-h-screen flex items-center justify-center px-4 py-10 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-100 via-white to-slate-200">
+    <div class="w-full max-w-md">
+      {% include 'partials/messages.html' %}
+
+      <div class="rounded-2xl bg-white shadow-xl ring-1 ring-slate-200 overflow-hidden">
+        <div class="bg-slate-900 px-8 py-6 text-white">
+          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Restricted Access</p>
+          <h1 class="mt-2 text-2xl font-bold">Administrator Login</h1>
+          <p class="mt-2 text-sm text-slate-300">Password sign-in only for admin-role accounts.</p>
+        </div>
+
+        <form method="post" class="px-8 py-7 space-y-5" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ next }}">
+
+          {% if form.non_field_errors %}
+            <div class="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+
+          <div>
+            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-slate-700">Admin Email</label>
+            <div class="mt-1">{{ form.email }}</div>
+            {% for error in form.email.errors %}
+              <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+            {% endfor %}
+          </div>
+
+          <div>
+            <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-slate-700">Password</label>
+            <div class="mt-1">{{ form.password }}</div>
+            {% for error in form.password.errors %}
+              <p class="mt-1 text-sm text-red-600">{{ error }}</p>
+            {% endfor %}
+          </div>
+
+          <div class="flex items-center">
+            <input
+              id="{{ form.remember_me.id_for_label }}"
+              name="{{ form.remember_me.name }}"
+              type="checkbox"
+              value="on"
+              {% if form.remember_me.value %}checked{% endif %}
+              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            >
+            <label for="{{ form.remember_me.id_for_label }}" class="ml-2 block text-sm text-slate-700">
+              Keep me signed in
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+          >
+            Sign In as Admin
+          </button>
+        </form>
+
+        <div class="border-t border-slate-200 bg-slate-50 px-8 py-4 text-xs text-slate-600">
+          Student/staff access uses Google OAuth.
+          <a href="{% url 'account_login' %}" class="font-semibold text-primary-700 hover:text-primary-800">Go to Google sign-in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}

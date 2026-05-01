@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.contrib.auth import get_user_model
@@ -34,6 +35,7 @@ def paginate_queryset(queryset, request, per_page=10):
 
 
 @login_required
+@role_required('student', 'staff', 'doctor')
 def appointment_list(request):
     """Display list of appointments based on user role"""
     # Get appointments based on user role
@@ -41,8 +43,6 @@ def appointment_list(request):
         appointments = Appointment.objects.filter(student=request.user)
     elif request.user.role in ['staff', 'doctor']:
         appointments = Appointment.objects.filter(doctor=request.user)
-    elif request.user.role == 'admin':
-        appointments = Appointment.objects.all()
     else:
         appointments = Appointment.objects.none()
 
@@ -291,6 +291,7 @@ def _get_schedule_context():
 
 
 @login_required
+@role_required('student', 'staff', 'doctor')
 def appointment_detail(request, appointment_id):
     appointment = get_object_or_404(
         Appointment.objects.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set'),
@@ -301,14 +302,14 @@ def appointment_detail(request, appointment_id):
     if request.user.role == 'student' and appointment.student != request.user:
         messages.error(request, 'Access denied')
         return redirect('appointments:appointment_list')
-    elif request.user.role in ['staff', 'doctor'] and appointment.doctor != request.user and request.user.role != 'admin':
+    elif request.user.role in ['staff', 'doctor'] and appointment.doctor != request.user:
         messages.error(request, 'Access denied')
         return redirect('appointments:appointment_list')
     
     if request.method == 'POST':
         next_url = request.POST.get('next')
 
-        if request.user.role in ['staff', 'doctor', 'admin']:
+        if request.user.role in ['staff', 'doctor']:
             status = request.POST.get('status')
             notes = request.POST.get('notes')
             
@@ -459,11 +460,18 @@ def toggle_appointment_type_default(request, default_id):
         default.save()
         
         status = "activated" if default.is_active else "deactivated"
-        messages.success(
-            request,
-            f'Default for {default.get_appointment_type_display()} has been {status}.'
-        )
-    
+        message_text = f'Default for {default.get_appointment_type_display()} has been {status}.'
+
+        # If request came from JS (fetch / AJAX), return JSON instead of redirect
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({
+                'success': True,
+                'is_active': default.is_active,
+                'message': message_text,
+            })
+
+        messages.success(request, message_text)
+
     return redirect('appointments:appointment_type_settings')
 
 
@@ -487,10 +495,10 @@ def delete_appointment_type_default(request, default_id):
 
 
 @login_required
-@role_required('doctor', 'admin')
+@role_required('doctor', 'staff')
 def schedule_for_student(request):
     """
-    Allows doctors or admins to schedule an appointment for a student.
+    Allows staff and doctors to schedule an appointment for a student.
     """
     if request.method == 'POST':
         student_id = request.POST.get('student')

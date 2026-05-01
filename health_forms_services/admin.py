@@ -6,8 +6,30 @@ from .models import (
 )
 
 
+class BlockAdminRoleMixin:
+    """Prevent custom admin-role users from accessing this app in Django Admin."""
+
+    def _allow_access(self, request):
+        return request.user.is_superuser or request.user.role != 'admin'
+
+    def has_module_permission(self, request):
+        return self._allow_access(request) and super().has_module_permission(request)
+
+    def has_view_permission(self, request, obj=None):
+        return self._allow_access(request) and super().has_view_permission(request, obj=obj)
+
+    def has_add_permission(self, request):
+        return self._allow_access(request) and super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        return self._allow_access(request) and super().has_change_permission(request, obj=obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return self._allow_access(request) and super().has_delete_permission(request, obj=obj)
+
+
 @admin.register(HealthProfileForm)
-class HealthProfileFormAdmin(admin.ModelAdmin):
+class HealthProfileFormAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['id', 'get_name', 'user', 'status', 'designation', 'created_at', 'reviewed_at']
     list_filter = ['status', 'designation', 'gender', 'created_at']
     search_fields = ['last_name', 'first_name', 'user__email', 'email_address']
@@ -136,7 +158,7 @@ class DentalFormToothInline(admin.TabularInline):
 
 
 @admin.register(DentalHealthForm)
-class DentalHealthFormAdmin(admin.ModelAdmin):
+class DentalHealthFormAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['id', 'get_name', 'user', 'status', 'designation', 'department_college_office', 'created_at']
     list_filter = ['status', 'gender', 'designation', 'created_at']
     search_fields = ['last_name', 'first_name', 'user__email', 'department_college_office']
@@ -234,7 +256,7 @@ class PatientChartEntryInline(admin.TabularInline):
 
 
 @admin.register(PatientChart)
-class PatientChartAdmin(admin.ModelAdmin):
+class PatientChartAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['id', 'get_name', 'user', 'status', 'designation', 'entry_count', 'created_at']
     list_filter = ['status', 'designation', 'gender', 'created_at']
     search_fields = ['last_name', 'first_name', 'user__email', 'email_address']
@@ -273,7 +295,7 @@ class PatientChartAdmin(admin.ModelAdmin):
 
 
 @admin.register(PatientChartEntry)
-class PatientChartEntryAdmin(admin.ModelAdmin):
+class PatientChartEntryAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['id', 'patient_chart', 'date_and_time', 'recorded_by', 'created_at']
     list_filter = ['date_and_time', 'created_at']
     search_fields = ['findings', 'doctors_orders', 'patient_chart__last_name', 'patient_chart__first_name']
@@ -281,7 +303,7 @@ class PatientChartEntryAdmin(admin.ModelAdmin):
 
 
 @admin.register(DentalServicesRequest)
-class DentalServicesRequestAdmin(admin.ModelAdmin):
+class DentalServicesRequestAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['id', 'get_name', 'user', 'status', 'department', 'created_at']
     list_filter = ['status', 'gender', 'created_at']
     search_fields = ['last_name', 'first_name', 'user__email', 'department']
@@ -377,7 +399,7 @@ class PrescriptionItemInline(admin.TabularInline):
 
 
 @admin.register(Prescription)
-class PrescriptionAdmin(admin.ModelAdmin):
+class PrescriptionAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['id', 'patient_name', 'user', 'status', 'date', 'physician_name', 'created_at']
     list_filter = ['status', 'gender', 'created_at']
     search_fields = ['patient_name', 'user__email', 'physician_name']
@@ -410,7 +432,7 @@ class PrescriptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(PrescriptionItem)
-class PrescriptionItemAdmin(admin.ModelAdmin):
+class PrescriptionItemAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['id', 'prescription', 'medication_name', 'dosage', 'frequency', 'quantity', 'created_at']
     search_fields = ['medication_name', 'prescription__patient_name']
     readonly_fields = ['created_at', 'updated_at']

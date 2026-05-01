@@ -35,6 +35,7 @@ def paginate_queryset(queryset, request, per_page=10):
 
 
 @login_required
+@role_required('student', 'staff', 'doctor')
 def medical_records(request):
     """Display medical records based on user role"""
     # Get records based on user role
@@ -44,9 +45,6 @@ def medical_records(request):
     elif request.user.role in ['staff', 'doctor']:
         records = MedicalRecord.objects.filter(doctor=request.user)
         appointments = Appointment.objects.filter(doctor=request.user)
-    elif request.user.role == 'admin':
-        records = MedicalRecord.objects.all()
-        appointments = Appointment.objects.all()
     else:
         records = MedicalRecord.objects.none()
         appointments = Appointment.objects.none()
@@ -56,7 +54,7 @@ def medical_records(request):
     date_from = parse_date(request.GET.get('date_from')) if request.GET.get('date_from') else None
     date_to = parse_date(request.GET.get('date_to')) if request.GET.get('date_to') else None
     
-    if student_id and request.user.role in ['staff', 'doctor', 'admin']:
+    if student_id and request.user.role in ['staff', 'doctor']:
         records = records.filter(student__student_profile__student_id__icontains=student_id)
         appointments = appointments.filter(student__student_profile__student_id__icontains=student_id)
     if date_from:
@@ -120,6 +118,7 @@ def medical_records(request):
 
 
 @login_required
+@role_required('student', 'staff', 'doctor')
 def medical_record_detail_page(request, record_id):
     """View detailed medical record page - similar to dental record detail"""
     record = get_object_or_404(MedicalRecord, id=record_id)
@@ -128,7 +127,7 @@ def medical_record_detail_page(request, record_id):
     if request.user.role == 'student' and record.student != request.user:
         messages.error(request, 'Access denied')
         return redirect('medical_records:medical_records')
-    elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user and request.user.role != 'admin':
+    elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user:
         messages.error(request, 'Access denied')
         return redirect('medical_records:medical_records')
     
@@ -140,6 +139,7 @@ def medical_record_detail_page(request, record_id):
 
 
 @login_required
+@role_required('student', 'staff', 'doctor')
 def medical_record_detail(request, record_id):
     """AJAX view to get medical record details for modal display"""
     record = get_object_or_404(MedicalRecord, id=record_id)
@@ -147,7 +147,7 @@ def medical_record_detail(request, record_id):
     # Check permissions
     if request.user.role == 'student' and record.student != request.user:
         return JsonResponse({'error': 'Access denied'}, status=403)
-    elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user and request.user.role != 'admin':
+    elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user:
         return JsonResponse({'error': 'Access denied'}, status=403)
     
     # Format vital signs for display
@@ -427,7 +427,7 @@ def create_medical_record(request, appointment_id):
 
 
 @login_required
-@role_required('admin', 'staff', 'doctor')
+@role_required('staff', 'doctor')
 def create_medical_record_for_student(request):
     """Create a medical record for a selected student without appointment context."""
     if request.method == 'POST':

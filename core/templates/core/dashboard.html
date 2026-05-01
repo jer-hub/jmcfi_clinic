@@ -12,8 +12,10 @@
         </div>
         {% if user.role == 'student' %}
             {% include 'core/dashboard_student.html' %}
-        {% elif user.role == 'staff' or user.role == 'doctor' %}
+        {% elif user.role == 'staff' %}
             {% include 'core/dashboard_staff.html' %}
+        {% elif user.role == 'doctor' %}
+            {% include 'core/dashboard_doctor.html' %}
         {% elif user.role == 'admin' %}
             {% include 'core/dashboard_admin.html' %}
         {% endif %}

@@ -55,11 +55,22 @@ class User(AbstractUser):
         STAFF = 'staff', 'Staff'
         STUDENT = 'student', 'Student'
         # Add any additional fields you want for your user model
+
+    class ONBOARDING_STATUS(models.TextChoices):
+        PENDING_ACTIVATION = 'pending_activation', 'Pending Activation'
+        ACTIVE = 'active', 'Active'
+        SUSPENDED = 'suspended', 'Suspended'
     
     role = models.CharField(
         max_length=10,
         choices=ROLE.choices,
         default=ROLE.STUDENT,)
+
+    onboarding_status = models.CharField(
+        max_length=20,
+        choices=ONBOARDING_STATUS.choices,
+        default=ONBOARDING_STATUS.ACTIVE,
+    )
     
     # Re-add is_staff field (was removed in migration 0005, but Django requires it)
     is_staff = models.BooleanField(
@@ -334,4 +345,62 @@ class Notification(models.Model):
         if not name:
             name = self.user.email or self.user.username
         return f"{name} - {self.title}"
+
+
+class UserInvite(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='invites')
+    token_hash = models.CharField(max_length=64, unique=True, db_index=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_user_invites',
+    )
+    expires_at = models.DateTimeField()
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        status = 'accepted' if self.accepted_at else 'active'
+        if self.revoked_at:
+            status = 'revoked'
+        return f"Invite<{self.user.email}> ({status})"
+
+
+class AccountProvisioningAudit(models.Model):
+    class ACTION(models.TextChoices):
+        CREATED_PENDING = 'created_pending', 'Created (Pending Activation)'
+        CREATED_ACTIVE = 'created_active', 'Created (Active)'
+        ACTIVATED = 'activated', 'Activated'
+        SUSPENDED = 'suspended', 'Suspended'
+
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='provisioning_actions',
+    )
+    target_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='provisioning_audits',
+    )
+    action = models.CharField(max_length=30, choices=ACTION.choices)
+    ip_address = models.CharField(max_length=45, blank=True, default='')
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        actor_email = self.actor.email if self.actor else 'system'
+        return f"{actor_email} -> {self.target_user.email} [{self.action}]"
     

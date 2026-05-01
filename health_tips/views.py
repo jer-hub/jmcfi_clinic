@@ -8,16 +8,15 @@ from django.views.decorators.http import require_POST
 from django.conf import settings
 import os
 import uuid
+from core.decorators import role_required
 from .models import HealthTip
 
 
 @login_required
 @require_POST
+@role_required('staff')
 def upload_image(request):
     """Handle image upload for markdown editor"""
-    if request.user.role != 'staff':
-        return JsonResponse({'error': 'Access denied'}, status=403)
-    
     if 'image' not in request.FILES:
         return JsonResponse({'error': 'No image provided'}, status=400)
     
@@ -119,12 +118,9 @@ def health_tip_detail(request, tip_id):
 
 
 @login_required
+@role_required('staff')
 def create_health_tip(request):
     """Create a new health tip - staff only"""
-    if request.user.role != 'staff':
-        messages.error(request, 'Only staff members can create health tips')
-        return redirect('core:dashboard')
-    
     if request.method == 'POST':
         title = request.POST.get('title', '').strip()
         content = request.POST.get('content', '').strip()
@@ -177,12 +173,9 @@ def create_health_tip(request):
 
 
 @login_required
+@role_required('staff')
 def edit_health_tip(request, tip_id):
     """Edit an existing health tip - staff only, own tips only"""
-    if request.user.role != 'staff':
-        messages.error(request, 'Only staff members can edit health tips')
-        return redirect('core:dashboard')
-    
     health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
     
     if request.method == 'POST':
@@ -236,12 +229,9 @@ def edit_health_tip(request, tip_id):
 
 
 @login_required
+@role_required('staff')
 def delete_health_tip(request, tip_id):
     """Delete a health tip - staff only, own tips only"""
-    if request.user.role != 'staff':
-        messages.error(request, 'Only staff members can delete health tips')
-        return redirect('core:dashboard')
-    
     health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
     
     if request.method == 'POST':
@@ -254,11 +244,9 @@ def delete_health_tip(request, tip_id):
 
 
 @login_required
+@role_required('staff')
 def toggle_health_tip_status(request, tip_id):
     """Toggle the active status of a health tip - staff only"""
-    if request.user.role != 'staff':
-        return JsonResponse({'error': 'Access denied'}, status=403)
-    
     health_tip = get_object_or_404(HealthTip, id=tip_id, created_by=request.user)
     
     if request.method == 'POST':

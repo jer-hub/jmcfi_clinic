@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from .models import (
+    AccountProvisioningAudit,
     StudentProfile,
     StaffProfile,
     Notification,
+    UserInvite,
     CourseProgram,
     CollegeDepartment,
     YearLevelOption,
@@ -14,9 +16,9 @@ User = get_user_model()
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'first_name', 'last_name', 'email', 'role', 'is_active')
+    list_display = ('id', 'first_name', 'last_name', 'email', 'role', 'onboarding_status', 'is_active')
     search_fields = ('first_name', 'last_name', 'email')
-    list_filter = ('role', 'is_active')
+    list_filter = ('role', 'onboarding_status', 'is_active')
 
 
 @admin.register(StudentProfile)
@@ -65,6 +67,22 @@ class NotificationAdmin(admin.ModelAdmin):
     def mark_as_unread(self, request, queryset):
         queryset.update(is_read=False)
     mark_as_unread.short_description = "Mark selected notifications as unread"
+
+
+@admin.register(UserInvite)
+class UserInviteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'created_by', 'expires_at', 'accepted_at', 'revoked_at', 'created_at')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'created_by__email')
+    list_filter = ('accepted_at', 'revoked_at', 'created_at')
+    readonly_fields = ('token_hash', 'created_at', 'updated_at')
+
+
+@admin.register(AccountProvisioningAudit)
+class AccountProvisioningAuditAdmin(admin.ModelAdmin):
+    list_display = ('actor', 'target_user', 'action', 'ip_address', 'created_at')
+    search_fields = ('actor__email', 'target_user__email', 'action', 'ip_address')
+    list_filter = ('action', 'created_at')
+    readonly_fields = ('created_at',)
 
 
 @admin.register(CourseProgram)

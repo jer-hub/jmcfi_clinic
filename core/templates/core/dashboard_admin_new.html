@@ -1,0 +1,155 @@
+<!-- Admin Dashboard Command Center -->
+<div class="space-y-6 sm:space-y-8">
+  
+  <!-- KPI Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+    <!-- Total Users -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 transition-all hover:shadow-md">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Total Users</p>
+          <p class="text-2xl font-bold text-gray-900">{{ total_users }}</p>
+        </div>
+        <div class="p-3 bg-indigo-50 rounded-lg">
+          <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+          </svg>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center text-xs text-gray-500">
+        <span class="font-medium text-indigo-600">All Roles</span>
+        <span class="mx-2 text-gray-300">•</span>
+        <span>System Wide</span>
+      </div>
+    </div>
+
+    <!-- Students -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 transition-all hover:shadow-md">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Students</p>
+          <p class="text-2xl font-bold text-gray-900">{{ total_students }}</p>
+        </div>
+        <div class="p-3 bg-blue-50 rounded-lg">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l-2-2m2 2H8m4 0l2 2m0 0l-2 2m2-2H8"></path>
+          </svg>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center text-xs text-gray-500">
+        <span class="font-medium text-blue-600">Patient Base</span>
+      </div>
+    </div>
+
+    <!-- Medical Staff -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 transition-all hover:shadow-md">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Medical Staff</p>
+          <p class="text-2xl font-bold text-gray-900">{{ total_staff }}</p>
+        </div>
+        <div class="p-3 bg-green-50 rounded-lg">
+          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center text-xs text-gray-500">
+        <span class="font-medium text-green-600">{{ active_doctors }} Doctors</span>
+      </div>
+    </div>
+
+    <!-- Pending Certs -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 transition-all hover:shadow-md">
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium text-gray-500">Pending Certs</p>
+          <p class="text-2xl font-bold text-gray-900">{{ pending_certificates }}</p>
+        </div>
+        <div class="p-3 bg-orange-50 rounded-lg">
+          <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center text-xs text-red-500 font-medium">
+        Requires Attention
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+    <!-- Management Hub -->
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+          <h3 class="text-lg font-semibold text-gray-900">Management Hub</h3>
+          <p class="text-sm text-gray-500">Quick access to administrative controls</p>
+        </div>
+        <div class="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <a href="{% url 'core:user_management' %}" class="group p-4 border border-gray-200 rounded-xl hover:border-primary-500 hover:bg-primary-50 transition-all duration-200">
+            <div class="flex items-center space-x-4">
+              <div class="p-2 bg-primary-100 text-primary-600 rounded-lg group-hover:bg-primary-600 group-hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-900">User Management</p>
+                <p class="text-xs text-gray-500">Manage roles, status and accounts</p>
+              </div>
+            </div>
+          </a>
+          
+          <a href="{% url 'appointments:appointment_type_settings' %}" class="group p-4 border border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all duration-200">
+            <div class="flex items-center space-x-4">
+              <div class="p-2 bg-orange-100 text-orange-600 rounded-lg group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path></svg>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-900">Clinic Settings</p>
+                <p class="text-xs text-gray-500">Configure appointments & doctors</p>
+              </div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- System Pulse -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+          <h3 class="text-lg font-semibold text-gray-900">System Pulse</h3>
+        </div>
+        <div class="p-6">
+          <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg text-blue-800">
+            <div class="flex items-center space-x-3">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+              <span class="text-sm font-medium">Total System Appointments recorded: {{ total_appointments }}</span>
+            </div>
+            <span class="text-xs font-bold uppercase tracking-wider">Live</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Access Scope / Info -->
+    <div class="space-y-6">
+      <div class="bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl shadow-lg p-6 text-white">
+        <h3 class="text-lg font-bold mb-2">Admin Privileges</h3>
+        <p class="text-primary-100 text-sm mb-4">You have full access to the system's administrative layer.</p>
+        <ul class="space-y-3 text-xs font-medium">
+          <li class="flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+            <span>User Role Administration</span>
+          </li>
+          <li class="flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+            <span>Clinic Configuration</span>
+          </li>
+          <li class="flex items-center space-x-2">
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+            <span>Global System Analytics</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>

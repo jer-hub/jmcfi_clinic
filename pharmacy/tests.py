@@ -2,7 +2,7 @@
 Pharmacy app – Medicine create/edit tests.
 
 Coverage:
-  - GET/POST permissions (admin/staff can access, student cannot)
+    - GET/POST permissions (staff can access, non-staff cannot)
   - Successful medicine creation (no opening stock)
   - Successful medicine creation with opening stock
   - Audit-log entries created on create
@@ -40,7 +40,7 @@ STRIPPED_MIDDLEWARE = [
 CREATE_URL = reverse('pharmacy:medicine_create')
 
 
-def _make_user(role='admin', email=None, **kwargs):
+def _make_user(role='staff', email=None, **kwargs):
     """Create a user with the given role."""
     from django.contrib.auth import get_user_model
     User = get_user_model()
@@ -70,7 +70,7 @@ def _valid_post(overrides=None):
 
 @override_settings(MIDDLEWARE=STRIPPED_MIDDLEWARE)
 class MedicineCreatePermissionTest(TestCase):
-    """Only admin and staff can create medicines; students are redirected."""
+    """Only staff can create medicines; non-staff roles are denied."""
 
     def test_anonymous_user_is_forbidden(self):
         # RoleMiddleware returns 403 for unauthenticated users
@@ -91,11 +91,11 @@ class MedicineCreatePermissionTest(TestCase):
         response = self.client.get(CREATE_URL)
         self.assertEqual(response.status_code, 200)
 
-    def test_admin_can_access(self):
+    def test_admin_is_forbidden(self):
         user = _make_user(role='admin', email='admin@test.example')
         self.client.force_login(user)
         response = self.client.get(CREATE_URL)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 403)
 
 
 @override_settings(MIDDLEWARE=STRIPPED_MIDDLEWARE)
@@ -103,7 +103,7 @@ class MedicineCreateTest(TestCase):
     """Tests for successful and failed medicine creation."""
 
     def setUp(self):
-        self.user = _make_user(role='admin')
+        self.user = _make_user(role='staff')
         self.client.force_login(self.user)
         self.category = MedicineCategory.objects.create(name='Analgesic')
 
@@ -179,7 +179,7 @@ class MedicineFormValidationTest(TestCase):
     """Tests for all custom clean() rules on MedicineForm."""
 
     def setUp(self):
-        self.user = _make_user(role='admin')
+        self.user = _make_user(role='staff')
         self.client.force_login(self.user)
 
     # ── Threshold validation ─────────────────────────────────────────────
@@ -339,7 +339,7 @@ class PharmacyRouteAccessTest(TestCase):
             response = self.client.get(reverse(name))
             self.assertEqual(response.status_code, 403, f'{name} should be forbidden for anonymous users')
 
-    def test_admin_can_access_all_key_routes(self):
+    def test_admin_forbidden_on_key_routes(self):
         admin_routes = [
             'pharmacy:dashboard',
             'pharmacy:medicine_list',
@@ -355,7 +355,7 @@ class PharmacyRouteAccessTest(TestCase):
             'pharmacy:cost_analysis',
         ]
         for name in admin_routes:
-            self._assert_allowed(self.admin, name)
+            self._assert_forbidden(self.admin, name)
 
     def test_staff_access_matrix(self):
         allowed = [
@@ -369,23 +369,17 @@ class PharmacyRouteAccessTest(TestCase):
             'pharmacy:dispensing_list',
             'pharmacy:adjustment_list',
             'pharmacy:audit_log_list',
-            'pharmacy:cost_analysis',
-        ]
-        denied = [
             'pharmacy:compliance_report',
+            'pharmacy:cost_analysis',
         ]
         for name in allowed:
             self._assert_allowed(self.staff, name)
-        for name in denied:
-            self._assert_forbidden(self.staff, name)
 
     def test_doctor_access_matrix(self):
-        allowed = [
+        denied = [
             'pharmacy:dashboard',
             'pharmacy:medicine_list',
             'pharmacy:dispensing_list',
-        ]
-        denied = [
             'pharmacy:medicine_create',
             'pharmacy:category_list',
             'pharmacy:batch_list',
@@ -396,8 +390,6 @@ class PharmacyRouteAccessTest(TestCase):
             'pharmacy:compliance_report',
             'pharmacy:cost_analysis',
         ]
-        for name in allowed:
-            self._assert_allowed(self.doctor, name)
         for name in denied:
             self._assert_forbidden(self.doctor, name)
 

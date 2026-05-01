@@ -15,6 +15,18 @@ DEBUG = config("DEBUG", default=True, cast=bool)
 # Ensure ALLOWED_HOSTS is a list. Support comma-separated env via decouple's Csv cast.
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
+CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=not DEBUG, cast=bool)
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=31536000 if not DEBUG else 0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=not DEBUG, cast=bool)
+SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=not DEBUG, cast=bool)
+ADMIN_LOGIN_REQUIRE_HTTPS_REDIRECT = config(
+    "ADMIN_LOGIN_REQUIRE_HTTPS_REDIRECT",
+    default=not DEBUG,
+    cast=bool,
+)
+
 # Silence django-allauth deprecation warnings (we use stable format for OAuth-only setup)
 
 # Application definition
@@ -80,6 +92,9 @@ SOCIALACCOUNT_PROVIDERS = {
             'access_type': 'online',
             'prompt': 'select_account',  # Force Google account chooser
         },
+        'OAUTH_PKCE_ENABLED': True,  # Enable PKCE for enhanced security
+        'FETCH_USER_INFO': True,  # Fetch user info from Google
+        'EMAIL_AUTHENTICATION': True,  # Use email for authentication
     }
 }
 
@@ -87,6 +102,7 @@ SOCIALACCOUNT_PROVIDERS = {
 ACCOUNT_LOGIN_METHODS = {'email'}  # Use email for authentication
 ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']  # Required signup fields
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # No username field
+ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True  # Logged-in users cannot access login page
 SOCIALACCOUNT_AUTO_SIGNUP = True  # Skip the signup form if possible
 SOCIALACCOUNT_LOGIN_ON_GET = True  # Skip the intermediate page on login
 ACCOUNT_LOGOUT_ON_GET = False  # Require POST logout to avoid CSRF/logout-forcing
@@ -189,7 +205,6 @@ SESSION_COOKIE_AGE = 86400  # 24 hours (1 day) for staff and students
 SESSION_SAVE_EVERY_REQUEST = True  # Extend session on every request (keep users logged in while active)
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Don't expire when browser closes
 SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookies (security)
-SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
 
 # Role-specific session timeouts (will be set in custom middleware)
@@ -252,6 +267,11 @@ LOGGING = {
         'allauth': {
             'handlers': ['console'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        'security.auth': {
+            'handlers': ['console'],
+            'level': 'INFO',
             'propagate': False,
         },
     },

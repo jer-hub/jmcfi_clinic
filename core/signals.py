@@ -136,7 +136,7 @@ def create_user_profile(sender, instance, created, **kwargs):
     Fallback: Create profile when user is created (for non-Google signups).
     This ensures profiles are created even if social_account_added doesn't fire.
     """
-    if created and instance.role in ['student', 'staff', 'doctor']:
+    if created and instance.role in ['student', 'staff', 'doctor', 'admin']:
         if instance.role == 'student':
             if not hasattr(instance, 'student_profile'):
                 StudentProfile.objects.get_or_create(
@@ -150,7 +150,7 @@ def create_user_profile(sender, instance, created, **kwargs):
                         'blood_type': None,
                     }
                 )
-        elif instance.role in ['staff', 'doctor']:
+        elif instance.role in ['staff', 'doctor', 'admin']:
             if not hasattr(instance, 'staff_profile'):
                 StaffProfile.objects.get_or_create(
                     user=instance,

@@ -15,6 +15,7 @@ from pathlib import Path
 
 from .models import DocumentRequest, MedicalCertificate, DoctorSignature
 from core.models import Notification
+from core.decorators import role_required
 from .forms import DoctorSignatureForm, MedicalCertificateForm
 
 User = get_user_model()
@@ -40,8 +41,8 @@ def _resolve_wkhtmltopdf_path():
 def _build_request_form_context(user, extra_context=None):
     context = {
         'certificate_types': ALLOWED_DOCUMENT_TYPES,
-        'is_doctor_flow': user.role in ['doctor', 'admin'],
-        'students': User.objects.filter(role='student').order_by('last_name', 'first_name') if user.role in ['doctor', 'admin'] else None,
+        'is_doctor_flow': user.role == 'doctor',
+        'students': User.objects.filter(role='student').order_by('last_name', 'first_name') if user.role == 'doctor' else None,
     }
     if hasattr(user, 'student_profile') and user.student_profile:
         context['student_profile'] = user.student_profile
@@ -51,6 +52,7 @@ def _build_request_form_context(user, extra_context=None):
 
 
 @login_required
+@role_required('student', 'doctor')
 def document_requests(request):
     """View list of document/certificate requests."""
     signature = None
@@ -72,7 +74,7 @@ def document_requests(request):
 
     if request.user.role == 'student':
         requests_qs = DocumentRequest.objects.filter(student=request.user)
-    elif request.user.role in ['admin', 'doctor']:
+    elif request.user.role == 'doctor':
         requests_qs = DocumentRequest.objects.all()
     else:
         requests_qs = DocumentRequest.objects.none()
@@ -133,12 +135,9 @@ def document_requests(request):
 
 
 @login_required
+@role_required('student', 'doctor')
 def request_document(request):
     """Submit a new document/certificate request."""
-    if request.user.role not in ['student', 'doctor', 'admin']:
-        messages.error(request, 'Only students, doctors, and admins can request documents')
-        return redirect('core:dashboard')
-
     base_context = _build_request_form_context(request.user)
 
     if request.method == 'POST':
@@ -147,7 +146,7 @@ def request_document(request):
         additional_info = request.POST.get('additional_info', '')
         student = request.user
 
-        if request.user.role in ['doctor', 'admin']:
+        if request.user.role == 'doctor':
             student_id = request.POST.get('student_id')
             if not student_id:
                 messages.error(request, 'Student is required.')
@@ -192,7 +191,7 @@ def request_document(request):
             doc_request = DocumentRequest.objects.create(
                 student=student,
                 created_by=request.user,
-                request_origin='doctor' if request.user.role in ['doctor', 'admin'] else 'student',
+                request_origin='doctor' if request.user.role == 'doctor' else 'student',
                 document_type=document_type,
                 purpose=purpose,
                 additional_info=additional_info,
@@ -233,7 +232,7 @@ def request_document(request):
                     patient_name=student.get_full_name(),
                     consultation_date=timezone.now().date(),
                     diagnosis='',
-                    physician_name=request.user.get_full_name() or request.user.email if request.user.role in ['doctor', 'admin'] else '',
+                    physician_name=request.user.get_full_name() or request.user.email if request.user.role == 'doctor' else '',
                     remarks_recommendations=additional_info or '',
                     **profile_data  # Auto-fill age, gender, address from student profile or submitted values
                 )
@@ -243,7 +242,7 @@ def request_document(request):
                 doc_request.save(update_fields=['medical_certificate', 'updated_at'])
             
             # Create notification for authorized processors
-            staff_users = User.objects.filter(role__in=['admin', 'doctor'])
+            staff_users = User.objects.filter(role='doctor')
             for staff in staff_users:
                 Notification.objects.create(
                     user=staff,
@@ -269,14 +268,10 @@ def request_document(request):
 
 
 @login_required
+@role_required('doctor')
 def edit_medical_certificate(request, cert_id):
     """Edit a medical certificate linked to a document request."""
     certificate = get_object_or_404(MedicalCertificate, id=cert_id)
-    
-    # Check permissions - only doctors and admins can edit
-    if request.user.role not in ['doctor', 'admin']:
-        messages.error(request, 'Access denied')
-        return redirect('document_request:document_requests')
     
     # Get the linked document request (if any)
     linked_doc_request = DocumentRequest.objects.filter(medical_certificate=certificate).first()
@@ -318,7 +313,7 @@ def edit_medical_certificate(request, cert_id):
         # Prefill physician details from current user when available
         try:
             user = request.user
-            if user and user.role in ['doctor', 'admin']:
+            if user and user.role == 'doctor':
                 if not certificate.physician_name and not initial.get('physician_name'):
                     initial['physician_name'] = user.get_full_name() or user.email or ''
 
@@ -352,6 +347,7 @@ def edit_medical_certificate(request, cert_id):
 
 
 @login_required
+@role_required('student', 'doctor')
 def process_document(request, request_id):
     """Process a document/certificate request - accessible to all roles for viewing."""
     doc_request = get_object_or_404(DocumentRequest, id=request_id)
@@ -360,12 +356,8 @@ def process_document(request, request_id):
     if request.user.role == 'student' and doc_request.student != request.user:
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
-    elif request.user.role not in ['student', 'doctor', 'admin']:
-        messages.error(request, 'Access denied')
-        return redirect('document_request:document_requests')
-    
-    # Only doctor/admin can process, students can only view their own
-    can_process = request.user.role in ['admin', 'doctor']
+    # Only doctors can process, students can only view their own
+    can_process = request.user.role == 'doctor'
 
     if request.method == 'POST' and can_process:
         action = request.POST.get('action')
@@ -452,6 +444,7 @@ def process_document(request, request_id):
 
 
 @login_required
+@role_required('student', 'doctor')
 def view_document(request, request_id):
     """View a certificate – redirects to the process document request page for all roles."""
     doc_request = get_object_or_404(DocumentRequest, id=request_id)
@@ -460,24 +453,18 @@ def view_document(request, request_id):
     if request.user.role == 'student' and doc_request.student != request.user:
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
-    elif request.user.role not in ['student', 'doctor', 'admin']:
-        messages.error(request, 'Access denied')
-        return redirect('document_request:document_requests')
-    
     # Redirect to the process document request page for all roles regardless of status
     return redirect('document_request:process_document', request_id=request_id)
 
 
 @login_required
+@role_required('student', 'doctor')
 def preview_medical_certificate(request, cert_id):
     """Preview medical certificate on dedicated page."""
     certificate = get_object_or_404(MedicalCertificate, id=cert_id)
     
-    # Check permissions - students can only view their own, doctors/admins can view all
+    # Check permissions - students can only view their own, doctors can view all
     if request.user.role == 'student' and certificate.user != request.user:
-        messages.error(request, 'Access denied')
-        return redirect('document_request:document_requests')
-    elif request.user.role not in ['student', 'doctor', 'admin']:
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
     
@@ -515,15 +502,13 @@ def preview_medical_certificate(request, cert_id):
 
 
 @login_required
+@role_required('student', 'doctor')
 def download_medical_certificate_pdf(request, cert_id):
     """Download medical certificate as PDF."""
     certificate = get_object_or_404(MedicalCertificate, id=cert_id)
     
     # Check permissions
     if request.user.role == 'student' and certificate.user != request.user:
-        messages.error(request, 'Access denied')
-        return redirect('document_request:document_requests')
-    elif request.user.role not in ['student', 'doctor', 'admin']:
         messages.error(request, 'Access denied')
         return redirect('document_request:document_requests')
     

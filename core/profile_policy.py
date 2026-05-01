@@ -2,6 +2,8 @@
 
 # Student profile fields required after Google signup before service access.
 STUDENT_PROFILE_REQUIRED_FIELDS = [
+    'first_name',
+    'last_name',
     'student_id',
     'middle_name',
     'gender',
@@ -19,13 +21,25 @@ STUDENT_PROFILE_REQUIRED_FIELDS = [
 
 # Staff profile fields required before service access.
 STAFF_PROFILE_REQUIRED_FIELDS = [
+    'first_name',
+    'last_name',
     'staff_id',
     'department',
     'phone',
 ]
 
+# Admin profile fields required before service access.
+ADMIN_PROFILE_REQUIRED_FIELDS = [
+    'first_name',
+    'last_name',
+    'staff_id',
+    'phone',
+]
+
 # Doctor profile fields required before service access.
 DOCTOR_PROFILE_REQUIRED_FIELDS = [
+    'first_name',
+    'last_name',
     'staff_id',
     'department',
     'position',

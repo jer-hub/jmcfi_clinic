@@ -10,8 +10,8 @@ dependencies = [
     "channels-redis==4.3.0",
     "django==5.2",
     "django-allauth[google,socialaccount]==65.10.0",
-    "pyjwt[crypto]==2.10.1",   # required by allauth socialaccount with crypto support
-    "markdown==3.10.1",         # health_tips templatetags
+    "pyjwt[crypto]==2.10.1", # required by allauth socialaccount with crypto support
+    "markdown==3.10.1", # health_tips templatetags
     "pillow==12.1.0",
     "psycopg2-binary==2.9.10",
     "python-decouple==3.8",
@@ -19,6 +19,7 @@ dependencies = [
     "requests==2.32.4",
     "python-docx>=1.2.0",
     "whitenoise==6.9.0",
+    "django-extensions>=4.1",
 ]
 
 [project.optional-dependencies]

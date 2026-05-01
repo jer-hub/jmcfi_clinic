@@ -9,6 +9,7 @@ from .profile_policy import (
     STUDENT_PROFILE_REQUIRED_FIELDS,
     STAFF_PROFILE_REQUIRED_FIELDS,
     DOCTOR_PROFILE_REQUIRED_FIELDS,
+    ADMIN_PROFILE_REQUIRED_FIELDS,
 )
 
 
@@ -93,18 +94,12 @@ class ProfileCompleteMiddleware:
     def __call__(self, request):
         if (
             request.user.is_authenticated
-            and not request.user.is_superuser
-            and getattr(request.user, 'role', None) != 'admin'
-            and not self._is_exempt_url(request.path)
+                        and not self._is_exempt_url(request.path)
         ):
-            # Session-cache the result to avoid a DB hit on every request
+            # Recompute on every request so stale session values cannot bypass enforcement.
             session_key = f'profile_complete_{request.user.id}_{request.user.role}'
-            profile_complete = request.session.get(session_key)
-
-            if profile_complete is None:
-                profile_complete = self._is_profile_complete(request.user)
-                # Store without overriding the expiry set by SessionTimeoutMiddleware
-                request.session[session_key] = profile_complete
+            profile_complete = self._is_profile_complete(request.user)
+            request.session[session_key] = profile_complete
 
             if not profile_complete:
                 return redirect('core:profile_required')
@@ -133,38 +128,49 @@ class ProfileCompleteMiddleware:
                 return False
 
             if user.role == 'student':
-                return self._is_student_profile_complete(profile)
+                return self._is_student_profile_complete(user, profile)
             elif user.role == 'staff':
-                return self._is_staff_profile_complete(profile)
+                return self._is_staff_profile_complete(user, profile)
             elif user.role == 'doctor':
-                return self._is_doctor_profile_complete(profile)
+                return self._is_doctor_profile_complete(user, profile)
+            elif user.role == 'admin':
+                return self._is_admin_profile_complete(user, profile)
             
             return True
         except Exception:
             return False
 
-    def _is_student_profile_complete(self, profile):
+    def _is_student_profile_complete(self, user, profile):
         """Check if student profile is complete with all required fields"""
         for field in STUDENT_PROFILE_REQUIRED_FIELDS:
-            value = getattr(profile, field, None)
+            value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
             if not value or (isinstance(value, str) and not value.strip()):
                 return False
         
         return True
 
-    def _is_staff_profile_complete(self, profile):
+    def _is_staff_profile_complete(self, user, profile):
         """Check if staff profile is complete with all required fields"""
         for field in STAFF_PROFILE_REQUIRED_FIELDS:
-            value = getattr(profile, field, None)
+            value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
             if not value or (isinstance(value, str) and not value.strip()):
                 return False
         
         return True
 
-    def _is_doctor_profile_complete(self, profile):
+    def _is_doctor_profile_complete(self, user, profile):
         """Check if doctor profile is complete with all required fields"""
         for field in DOCTOR_PROFILE_REQUIRED_FIELDS:
-            value = getattr(profile, field, None)
+            value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
+            if not value or (isinstance(value, str) and not value.strip()):
+                return False
+
+        return True
+
+    def _is_admin_profile_complete(self, user, profile):
+        """Check if admin profile is complete with all required fields"""
+        for field in ADMIN_PROFILE_REQUIRED_FIELDS:
+            value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
             if not value or (isinstance(value, str) and not value.strip()):
                 return False
 

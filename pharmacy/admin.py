@@ -6,8 +6,30 @@ from .models import (
 )
 
 
+class BlockAdminRoleMixin:
+    """Prevent custom admin-role users from accessing this app in Django Admin."""
+
+    def _allow_access(self, request):
+        return request.user.is_superuser or request.user.role != 'admin'
+
+    def has_module_permission(self, request):
+        return self._allow_access(request) and super().has_module_permission(request)
+
+    def has_view_permission(self, request, obj=None):
+        return self._allow_access(request) and super().has_view_permission(request, obj=obj)
+
+    def has_add_permission(self, request):
+        return self._allow_access(request) and super().has_add_permission(request)
+
+    def has_change_permission(self, request, obj=None):
+        return self._allow_access(request) and super().has_change_permission(request, obj=obj)
+
+    def has_delete_permission(self, request, obj=None):
+        return self._allow_access(request) and super().has_delete_permission(request, obj=obj)
+
+
 @admin.register(MedicineCategory)
-class MedicineCategoryAdmin(admin.ModelAdmin):
+class MedicineCategoryAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['name', 'description', 'created_at']
     search_fields = ['name']
     ordering = ['name']
@@ -20,7 +42,7 @@ class BatchInline(admin.TabularInline):
 
 
 @admin.register(Medicine)
-class MedicineAdmin(admin.ModelAdmin):
+class MedicineAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['name', 'generic_name', 'brand_name', 'category', 'unit', 'strength',
                     'requires_prescription', 'reorder_level', 'is_active']
     list_filter = ['category', 'unit', 'requires_prescription', 'is_active']
@@ -30,7 +52,7 @@ class MedicineAdmin(admin.ModelAdmin):
 
 
 @admin.register(Batch)
-class BatchAdmin(admin.ModelAdmin):
+class BatchAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['medicine', 'batch_number', 'quantity', 'unit_cost',
                     'expiry_date', 'received_date']
     list_filter = ['medicine__category', 'expiry_date']
@@ -40,7 +62,7 @@ class BatchAdmin(admin.ModelAdmin):
 
 
 @admin.register(Supplier)
-class SupplierAdmin(admin.ModelAdmin):
+class SupplierAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['name', 'contact_person', 'email', 'phone', 'is_active']
     list_filter = ['is_active']
     search_fields = ['name', 'contact_person', 'email']
@@ -53,7 +75,7 @@ class PurchaseOrderItemInline(admin.TabularInline):
 
 
 @admin.register(PurchaseOrder)
-class PurchaseOrderAdmin(admin.ModelAdmin):
+class PurchaseOrderAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['order_number', 'supplier', 'status', 'ordered_by',
                     'order_date', 'expected_delivery', 'received_date']
     list_filter = ['status', 'supplier']
@@ -64,7 +86,7 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
 
 
 @admin.register(Dispensing)
-class DispensingAdmin(admin.ModelAdmin):
+class DispensingAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['id', 'patient', 'batch', 'quantity', 'dispensed_by',
                     'prescribing_doctor', 'dispensed_at']
     list_filter = ['dispensed_at']
@@ -75,7 +97,7 @@ class DispensingAdmin(admin.ModelAdmin):
 
 
 @admin.register(StockAdjustment)
-class StockAdjustmentAdmin(admin.ModelAdmin):
+class StockAdjustmentAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['batch', 'quantity_change', 'reason', 'adjusted_by', 'created_at']
     list_filter = ['reason']
     search_fields = ['batch__medicine__name', 'notes']
@@ -83,7 +105,7 @@ class StockAdjustmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(AuditLog)
-class AuditLogAdmin(admin.ModelAdmin):
+class AuditLogAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['action', 'performed_by', 'medicine', 'quantity', 'created_at']
     list_filter = ['action']
     search_fields = ['details', 'medicine__name']
@@ -93,10 +115,10 @@ class AuditLogAdmin(admin.ModelAdmin):
                        'quantity', 'details', 'created_at']
 
     def has_add_permission(self, request):
-        return False
+        return self._allow_access(request) and False
 
     def has_change_permission(self, request, obj=None):
-        return False
+        return self._allow_access(request) and False
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        return self._allow_access(request) and False

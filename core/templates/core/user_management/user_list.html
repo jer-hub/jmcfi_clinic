@@ -142,7 +142,9 @@
                             <select name="status" id="status" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
                                 <option value="">All Status</option>
                                 <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
-                                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Activation</option>
+                                <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended</option>
+                                <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive (Legacy)</option>
                             </select>
                         </div>
                         <div class="flex items-end space-x-2">
@@ -163,9 +165,90 @@
                 </form>
             </div>
 
-            <!-- Users Table -->
-            <div class="overflow-x-auto">
-                {% if users %}
+            <!-- Users Table / Mobile Cards -->
+            {% if users %}
+                <div class="md:hidden px-4 py-4 space-y-4">
+                    {% for user_item in users %}
+                        <div class="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden" data-user-card>
+                            <div class="p-4 border-b border-gray-100 flex items-start justify-between gap-4">
+                                <div class="flex items-center min-w-0">
+                                    <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold text-sm">
+                                        {{ user_item.first_name.0|upper }}{{ user_item.last_name.0|upper }}
+                                    </div>
+                                    <div class="ml-3 min-w-0">
+                                        <div class="text-sm font-semibold text-gray-900 truncate">{{ user_item.get_full_name }}</div>
+                                        <div class="text-xs text-gray-500 truncate">@{{ user_item.username }}</div>
+                                    </div>
+                                </div>
+                                <span class="px-2.5 py-1 inline-flex text-[11px] leading-5 font-semibold rounded-full whitespace-nowrap
+                                    {% if user_item.role == 'admin' %}bg-red-100 text-red-800
+                                    {% elif user_item.role == 'staff' or user_item.role == 'doctor' %}bg-purple-100 text-purple-800
+                                    {% else %}bg-blue-100 text-blue-800{% endif %}">
+                                    {{ user_item.get_role_display }}
+                                </span>
+                            </div>
+
+                            <div class="px-4 py-4 space-y-3">
+                                <div class="flex items-center justify-between gap-3">
+                                    <div>
+                                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Email</p>
+                                        <p class="text-sm text-gray-900 break-all">{{ user_item.email }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Joined</p>
+                                        <p class="text-gray-900">{{ user_item.date_joined|date:"M d, Y" }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Status</p>
+                                        <div class="mt-1" data-user-status>
+                                            {% if user_item.onboarding_status == 'pending_activation' %}
+                                                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">Pending Activation</span>
+                                            {% elif user_item.is_active %}
+                                                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
+                                            {% else %}
+                                                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">Suspended</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center justify-between gap-4 pt-2">
+                                    <div class="flex items-center gap-3">
+                                        <form method="POST" action="{% url 'core:user_toggle_status' user_item.id %}" id="toggle-mobile-{{ user_item.id }}" {% if user_item.role != 'admin' %}hx-post="{% url 'core:user_toggle_status' user_item.id %}" hx-swap="beforeend" hx-target="#messages-container"{% endif %}>
+                                            {% csrf_token %}
+                                            <label class="relative inline-flex items-center {% if user_item.role == 'admin' %}cursor-not-allowed opacity-50{% else %}cursor-pointer{% endif %}">
+                                                <input type="checkbox"
+                                                       class="sr-only peer js-account-toggle"
+                                                       {% if user_item.is_active %}checked{% endif %}
+                                                       data-user-id="{{ user_item.id }}"
+                                                       data-user-role="{{ user_item.role }}"
+                                                       {% if user_item.role == 'admin' %}disabled title="Cannot deactivate admin accounts"{% endif %}
+                                                       onchange="handleToggleChange(event, this.form)">
+                                                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                                                <span class="sr-only" data-user-toggle-label>{% if user_item.is_active %}Deactivate account{% else %}Activate account{% endif %}</span>
+                                            </label>
+                                        </form>
+                                        <span class="text-sm font-medium text-gray-700" data-user-toggle-state>
+                                            {% if user_item.onboarding_status == 'pending_activation' %}Pending Activation{% elif user_item.is_active %}Active{% else %}Suspended{% endif %}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center gap-4 text-sm font-medium">
+                                        <a href="{% url 'core:user_detail' user_item.id %}" class="text-primary-600 hover:text-primary-900">View</a>
+                                        {% if user_item.role != 'admin' %}
+                                            <a href="{% url 'core:user_edit' user_item.id %}" class="text-indigo-600 hover:text-indigo-900">Edit</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <div class="hidden md:block overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
@@ -173,13 +256,14 @@
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Activate Account</th>
                                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for user_item in users %}
-                            <tr class="hover:bg-gray-50 transition-colors">
+                            <tr class="hover:bg-gray-50 transition-colors" data-user-row>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
                                         <div class="flex-shrink-0 h-10 w-10">
@@ -204,8 +288,12 @@
                                         {{ user_item.get_role_display }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    {% if user_item.is_active %}
+                                <td class="px-6 py-4 whitespace-nowrap" id="status-{{ user_item.id }}" data-user-status>
+                                    {% if user_item.onboarding_status == 'pending_activation' %}
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
+                                            Pending Activation
+                                        </span>
+                                    {% elif user_item.is_active %}
                                         <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                             <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
@@ -213,13 +301,28 @@
                                             Active
                                         </span>
                                     {% else %}
-                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                                             <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                                 <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
                                             </svg>
-                                            Inactive
+                                            Suspended
                                         </span>
                                     {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <form method="POST" action="{% url 'core:user_toggle_status' user_item.id %}" class="inline-block" id="toggle-{{ user_item.id }}" {% if user_item.role != 'admin' %}hx-post="{% url 'core:user_toggle_status' user_item.id %}" hx-swap="beforeend" hx-target="#messages-container" hx-on="htmx:responseError: revertCheckbox(this)"{% endif %}>
+                                        {% csrf_token %}
+                                        <label class="relative inline-flex items-center {% if user_item.role == 'admin' %}cursor-not-allowed opacity-50{% else %}cursor-pointer{% endif %}">
+                                            <input type="checkbox"
+                                                   class="sr-only peer js-account-toggle"
+                                                   {% if user_item.is_active %}checked{% endif %}
+                                                   data-user-id="{{ user_item.id }}"
+                                                   data-user-role="{{ user_item.role }}"
+                                                   {% if user_item.role == 'admin' %}disabled title="Cannot deactivate admin accounts"{% endif %}
+                                                   onchange="handleToggleChange(event, this.form)">
+                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                                        </label>
+                                    </form>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     {{ user_item.date_joined|date:"M d, Y" }}
@@ -234,6 +337,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
 
                     <!-- Pagination -->
                     {% if users.has_other_pages %}
@@ -301,3 +405,194 @@
     </div>
 </div>
 {% endblock content %}
+
+{% block extra_js %}
+<script>
+// Store previous checkbox state
+const checkboxStates = {};
+
+function handleToggleChange(event, form) {
+    const checkbox = event.target;
+    const userId = checkbox.dataset.userId;
+    const userRole = checkbox.dataset.userRole;
+    
+    // Check if user is admin
+    if (userRole === 'admin') {
+        // Prevent toggle and show toast
+        checkbox.checked = !checkbox.checked; // Revert checkbox visually
+        showToast('Cannot deactivate admin accounts.', 'error');
+        return;
+    }
+    
+    // Store the current state before submitting
+    checkboxStates[userId] = checkbox.checked;
+    
+    // Submit the form
+    form.dispatchEvent(new Event('submit'));
+}
+
+function revertCheckbox(form) {
+    const checkbox = form.querySelector('.js-account-toggle');
+    const userId = checkbox.dataset.userId;
+    
+    // Revert to previous state if there was an error
+    if (checkboxStates.hasOwnProperty(userId)) {
+        checkbox.checked = !checkbox.checked;
+    }
+}
+
+document.body.addEventListener('updateStatus', function(evt) {
+    const data = evt.detail;
+    if (data.id && data.html) {
+        const td = document.getElementById('status-' + data.id);
+        if (td) {
+            td.innerHTML = data.html;
+        }
+    }
+});
+
+// Handle HTMX response errors to revert checkbox state
+document.body.addEventListener('htmx:responseError', function(evt) {
+    if (evt.detail.xhr.status >= 400) {
+        const form = evt.detail.xhr.target;
+        if (form && form.classList.contains('inline-block')) {
+            revertCheckbox(form);
+        }
+    }
+});
+
+// Listen for error messages to revert checkbox state
+document.addEventListener('DOMContentLoaded', function() {
+    const messageContainer = document.getElementById('messages-container');
+    if (messageContainer) {
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.addedNodes.length) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.classList && node.classList.contains('message-alert')) {
+                            // Check if this is an error message
+                            if (node.classList.contains('bg-red-50') || node.classList.contains('border-red-400')) {
+                                // Find the last toggled checkbox and revert it
+                                const lastToggledId = Object.keys(checkboxStates).pop();
+                                if (lastToggledId) {
+                                    const checkbox = document.querySelector(`input[data-user-id="${lastToggledId}"]`);
+                                    if (checkbox) {
+                                        checkbox.checked = !checkbox.checked;
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        });
+        
+        observer.observe(messageContainer, { childList: true });
+    }
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Lightweight page toast for AJAX actions (fixed positioning, no stacking - matches appointments/settings)
+    function showToastNotification(message, type = 'success') {
+        const classes = {
+            success: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-emerald-50 border-emerald-400 text-emerald-800',
+            error:   'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-red-50 border-red-400 text-red-800',
+            warning: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-amber-50 border-amber-400 text-amber-800'
+        };
+        
+        const toast = document.createElement('div');
+        toast.className = classes[type] || classes.success;
+        toast.style.pointerEvents = 'auto';
+        
+        const icons = {
+            success: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>',
+            error: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>',
+            warning: '<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>'
+        };
+        
+        toast.innerHTML = `
+            <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                ${icons[type] || icons.success}
+            </svg>
+            <span class="flex-1 font-medium text-sm">${message}</span>
+            <button type="button" class="ml-2 opacity-70 hover:opacity-100 transition-opacity" onclick="this.parentElement.remove()">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.5s ease-out';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
+        }, 5000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleInputs = document.querySelectorAll('.js-account-toggle');
+        toggleInputs.forEach(function(input) {
+            input.addEventListener('change', function(e) {
+                e.preventDefault();
+                const form = this.closest('form');
+                const url = form.getAttribute('action');
+                const formData = new FormData(form);
+                
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(({status, is_active, message}) => {
+                    if (status === 'success') {
+                        showToastNotification(message, is_active ? 'success' : 'warning');
+                        
+                        const container = form.closest('[data-user-row], [data-user-card]');
+                        if (container) {
+                            const statusCell = container.querySelector('[data-user-status]');
+                            const toggleLabel = container.querySelector('[data-user-toggle-state]');
+                            if (statusCell) {
+                                statusCell.innerHTML = is_active
+                                    ? `
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Active
+                                        </span>
+                                    `
+                                    : `
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Suspended
+                                        </span>
+                                    `;
+                            }
+                            if (toggleLabel) {
+                                toggleLabel.textContent = is_active ? 'Active' : 'Inactive';
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error toggling user status:', error);
+                    // Revert toggle if error
+                    this.checked = !this.checked;
+                });
+            });
+        });
+    });
+</script>
+{% endblock scripts %}

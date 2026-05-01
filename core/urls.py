@@ -8,6 +8,8 @@ urlpatterns = [
     path('', views.dashboard, name='dashboard'),
     
     # Authentication
+    path('auth/admin-login/', views.admin_login, name='admin_login'),
+    path('auth/invite/accept/<str:token>/', views.accept_invite, name='accept_invite'),
     path('logout/', views.logout_view, name='logout'),
     
     # Notifications
@@ -31,6 +33,7 @@ urlpatterns = [
     path('users/<int:user_id>/delete/', views.user_delete, name='user_delete'),
     path('users/<int:user_id>/toggle-status/', views.user_toggle_status, name='user_toggle_status'),
     path('users/<int:user_id>/reset-password/', views.user_reset_password, name='user_reset_password'),
+    path('users/<int:user_id>/resend-invite/', views.user_resend_invite, name='user_resend_invite'),
     
     # Search
     path('search/students/', views.search_students, name='search_students'),

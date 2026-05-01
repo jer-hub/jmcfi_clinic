@@ -49,7 +49,7 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     {% for item in settings_data %}
-                    <tr class="hover:bg-gray-50 transition-colors duration-100">
+                    <tr {% if item.instance %}x-data="appointmentTypeRow({{ item.instance.id }}, {{ item.instance.is_active|yesno:'true,false' }})"{% endif %} class="hover:bg-gray-50 transition-colors duration-100">
 
                         <!-- Type -->
                         <td class="px-6 py-4">
@@ -161,18 +161,14 @@
                             </form>
                         </td>
 
-                        <!-- Status badge -->
+                                                <!-- Status badge -->
                         <td class="px-6 py-4 text-center">
                             {% if item.instance %}
-                                {% if item.instance.is_active %}
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Active
-                                    </span>
-                                {% else %}
-                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>Inactive
-                                    </span>
-                                {% endif %}
+                                <span :class="isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" 
+                                      class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors duration-200">
+                                    <span :class="isActive ? 'bg-green-500' : 'bg-red-400'" class="w-1.5 h-1.5 rounded-full"></span>
+                                    <span x-text="isActive ? 'Active' : 'Inactive'"></span>
+                                </span>
                             {% else %}
                                 <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Not set</span>
                             {% endif %}
@@ -181,17 +177,15 @@
                         <!-- Active toggle (separate form) -->
                         <td class="px-6 py-4 text-center">
                             {% if item.instance %}
-                            <form method="POST" action="{% url 'appointments:toggle_appointment_type_default' default_id=item.instance.id %}" class="inline">
-                                {% csrf_token %}
-                                <button type="submit"
-                                    class="relative inline-flex h-5 w-9 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1
-                                        {% if item.instance.is_active %}bg-primary-600{% else %}bg-gray-200{% endif %}"
-                                    title="{% if item.instance.is_active %}Deactivate{% else %}Activate{% endif %}">
-                                    <span class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform duration-200
-                                        {% if item.instance.is_active %}translate-x-4{% else %}translate-x-0.5{% endif %}">
-                                    </span>
-                                </button>
-                            </form>
+                            <div class="inline" >
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                                                    <input type="checkbox" 
+                                                                           class="sr-only peer" 
+                                                                           :checked="isActive"
+                                                                           @change="toggle()">
+                                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                                                                </label>
+                            </div>
                             {% else %}
                             <span class="text-xs text-gray-400">—</span>
                             {% endif %}
@@ -311,5 +305,87 @@ function confirmDelete(defaultId, typeName) {
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') document.getElementById('deleteModal').classList.add('hidden');
 });
+// CSRF helper and Alpine row factory for toggling active state without reload
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function appointmentTypeRow(id, initialActive) {
+    return {
+        id: id,
+        isActive: initialActive,
+        loading: false,
+        async toggle() {
+            if (this.loading) return;
+            this.loading = true;
+            try {
+                const url = "{% url 'appointments:toggle_appointment_type_default' default_id=0 %}".replace('0', this.id);
+                const resp = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: new URLSearchParams({})
+                });
+
+                if (!resp.ok) {
+                    console.error('Toggle failed', resp.statusText);
+                    return;
+                }
+
+                const data = await resp.json();
+                if (data && data.success) {
+                    this.isActive = data.is_active;
+                    showPageToast(data.message || 'Updated', 'success');
+                } else {
+                    showPageToast((data && data.message) || 'Failed to update', 'error');
+                }
+            } catch (e) {
+                console.error('Error toggling appointment default:', e);
+                showPageToast('An error occurred while updating', 'error');
+            } finally {
+                this.loading = false;
+            }
+        }
+    }
+}
+
+// Lightweight page toast for AJAX actions (matches shared floating style)
+function showPageToast(message, type='success') {
+    const classes = {
+        success: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-emerald-50 border-emerald-400 text-emerald-800',
+        error:   'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-red-50 border-red-400 text-red-800',
+        warning: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-amber-50 border-amber-400 text-amber-800',
+    };
+    const toast = document.createElement('div');
+    toast.className = classes[type] || classes.success;
+    toast.innerHTML = `
+        <span class="flex-shrink-0">
+            ${type === 'success' ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}
+        </span>
+        <span class="flex-1 font-medium text-sm">${message}</span>
+        <button type="button" class="ml-2 opacity-70 hover:opacity-100" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'transition-opacity');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 </script>
 {% endblock content %}

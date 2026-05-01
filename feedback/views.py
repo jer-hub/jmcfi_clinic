@@ -6,12 +6,14 @@ from django.db.models import Avg, Count, Q
 from django.db.models.functions import TruncMonth, TruncWeek
 from django.utils import timezone
 from datetime import timedelta
+from core.decorators import role_required
 
 from .models import Feedback
 from appointments.models import Appointment
 
 
 @login_required
+@role_required('student', 'staff', 'doctor')
 def feedback_list(request):
     """Display list of feedback."""
     if request.user.role == 'student':
@@ -27,12 +29,9 @@ def feedback_list(request):
 
 
 @login_required
+@role_required('student')
 def submit_feedback(request, appointment_id=None):
     """Submit new feedback with enhanced form."""
-    if request.user.role != 'student':
-        messages.error(request, 'Only students can submit feedback.')
-        return redirect('core:dashboard')
-    
     appointment = None
     if appointment_id:
         appointment = get_object_or_404(Appointment, id=appointment_id, student=request.user)
@@ -102,13 +101,9 @@ def submit_feedback(request, appointment_id=None):
 
 
 @login_required
+@role_required('staff', 'doctor')
 def feedback_stats(request):
-    """Display feedback statistics for staff, admin, and doctors."""
-    # Only allow staff, admin, and doctors to view stats
-    if request.user.role == 'student':
-        messages.error(request, 'You do not have permission to view feedback statistics.')
-        return redirect('feedback:feedback_list')
-    
+    """Display feedback statistics for staff and doctors."""
     # Date ranges
     today = timezone.now().date()
     last_7_days = today - timedelta(days=7)

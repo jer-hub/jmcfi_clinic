@@ -36,13 +36,17 @@
                                     {% else %}bg-blue-100 text-blue-800{% endif %}">
                                     {{ viewed_user.get_role_display }}
                                 </span>
-                                {% if viewed_user.is_active %}
+                                {% if viewed_user.onboarding_status == 'pending_activation' %}
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
+                                        Pending Activation
+                                    </span>
+                                {% elif viewed_user.is_active %}
                                     <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
                                         Active
                                     </span>
                                 {% else %}
-                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                                        Inactive
+                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        Suspended
                                     </span>
                                 {% endif %}
                             </div>
@@ -79,22 +83,31 @@
                             </svg>
                             Edit User
                         </a>
-                        <form method="POST" action="{% url 'core:user_toggle_status' viewed_user.id %}" class="w-full">
-                            {% csrf_token %}
-                            <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                {% if viewed_user.is_active %}
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-                                    </svg>
-                                    Deactivate Account
-                                {% else %}
-                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                    Activate Account
-                                {% endif %}
-                            </button>
+                        <form method="POST" action="{% url 'core:user_toggle_status' viewed_user.id %}" class="w-full" id="toggle-status-form">
+                                                    {% csrf_token %}
+                                                    <div class="flex items-center justify-between px-4 py-2 border border-gray-300 rounded-md bg-white">
+                                                        <span class="text-sm font-medium text-gray-700">Account Status</span>
+                                                        <label class="relative inline-flex items-center cursor-pointer">
+                                                            <input type="checkbox" 
+                                                                   class="sr-only peer js-account-toggle" 
+                                                                                                              {% if viewed_user.is_active %}checked{% endif %} 
+                                                                                                              data-user-id="{{ viewed_user.id }}">
+                                                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                                                            <span class="ml-3 text-sm font-medium text-gray-600">
+                                                                {% if viewed_user.is_active %}Active{% else %}Inactive{% endif %}
+                                                            </span>
+                                                        </label>
+                                                    </div>
+                                                </form>
                         </form>
+                        {% if viewed_user.onboarding_status == 'pending_activation' %}
+                        <a href="{% url 'core:user_resend_invite' viewed_user.id %}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-white hover:bg-amber-50">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            Regenerate Invite Link
+                        </a>
+                        {% endif %}
                         <a href="{% url 'core:user_reset_password' viewed_user.id %}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
@@ -228,3 +241,101 @@
     </div>
 </div>
 {% endblock content %}
+
+{% block scripts %}
+<script>
+    // Lightweight page toast for AJAX actions (fixed positioning, no stacking - matches appointments/settings)
+    function showToastNotification(message, type = 'success') {
+        const classes = {
+            success: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-emerald-50 border-emerald-400 text-emerald-800',
+            error:   'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-red-50 border-red-400 text-red-800',
+            warning: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-amber-50 border-amber-400 text-amber-800'
+        };
+        
+        const toast = document.createElement('div');
+        toast.className = classes[type] || classes.success;
+        toast.style.pointerEvents = 'auto';
+        
+        const icons = {
+            success: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>',
+            error: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>',
+            warning: '<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>'
+        };
+        
+        toast.innerHTML = `
+            <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                ${icons[type] || icons.success}
+            </svg>
+            <span class="flex-1 font-medium text-sm">${message}</span>
+            <button type="button" class="ml-2 opacity-70 hover:opacity-100 transition-opacity" onclick="this.parentElement.remove()">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            toast.style.transition = 'opacity 0.5s ease-out';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 500);
+        }, 5000);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleInputs = document.querySelectorAll('.js-account-toggle');
+        toggleInputs.forEach(function(input) {
+            input.addEventListener('change', function(e) {
+                e.preventDefault();
+                const form = this.closest('form');
+                const url = form.getAttribute('action');
+                const formData = new FormData(form);
+                
+                fetch(url, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(({status, is_active, message}) => {
+                    if (status === 'success') {
+                        showToastNotification(message, is_active ? 'success' : 'warning');
+                        
+                        // Update text in the toggle row
+                        const labelSpan = form.querySelector('span.ml-3');
+                        if (labelSpan) {
+                            labelSpan.textContent = is_active ? 'Active' : 'Inactive';
+                        }
+                        
+                        // Update the badge under the user's role on left sidebar
+                        const badgeContainer = document.querySelector('dt:contains("Status")')?.nextElementSibling 
+                            || document.querySelector('.flex.flex-col .text-gray-500:contains("Status")')?.nextElementSibling;
+                        
+                        // Look for status badges in the DOM
+                        const statusBadges = document.querySelectorAll('.px-3.py-1.inline-flex.text-sm.leading-5.font-semibold.rounded-full');
+                        if (statusBadges.length > 0) {
+                            const badge = statusBadges[0];
+                            if (is_active) {
+                                badge.className = 'px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-green-100 text-green-800';
+                                badge.textContent = 'Active';
+                            } else {
+                                badge.className = 'px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full bg-red-100 text-red-800';
+                                badge.textContent = 'Suspended';
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.checked = !this.checked;
+                });
+            });
+        });
+    });
+</script>
+{% endblock scripts %}

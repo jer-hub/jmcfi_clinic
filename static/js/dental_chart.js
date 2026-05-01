@@ -739,15 +739,23 @@ class DentalChart {
     
     showToast(message, type = 'info') {
         const colors = {
-            success: 'bg-green-600',
-            error: 'bg-red-600',
-            warning: 'bg-yellow-600',
-            info: 'bg-blue-600'
+            success: 'bg-emerald-50 border-emerald-400 text-emerald-800',
+            error: 'bg-red-50 border-red-400 text-red-800',
+            warning: 'bg-amber-50 border-amber-400 text-amber-800',
+            info: 'bg-primary-50 border-primary-400 text-primary-800'
         };
         
         const toast = document.createElement('div');
-        toast.className = `fixed top-20 right-4 z-50 px-6 py-3 ${colors[type]} text-white rounded-lg shadow-lg animate-fade-in`;
-        toast.innerHTML = `<i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-circle' : 'info-circle'} mr-2"></i>${message}`;
+        toast.className = `fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 ${colors[type]}`;
+        toast.innerHTML = `
+            <span class="flex-shrink-0">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'times-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+            </span>
+            <span class="flex-1 font-medium text-sm">${message}</span>
+            <button type="button" class="ml-2 opacity-70 hover:opacity-100" onclick="this.parentElement.remove()">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
         
         document.body.appendChild(toast);
         

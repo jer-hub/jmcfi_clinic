@@ -141,7 +141,7 @@
                                 </svg>
                                 Contact
                             </button>
-                            {% if user.role != 'doctor' %}
+                                {% if user.role != 'doctor' and user.role != 'admin' %}
                             <button @click="activeTab = 'medical'" 
                                     :class="activeTab === 'medical' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                                     class="px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors">
@@ -392,7 +392,7 @@
                         </div>
 
                         <!-- Medical Information Tab -->
-                        {% if user.role != 'doctor' %}
+                        {% if user.role != 'doctor' and user.role != 'admin' %}
                         <div x-show="activeTab === 'medical'" x-cloak>
                             {% if profile %}
                             <div class="space-y-6">

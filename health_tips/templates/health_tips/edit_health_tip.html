@@ -20,19 +20,25 @@
     .toastui-editor-defaultUI .toastui-editor-md-splitter {
         background-color: #e5e7eb;
     }
-    /* Toast notifications */
     .toast-notification {
         position: fixed;
-        bottom: 1rem;
+        top: 5rem;
         right: 1rem;
+        z-index: 50;
+        max-width: 24rem;
+        width: 100%;
         padding: 0.75rem 1rem;
         border-radius: 0.5rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 9999;
+        box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+        border-left: 4px solid transparent;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
         animation: slideIn 0.3s ease;
     }
-    .toast-success { background: #10b981; color: white; }
-    .toast-error { background: #ef4444; color: white; }
+    .toast-success { background: #ecfdf5; border-left-color: #34d399; color: #065f46; }
+    .toast-error { background: #fef2f2; border-left-color: #f87171; color: #991b1b; }
+    .toast-warning { background: #fffbeb; border-left-color: #fbbf24; color: #92400e; }
     @keyframes slideIn {
         from { transform: translateX(100%); opacity: 0; }
         to { transform: translateX(0); opacity: 1; }
@@ -190,10 +196,26 @@ document.getElementById('healthTipForm').addEventListener('submit', function(e) 
 
 function showToast(message, type) {
     const toast = document.createElement('div');
-    toast.className = `toast-notification toast-${type}`;
-    toast.textContent = message;
+    const styles = {
+        success: 'toast-notification toast-success',
+        error: 'toast-notification toast-error',
+        warning: 'toast-notification toast-warning',
+    };
+    toast.className = styles[type] || styles.success;
+    toast.innerHTML = `
+        <span class="flex-shrink-0">
+            ${type === 'success' ? '<i class="fas fa-check-circle"></i>' : type === 'warning' ? '<i class="fas fa-exclamation-triangle"></i>' : '<i class="fas fa-times-circle"></i>'}
+        </span>
+        <span class="flex-1 font-medium text-sm">${message}</span>
+        <button type="button" class="ml-2 opacity-70 hover:opacity-100" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
     document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'transition-opacity');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 </script>
 {% endblock content %}

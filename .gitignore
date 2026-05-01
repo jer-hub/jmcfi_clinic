@@ -18,3 +18,8 @@ media/
 
 # Media files (uploaded content)
 media/
+
+.agents
+.github
+.vscode
+.instructions.md

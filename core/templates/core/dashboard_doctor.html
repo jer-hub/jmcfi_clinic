@@ -1,4 +1,4 @@
-<!-- Staff Dashboard -->
+<!-- Doctor Dashboard -->
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
   <div class="bg-white rounded-lg shadow p-4 sm:p-6">
     <div class="flex items-center">
@@ -44,20 +44,19 @@
 
   <div class="bg-white rounded-lg shadow p-4 sm:p-6">
     <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-blue-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="p-2 sm:p-3 bg-purple-100 rounded-full">
+        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
         </svg>
       </div>
       <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Completed Appointments</p>
-        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ completed_appointments }}</p>
+        <p class="text-xs sm:text-sm text-gray-600 break-words">Pending Certificates</p>
+        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ pending_certificates }}</p>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Quick Actions for Staff -->
 <div class="bg-white rounded-lg shadow mb-6 sm:mb-8">
   <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
     <h3 class="text-base sm:text-lg font-semibold text-gray-900">Quick Actions</h3>
@@ -78,7 +77,7 @@
         </div>
       </a>
 
-      <a href="{% url 'dental_records:dental_record_list' %}" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+      <a href="{% url 'document_request:document_requests' %}" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:shadow-md transition-all duration-200 group">
         <div class="flex-shrink-0">
           <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,8 +86,8 @@
           </div>
         </div>
         <div class="ml-3">
-          <p class="text-sm font-semibold text-gray-900">Dental Records</p>
-          <p class="text-xs text-gray-600">Manage dental charts</p>
+          <p class="text-sm font-semibold text-gray-900">Certificates</p>
+          <p class="text-xs text-gray-600">Process requests</p>
         </div>
       </a>
 
@@ -106,7 +105,7 @@
         </div>
       </a>
 
-      <a href="{% url 'pharmacy:dashboard' %}" class="flex items-center p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg hover:shadow-md transition-all duration-200 group">
+      <a href="{% url 'health_tips:create_health_tip' %}" class="flex items-center p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg hover:shadow-md transition-all duration-200 group">
         <div class="flex-shrink-0">
           <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
             <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,15 +114,14 @@
           </div>
         </div>
         <div class="ml-3">
-          <p class="text-sm font-semibold text-gray-900">Pharmacy</p>
-          <p class="text-xs text-gray-600">Manage medicines and stock</p>
+          <p class="text-sm font-semibold text-gray-900">Health Tips</p>
+          <p class="text-xs text-gray-600">Share health information</p>
         </div>
       </a>
     </div>
   </div>
 </div>
 
-<!-- Today's Appointments (minimal) -->
 <div class="bg-white rounded-lg shadow mb-6">
   <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
     <div class="flex items-center justify-between">

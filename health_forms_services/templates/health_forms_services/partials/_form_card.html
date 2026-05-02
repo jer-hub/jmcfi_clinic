@@ -1,0 +1,41 @@
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all p-4 flex flex-col gap-3 relative">
+  <input type="checkbox" name="form_ids" value="{{ form_obj.pk }}" class="bulk-select-checkbox absolute top-3 right-3 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+  <div class="flex items-start gap-3 pr-6">
+    <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+      <span class="text-sm font-semibold text-primary-700">
+        {{ form_obj.first_name|default:""|slice:":1" }}{{ form_obj.last_name|default:form_obj.user.first_name|default:""|slice:":1" }}
+      </span>
+    </div>
+    <div class="min-w-0 flex-1">
+      <p class="text-sm font-medium text-gray-900 truncate">
+        {{ form_obj.get_full_name|default:form_obj.user.get_full_name|default:"—" }}
+      </p>
+      <p class="text-xs text-gray-500 truncate">{{ form_obj.email_address|default:form_obj.user.email|default:"" }}</p>
+    </div>
+    {% if form_obj.status == 'pending' %}
+      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700 flex-shrink-0">Pending</span>
+    {% elif form_obj.status == 'completed' %}
+      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700 flex-shrink-0">Completed</span>
+    {% elif form_obj.status == 'rejected' %}
+      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700 flex-shrink-0">Rejected</span>
+    {% elif form_obj.status == 'incomplete' %}
+      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700 flex-shrink-0">Incomplete</span>
+    {% else %}
+      <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600 flex-shrink-0">{{ form_obj.get_status_display }}</span>
+    {% endif %}
+  </div>
+
+  <div class="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+    {% if form_obj.designation %}
+      <span class="px-2 py-0.5 bg-gray-100 rounded-full">{{ form_obj.get_designation_display|default:form_obj.designation }}</span>
+    {% endif %}
+    {% if form_obj.created_at %}
+      <span>{{ form_obj.created_at|date:"M d, Y" }}</span>
+    {% endif %}
+  </div>
+
+  <div class="flex items-center gap-2 pt-1 border-t border-gray-100">
+    <a href="{% url detail_url_name form_obj.pk %}"
+       class="text-xs font-medium text-primary-600 hover:text-primary-700 px-2 py-1.5 rounded hover:bg-primary-50 transition-colors min-h-[28px]">View</a>
+  </div>
+</div>

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
@@ -72,10 +73,28 @@ class User(AbstractUser):
         default=ONBOARDING_STATUS.ACTIVE,
     )
     
-    # Re-add is_staff field (was removed in migration 0005, but Django requires it)
+        # Re-add is_staff field (was removed in migration 0005, but Django requires it)
     is_staff = models.BooleanField(
         default=False,
         help_text='Designates whether the user can log into the admin site.',
+    )
+
+    # Soft-delete support
+    is_deleted = models.BooleanField(
+        default=False,
+        help_text='Designates whether this user is soft-deleted.',
+    )
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Timestamp when the user was soft-deleted.',
+    )
+
+    # Last activity tracking for auto-cleanup
+    last_activity_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text='Last activity timestamp for inactivity cleanup.',
     )
     
     def is_admin(self):
@@ -89,6 +108,34 @@ class User(AbstractUser):
     
     def is_student(self):
         return self.role == self.ROLE.STUDENT
+
+    def sync_onboarding_status(self):
+        """Synchronize onboarding_status with is_active to keep them in sync."""
+        if self.onboarding_status == self.ONBOARDING_STATUS.PENDING_ACTIVATION:
+            if self.is_active:
+                self.onboarding_status = self.ONBOARDING_STATUS.ACTIVE
+        elif self.onboarding_status == self.ONBOARDING_STATUS.ACTIVE:
+            if not self.is_active:
+                self.onboarding_status = self.ONBOARDING_STATUS.SUSPENDED
+        elif self.onboarding_status == self.ONBOARDING_STATUS.SUSPENDED:
+            if self.is_active:
+                self.onboarding_status = self.ONBOARDING_STATUS.ACTIVE
+
+    def soft_delete(self):
+        """Soft-delete the user instead of permanent deletion."""
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.is_active = False
+        self.onboarding_status = self.ONBOARDING_STATUS.SUSPENDED
+        self.save(update_fields=['is_deleted', 'deleted_at', 'is_active', 'onboarding_status'])
+
+    def restore(self):
+        """Restore a soft-deleted user."""
+        self.is_deleted = False
+        self.deleted_at = None
+        self.is_active = True
+        self.onboarding_status = self.ONBOARDING_STATUS.ACTIVE
+        self.save(update_fields=['is_deleted', 'deleted_at', 'is_active', 'onboarding_status'])
     
     def __str__(self):
         if self.first_name or self.last_name:
@@ -101,6 +148,8 @@ class User(AbstractUser):
         if hasattr(self, '_state') and self._state.adding and self.is_staff:
             if self.role == self.ROLE.STUDENT:
                 self.role = self.ROLE.STAFF
+        # Sync onboarding_status with is_active
+        self.sync_onboarding_status()
         super().save(*args, **kwargs)
 
 
@@ -379,6 +428,12 @@ class AccountProvisioningAudit(models.Model):
         CREATED_ACTIVE = 'created_active', 'Created (Active)'
         ACTIVATED = 'activated', 'Activated'
         SUSPENDED = 'suspended', 'Suspended'
+        SOFT_DELETED = 'soft_deleted', 'Soft Deleted'
+        RESTORED = 'restored', 'Restored'
+        BULK_ACTIVATED = 'bulk_activated', 'Bulk Activated'
+        BULK_SUSPENDED = 'bulk_suspended', 'Bulk Suspended'
+        ROLE_CHANGED = 'role_changed', 'Role Changed'
+        PASSWORD_RESET = 'password_reset', 'Password Reset'
 
     actor = models.ForeignKey(
         User,

@@ -7,6 +7,7 @@ urlpatterns = [
     path('', views.health_tips, name='health_tips_list'),
     path('upload-image/', views.upload_image, name='upload_image'),
     path('<int:tip_id>/', views.health_tip_detail, name='health_tip_detail'),
+    path('<int:tip_id>/detail/', views.health_tip_detail_htmx, name='health_tip_detail_htmx'),
     path('create/', views.create_health_tip, name='create_health_tip'),
     path('<int:tip_id>/edit/', views.edit_health_tip, name='edit_health_tip'),
     path('<int:tip_id>/delete/', views.delete_health_tip, name='delete_health_tip'),

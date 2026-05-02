@@ -23,6 +23,9 @@ def is_direct_pair_allowed(user_a, user_b):
     allowed = {
         frozenset(["student", "staff"]),
         frozenset(["student", "doctor"]),
+        frozenset(["student", "admin"]),
+        frozenset(["staff", "admin"]),
+        frozenset(["doctor", "admin"]),
     }
     return frozenset([role_a, role_b]) in allowed
 
@@ -211,7 +214,7 @@ def send_conversation_message(conversation, sender, body):
         first_user = direct_participants[0].user
         second_user = direct_participants[1].user
         if not is_direct_pair_allowed(first_user, second_user):
-            raise PermissionError("Direct messaging is only allowed between students and staff/doctors.")
+            raise PermissionError("Direct messaging is only allowed between students, staff, doctors, and admins.")
 
     if (
         conversation.conversation_type == Conversation.ConversationType.ANNOUNCEMENT

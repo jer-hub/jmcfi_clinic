@@ -720,3 +720,81 @@ class PasswordResetForm(forms.Form):
                 raise forms.ValidationError(exc.messages)
         
         return password2
+
+
+class BulkUserActionForm(forms.Form):
+    """Form for bulk operations on users (activate, deactivate, delete)."""
+
+    ACTION_CHOICES = [
+        ('activate', 'Activate Accounts'),
+        ('deactivate', 'Deactivate Accounts'),
+        ('delete', 'Soft Delete Accounts'),
+    ]
+
+    action = forms.ChoiceField(
+        choices=ACTION_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+        })
+    )
+    user_ids = forms.CharField(
+        widget=forms.HiddenInput(attrs={
+            'id': 'bulk-user-ids',
+        })
+    )
+    confirmation = forms.BooleanField(
+        required=True,
+        initial=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded',
+        })
+    )
+
+    def clean_user_ids(self):
+        raw = self.cleaned_data.get('user_ids', '')
+        try:
+            ids = [int(x.strip()) for x in raw.split(',') if x.strip()]
+            if not ids:
+                raise forms.ValidationError('No user IDs provided.')
+            return ids
+        except (ValueError, TypeError):
+            raise forms.ValidationError('Invalid user IDs format.')
+
+    def clean_action(self):
+        action = self.cleaned_data.get('action', '')
+        if action not in dict(self.ACTION_CHOICES):
+            raise forms.ValidationError('Invalid action selected.')
+        return action
+
+
+class UserExportForm(forms.Form):
+    """Form for filtering users to export."""
+
+    role = forms.ChoiceField(
+        required=False,
+        choices=[('', 'All Roles'), ('student', 'Student'), ('staff', 'Staff'), ('doctor', 'Doctor'), ('admin', 'Admin')],
+        widget=forms.Select(attrs={
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+        })
+    )
+    status = forms.ChoiceField(
+        required=False,
+        choices=[('', 'All Status'), ('active', 'Active'), ('pending', 'Pending Activation'), ('suspended', 'Suspended')],
+        widget=forms.Select(attrs={
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+        })
+    )
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+            'type': 'date',
+        })
+    )
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+            'type': 'date',
+        })
+    )

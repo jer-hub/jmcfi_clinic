@@ -14,10 +14,11 @@
                 <p class="text-gray-600 mt-1">Manage dental records form submissions (F-HSS-20-0003)</p>
             </div>
             {% if request.user.role == 'staff' or request.user.role == 'doctor' or request.user.role == 'admin' %}
-            <a href="{% url 'health_forms_services:create_dental_form' %}" aria-label="New Dental Form" title="New Dental Form" class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <a href="{% url 'health_forms_services:create_dental_form' %}" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-medium">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
+                <span>New Dental Form</span>
             </a>
             {% endif %}
         </div>

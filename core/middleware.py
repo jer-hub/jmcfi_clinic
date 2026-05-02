@@ -1,9 +1,11 @@
 # middleware.py
+import datetime
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib import messages
 from django.conf import settings
+from django.utils import timezone
 from .utils import get_user_profile
 from .profile_policy import (
     STUDENT_PROFILE_REQUIRED_FIELDS,
@@ -11,6 +13,28 @@ from .profile_policy import (
     DOCTOR_PROFILE_REQUIRED_FIELDS,
     ADMIN_PROFILE_REQUIRED_FIELDS,
 )
+
+
+class UserActivityMiddleware:
+    """
+    Middleware to track user last activity timestamp.
+    Updates last_activity_at for authenticated users periodically.
+    Uses the session to avoid hitting the database on every request.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated:
+            # Only update every 5 minutes to avoid DB hits on every request
+            last_update = request.session.get('last_activity_update')
+            now = timezone.now()
+            if not last_update or (now - timezone.datetime.fromtimestamp(last_update, tz=datetime.timezone.utc)).seconds > 300:
+                User = __import__('django.contrib.auth', fromlist=['get_user_model']).get_user_model()
+                User.objects.filter(id=request.user.id).update(last_activity_at=now)
+                request.session['last_activity_update'] = now.timestamp()
+
+        return self.get_response(request)
 
 
 class SessionTimeoutMiddleware:

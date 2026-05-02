@@ -68,6 +68,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
+        "core.middleware.UserActivityMiddleware",  # Track last user activity
     "core.middleware.SessionTimeoutMiddleware",  # Role-based session timeout
     "core.middleware.RoleMiddleware",
     "core.middleware.ProfileCompleteMiddleware",  # Require complete profile for access

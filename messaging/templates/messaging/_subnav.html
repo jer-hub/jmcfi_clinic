@@ -5,7 +5,7 @@
     </div>
     <div class="flex w-full flex-wrap gap-2 sm:w-auto">
         <a href="{% url 'messaging:inbox' %}" class="inline-flex flex-1 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 {% if request.resolver_match.view_name == 'messaging:inbox' or request.resolver_match.view_name == 'messaging:conversation_detail' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">Inbox</a>
-        {% if user.role == 'student' or user.role == 'staff' or user.role == 'doctor' %}
+        {% if user.role == 'student' or user.role == 'staff' or user.role == 'doctor' or user.role == 'admin' %}
         <a href="{% url 'messaging:start_conversation' %}" class="inline-flex flex-1 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors sm:flex-none sm:px-4 {% if request.resolver_match.view_name == 'messaging:start_conversation' %}bg-primary-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">New Message</a>
         {% endif %}
     </div>

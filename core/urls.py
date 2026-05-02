@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import user_mgmt_views
 
 app_name = "core"
 
@@ -34,6 +35,12 @@ urlpatterns = [
     path('users/<int:user_id>/toggle-status/', views.user_toggle_status, name='user_toggle_status'),
     path('users/<int:user_id>/reset-password/', views.user_reset_password, name='user_reset_password'),
     path('users/<int:user_id>/resend-invite/', views.user_resend_invite, name='user_resend_invite'),
+    # Extended user management
+    path('users/bulk-action/', user_mgmt_views.user_bulk_action, name='user_bulk_action'),
+    path('users/<int:user_id>/restore/', user_mgmt_views.user_restore, name='user_restore'),
+    path('users/<int:user_id>/audit-log/', user_mgmt_views.user_audit_log, name='user_audit_log'),
+    path('users/export/csv/', user_mgmt_views.user_export_csv, name='user_export_csv'),
+    path('users/cleanup/stale/', user_mgmt_views.user_cleanup_stale, name='user_cleanup_stale'),
     
     # Search
     path('search/students/', views.search_students, name='search_students'),

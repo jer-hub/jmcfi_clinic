@@ -1,0 +1,300 @@
+{# ── Shared base list template for all health form types ── #}
+{# Subclasses use {% extends '_base_list.html' %} and override these blocks: #}
+{#   {% block list_title %}...{% endblock %} — page title              #}
+{#   {% block list_subtitle %}...{% endblock %} — subtitle line        #}
+{#   {% block list_columns %}...{% endblock %} — column headers         #}
+{#   {% block list_row scoped %}...{% endblock %} — single row markup   #}
+{#   {% block empty_message %}...{% endblock %} — when no results       #}
+
+{% extends 'core/base.html' %}
+
+{% block title %}{% block list_head_title %}{{ form_type_label }}{% endblock %} - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-4 sm:py-8">
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+    {% include 'health_forms_services/_subnav.html' %}
+
+    {# ── Header ── #}
+    <div class="mb-6 flex items-start justify-between gap-3 sm:gap-4">
+      <div class="min-w-0 flex-1">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">{{ form_type_label }}</h1>
+        <p class="text-gray-600 mt-1 text-sm sm:text-base">
+          {% block list_subtitle %}Manage {{ form_type_label|lower }}{% endblock %}
+          {% if total_count %}<span class="text-gray-400"> &middot; {{ total_count }} total</span>{% endif %}
+        </p>
+      </div>
+      {% if request.user.role == 'staff' or request.user.role == 'doctor' or request.user.role == 'admin' %}
+        {% if create_url %}
+        <a href="{{ create_url }}"
+           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-medium flex-shrink-0">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          <span>New {{ form_type_label }}</span>
+        </a>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    {# ── Filters ── #}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
+      <form method="get" class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <div class="flex-1 relative">
+          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+          <input type="text" name="search" value="{{ search }}" 
+                 placeholder="Search by name or email..."
+                 class="w-full pl-9 pr-4 py-2.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+        </div>
+        <div class="flex gap-2 sm:gap-3">
+          <select name="status" class="flex-1 sm:w-auto px-4 py-2.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+            <option value="">All Status</option>
+            {% for value, label in status_choices %}
+              <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <button type="submit" class="px-4 py-2.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm whitespace-nowrap">
+            Filter
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {# ── Results count ── #}
+    {% if forms %}
+    <p class="text-xs text-gray-500 mb-3">
+      Showing {{ forms.start_index }}&ndash;{{ forms.end_index }} of {{ forms.paginator.count }} forms
+    </p>
+    {% endif %}
+
+    {# ── Table (desktop) / Card list (mobile) ── #}
+    {% if forms %}
+    {# ── Mobile card layout ── #}
+    <div class="sm:hidden space-y-3 mb-6">
+      {% for form_obj in forms %}
+      <div class="bg-white rounded-lg border border-gray-200 shadow-sm p-4 relative">
+        {% if bulk_action_url_name %}
+        <div class="absolute top-3 right-3 z-10">
+          <input type="checkbox" name="form_ids" value="{{ form_obj.pk }}" class="bulk-select-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+        </div>
+        {% endif %}
+        <div class="flex items-start gap-3 pr-6">
+          <div class="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+            <span class="text-xs font-semibold text-primary-700">
+              {{ form_obj.first_name|default:""|slice:":1" }}{{ form_obj.last_name|default:form_obj.user.first_name|default:""|slice:":1" }}
+            </span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <a href="{% url detail_url_name form_obj.pk %}" class="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block">
+              {{ form_obj.get_full_name|default:form_obj.user.get_full_name|default:"—" }}
+            </a>
+            <p class="text-xs text-gray-500 truncate mt-0.5">{{ form_obj.email_address|default:form_obj.user.email|default:"" }}</p>
+          </div>
+        </div>
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+          <div class="flex items-center gap-2">
+            {% if form_obj.status == 'pending' %}
+              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">Pending</span>
+            {% elif form_obj.status == 'completed' %}
+              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">Completed</span>
+            {% elif form_obj.status == 'rejected' %}
+              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">Rejected</span>
+            {% elif form_obj.status == 'incomplete' %}
+              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700">Incomplete</span>
+            {% else %}
+              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{{ form_obj.get_status_display }}</span>
+            {% endif %}
+            <span class="text-xs text-gray-400">{{ form_obj.created_at|date:"M d, Y" }}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <a href="{% url detail_url_name form_obj.pk %}"
+               class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
+              <i class="fas fa-eye mr-1"></i>View
+            </a>
+            {% if edit_url_name %}
+            <a href="{% url edit_url_name form_obj.pk %}"
+               class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+              <i class="fas fa-pen mr-1"></i>
+            </a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {# ── Desktop table (hidden on mobile) ── #}
+    <div class="hidden sm:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              {% if bulk_action_url_name %}
+              <th class="px-3 py-3 w-8">
+                <input type="checkbox" id="select-all-checkbox" class="bulk-select-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+              </th>
+              {% endif %}
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            {% for form_obj in forms %}
+            <tr class="hover:bg-gray-50 transition-colors">
+              {% if bulk_action_url_name %}
+              <td class="px-3 py-3">
+                <input type="checkbox" name="form_ids" value="{{ form_obj.pk }}" class="bulk-select-checkbox rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+              </td>
+              {% endif %}
+              <td class="px-4 py-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span class="text-xs font-semibold text-primary-700">
+                      {{ form_obj.first_name|default:""|slice:":1" }}{{ form_obj.last_name|default:form_obj.user.first_name|default:""|slice:":1" }}
+                    </span>
+                  </div>
+                  <div class="min-w-0">
+                    <a href="{% url detail_url_name form_obj.pk %}" class="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block">
+                      {{ form_obj.get_full_name|default:form_obj.user.get_full_name|default:"—" }}
+                    </a>
+                    <p class="text-xs text-gray-500">{{ form_obj.email_address|default:form_obj.user.email|default:"" }}</p>
+                  </div>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                {% if form_obj.status == 'pending' %}
+                  <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">Pending</span>
+                {% elif form_obj.status == 'completed' %}
+                  <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">Completed</span>
+                {% elif form_obj.status == 'rejected' %}
+                  <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">Rejected</span>
+                {% else %}
+                  <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{{ form_obj.get_status_display }}</span>
+                {% endif %}
+              </td>
+              <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
+                {{ form_obj.created_at|date:"M d, Y" }}
+              </td>
+              <td class="px-4 py-3 text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-1">
+                  <a href="{% url detail_url_name form_obj.pk %}"
+                     class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                     title="View">
+                    <i class="fas fa-eye mr-1"></i>View
+                  </a>
+                  <a href="{% url edit_url_name form_obj.pk %}"
+                     class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
+                     title="Edit">
+                    <i class="fas fa-pen mr-1"></i>Edit
+                  </a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% else %}
+    {# ── Empty state ── #}
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
+      <i class="fas fa-folder-open text-gray-300 text-4xl sm:text-5xl mb-4"></i>
+      <p class="text-gray-500 text-base sm:text-lg">{% block empty_message %}No forms found{% endblock %}</p>
+      {% if search or status_filter %}
+        <a href="?" class="text-primary-600 hover:text-primary-700 text-sm mt-2 inline-block">Clear filters</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {# ── Pagination ── #}
+    {% if forms.has_other_pages %}
+    <div class="flex justify-center">
+      <nav class="inline-flex rounded-lg shadow-sm bg-white border border-gray-200 overflow-hidden">
+        {% if forms.has_previous %}
+          <a href="?page={{ forms.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+             class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50 border-r border-gray-200">&laquo; Prev</a>
+        {% endif %}
+        {% for num in forms.paginator.page_range %}
+          {% if num == forms.number %}
+            <span class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-primary-50 text-primary-700 border-r border-gray-200">{{ num }}</span>
+          {% elif num > forms.number|add:'-3' and num < forms.number|add:'3' %}
+            <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+               class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50 border-r border-gray-200">{{ num }}</a>
+          {% endif %}
+        {% endfor %}
+        {% if forms.has_next %}
+          <a href="?page={{ forms.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
+             class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50">Next &raquo;</a>
+        {% endif %}
+      </nav>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{# ── Bulk action bar ── #}
+{% if bulk_action_url_name %}
+  {% include 'health_forms_services/partials/_bulk_action_bar.html' %}
+{% endif %}
+
+{# ── Bulk confirm modal ── #}
+{% if bulk_action_url_name %}
+<div id="bulk-confirm-modal" class="fixed inset-0 z-50" aria-hidden="true" role="dialog" aria-modal="true" style="display:none">
+  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" onclick="this.closest('[role=dialog]').style.display='none'"></div>
+  <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-auto confirm-dialog">
+      <div class="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 text-center">
+        <div class="mx-auto w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mb-3">
+          <i class="fas fa-triangle-exclamation text-amber-500 text-xl"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900">Confirm Action</h3>
+        <p id="bulk-confirm-msg" class="mt-2 text-sm text-gray-500">Apply action to selected items?</p>
+      </div>
+      <div class="px-5 sm:px-6 pb-5 sm:pb-6">
+        <form id="bulk-form-confirm" method="post" action="{% url bulk_action_url_name %}">
+          {% csrf_token %}
+          <input type="hidden" name="form_ids" value="">
+          <input type="hidden" name="action" value="">
+          <div class="flex flex-col-reverse sm:flex-row justify-center gap-2 sm:gap-3">
+            <button type="button" onclick="document.getElementById('bulk-confirm-modal').style.display='none'"
+                    class="w-full sm:w-auto px-4 py-2.5 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+              Cancel
+            </button>
+            <button type="submit"
+                    class="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium transition-colors bg-primary-600 hover:bg-primary-700 text-white">
+              <i class="fas fa-check mr-1.5"></i>Confirm
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var bulkModal = document.getElementById('bulk-confirm-modal');
+  if (!bulkModal) return;
+
+  // Override the _bulk_action_bar.js submit to use the modal form
+  var bulkForm = document.getElementById('bulk-form');
+  var bulkFormIds = document.getElementById('bulk-form-ids');
+  var bulkActionType = document.getElementById('bulk-action-type');
+
+  // When bulk confirm modal opens, copy values to the hidden modal form
+  var observer = new MutationObserver(function(){
+    if (bulkModal.style.display !== 'none') {
+      var modalForm = document.getElementById('bulk-form-confirm');
+      if (modalForm) {
+        modalForm.querySelector('input[name="form_ids"]').value = bulkFormIds.value;
+        modalForm.querySelector('input[name="action"]').value = bulkActionType.value;
+      }
+    }
+  });
+  observer.observe(bulkModal, { attributes: true, attributeFilter: ['style'] });
+})();
+</script>
+{% endif %}
+{% endblock content %}

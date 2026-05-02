@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -141,14 +141,15 @@ def medical_record_detail_page(request, record_id):
 @login_required
 @role_required('student', 'staff', 'doctor')
 def medical_record_detail(request, record_id):
-    """AJAX view to get medical record details for modal display"""
+    """AJAX/HTMX view to get medical record details for modal display."""
     record = get_object_or_404(MedicalRecord, id=record_id)
+    is_htmx = request.headers.get('HX-Request') == 'true'
     
     # Check permissions
     if request.user.role == 'student' and record.student != request.user:
-        return JsonResponse({'error': 'Access denied'}, status=403)
+        return JsonResponse({'error': 'Access denied'}, status=403) if not is_htmx else HttpResponse('Access denied', status=403)
     elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user:
-        return JsonResponse({'error': 'Access denied'}, status=403)
+        return JsonResponse({'error': 'Access denied'}, status=403) if not is_htmx else HttpResponse('Access denied', status=403)
     
     # Format vital signs for display
     vital_signs_display = []
@@ -247,6 +248,8 @@ def medical_record_detail(request, record_id):
     </div>
     """
     
+    if is_htmx:
+        return HttpResponse(html_content)
     return JsonResponse({'html': html_content})
 
 

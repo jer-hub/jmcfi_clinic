@@ -392,7 +392,7 @@
 
     <!-- Single Tooth Edit Modal -->
     <div x-show="toothModal.open" 
-         class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4"
+         class="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -400,21 +400,30 @@
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
          @keydown.escape.window="toothModal.open = false"
+         role="dialog"
+         aria-modal="true"
+         :aria-labelledby="'toothModalTitle'"
          x-cloak>
         <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col"
              @click.outside="toothModal.open = false">
             <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 rounded-t-2xl flex-shrink-0">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <div class="flex items-center gap-2">
                         <i class="fas fa-tooth text-primary-600"></i>
-                        <span x-text="toothModal.isNew ? 'Add Tooth #' + toothModal.toothNumber : 'Edit Tooth #' + toothModal.toothNumber"></span>
-                    </h3>
-                    <button type="button" @click="toothModal.open = false" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times text-xl"></i>
+                        <h3 id="toothModalTitle" class="text-lg font-bold text-gray-900">
+                            <span x-text="toothModal.isNew ? 'Add Tooth #' + toothModal.toothNumber : 'Edit Tooth #' + toothModal.toothNumber"></span>
+                        </h3>
+                    </div>
+                    <button type="button" @click="toothModal.open = false"
+                            class="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            aria-label="Close modal">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
                     </button>
                 </div>
             </div>
-            <div class="p-6 overflow-y-auto flex-1">
+            <div class="p-6 overflow-y-auto flex-1" aria-live="polite">
                 <form @submit.prevent="saveTooth()">
                     <div class="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -487,7 +496,7 @@
                             </div>
                         </template>
                         <button type="button" @click="toothModal.open = false" 
-                                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm">
                             Cancel
                         </button>
                         <template x-if="!toothModal.isNew">
@@ -508,7 +517,7 @@
 
     <!-- Bulk Edit Modal -->
     <div x-show="bulkModal.open" 
-         class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4"
+         class="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -516,21 +525,28 @@
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
          @keydown.escape.window="bulkModal.open = false"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="bulkModalTitle"
          x-cloak>
         <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full"
              @click.outside="bulkModal.open = false">
             <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 rounded-t-2xl">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <div class="flex items-center gap-2">
                         <i class="fas fa-teeth text-primary-600"></i>
-                        Bulk Edit Teeth
-                    </h3>
-                    <button type="button" @click="bulkModal.open = false" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times text-xl"></i>
+                        <h3 id="bulkModalTitle" class="text-xl font-bold text-gray-900">Bulk Edit Teeth</h3>
+                    </div>
+                    <button type="button" @click="bulkModal.open = false"
+                            class="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            aria-label="Close modal">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
                     </button>
                 </div>
             </div>
-            <div class="p-6">
+            <div class="p-6" aria-live="polite">
                 <form @submit.prevent="saveBulk()">
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Selected Teeth</label>
@@ -569,11 +585,11 @@
                             </div>
                         </template>
                         <button type="button" @click="bulkModal.open = false" 
-                                class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm">
                             Cancel
                         </button>
                         <button type="submit" :disabled="bulkModal.loading"
-                                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
+                                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
                             <i class="fas fa-save mr-1"></i> Apply to All
                         </button>
                     </div>
@@ -584,7 +600,7 @@
 
     <!-- Delete Confirmation Modal -->
     <div x-show="deleteModal.open" 
-         class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center p-4"
+         class="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -592,27 +608,34 @@
          x-transition:leave-start="opacity-100"
          x-transition:leave-end="opacity-0"
          @keydown.escape.window="deleteModal.open = false"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="deleteConfirmTitle"
          x-cloak>
         <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full"
              @click.outside="deleteModal.open = false">
             <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-red-50 to-red-100 rounded-t-2xl">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <div class="flex items-center gap-2">
                         <i class="fas fa-exclamation-triangle text-red-600"></i>
-                        Confirm Delete
-                    </h3>
-                    <button type="button" @click="deleteModal.open = false" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times text-xl"></i>
+                        <h3 id="deleteConfirmTitle" class="text-xl font-bold text-gray-900">Confirm Delete</h3>
+                    </div>
+                    <button type="button" @click="deleteModal.open = false"
+                            class="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            aria-label="Close modal">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
                     </button>
                 </div>
             </div>
-            <div class="p-6">
+            <div class="p-6" aria-live="polite">
                 <p class="text-gray-700 mb-6">
                     Are you sure you want to delete tooth #<span class="font-bold" x-text="deleteModal.toothNumber"></span>? This action cannot be undone.
                 </p>
                 <div class="flex gap-3 justify-end">
                     <button type="button" @click="deleteModal.open = false" 
-                            class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                            class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm">
                         Cancel
                     </button>
                     <button type="button" @click="confirmDelete()" :disabled="deleteModal.loading"

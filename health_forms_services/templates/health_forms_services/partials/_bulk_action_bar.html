@@ -1,0 +1,102 @@
+{# ── Bulk action bar — appears when checkboxes selected ── #}
+<div id="bulk-action-bar" class="hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 shadow-lg py-3 px-3 sm:px-6">
+  <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 sm:gap-3">
+    <div class="flex items-center justify-between sm:justify-start gap-3">
+      <span id="bulk-count" class="text-sm font-medium text-gray-700">0 selected</span>
+      <button type="button" id="bulk-clear"
+              class="sm:hidden px-3 py-1.5 text-gray-500 hover:text-gray-700 text-sm border border-gray-200 rounded-lg">
+        Clear
+      </button>
+    </div>
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+      <form method="post" action="{% url bulk_action_url_name %}" id="bulk-form" class="flex gap-2">
+        {% csrf_token %}
+        <input type="hidden" name="form_ids" id="bulk-form-ids" value="">
+        <input type="hidden" name="action" id="bulk-action-type" value="">
+        <button type="button" data-bulk-action="completed"
+                class="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium transition-colors">
+          <i class="fas fa-check-circle mr-1.5"></i>Completed
+        </button>
+        <button type="button" data-bulk-action="incomplete"
+                class="flex-1 sm:flex-none px-3 sm:px-4 py-2.5 sm:py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 text-sm font-medium transition-colors">
+          <i class="fas fa-exclamation-circle mr-1.5"></i>Incomplete
+        </button>
+      </form>
+      <button type="button" id="bulk-clear"
+              class="hidden sm:inline-flex px-3 py-2 text-gray-500 hover:text-gray-700 text-sm">
+        Clear
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var bar = document.getElementById('bulk-action-bar');
+  var countEl = document.getElementById('bulk-count');
+  var formIds = document.getElementById('bulk-form-ids');
+  var actionType = document.getElementById('bulk-action-type');
+  var form = document.getElementById('bulk-form');
+  if (!bar || !form) return;
+
+  function getChecked(){
+    return document.querySelectorAll('.bulk-select-checkbox:checked');
+  }
+
+  function updateBar(){
+    var checked = getChecked();
+    var ids = Array.from(checked).map(function(cb){ return cb.value; });
+    formIds.value = ids.join(',');
+    countEl.textContent = ids.length + ' selected';
+    if (ids.length > 0) {
+      bar.classList.remove('hidden');
+    } else {
+      bar.classList.add('hidden');
+    }
+  }
+
+  // Checkbox change — respond to all bulk-select checkboxes
+  document.addEventListener('change', function(e){
+    if (e.target.classList.contains('bulk-select-checkbox')) updateBar();
+  });
+
+  // Select all — toggle all bulk-select checkboxes
+  var selectAll = document.getElementById('select-all-checkbox');
+  if (selectAll) {
+    selectAll.addEventListener('change', function(){
+      var checked = this.checked;
+      document.querySelectorAll('.bulk-select-checkbox').forEach(function(cb){
+        cb.checked = checked;
+      });
+      updateBar();
+    });
+  }
+
+  // Bulk action buttons — open confirm modal
+  document.querySelectorAll('[data-bulk-action]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var ids = formIds.value;
+      if (!ids) return;
+      actionType.value = this.getAttribute('data-bulk-action');
+      // Set modal message and show it
+      var actionLabel = this.textContent.trim();
+      var modal = document.getElementById('bulk-confirm-modal');
+      if (modal) {
+        var msgEl = document.getElementById('bulk-confirm-msg');
+        if (msgEl) msgEl.textContent = 'Apply "' + actionLabel + '" to ' + countEl.textContent + '?';
+        modal.style.display = 'block';
+      }
+    });
+  });
+
+  // Clear — uncheck all bulk-select checkboxes
+  var clearBtn = document.getElementById('bulk-clear');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function(){
+      document.querySelectorAll('.bulk-select-checkbox').forEach(function(cb){ cb.checked = false; });
+      if (selectAll) selectAll.checked = false;
+      updateBar();
+    });
+  }
+})();
+</script>

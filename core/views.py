@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Q, F
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -382,15 +382,59 @@ def dashboard(request):
     elif request.user.role == 'admin':
         from appointments.models import Appointment
         from document_request.models import DocumentRequest as CertificateRequest
+        from health_forms_services.models import HealthProfileForm, DentalHealthForm
+        from pharmacy.models import Medicine, Batch
+        
+        total_students = User.objects.filter(role='student').count()
+        total_staff = User.objects.filter(role='staff').count()
+        total_doctors = User.objects.filter(role='doctor').count()
+        total_admins = User.objects.filter(role='admin').count()
+        
+        # Pending items needing admin attention
+        pending_health_forms = HealthProfileForm.objects.filter(status='pending').count()
+        pending_dental_forms = DentalHealthForm.objects.filter(status='pending').count()
+        pending_certs = CertificateRequest.objects.filter(status='pending').count()
+        pending_reviews = pending_health_forms + pending_dental_forms
+        
+        # Stale / inactive users
+        stale_pending = User.objects.filter(
+            onboarding_status='pending_activation',
+            is_deleted=False,
+        ).count()
+        inactive_users = User.objects.filter(is_active=False, is_deleted=False).count()
+        
+        # Pharmacy alerts
+        low_stock = Medicine.objects.filter(
+            is_active=True,
+        ).filter(
+            batches__quantity__lte=F('reorder_level'),
+        ).distinct().count() if hasattr(Medicine, 'reorder_level') else 0
+        
+        # Operations
+        total_appointments = Appointment.objects.count()
+        today = timezone.now().date()
+        today_appointments = Appointment.objects.filter(date=today).count()
         
         context.update({
-            'total_students': User.objects.filter(role='student').count(),
-            'total_staff': User.objects.filter(role__in=['staff', 'doctor']).count(),
-            'total_admins': User.objects.filter(role='admin').count(),
+            # KPI row
             'total_users': User.objects.count(),
-            'total_appointments': Appointment.objects.count(),
-            'pending_certificates': CertificateRequest.objects.filter(status='pending').count(),
-            'active_doctors': User.objects.filter(role='doctor').count(),
+            'total_students': total_students,
+            'total_staff': total_staff,
+            'total_doctors': total_doctors,
+            'total_admins': total_admins,
+            'active_users': User.objects.filter(is_active=True, is_deleted=False).count(),
+            # Operations
+            'total_appointments': total_appointments,
+            'today_appointments': today_appointments,
+            'pending_certificates': pending_certs,
+            'active_doctors': total_doctors,
+            # Attention items
+            'pending_reviews': pending_reviews,
+            'pending_health_forms': pending_health_forms,
+            'pending_dental_forms': pending_dental_forms,
+            'stale_pending_users': stale_pending,
+            'inactive_users': inactive_users,
+            'low_stock_medicines': low_stock,
         })
 
     return render(request, 'core/dashboard.html', context)
@@ -492,11 +536,9 @@ def clear_all_notifications(request):
 
 
 @login_required
+@admin_required
 def create_system_notification(request):
     """Allow admins to create system-wide notifications"""
-    if request.user.role != 'admin':
-        messages.error(request, 'Access denied. Only administrators can send system notifications.')
-        return redirect('core:dashboard')
     
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -1157,8 +1199,8 @@ def user_management(request):
     status_filter = request.GET.get('status', '')
     search_query = request.GET.get('search', '')
     
-    # Base queryset
-    users = User.objects.all().order_by('-date_joined')
+        # Base queryset - exclude soft-deleted users by default
+    users = User.objects.filter(is_deleted=False).order_by('-date_joined')
     
     # Apply filters
     if role_filter:
@@ -1176,6 +1218,9 @@ def user_management(request):
     elif status_filter == 'inactive':
         # Legacy filter value retained for compatibility with existing links/bookmarks.
         users = users.filter(is_active=False)
+    elif status_filter == 'deleted':
+        # Show soft-deleted users
+        users = User.objects.filter(is_deleted=True).order_by('-deleted_at')
     
     # Apply search
     if search_query:
@@ -1398,7 +1443,7 @@ def user_edit(request, user_id):
 @login_required
 @admin_required
 def user_delete(request, user_id):
-    """Delete a user"""
+    """Delete a user — triggered via unified modal POST from user detail page."""
     user = get_object_or_404(User, id=user_id)
     
     # Prevent deleting admin users
@@ -1417,11 +1462,8 @@ def user_delete(request, user_id):
         messages.success(request, f'User "{username}" has been deleted.')
         return redirect('core:user_management')
     
-    context = {
-        'viewed_user': user,
-    }
-    
-    return render(request, 'core/user_management/user_delete_confirm.html', context)
+    # GET requests redirect to user detail page (modal trigger is there)
+    return redirect('core:user_detail', user_id=user.id)
 
 
 @login_required

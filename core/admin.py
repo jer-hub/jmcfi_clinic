@@ -16,9 +16,9 @@ User = get_user_model()
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ('id', 'first_name', 'last_name', 'email', 'role', 'onboarding_status', 'is_active')
+    list_display = ('id', 'first_name', 'last_name', 'email', 'role', 'is_staff', 'is_superuser', 'onboarding_status', 'is_active')
     search_fields = ('first_name', 'last_name', 'email')
-    list_filter = ('role', 'onboarding_status', 'is_active')
+    list_filter = ('role', 'is_staff', 'is_superuser', 'onboarding_status', 'is_active')
 
 
 @admin.register(StudentProfile)

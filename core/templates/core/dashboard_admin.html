@@ -1,111 +1,255 @@
 <!-- Admin Dashboard -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-        </svg>
+<div class="space-y-6">
+
+  <!-- ================================================================ -->
+  <!-- KPI ROW                                                          -->
+  <!-- ================================================================ -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Total Users</span>
+        <span class="p-2 bg-indigo-50 rounded-lg"><i class="fas fa-users text-indigo-500"></i></span>
       </div>
-      <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Total Students</p>
-        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_students }}</p>
+      <p class="text-3xl font-bold text-gray-900">{{ total_users }}</p>
+      <p class="text-xs text-gray-500 mt-1">{{ active_users }} active</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Students</span>
+        <span class="p-2 bg-blue-50 rounded-lg"><i class="fas fa-user-graduate text-blue-500"></i></span>
       </div>
+      <p class="text-3xl font-bold text-gray-900">{{ total_students }}</p>
+      <p class="text-xs text-gray-500 mt-1">patient base</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Medical Staff</span>
+        <span class="p-2 bg-emerald-50 rounded-lg"><i class="fas fa-stethoscope text-emerald-500"></i></span>
+      </div>
+      <p class="text-3xl font-bold text-gray-900">{{ total_staff|add:total_doctors }}</p>
+      <p class="text-xs text-gray-500 mt-1">{{ total_doctors }} doctors &middot; {{ total_staff }} staff</p>
+    </div>
+
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Admins</span>
+        <span class="p-2 bg-amber-50 rounded-lg"><i class="fas fa-shield-halved text-amber-500"></i></span>
+      </div>
+      <p class="text-3xl font-bold text-gray-900">{{ total_admins }}</p>
+      <p class="text-xs text-gray-500 mt-1">system administrators</p>
     </div>
   </div>
 
-  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-green-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Medical Staff</p>
-        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_staff }}</p>
-      </div>
+  <!-- ================================================================ -->
+  <!-- ATTENTION CENTER — only shown when items need admin action        -->
+  <!-- ================================================================ -->
+  {% if pending_reviews or stale_pending_users or inactive_users or pending_certificates %}
+  <div class="bg-amber-50 border border-amber-200 rounded-xl p-5">
+    <div class="flex items-center gap-2 mb-3">
+      <i class="fas fa-exclamation-triangle text-amber-600"></i>
+      <h3 class="text-sm font-semibold text-amber-800 uppercase tracking-wider">Needs Attention</h3>
     </div>
-  </div>
-
-  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-orange-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Administrator Accounts</p>
-        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_admins }}</p>
-      </div>
-    </div>
-  </div>
-
-  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-indigo-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Total Users</p>
-        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_users }}</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Quick Actions for Admin -->
-<div class="bg-white rounded-lg shadow mb-6 sm:mb-8">
-  <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Quick Actions</h3>
-  </div>
-  <div class="p-4 sm:p-6">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <a href="{% url 'core:user_management' %}" class="flex items-center p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg hover:shadow-md transition-all duration-200 group">
-        <div class="flex-shrink-0">
-          <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm font-semibold text-gray-900">Manage Users</p>
-          <p class="text-xs text-gray-600">View and manage all users</p>
-        </div>
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {% if pending_reviews %}
+      <a href="{% url 'health_forms_services:forms_list' %}?status=pending" class="flex items-center gap-3 p-3 bg-white rounded-lg border border-amber-200 hover:border-amber-400 transition-colors">
+        <span class="p-1.5 bg-emerald-50 rounded-lg"><i class="fas fa-notes-medical text-emerald-500 text-sm"></i></span>
+        <span class="text-lg font-bold text-amber-700">{{ pending_reviews }}</span>
+        <span class="text-xs text-amber-600">pending form reviews</span>
       </a>
-
-      <a href="{% url 'appointments:appointment_type_settings' %}" class="flex items-center p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg hover:shadow-md transition-all duration-200 group">
-        <div class="flex-shrink-0">
-          <div class="w-10 h-10 bg-orange-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm font-semibold text-gray-900">Appointment Settings</p>
-          <p class="text-xs text-gray-600">Configure default doctors</p>
-        </div>
+      {% endif %}
+      {% if pending_certificates %}
+      <div class="flex items-center gap-3 p-3 bg-white rounded-lg border border-amber-200">
+        <span class="p-1.5 bg-violet-50 rounded-lg"><i class="fas fa-certificate text-violet-500 text-sm"></i></span>
+        <span class="text-lg font-bold text-amber-700">{{ pending_certificates }}</span>
+        <span class="text-xs text-amber-600">pending certificates</span>
+      </div>
+      {% endif %}
+      {% if stale_pending_users %}
+      <a href="{% url 'core:user_management' %}?status=pending" class="flex items-center gap-3 p-3 bg-white rounded-lg border border-amber-200 hover:border-amber-400 transition-colors">
+        <span class="p-1.5 bg-blue-50 rounded-lg"><i class="fas fa-user-clock text-blue-500 text-sm"></i></span>
+        <span class="text-lg font-bold text-amber-700">{{ stale_pending_users }}</span>
+        <span class="text-xs text-amber-600">pending activation</span>
       </a>
+      {% endif %}
+      {% if inactive_users %}
+      <a href="{% url 'core:user_cleanup_stale' %}" class="flex items-center gap-3 p-3 bg-white rounded-lg border border-amber-200 hover:border-amber-400 transition-colors">
+        <span class="p-1.5 bg-gray-100 rounded-lg"><i class="fas fa-user-slash text-gray-500 text-sm"></i></span>
+        <span class="text-lg font-bold text-amber-700">{{ inactive_users }}</span>
+        <span class="text-xs text-amber-600">inactive accounts</span>
+      </a>
+      {% endif %}
     </div>
   </div>
-</div>
+  {% endif %}
 
-<div class="bg-white rounded-lg shadow">
-  <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Access Scope</h3>
+  <!-- ================================================================ -->
+  <!-- SYSTEM OVERVIEW — 2-column                                       -->
+  <!-- ================================================================ -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- User Distribution -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+      <div class="px-5 py-4 border-b border-gray-100">
+        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+          <i class="fas fa-chart-pie mr-2 text-primary-500"></i>User Distribution
+        </h3>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="w-3 h-3 rounded-full bg-blue-500"></span>
+            <span class="text-sm text-gray-600">Students</span>
+          </div>
+          <span class="text-sm font-semibold text-gray-900">{{ total_students }}</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2">
+          <div class="bg-blue-500 h-2 rounded-full" style="width: {% widthratio total_students total_users 100 %}%"></div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
+            <span class="text-sm text-gray-600">Doctors</span>
+          </div>
+          <span class="text-sm font-semibold text-gray-900">{{ total_doctors }}</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2">
+          <div class="bg-emerald-500 h-2 rounded-full" style="width: {% widthratio total_doctors total_users 100 %}%"></div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="w-3 h-3 rounded-full bg-teal-500"></span>
+            <span class="text-sm text-gray-600">Staff</span>
+          </div>
+          <span class="text-sm font-semibold text-gray-900">{{ total_staff }}</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2">
+          <div class="bg-teal-500 h-2 rounded-full" style="width: {% widthratio total_staff total_users 100 %}%"></div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <span class="w-3 h-3 rounded-full bg-amber-500"></span>
+            <span class="text-sm text-gray-600">Admins</span>
+          </div>
+          <span class="text-sm font-semibold text-gray-900">{{ total_admins }}</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2">
+          <div class="bg-amber-500 h-2 rounded-full" style="width: {% widthratio total_admins total_users 100 %}%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Operations Snapshot -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+      <div class="px-5 py-4 border-b border-gray-100">
+        <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+          <i class="fas fa-gauge-high mr-2 text-primary-500"></i>Operations Snapshot
+        </h3>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center gap-3">
+            <span class="p-2 bg-indigo-50 rounded-lg"><i class="fas fa-calendar-check text-indigo-500"></i></span>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Total Appointments</p>
+              <p class="text-xs text-gray-500">all time</p>
+            </div>
+          </div>
+          <span class="text-xl font-bold text-gray-900">{{ total_appointments }}</span>
+        </div>
+
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center gap-3">
+            <span class="p-2 bg-blue-50 rounded-lg"><i class="fas fa-calendar-day text-blue-500"></i></span>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Today&rsquo;s Appointments</p>
+              <p class="text-xs text-gray-500">scheduled</p>
+            </div>
+          </div>
+          <span class="text-xl font-bold text-gray-900">{{ today_appointments }}</span>
+        </div>
+
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center gap-3">
+            <span class="p-2 bg-emerald-50 rounded-lg"><i class="fas fa-user-md text-emerald-500"></i></span>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Active Doctors</p>
+              <p class="text-xs text-gray-500">on roster</p>
+            </div>
+          </div>
+          <span class="text-xl font-bold text-gray-900">{{ active_doctors }}</span>
+        </div>
+
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center gap-3">
+            <span class="p-2 bg-violet-50 rounded-lg"><i class="fas fa-certificate text-violet-500"></i></span>
+            <div>
+              <p class="text-sm font-medium text-gray-900">Pending Certificates</p>
+              <p class="text-xs text-gray-500">awaiting processing</p>
+            </div>
+          </div>
+          <span class="text-xl font-bold text-gray-900">{{ pending_certificates }}</span>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="p-4 sm:p-6">
-    <p class="text-sm text-gray-600">Administrator dashboard is now limited to modules accessible by admin role.</p>
-    <ul class="mt-4 space-y-2 text-sm text-gray-700 list-disc list-inside">
-      <li>User management and role administration</li>
-      <li>Appointment settings configuration</li>
-      <li>Analytics and reporting</li>
-    </ul>
+
+  <!-- ================================================================ -->
+  <!-- QUICK ACTIONS — all admin services                               -->
+  <!-- ================================================================ -->
+  <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+    <div class="px-5 py-4 border-b border-gray-100">
+      <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">
+        <i class="fas fa-bolt mr-2 text-primary-500"></i>Quick Actions
+      </h3>
+    </div>
+    <div class="p-5">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+        <!-- User Management -->
+        <a href="{% url 'core:user_management' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 hover:border-indigo-300 transition-all group">
+          <span class="p-2.5 bg-indigo-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-users-gear text-white text-lg"></i></span>
+          <span class="text-xs font-medium text-gray-700 text-center">Manage Users</span>
+        </a>
+        <!-- Create User -->
+        <a href="{% url 'core:user_create' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 hover:border-indigo-300 transition-all group">
+          <span class="p-2.5 bg-indigo-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-user-plus text-white text-lg"></i></span>
+          <span class="text-xs font-medium text-gray-700 text-center">Create User</span>
+        </a>
+        <!-- Appointment Settings -->
+        <a href="{% url 'appointments:appointment_type_settings' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-orange-50 hover:bg-orange-100 border border-orange-100 hover:border-orange-300 transition-all group">
+          <span class="p-2.5 bg-orange-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-sliders text-white text-lg"></i></span>
+          <span class="text-xs font-medium text-gray-700 text-center">Appt Settings</span>
+        </a>
+        <!-- Health Forms -->
+        <a href="{% url 'health_forms_services:forms_list' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 hover:border-emerald-300 transition-all group">
+          <span class="p-2.5 bg-emerald-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-notes-medical text-white text-lg"></i></span>
+          <span class="text-xs font-medium text-gray-700 text-center">Health Forms</span>
+        </a>
+        <!-- Pharmacy -->
+        <a href="{% url 'pharmacy:dashboard' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-100 hover:border-teal-300 transition-all group">
+          <span class="p-2.5 bg-teal-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-prescription-bottle text-white text-lg"></i></span>
+          <span class="text-xs font-medium text-gray-700 text-center">Pharmacy</span>
+        </a>
+        <!-- Analytics -->
+        <a href="{% url 'analytics:dashboard' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-violet-50 hover:bg-violet-100 border border-violet-100 hover:border-violet-300 transition-all group">
+          <span class="p-2.5 bg-violet-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-chart-line text-white text-lg"></i></span>
+          <span class="text-xs font-medium text-gray-700 text-center">Analytics</span>
+        </a>
+        <!-- Health Tips -->
+        <a href="{% url 'health_tips:health_tips_list' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-100 hover:border-amber-300 transition-all group">
+          <span class="p-2.5 bg-amber-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-lightbulb text-white text-lg"></i></span>
+          <span class="text-xs font-medium text-gray-700 text-center">Health Tips</span>
+        </a>
+        <!-- Messages -->
+        <a href="{% url 'messaging:inbox' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-100 hover:border-rose-300 transition-all group">
+          <span class="p-2.5 bg-rose-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-envelope text-white text-lg"></i></span>
+          <span class="text-xs font-medium text-gray-700 text-center">Messages</span>
+        </a>
+      </div>
+    </div>
   </div>
+
 </div>

@@ -229,18 +229,55 @@
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% elif user.role == 'admin' %}
-                  <div class="relative" data-dropdown="services">
-                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="services" aria-expanded="false">
-                      Services
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div class="relative" data-dropdown="settings">
+                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="settings" aria-expanded="false">
+                      Settings
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="settings" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="services">
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="settings">
                       <a href="{% url 'appointments:appointment_type_settings' %}" class="dropdown-item">Appointment Settings</a>
                     </div>
                   </div>
 
+                  <div class="relative" data-dropdown="health-forms">
+                    <button type="button" class="nav-link {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="health-forms" aria-expanded="false">
+                      Health Forms
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="health-forms">
+                      <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
+                      <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
+                      <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
+                      <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item">Dental Services</a>
+                      <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
+                    </div>
+                  </div>
+
+                  <div class="relative" data-dropdown="pharmacy">
+                    <button type="button" class="nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="pharmacy" aria-expanded="false">
+                      Pharmacy
+                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                      </svg>
+                    </button>
+                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="pharmacy">
+                      <a href="{% url 'pharmacy:dashboard' %}" class="dropdown-item">Dashboard</a>
+                      <a href="{% url 'pharmacy:medicine_list' %}" class="dropdown-item">Medicines</a>
+                      <a href="{% url 'pharmacy:category_list' %}" class="dropdown-item">Categories</a>
+                      <a href="{% url 'pharmacy:batch_list' %}" class="dropdown-item">Batches</a>
+                      <a href="{% url 'pharmacy:supplier_list' %}" class="dropdown-item">Suppliers</a>
+                      <a href="{% url 'pharmacy:purchase_order_list' %}" class="dropdown-item">Purchase Orders</a>
+                      <a href="{% url 'pharmacy:dispensing_list' %}" class="dropdown-item">Dispensing</a>
+                      <a href="{% url 'pharmacy:adjustment_list' %}" class="dropdown-item">Stock Adjustments</a>
+                      <a href="{% url 'pharmacy:audit_log_list' %}" class="dropdown-item">Audit Log</a>
+                    </div>
+                  </div>
+
+                  <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% endif %}
               </div>
@@ -435,16 +472,49 @@
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
               {% elif user.role == 'admin' %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="services" aria-expanded="false">
-                  <span>Services</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="settings" aria-expanded="false">
+                  <span>Settings</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="settings" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="services">
+                <div class="hidden px-2 pb-2" data-mobile-panel="settings">
                   <a href="{% url 'appointments:appointment_type_settings' %}" class="mobile-link text-sm">Appointment Settings</a>
                 </div>
 
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
+                  <span>Health Forms</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="health-forms">
+                  <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
+                  <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
+                  <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
+                  <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
+                  <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
+                </div>
+
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="pharmacy" aria-expanded="false">
+                  <span>Pharmacy</span>
+                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                <div class="hidden px-2 pb-2" data-mobile-panel="pharmacy">
+                  <a href="{% url 'pharmacy:dashboard' %}" class="mobile-link text-sm">Dashboard</a>
+                  <a href="{% url 'pharmacy:medicine_list' %}" class="mobile-link text-sm">Medicines</a>
+                  <a href="{% url 'pharmacy:category_list' %}" class="mobile-link text-sm">Categories</a>
+                  <a href="{% url 'pharmacy:batch_list' %}" class="mobile-link text-sm">Batches</a>
+                  <a href="{% url 'pharmacy:supplier_list' %}" class="mobile-link text-sm">Suppliers</a>
+                  <a href="{% url 'pharmacy:purchase_order_list' %}" class="mobile-link text-sm">Purchase Orders</a>
+                  <a href="{% url 'pharmacy:dispensing_list' %}" class="mobile-link text-sm">Dispensing</a>
+                  <a href="{% url 'pharmacy:adjustment_list' %}" class="mobile-link text-sm">Stock Adjustments</a>
+                  <a href="{% url 'pharmacy:audit_log_list' %}" class="mobile-link text-sm">Audit Log</a>
+                </div>
+
+                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
                 <a href="{% url 'core:user_management' %}" class="mobile-link {% if 'user_management' in request.resolver_match.view_name %}active{% endif %}">User Management</a>
@@ -471,7 +541,72 @@
     {% block scripts %}
     {% endblock %}
 
+    {% include 'components/modal.html' %}
+
     <script>
+      // Non-reactive callback storage for the modal (avoids Alpine reactivity issues with functions)
+      var _modalConfirmCb = null;
+
+      function modalComponent(config = {}) {
+        return {
+          isOpen: false,
+          isSaving: false,
+          title: config.title || '',
+          subtitle: config.subtitle || '',
+          message: config.message || '',
+          type: config.type || 'info',
+          size: config.size || 'lg',
+          actionLabel: config.actionLabel || 'Confirm',
+          hxUrl: config.hxUrl || '',
+          hasForm: config.hasForm || false,
+          validationError: '',
+          modalTitleId: '',
+          bodyContentId: '',
+
+          get headerClasses() {
+            const m = {info:'from-primary-50 to-primary-100',danger:'from-red-50 to-red-100',warning:'from-amber-50 to-orange-50',success:'from-emerald-50 to-emerald-100'};
+            return m[this.type] || m.info;
+          },
+          get iconContainer() {
+            const m = {info:'bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl',danger:'bg-red-100 rounded-full',warning:'bg-amber-100 rounded-full',success:'bg-emerald-100 rounded-full'};
+            return m[this.type] || m.info;
+          },
+          get iconSize() { return this.type === 'info' ? 'w-10 h-10' : 'w-12 h-12'; },
+          get sizeClass() {
+            const m = {sm:'max-w-sm',lg:'max-w-lg',xl:'max-w-2xl','4xl':'max-w-4xl'};
+            return m[this.size] || m.lg;
+          },
+          get isConfirmation() { return !this.hxUrl && !this.hasForm; },
+
+          openModal(opts = {}) {
+            if (opts.title) this.title = opts.title;
+            if (opts.subtitle) this.subtitle = opts.subtitle;
+            if (opts.message) this.message = opts.message;
+            if (opts.type) this.type = opts.type;
+            if (opts.size) this.size = opts.size;
+            if (opts.hxUrl) this.hxUrl = opts.hxUrl;
+            if (opts.actionLabel) this.actionLabel = opts.actionLabel;
+            // Store callback outside Alpine reactivity
+            if (opts.onConfirm) _modalConfirmCb = opts.onConfirm;
+            this.validationError = '';
+            this.isSaving = false;
+            const uid = Date.now();
+            this.modalTitleId = 'modal-title-'+uid;
+            this.bodyContentId = 'modal-body-'+uid;
+            this.isOpen = true;
+            this.$nextTick(() => {
+              const cb = this.$el.querySelector('[aria-label="Close modal"]');
+              if (cb) cb.focus();
+            });
+          },
+          closeModal() { this.isOpen = false; this.validationError = ''; _modalConfirmCb = null; },
+          confirmAction() {
+            if (this.hasForm) { this.$el.querySelector('form')?.requestSubmit(); return; }
+            if (typeof _modalConfirmCb === 'function') { this.isSaving = true; _modalConfirmCb(); }
+          }
+        };
+      }
+
       function closeAllDesktopDropdowns() {
         document.querySelectorAll('[data-dropdown-menu]').forEach((menu) => {
           const name = menu.getAttribute('data-dropdown-menu');

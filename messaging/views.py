@@ -49,7 +49,7 @@ def inbox(request):
 
 
 @login_required
-@role_required("student", "staff", "doctor")
+@role_required("student", "staff", "doctor", "admin")
 def start_conversation(request):
     if request.method == "POST":
         form = StartConversationForm(request.POST, user=request.user)

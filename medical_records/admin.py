@@ -1,9 +1,10 @@
 from django.contrib import admin
+from core.admin_mixins import BlockAdminRoleMixin
 from .models import MedicalRecord
 
 
 @admin.register(MedicalRecord)
-class MedicalRecordAdmin(admin.ModelAdmin):
+class MedicalRecordAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('id', 'student', 'doctor', 'diagnosis', 'follow_up_required', 'created_at')
     list_filter = ('follow_up_required', 'created_at')
     search_fields = ('student__first_name', 'student__last_name', 'student__email', 

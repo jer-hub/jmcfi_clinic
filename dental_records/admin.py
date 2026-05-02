@@ -1,4 +1,5 @@
 from django.contrib import admin
+from core.admin_mixins import BlockAdminRoleMixin
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
     DentalHealthQuestionnaire, DentalSystemsReview,
@@ -20,7 +21,7 @@ class DentalChartInline(admin.TabularInline):
 
 
 @admin.register(DentalRecord)
-class DentalRecordAdmin(admin.ModelAdmin):
+class DentalRecordAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('patient', 'age', 'designation', 'date_of_examination', 'examined_by', 'status', 'consent_signed', 'created_at')
     search_fields = ('patient__username', 'patient__email', 'patient__first_name', 'patient__last_name', 'middle_name')
     list_filter = ('designation', 'gender', 'status', 'consent_signed', 'date_of_examination', 'created_at')
@@ -58,7 +59,7 @@ class DentalRecordAdmin(admin.ModelAdmin):
 
 
 @admin.register(DentalExamination)
-class DentalExaminationAdmin(admin.ModelAdmin):
+class DentalExaminationAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('dental_record', 'created_at')
     search_fields = ('dental_record__patient__username',)
     readonly_fields = ('created_at', 'updated_at')
@@ -74,14 +75,14 @@ class DentalExaminationAdmin(admin.ModelAdmin):
 
 
 @admin.register(DentalVitalSigns)
-class DentalVitalSignsAdmin(admin.ModelAdmin):
+class DentalVitalSignsAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('dental_record', 'blood_pressure', 'pulse_rate', 'temperature', 'created_at')
     search_fields = ('dental_record__patient__username',)
     readonly_fields = ('created_at', 'updated_at')
 
 
 @admin.register(DentalHealthQuestionnaire)
-class DentalHealthQuestionnaireAdmin(admin.ModelAdmin):
+class DentalHealthQuestionnaireAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('dental_record', 'doctor_care_2years', 'medications_2years', 'is_pregnant', 'created_at')
     search_fields = ('dental_record__patient__username',)
     list_filter = ('doctor_care_2years', 'medications_2years', 'is_pregnant', 'created_at')
@@ -89,7 +90,7 @@ class DentalHealthQuestionnaireAdmin(admin.ModelAdmin):
 
 
 @admin.register(DentalSystemsReview)
-class DentalSystemsReviewAdmin(admin.ModelAdmin):
+class DentalSystemsReviewAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('dental_record', 'heart_disease', 'hypertension', 'diabetes', 'asthma', 'created_at')
     search_fields = ('dental_record__patient__username',)
     list_filter = ('heart_disease', 'hypertension', 'diabetes', 'asthma', 'created_at')
@@ -97,7 +98,7 @@ class DentalSystemsReviewAdmin(admin.ModelAdmin):
 
 
 @admin.register(DentalHistory)
-class DentalHistoryAdmin(admin.ModelAdmin):
+class DentalHistoryAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('dental_record', 'first_dental_visit', 'teeth_extracted', 'anesthesia_allergy', 'created_at')
     search_fields = ('dental_record__patient__username',)
     list_filter = ('first_dental_visit', 'teeth_extracted', 'anesthesia_allergy', 'created_at')
@@ -105,7 +106,7 @@ class DentalHistoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(PediatricDentalHistory)
-class PediatricDentalHistoryAdmin(admin.ModelAdmin):
+class PediatricDentalHistoryAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('dental_record', 'normal_pregnancy_birth', 'bottle_at_bedtime', 'thumb_sucking', 'created_at')
     search_fields = ('dental_record__patient__username',)
     list_filter = ('normal_pregnancy_birth', 'bottle_at_bedtime', 'thumb_sucking', 'created_at')
@@ -113,7 +114,7 @@ class PediatricDentalHistoryAdmin(admin.ModelAdmin):
 
 
 @admin.register(DentalChart)
-class DentalChartAdmin(admin.ModelAdmin):
+class DentalChartAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('dental_record', 'tooth_number', 'tooth_type', 'condition', 'quadrant_name', 'created_at')
     search_fields = ('dental_record__patient__username',)
     list_filter = ('tooth_type', 'condition', 'created_at')
@@ -126,7 +127,7 @@ class DentalChartAdmin(admin.ModelAdmin):
 
 
 @admin.register(ToothSurface)
-class ToothSurfaceAdmin(admin.ModelAdmin):
+class ToothSurfaceAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('tooth', 'surface', 'condition', 'created_at')
     search_fields = ('tooth__dental_record__patient__username',)
     list_filter = ('surface', 'condition', 'created_at')
@@ -134,7 +135,7 @@ class ToothSurfaceAdmin(admin.ModelAdmin):
 
 
 @admin.register(DentalChartSnapshot)
-class DentalChartSnapshotAdmin(admin.ModelAdmin):
+class DentalChartSnapshotAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('dental_record', 'snapshot_date', 'created_by', 'notes')
     search_fields = ('dental_record__patient__username', 'notes')
     list_filter = ('snapshot_date', 'created_by')
@@ -142,7 +143,7 @@ class DentalChartSnapshotAdmin(admin.ModelAdmin):
 
 
 @admin.register(ProgressNote)
-class ProgressNoteAdmin(admin.ModelAdmin):
+class ProgressNoteAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ('dental_record', 'date', 'procedure_done', 'dentist', 'created_at')
     search_fields = ('dental_record__patient__username', 'procedure_done', 'remarks')
     list_filter = ('date', 'dentist', 'created_at')

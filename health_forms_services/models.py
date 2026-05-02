@@ -10,6 +10,7 @@ class HealthProfileForm(models.Model):
         PENDING = 'pending', 'Pending Review'
         COMPLETED = 'completed', 'Completed'
         REJECTED = 'rejected', 'Rejected'
+        INCOMPLETE = 'incomplete', 'Incomplete'
     
     class Designation(models.TextChoices):
         STUDENT = 'student', 'Student'
@@ -253,6 +254,7 @@ class DentalHealthForm(models.Model):
         PENDING = 'pending', 'Pending Review'
         COMPLETED = 'completed', 'Completed'
         REJECTED = 'rejected', 'Rejected'
+        INCOMPLETE = 'incomplete', 'Incomplete'
 
     class Designation(models.TextChoices):
         STUDENT = 'student', 'Student'
@@ -523,6 +525,7 @@ class DentalServicesRequest(models.Model):
         PENDING = 'pending', 'Pending Review'
         COMPLETED = 'completed', 'Completed'
         REJECTED = 'rejected', 'Rejected'
+        INCOMPLETE = 'incomplete', 'Incomplete'
 
     class Gender(models.TextChoices):
         MALE = 'male', 'Male'
@@ -691,6 +694,7 @@ class PatientChart(models.Model):
         PENDING = 'pending', 'Pending Review'
         COMPLETED = 'completed', 'Completed'
         REJECTED = 'rejected', 'Rejected'
+        INCOMPLETE = 'incomplete', 'Incomplete'
     
     class Designation(models.TextChoices):
         STUDENT = 'student', 'Student'
@@ -807,6 +811,7 @@ class Prescription(models.Model):
         PENDING = 'pending', 'Pending Review'
         COMPLETED = 'completed', 'Completed'
         REJECTED = 'rejected', 'Rejected'
+        INCOMPLETE = 'incomplete', 'Incomplete'
 
     class Gender(models.TextChoices):
         MALE = 'male', 'Male'
@@ -818,7 +823,7 @@ class Prescription(models.Model):
         on_delete=models.CASCADE,
         related_name='prescriptions'
     )
-    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.INCOMPLETE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     reviewed_at = models.DateTimeField(blank=True, null=True)

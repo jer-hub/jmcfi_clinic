@@ -24,7 +24,19 @@
                             <p class="mt-1 text-sm text-gray-600">Manage students, staff, and their accounts</p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-2">
+                                        <div class="flex items-center space-x-2">
+                        <a href="{% url 'core:user_cleanup_stale' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 shadow-sm transition-all duration-200" title="Clean up stale user accounts">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            Clean Up
+                        </a>
+                        <a href="{% url 'core:user_export_csv' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 shadow-sm transition-all duration-200" title="Export users to CSV">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Export
+                        </a>
                         <a href="{% url 'core:user_create' %}" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm transition-all duration-200 hover:shadow-md">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -145,6 +157,7 @@
                                 <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Activation</option>
                                 <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended</option>
                                 <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive (Legacy)</option>
+                                <option value="deleted" {% if status_filter == 'deleted' %}selected{% endif %}>Deleted (Soft)</option>
                             </select>
                         </div>
                         <div class="flex items-end space-x-2">
@@ -163,6 +176,29 @@
                         </div>
                     </div>
                 </form>
+            </div>
+
+                        <!-- Bulk Action Toolbar -->
+            <div class="px-6 sm:px-8 py-3 border-b border-gray-200 bg-gray-50/50 hidden" id="bulk-action-bar">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" id="select-all-users" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                        <label for="select-all-users" class="text-sm font-medium text-gray-700">
+                            Select All <span class="text-gray-500" id="selected-count">(0 selected)</span>
+                        </label>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <select id="bulk-action-select" class="block w-48 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm">
+                            <option value="">Select Action</option>
+                            <option value="activate">Activate Accounts</option>
+                            <option value="deactivate">Deactivate Accounts</option>
+                            <option value="delete">Soft Delete Accounts</option>
+                        </select>
+                        <button type="button" id="bulk-action-apply" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            Apply
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Users Table / Mobile Cards -->
@@ -201,10 +237,12 @@
                                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Joined</p>
                                         <p class="text-gray-900">{{ user_item.date_joined|date:"M d, Y" }}</p>
                                     </div>
-                                    <div>
+                                                                        <div>
                                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Status</p>
                                         <div class="mt-1" data-user-status>
-                                            {% if user_item.onboarding_status == 'pending_activation' %}
+                                            {% if user_item.is_deleted %}
+                                                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-200 text-gray-800">Deleted</span>
+                                            {% elif user_item.onboarding_status == 'pending_activation' %}
                                                 <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">Pending Activation</span>
                                             {% elif user_item.is_active %}
                                                 <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Active</span>
@@ -288,8 +326,15 @@
                                         {{ user_item.get_role_display }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap" id="status-{{ user_item.id }}" data-user-status>
-                                    {% if user_item.onboarding_status == 'pending_activation' %}
+                                                                <td class="px-6 py-4 whitespace-nowrap" id="status-{{ user_item.id }}" data-user-status>
+                                    {% if user_item.is_deleted %}
+                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-200 text-gray-800">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Deleted
+                                        </span>
+                                    {% elif user_item.onboarding_status == 'pending_activation' %}
                                         <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
                                             Pending Activation
                                         </span>
@@ -495,6 +540,122 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% block scripts %}
 <script>
+    // Bulk action functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAllCheckbox = document.getElementById('select-all-users');
+        const bulkActionBar = document.getElementById('bulk-action-bar');
+        const selectedCountSpan = document.getElementById('selected-count');
+        const bulkActionSelect = document.getElementById('bulk-action-select');
+        const bulkActionApply = document.getElementById('bulk-action-apply');
+        let selectedUsers = new Set();
+
+        // Add checkboxes to each user row
+        document.querySelectorAll('[data-user-row], [data-user-card]').forEach((row, index) => {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'select-user h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded';
+            
+            const userId = row.querySelector('[data-user-id]')?.dataset.userId;
+            if (userId) {
+                checkbox.dataset.userId = userId;
+            } else {
+                // Try to get from the toggle
+                const toggle = row.querySelector('.js-account-toggle');
+                if (toggle) checkbox.dataset.userId = toggle.dataset.userId;
+            }
+
+            const cell = document.createElement('td');
+            if (row.dataset.userRow !== undefined) {
+                // Desktop table
+                cell.className = 'px-6 py-4 whitespace-nowrap';
+                cell.appendChild(checkbox);
+                row.insertBefore(cell, row.firstChild);
+            } else {
+                // Mobile card
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex items-center space-x-2 px-4 pt-3';
+                checkbox.className = 'select-user h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded';
+                wrapper.appendChild(checkbox);
+                row.insertBefore(wrapper, row.firstChild);
+            }
+
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    selectedUsers.add(this.dataset.userId);
+                } else {
+                    selectedUsers.delete(this.dataset.userId);
+                }
+                updateBulkUI();
+            });
+        });
+
+        selectAllCheckbox.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.select-user');
+            checkboxes.forEach(cb => {
+                cb.checked = this.checked;
+                if (this.checked) {
+                    selectedUsers.add(cb.dataset.userId);
+                } else {
+                    selectedUsers.delete(cb.dataset.userId);
+                }
+            });
+            updateBulkUI();
+        });
+
+        function updateBulkUI() {
+            const count = selectedUsers.size;
+            selectedCountSpan.textContent = `(${count} selected)`;
+            if (count > 0) {
+                bulkActionBar.classList.remove('hidden');
+            } else {
+                bulkActionBar.classList.add('hidden');
+            }
+            bulkActionApply.disabled = count === 0 || !bulkActionSelect.value;
+        }
+
+        bulkActionSelect.addEventListener('change', function() {
+            bulkActionApply.disabled = selectedUsers.size === 0 || !this.value;
+        });
+
+        bulkActionApply.addEventListener('click', function() {
+            const action = bulkActionSelect.value;
+            const userIds = Array.from(selectedUsers).join(',');
+
+            if (!action || !userIds) return;
+
+            if (action === 'delete' && !confirm('Are you sure you want to soft-delete the selected users? This action can be reversed by restoring the accounts.')) {
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('user_ids', userIds);
+            formData.append('confirmation', 'True');
+
+            fetch('{% url "core:user_bulk_action" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToastNotification(data.message, 'success');
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    showToastNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Bulk action error:', error);
+                showToastNotification('An error occurred while processing the bulk action.', 'error');
+            });
+        });
+    });
+
     // Lightweight page toast for AJAX actions (fixed positioning, no stacking - matches appointments/settings)
     function showToastNotification(message, type = 'success') {
         const classes = {

@@ -1,107 +1,352 @@
-{% extends 'core/base.html' %}
+{% extends 'health_forms_services/_base_create.html' %}
+{% load static %}
+{% load form_tags %}
 
-{% block title %}New Prescription - JMCFI Clinic{% endblock %}
-
+{% block create_title %}New Prescription{% endblock %}
+{% block back_url %}{% url 'health_forms_services:prescription_list' %}{% endblock %}
+{% block back_label %}Back to Prescriptions{% endblock %}
+{% block page_title %}New Prescription{% endblock %}
 {% block head %}
+{{ block.super }}
 <style>
-    .form-input, .form-textarea, .form-select {
-        width: 100%;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-    }
-    .form-input:focus, .form-textarea:focus, .form-select:focus {
-        outline: none;
-        border-color: #a855f7;
-        box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
-    }
+  .prescription-item-row {
+    transition: all 0.2s;
+  }
+  .prescription-item-row:hover {
+    background-color: #f9fafb;
+  }
+  .prescription-item-row.removing {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  .prescription-item-row.adding {
+    animation: slideIn 0.25s ease-out;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .add-item-input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  .add-item-input:focus {
+    outline: none;
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.15);
+  }
+  .add-item-input::placeholder { color: #9ca3af; }
 </style>
+{% endblock head %}
+{% block submit_label %}Create Prescription{% endblock %}
+{% block cancel_url %}{% url 'health_forms_services:prescription_list' %}{% endblock %}
+
+{% block form_fields %}
+  {# ── Patient Information ── #}
+  <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">Patient Information</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-6">
+    {% with field=form|dict_key:'patient_name' %}
+    {% include 'health_forms_services/partials/_field.html' %}
+    {% endwith %}
+    {% with field=form|dict_key:'age' %}
+    {% include 'health_forms_services/partials/_field.html' %}
+    {% endwith %}
+    {% with field=form|dict_key:'gender' %}
+    {% include 'health_forms_services/partials/_field.html' %}
+    {% endwith %}
+    {% with field=form|dict_key:'date' %}
+    {% include 'health_forms_services/partials/_field.html' %}
+    {% endwith %}
+    {% with field=form|dict_key:'address' %}
+    {% include 'health_forms_services/partials/_field.html' %}
+    {% endwith %}
+  </div>
+
+  {# ── Diagnosis ── #}
+  <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">Diagnosis</h3>
+  <div class="mb-6">
+    {% with field=form|dict_key:'diagnosis' %}
+    {% include 'health_forms_services/partials/_field.html' %}
+    {% endwith %}
+  </div>
+
+  {# ── Physician Information ── #}
+  <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">Physician Information</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+    {% with field=form|dict_key:'physician' %}
+    {% include 'health_forms_services/partials/_field.html' %}
+    {% endwith %}
+    {% with field=form|dict_key:'license_no' %}
+    {% include 'health_forms_services/partials/_field.html' %}
+    {% endwith %}
+    {% with field=form|dict_key:'ptr_no' %}
+    {% include 'health_forms_services/partials/_field.html' %}
+    {% endwith %}
+  </div>
 {% endblock %}
 
-{% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% include 'health_forms_services/_subnav.html' %}
-
-        <!-- Header -->
-        <div class="mb-6">
-            <a href="{% url 'health_forms_services:prescription_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-                Back to Prescriptions
-            </a>
-            <h1 class="text-2xl font-bold text-gray-900 mt-2">New Prescription</h1>
-            <p class="text-gray-600 mt-1">Create a new prescription form (F-HSS-20-0004)</p>
-        </div>
-
-        <form method="post">
-            {% csrf_token %}
-
-            <!-- Patient Information -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Patient Information</h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {% for field in form %}
-                            {% if field.name == 'prescription_body' %}
-                                <div class="md:col-span-3">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        {{ field.label }}{% if field.field.required %} *{% endif %}
-                                    </label>
-                                    {{ field }}
-                                    {% if field.help_text %}<p class="text-gray-500 text-xs mt-1">{{ field.help_text }}</p>{% endif %}
-                                    {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
-                                </div>
-                            {% elif field.name == 'address' %}
-                                <div class="md:col-span-3">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        {{ field.label }}{% if field.field.required %} *{% endif %}
-                                    </label>
-                                    {{ field }}
-                                    {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
-                                </div>
-                            {% else %}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        {{ field.label }}{% if field.field.required %} *{% endif %}
-                                    </label>
-                                    {{ field }}
-                                    {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Info Note -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                    </svg>
-                    <p class="text-sm text-blue-800">
-                        After creating the prescription, you'll be able to add individual medication items.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Submit -->
-            <div class="flex justify-end gap-4">
-                <a href="{% url 'health_forms_services:prescription_list' %}"
-                   class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
-                    Cancel
-                </a>
-                <button type="submit"
-                        class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
-                    Create Prescription
-                </button>
-            </div>
-        </form>
+{% block extra_content %}
+  {# ── Prescription Items Card (stackable items, saved on form submit via AJAX) ── #}
+  <div class="mt-6 bg-white rounded-xl border border-gray-100 shadow-sm">
+    <div class="px-4 sm:px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Prescription Items
+        <span id="items-count" class="text-xs font-normal text-gray-400">(0)</span>
+      </h3>
     </div>
-</div>
+    <div class="p-4 sm:p-5">
+      <div id="prescription-items-list">
+        <div id="empty-state" class="text-center py-6 text-sm text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <svg class="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+          <p class="font-medium text-gray-500">No prescription items yet</p>
+          <p class="mt-1 text-xs text-gray-400">Add medications below. They will be saved with the prescription.</p>
+        </div>
+      </div>
+
+      <div class="border-t border-gray-100 pt-4 mt-4">
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Add Medication</p>
+        <div class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-6 gap-2">
+            <div class="sm:col-span-2">
+              <input type="text" id="new-medication-name" placeholder="Medication name *" class="add-item-input" required>
+            </div>
+            <div><input type="text" id="new-dosage" placeholder="Dosage" class="add-item-input"></div>
+            <div><input type="text" id="new-frequency" placeholder="Frequency" class="add-item-input"></div>
+            <div><input type="text" id="new-duration" placeholder="Duration" class="add-item-input"></div>
+            <div><input type="text" id="new-quantity" placeholder="Qty" class="add-item-input"></div>
+          </div>
+          <div>
+            <textarea id="new-instructions" rows="1" placeholder="Special instructions (optional)" class="add-item-input resize-none"></textarea>
+          </div>
+          <div class="flex justify-end">
+            <button type="button" onclick="addCreateItem()"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              Add Item
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+// ── Client-side prescription items (stored temporarily, saved on form submit) ──
+var pendingItems = [];
+var tempIdCounter = 0;
+
+function escapeHtml(text) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(text));
+  return div.innerHTML;
+}
+
+function renderItems() {
+  var list = document.getElementById('prescription-items-list');
+  var count = document.getElementById('items-count');
+  count.textContent = '(' + pendingItems.length + ')';
+
+  if (pendingItems.length === 0) {
+    list.innerHTML = '<div id="empty-state" class="text-center py-6 text-sm text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">' +
+      '<svg class="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+      '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>' +
+      '<p class="font-medium text-gray-500">No prescription items yet</p>' +
+      '<p class="mt-1 text-xs text-gray-400">Add medications below. They will be saved with the prescription.</p></div>';
+    return;
+  }
+
+  var html = '<div class="space-y-2">';
+  for (var i = 0; i < pendingItems.length; i++) {
+    var item = pendingItems[i];
+    html += '<div id="create-item-' + item.tempId + '" class="prescription-item-row flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">';
+    html += '<div class="flex-1 min-w-0"><div class="flex items-center gap-2 flex-wrap">';
+    html += '<span class="text-sm font-semibold text-gray-900">' + escapeHtml(item.medication_name) + '</span>';
+    if (item.dosage) html += '<span class="text-xs bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-600">' + escapeHtml(item.dosage) + '</span>';
+    if (item.frequency) html += '<span class="text-xs text-gray-500">' + escapeHtml(item.frequency) + '</span>';
+    if (item.duration) html += '<span class="text-xs text-gray-500">' + escapeHtml(item.duration) + '</span>';
+    if (item.quantity) html += '<span class="text-xs bg-primary-50 px-2 py-0.5 rounded text-primary-700 font-medium">' + escapeHtml(item.quantity) + '</span>';
+    html += '</div>';
+    if (item.instructions) html += '<p class="text-xs text-gray-500 mt-1">' + escapeHtml(item.instructions) + '</p>';
+    html += '</div>';
+    html += '<button type="button" onclick="removeCreateItem(' + item.tempId + ')" class="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Remove">';
+    html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+    html += '</button></div>';
+  }
+  html += '</div>';
+  list.innerHTML = html;
+}
+
+function addCreateItem() {
+  var name = document.getElementById('new-medication-name').value.trim();
+  if (!name) {
+    document.getElementById('new-medication-name').focus();
+    var el = document.getElementById('new-medication-name');
+    el.classList.add('border-red-400', 'bg-red-50');
+    setTimeout(function(){ el.classList.remove('border-red-400', 'bg-red-50'); }, 2000);
+    return;
+  }
+
+  pendingItems.push({
+    tempId: ++tempIdCounter,
+    medication_name: name,
+    dosage: document.getElementById('new-dosage').value.trim(),
+    frequency: document.getElementById('new-frequency').value.trim(),
+    duration: document.getElementById('new-duration').value.trim(),
+    quantity: document.getElementById('new-quantity').value.trim(),
+    instructions: document.getElementById('new-instructions').value.trim(),
+  });
+
+  renderItems();
+
+  document.getElementById('new-medication-name').value = '';
+  document.getElementById('new-dosage').value = '';
+  document.getElementById('new-frequency').value = '';
+  document.getElementById('new-duration').value = '';
+  document.getElementById('new-quantity').value = '';
+  document.getElementById('new-instructions').value = '';
+  document.getElementById('new-medication-name').focus();
+}
+
+function removeCreateItem(tempId) {
+  var row = document.getElementById('create-item-' + tempId);
+  if (row) {
+    row.classList.add('removing');
+    setTimeout(function() {
+      pendingItems = pendingItems.filter(function(item) { return item.tempId !== tempId; });
+      renderItems();
+    }, 200);
+  }
+}
+
+// ── CSRF helper ──
+function getCookie(name) {
+  var cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+// ── Intercept form submit: create prescription via AJAX, then add items ──
+document.addEventListener('DOMContentLoaded', function() {
+  var form = document.querySelector('form');
+  if (!form) return;
+
+  form.addEventListener('submit', function(e) {
+    if (pendingItems.length === 0) return; // normal submit if no items
+
+    e.preventDefault();
+
+    var submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+
+    var formData = new FormData(form);
+
+    fetch(window.location.href, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' },
+      body: formData,
+    })
+    .then(function(r) {
+      // The server redirects on success — we need the redirect URL to extract PK
+      if (r.redirected) {
+        return r.url;
+      }
+      // If not redirected, it means form was invalid — reload to show errors
+      window.location.reload();
+      throw new Error('Form invalid');
+    })
+    .then(function(redirectUrl) {
+      // Extract PK from redirect URL like .../prescription/5/
+      var match = redirectUrl.match(/\/prescription\/(\d+)\//);
+      if (!match) {
+        window.location.href = redirectUrl;
+        return;
+      }
+      var pk = match[1];
+      var csrf = getCookie('csrftoken');
+      var itemPromises = [];
+
+      pendingItems.forEach(function(item) {
+        var data = new URLSearchParams();
+        data.append('medication_name', item.medication_name);
+        data.append('dosage', item.dosage);
+        data.append('frequency', item.frequency);
+        data.append('duration', item.duration);
+        data.append('quantity', item.quantity);
+        data.append('instructions', item.instructions);
+        data.append('csrfmiddlewaretoken', csrf);
+
+        itemPromises.push(
+          fetch('/health-forms/prescription/' + pk + '/item/add/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: data,
+          }).then(function(r){ return r.json(); })
+        );
+      });
+
+      return Promise.all(itemPromises).then(function() {
+        window.location.href = redirectUrl;
+      });
+    })
+    .catch(function(err) {
+      console.error('Error creating prescription:', err);
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create Prescription';
+    });
+  });
+});
+
+// ── Physician auto-fill ──
+document.addEventListener('DOMContentLoaded', function() {
+  const physicianSelect = document.querySelector('[data-physician-select]');
+  const nameInput = document.querySelector('[data-physician-name]');
+  const licenseInput = document.querySelector('[data-physician-license]');
+  const ptrInput = document.querySelector('[data-physician-ptr]');
+
+  if (physicianSelect) {
+    function fillPhysician() {
+      const selected = physicianSelect.options[physicianSelect.selectedIndex];
+      if (selected && selected.value) {
+        if (nameInput) nameInput.value = selected.textContent.trim().replace(/^Dr\.\s*/, '').trim();
+        if (licenseInput) licenseInput.value = selected.getAttribute('data-license') || '';
+        if (ptrInput) ptrInput.value = selected.getAttribute('data-ptr') || '';
+      } else {
+        if (nameInput) nameInput.value = '';
+        if (licenseInput) licenseInput.value = '';
+        if (ptrInput) ptrInput.value = '';
+      }
+    }
+
+    physicianSelect.addEventListener('change', fillPhysician);
+
+    if (physicianSelect.value) {
+      fillPhysician();
+    }
+  }
+});
+</script>
+{% endblock scripts %}

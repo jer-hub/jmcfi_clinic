@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-DIRECT_MESSAGE_ROLES = ["student", "staff", "doctor"]
+DIRECT_MESSAGE_ROLES = ["student", "staff", "doctor", "admin"]
 ANNOUNCEMENT_AUDIENCE_CHOICES = [
     ("all_active", "All active users"),
     ("students", "Students only"),
@@ -39,9 +39,11 @@ class StartConversationForm(forms.Form):
         user_role = getattr(user, "role", None)
         allowed_recipient_roles = []
         if user_role == "student":
-            allowed_recipient_roles = ["staff", "doctor"]
+            allowed_recipient_roles = ["staff", "doctor", "admin"]
         elif user_role in {"staff", "doctor"}:
             allowed_recipient_roles = ["student"]
+        elif user_role == "admin":
+            allowed_recipient_roles = ["student", "staff", "doctor"]
 
         self.fields["recipient"].queryset = User.objects.filter(
             role__in=allowed_recipient_roles,

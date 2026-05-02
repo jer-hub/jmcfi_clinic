@@ -1,9 +1,10 @@
 from django.contrib import admin
+from core.admin_mixins import BlockAdminRoleMixin
 from .models import DocumentRequest, MedicalCertificate, DoctorSignature
 
 
 @admin.register(DocumentRequest)
-class DocumentRequestAdmin(admin.ModelAdmin):
+class DocumentRequestAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = [
         'student',
         'document_type',
@@ -47,7 +48,7 @@ class DocumentRequestAdmin(admin.ModelAdmin):
 
 
 @admin.register(MedicalCertificate)
-class MedicalCertificateAdmin(admin.ModelAdmin):
+class MedicalCertificateAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['id', 'patient_name', 'user', 'status', 'certificate_date', 'physician_name', 'signed_by', 'signed_at', 'created_at']
     list_filter = ['status', 'gender', 'created_at']
     search_fields = ['patient_name', 'user__email', 'physician_name', 'diagnosis']
@@ -55,7 +56,7 @@ class MedicalCertificateAdmin(admin.ModelAdmin):
 
 
 @admin.register(DoctorSignature)
-class DoctorSignatureAdmin(admin.ModelAdmin):
+class DoctorSignatureAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['doctor', 'is_active', 'updated_by', 'updated_at']
     list_filter = ['is_active', 'updated_at']
     search_fields = ['doctor__first_name', 'doctor__last_name', 'doctor__email']

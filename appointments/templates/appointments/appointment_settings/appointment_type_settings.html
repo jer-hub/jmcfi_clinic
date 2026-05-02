@@ -25,8 +25,8 @@
             </div>
         </div>
 
-        <!-- Table -->
-        <div class="bg-white shadow sm:rounded-xl overflow-visible">
+        <!-- ═══ Desktop Table (md+) ═══ -->
+        <div class="hidden md:block bg-white shadow sm:rounded-xl overflow-visible">
             <table class="min-w-full">
                 <thead>
                     <tr class="border-b border-gray-200 bg-gray-50 rounded-t-xl">
@@ -54,114 +54,17 @@
                         <!-- Type -->
                         <td class="px-6 py-4">
                             <div class="flex items-center gap-3">
-                                <div class="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-full
-                                    {% if item.type_key == 'consultation' %}bg-blue-100
-                                    {% elif item.type_key == 'checkup' %}bg-green-100
-                                    {% elif item.type_key == 'vaccination' %}bg-purple-100
-                                    {% elif item.type_key == 'emergency' %}bg-red-100
-                                    {% elif item.type_key == 'dental' %}bg-yellow-100
-                                    {% else %}bg-orange-100{% endif %}">
-                                    <svg class="h-4 w-4
-                                        {% if item.type_key == 'consultation' %}text-blue-600
-                                        {% elif item.type_key == 'checkup' %}text-green-600
-                                        {% elif item.type_key == 'vaccination' %}text-purple-600
-                                        {% elif item.type_key == 'emergency' %}text-red-600
-                                        {% elif item.type_key == 'dental' %}text-yellow-600
-                                        {% else %}text-orange-600{% endif %}"
-                                        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                                    </svg>
-                                </div>
+                                {% include 'appointments/appointment_settings/_type_icon.html' with type_key=item.type_key %}
                                 <span class="text-sm font-medium text-gray-900">{{ item.type_label }}</span>
                             </div>
                         </td>
 
                         <!-- Assigned Doctors (crispy dropdown inside form) -->
                         <td class="px-6 py-4">
-                            <form method="POST" action="{% url 'appointments:edit_appointment_type_default' type_key=item.type_key %}" class="flex items-center gap-3">
-                                {% csrf_token %}
-                                <input type="hidden" name="appointment_type" value="{{ item.type_key }}">
-                                <!-- Preserve is_active state when saving from the table row -->
-                                {% if item.instance and item.instance.is_active %}
-                                <input type="hidden" name="is_active" value="on">
-                                {% endif %}
-
-                                <!-- Crispy dropdown -->
-                                <div class="relative flex-1 min-w-0" x-data="doctorDropdown()">
-
-                                    <!-- Trigger -->
-                                    <button type="button" @click="open = !open"
-                                        class="w-full flex items-center justify-between px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm text-gray-700 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all duration-150">
-                                        <span class="flex items-center gap-2 min-w-0">
-                                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                            </svg>
-                                            <span class="truncate" x-text="selectedLabel()"></span>
-                                        </span>
-                                        <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ml-2" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                                        </svg>
-                                    </button>
-
-                                    <!-- Dropdown Panel -->
-                                    <div x-show="open" x-cloak @click.outside="open = false"
-                                        x-transition:enter="transition ease-out duration-150"
-                                        x-transition:enter-start="opacity-0 translate-y-1"
-                                        x-transition:enter-end="opacity-100 translate-y-0"
-                                        x-transition:leave="transition ease-in duration-100"
-                                        x-transition:leave-start="opacity-100 translate-y-0"
-                                        x-transition:leave-end="opacity-0 translate-y-1"
-                                        class="absolute left-0 top-full z-50 mt-1.5 w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
-
-                                        <!-- Search -->
-                                        <div class="p-2 border-b border-gray-100 bg-white">
-                                            <div class="relative">
-                                                <svg class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
-                                                </svg>
-                                                <input type="text" x-model="search" placeholder="Search doctors..."
-                                                    class="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-400 bg-gray-50">
-                                            </div>
-                                        </div>
-
-                                        <!-- Select All / Clear -->
-                                        <div class="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b border-gray-100">
-                                            <button type="button" @click="selectAll()" class="text-xs font-semibold text-primary-600 hover:text-primary-800 transition-colors">Select all</button>
-                                            <span class="text-gray-300 text-xs">|</span>
-                                            <button type="button" @click="clearAll()" class="text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">Clear</button>
-                                        </div>
-
-                                        <!-- Checkbox list -->
-                                        <ul class="doctor-cb-list max-h-52 overflow-y-auto py-1">
-                                            {% for checkbox in item.form.assigned_doctors %}
-                                            <li x-show="!search || '{{ checkbox.choice_label|lower }}'.includes(search.toLowerCase())" class="group">
-                                                <label for="{{ checkbox.id_for_label }}"
-                                                    class="flex items-center gap-3 px-3 py-2.5 cursor-pointer hover:bg-primary-50 transition-colors duration-100 group-has-[:checked]:bg-primary-50">
-                                                    {{ checkbox.tag }}
-                                                    <span class="text-sm text-gray-700 group-has-[:checked]:text-primary-800 group-has-[:checked]:font-medium leading-snug">
-                                                        {{ checkbox.choice_label }}
-                                                    </span>
-                                                </label>
-                                            </li>
-                                            {% empty %}
-                                            <li class="px-3 py-4 text-center text-sm text-gray-400 italic">No doctors available.</li>
-                                            {% endfor %}
-                                        </ul>
-                                    </div>
-                                </div>
-
-                                <!-- Save button inline -->
-                                <button type="submit"
-                                    class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1 transition-colors duration-150">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                                    </svg>
-                                    Save
-                                </button>
-                            </form>
+                            {% include 'appointments/appointment_settings/_doctor_form.html' with item=item %}
                         </td>
 
-                                                <!-- Status badge -->
+                        <!-- Status badge -->
                         <td class="px-6 py-4 text-center">
                             {% if item.instance %}
                                 <span :class="isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" 
@@ -177,14 +80,14 @@
                         <!-- Active toggle (separate form) -->
                         <td class="px-6 py-4 text-center">
                             {% if item.instance %}
-                            <div class="inline" >
+                            <div class="inline">
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                                                    <input type="checkbox" 
-                                                                           class="sr-only peer" 
-                                                                           :checked="isActive"
-                                                                           @change="toggle()">
-                                                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                                                                </label>
+                                    <input type="checkbox" 
+                                           class="sr-only peer" 
+                                           :checked="isActive"
+                                           @change="toggle()">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                                </label>
                             </div>
                             {% else %}
                             <span class="text-xs text-gray-400">—</span>
@@ -194,7 +97,18 @@
                         <!-- Actions -->
                         <td class="px-6 py-4 text-right">
                             {% if item.instance %}
-                            <button type="button" onclick="confirmDelete({{ item.instance.id }}, '{{ item.type_label }}')"
+                            <button type="button"
+                                    onclick="window._deleteDefaultId={{ item.instance.id }}; window._deleteTypeLabel='{{ item.type_label }}';
+                                             document.dispatchEvent(new CustomEvent('open-modal', {bubbles:true,detail:{
+                                               type:'danger', title:'Delete Doctor Assignments',
+                                               message:'Are you sure you want to delete the doctor assignments for &quot;{{ item.type_label }}&quot;?',
+                                               actionLabel:'Delete',
+                                               onConfirm:function(){
+                                                 var f = document.getElementById('deleteForm');
+                                                 f.action = '{% url 'appointments:delete_appointment_type_default' default_id=0 %}'.replace('0', window._deleteDefaultId);
+                                                 f.submit();
+                                               }
+                                             }}));"
                                 class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors duration-150">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -211,41 +125,73 @@
             </table>
         </div>
 
+        <!-- ═══ Mobile Cards (< md) ═══ -->
+        <div class="block md:hidden space-y-4">
+            {% for item in settings_data %}
+            <div {% if item.instance %}x-data="appointmentTypeRow({{ item.instance.id }}, {{ item.instance.is_active|yesno:'true,false' }})"{% endif %} class="bg-white shadow rounded-xl border border-gray-200 overflow-visible">
+                <!-- Card Header -->
+                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div class="flex items-center gap-3 min-w-0">
+                        {% include 'appointments/appointment_settings/_type_icon.html' with type_key=item.type_key %}
+                        <div class="min-w-0">
+                            <span class="text-sm font-semibold text-gray-900 block truncate">{{ item.type_label }}</span>
+                            {% if item.instance %}
+                            <span :class="isActive ? 'text-green-600' : 'text-red-500'" class="text-xs font-medium">
+                                <span x-text="isActive ? 'Active' : 'Inactive'"></span>
+                            </span>
+                            {% else %}
+                            <span class="text-xs text-gray-400">Not configured</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        {% if item.instance %}
+                        <label class="relative inline-flex items-center cursor-pointer" title="Toggle active state">
+                            <input type="checkbox" 
+                                   class="sr-only peer" 
+                                   :checked="isActive"
+                                   @change="toggle()">
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[0.5px] after:left-[0.5px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
+                        </label>
+                        <button type="button"
+                                onclick="window._deleteDefaultId={{ item.instance.id }}; window._deleteTypeLabel='{{ item.type_label }}';
+                                         document.dispatchEvent(new CustomEvent('open-modal', {bubbles:true,detail:{
+                                           type:'danger', title:'Delete Doctor Assignments',
+                                           message:'Are you sure you want to delete the doctor assignments for &quot;{{ item.type_label }}&quot;?',
+                                           actionLabel:'Delete',
+                                           onConfirm:function(){
+                                             var f = document.getElementById('deleteForm');
+                                             f.action = '{% url 'appointments:delete_appointment_type_default' default_id=0 %}'.replace('0', window._deleteDefaultId);
+                                             f.submit();
+                                           }
+                                         }}));"
+                                class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Delete">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Card Body - Doctor Assignment -->
+                <div class="px-4 py-3">
+                    <label class="block text-xs font-medium text-gray-500 mb-1.5">Assigned Doctors</label>
+                    {% include 'appointments/appointment_settings/_doctor_form.html' with item=item %}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-8 text-sm text-gray-500 bg-white rounded-xl border border-gray-200">
+                No appointment types found.
+            </div>
+            {% endfor %}
+        </div>
+
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div id="deleteModal" class="hidden fixed z-50 inset-0 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-gray-600 bg-opacity-60 transition-opacity"></div>
-        <div class="relative bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-            <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 flex items-center justify-center h-10 w-10 rounded-full bg-red-100">
-                    <svg class="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <h3 class="text-base font-semibold text-gray-900" id="modal-title">Delete Doctor Assignments</h3>
-                    <p class="mt-1 text-sm text-gray-500" id="deleteMessage">Are you sure you want to remove the doctor assignments for this type?</p>
-                </div>
-            </div>
-            <div class="mt-5 flex justify-end gap-3">
-                <button type="button" onclick="document.getElementById('deleteModal').classList.add('hidden')"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors">
-                    Cancel
-                </button>
-                <form id="deleteForm" method="POST" class="inline">
-                    {% csrf_token %}
-                    <button type="submit"
-                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 transition-colors">
-                        Delete
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
+<form id="deleteForm" method="POST" class="hidden">{% csrf_token %}</form>
 
 <style>
 .doctor-cb-list input[type="checkbox"] {
@@ -295,16 +241,6 @@ function doctorDropdown() {
         }
     }
 }
-function confirmDelete(defaultId, typeName) {
-    document.getElementById('deleteMessage').textContent =
-        `Are you sure you want to delete the doctor assignments for "${typeName}"?`;
-    document.getElementById('deleteForm').action =
-        "{% url 'appointments:delete_appointment_type_default' default_id=0 %}".replace('0', defaultId);
-    document.getElementById('deleteModal').classList.remove('hidden');
-}
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') document.getElementById('deleteModal').classList.add('hidden');
-});
 // CSRF helper and Alpine row factory for toggling active state without reload
 function getCookie(name) {
     let cookieValue = null;

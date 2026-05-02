@@ -1,0 +1,172 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Clean Up Stale Users - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% include 'core/_subnav.html' %}
+
+        <div class="mb-6">
+            <a href="{% url 'core:user_management' %}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Back to User Management
+            </a>
+        </div>
+
+        <div class="bg-white rounded-lg shadow-lg">
+            <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                        <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-red-700 rounded-xl flex items-center justify-center shadow-lg">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900">Clean Up Stale User Accounts</h2>
+                        <p class="mt-1 text-sm text-gray-600">Find and deactivate user accounts that are no longer active</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-6 space-y-8">
+                <!-- Pending Activation (30+ days) -->
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-amber-900">Pending Activation (&gt; 30 days)</h3>
+                            <p class="text-sm text-amber-700 mt-1">Users who were created but never activated their accounts.</p>
+                        </div>
+                        <span class="px-3 py-1 bg-amber-100 text-amber-800 text-sm font-semibold rounded-full">{{ stale_pending_count }} user(s)</span>
+                    </div>
+                    {% if stale_pending %}
+                    <div class="mt-4 space-y-2">
+                        {% for user in stale_pending %}
+                        <div class="flex items-center justify-between bg-white rounded-lg px-4 py-2 border border-amber-200">
+                            <div class="flex items-center space-x-3">
+                                <div class="h-8 w-8 rounded-full bg-amber-200 flex items-center justify-center text-amber-700 font-semibold text-xs">
+                                    {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.email }}</p>
+                                    <p class="text-xs text-gray-500">Joined {{ user.date_joined|date:"M d, Y" }}</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'core:user_detail' user.id %}" class="text-sm text-primary-600 hover:text-primary-900">View</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="mt-4 text-sm text-amber-600">No stale pending activation users found.</p>
+                    {% endif %}
+                </div>
+
+                <!-- No Activity (6+ months) -->
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-red-900">No Recent Activity (&gt; 6 months)</h3>
+                            <p class="text-sm text-red-700 mt-1">Active users who haven't had any activity in over 6 months.</p>
+                        </div>
+                        <span class="px-3 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">{{ stale_inactive_count }} user(s)</span>
+                    </div>
+                    {% if stale_inactive %}
+                    <div class="mt-4 space-y-2">
+                        {% for user in stale_inactive %}
+                        <div class="flex items-center justify-between bg-white rounded-lg px-4 py-2 border border-red-200">
+                            <div class="flex items-center space-x-3">
+                                <div class="h-8 w-8 rounded-full bg-red-200 flex items-center justify-center text-red-700 font-semibold text-xs">
+                                    {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.email }}</p>
+                                    <p class="text-xs text-gray-500">Last activity: {{ user.last_activity_at|date:"M d, Y"|default:"Never recorded" }}</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'core:user_detail' user.id %}" class="text-sm text-primary-600 hover:text-primary-900">View</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="mt-4 text-sm text-red-600">No inactive users found with recorded activity.</p>
+                    {% endif %}
+                </div>
+
+                <!-- No Activity Record (6+ months old) -->
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">No Activity Data (&gt; 6 months old)</h3>
+                            <p class="text-sm text-gray-600 mt-1">Users with no activity tracking data, created over 6 months ago.</p>
+                        </div>
+                        <span class="px-3 py-1 bg-gray-100 text-gray-800 text-sm font-semibold rounded-full">{{ stale_no_activity_count }} user(s)</span>
+                    </div>
+                    {% if stale_no_activity %}
+                    <div class="mt-4 space-y-2">
+                        {% for user in stale_no_activity %}
+                        <div class="flex items-center justify-between bg-white rounded-lg px-4 py-2 border border-gray-200">
+                            <div class="flex items-center space-x-3">
+                                <div class="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-700 font-semibold text-xs">
+                                    {{ user.first_name.0|upper }}{{ user.last_name.0|upper }}
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.email }}</p>
+                                    <p class="text-xs text-gray-500">Joined {{ user.date_joined|date:"M d, Y" }}</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'core:user_detail' user.id %}" class="text-sm text-primary-600 hover:text-primary-900">View</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="mt-4 text-sm text-gray-600">No users without activity data found.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Action Form -->
+                {% if stale_pending_count > 0 or stale_inactive_count > 0 or stale_no_activity_count > 0 %}
+                <form method="POST" class="bg-blue-50 border border-blue-200 rounded-lg p-6" onsubmit="return confirm('Are you sure you want to deactivate the selected stale accounts? This action can be reversed later.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="deactivate_stale">
+                    <h3 class="text-lg font-semibold text-blue-900 mb-4">Deactivate Stale Accounts</h3>
+                    <div class="space-y-3">
+                        {% if stale_pending_count > 0 %}
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" name="deactivate_pending" value="1" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                            <span class="text-sm text-blue-800">Deactivate {{ stale_pending_count }} pending activation user(s)</span>
+                        </label>
+                        {% endif %}
+                        {% if stale_inactive_count > 0 %}
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" name="deactivate_inactive" value="1" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                            <span class="text-sm text-blue-800">Deactivate {{ stale_inactive_count }} inactive user(s)</span>
+                        </label>
+                        {% endif %}
+                        {% if stale_no_activity_count > 0 %}
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" name="deactivate_no_activity" value="1" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                            <span class="text-sm text-blue-800">Deactivate {{ stale_no_activity_count }} user(s) with no activity data</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="mt-4 px-6 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors">
+                        Deactivate Selected
+                    </button>
+                </form>
+                {% else %}
+                <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-6 text-center">
+                    <svg class="mx-auto h-12 w-12 text-emerald-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-emerald-800 font-medium">No stale user accounts found. All accounts are in good standing!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

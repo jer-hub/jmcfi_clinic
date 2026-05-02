@@ -88,6 +88,13 @@ def health_tips(request):
 
 
 @login_required
+@login_required
+def health_tip_detail_htmx(request, tip_id):
+    """HTMX view: returns a detail fragment for the modal body."""
+    health_tip = get_object_or_404(HealthTip.objects.select_related('created_by'), id=tip_id, is_active=True)
+    return render(request, 'health_tips/_tip_detail_content.html', {'tip': health_tip})
+
+
 def health_tip_detail(request, tip_id):
     """Display a single health tip's full content"""
     # Allow viewing active tips by anyone, drafts only by their creators

@@ -263,7 +263,7 @@
                                     {% if cert_request.status == 'rejected' %}
                                     {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
                                     <button type="button" 
-                                            onclick="openRejectionModal('{{ cert_request.id }}', '{{ cert_request.rejection_reason|escapejs }}')"
+                                            onclick="document.dispatchEvent(new CustomEvent('open-modal',{bubbles:true,detail:{type:'danger',title:'Rejection Reason',message:'{{ cert_request.rejection_reason|escapejs }}',actionLabel:''}}));"
                                             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200 hover:bg-red-200 cursor-pointer transition-colors">
                                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -315,7 +315,7 @@
                                     {% elif cert_request.status == 'rejected' %}
                                     {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
                                     <button type="button" 
-                                            onclick="openRejectionModal('{{ cert_request.id }}', '{{ cert_request.rejection_reason|escapejs }}')"
+                                            onclick="document.dispatchEvent(new CustomEvent('open-modal',{bubbles:true,detail:{type:'danger',title:'Rejection Reason',message:'{{ cert_request.rejection_reason|escapejs }}',actionLabel:''}}));"
                                             class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200 hover:bg-red-200 cursor-pointer transition-colors">
                                         <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -499,62 +499,6 @@
 </div>
 
 <!-- Rejection Reason Modal -->
-<div id="rejectionModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50" style="display: none;">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-96 overflow-y-auto">
-            <div class="p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        Rejection Reason
-                    </h3>
-                    <button type="button" onclick="closeRejectionModal()" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                <div class="mb-4">
-                    <p id="rejectionReasonText" class="text-sm text-gray-700 leading-relaxed"></p>
-                </div>
-                <div class="flex justify-end">
-                    <button type="button" onclick="closeRejectionModal()" 
-                            class="px-4 py-2 bg-gray-500 text-white text-sm font-medium rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
-                        Close
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<script>
-function openRejectionModal(requestId, reason) {
-    const modal = document.getElementById('rejectionModal');
-    const textElement = document.getElementById('rejectionReasonText');
-    textElement.textContent = reason;
-    modal.style.display = 'block';
-}
-
-function closeRejectionModal() {
-    document.getElementById('rejectionModal').style.display = 'none';
-}
-
-// Close modal when clicking outside
-document.getElementById('rejectionModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeRejectionModal();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && document.getElementById('rejectionModal').style.display === 'block') {
-        closeRejectionModal();
-    }
-});
-</script>
 
 {% endblock content %}

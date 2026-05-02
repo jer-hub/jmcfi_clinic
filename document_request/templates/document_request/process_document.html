@@ -218,7 +218,7 @@
 
                             <!-- Complete Request -->
                             <button type="button"
-                                    onclick="processRequest('review')"
+                                    onclick="document.dispatchEvent(new CustomEvent('open-modal',{bubbles:true,detail:{type:'info',title:'Confirm Completion',message:'Mark this request as completed? Make sure you have reviewed and filled in the certificate details in the dedicated edit page.',actionLabel:'Complete',onConfirm:function(){document.getElementById('actionInput').value='review';document.getElementById('processForm').submit();}}}));"
                                     class="w-full bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -319,18 +319,6 @@
 
 <script>
 {% if can_process %}
-function processRequest(action) {
-    // For review action, open a confirmation modal
-    if (action === 'review') {
-        openReviewModal();
-        return;
-    }
-    if (confirm(`Are you sure you want to ${action} this document request?`)) {
-        document.getElementById('actionInput').value = action;
-        document.getElementById('processForm').submit();
-    }
-}
-
 function showRejectForm() {
     document.getElementById('rejectForm').classList.remove('hidden');
     document.getElementById('actionInput').value = 'reject';
@@ -344,52 +332,5 @@ function hideRejectForm() {
 {% endif %}
 </script>
 
-<!-- Review Confirmation Modal -->
-<div id="reviewModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50" aria-hidden="true" style="display: none;">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div class="p-4 border-b border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900">Confirm Completion</h3>
-            </div>
-            <div class="p-4">
-                <p class="text-sm text-gray-700">Mark this request as completed? Make sure you've reviewed and filled in the certificate details in the dedicated edit page.</p>
-            </div>
-            <div class="p-4 flex justify-end space-x-2 border-t border-gray-100">
-                <button type="button" onclick="closeReviewModal()" class="px-4 py-2 bg-gray-200 rounded-md text-sm text-gray-700 hover:bg-gray-300">Cancel</button>
-                <button type="button" onclick="confirmReview()" class="px-4 py-2 bg-blue-600 rounded-md text-sm text-white hover:bg-blue-700">Confirm</button>
-            </div>
-        </div>
-    </div>
-</div>
 
-<script>
-function openReviewModal() {
-    var m = document.getElementById('reviewModal');
-    if (!m) return;
-    m.style.display = 'block';
-}
-function closeReviewModal() {
-    var m = document.getElementById('reviewModal');
-    if (!m) return;
-    m.style.display = 'none';
-}
-function confirmReview() {
-    document.getElementById('actionInput').value = 'review';
-    document.getElementById('processForm').submit();
-}
-
-// Close modal when clicking outside
-document.addEventListener('click', function(e) {
-    var m = document.getElementById('reviewModal');
-    if (!m || m.style.display === 'none') return;
-    if (e.target === m) closeReviewModal();
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(e) {
-    var m = document.getElementById('reviewModal');
-    if (!m || m.style.display === 'none') return;
-    if (e.key === 'Escape') closeReviewModal();
-});
-</script>
 {% endblock content %}

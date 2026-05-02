@@ -3,30 +3,33 @@
 {% block title %}My Signature - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-gray-50 py-4 sm:py-8">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         {% include 'health_forms_services/_subnav.html' %}
 
-        <div class="bg-white rounded-lg shadow-lg mb-8">
-            <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
-                <div class="flex items-center justify-between gap-4">
-                    <div>
-                        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">My Signature</h1>
-                        <p class="mt-1 text-sm text-gray-600">Upload and manage the signature used for medical certificates.</p>
-                    </div>
-                    <a href="{% url 'document_request:document_requests' %}"
-                       class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                        Back to Certificates
-                    </a>
-                </div>
+        {# ── Header ── #}
+        <div class="mb-4">
+            <a href="{% url 'document_request:document_requests' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Certificates
+            </a>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900">My Signature</h1>
+                <p class="text-sm text-gray-500 mt-1">Upload and manage the signature used for medical certificates.</p>
             </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900">Signature Settings</h2>
+        {# ── Signature Settings Card ── #}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+            <div class="px-4 sm:px-5 py-4 border-b border-gray-100">
+                <h2 class="text-base font-semibold text-gray-900">Signature Settings</h2>
             </div>
-            <div class="p-6 space-y-6">
+            <div class="p-4 sm:p-6 space-y-5">
                 {% if signature and signature.signature_image %}
                 <div>
                     <p class="text-sm font-medium text-gray-700 mb-2">Current Signature</p>
@@ -46,9 +49,9 @@
                         <label class="block text-sm font-medium text-gray-700 mb-2">Signature Image</label>
                         {{ form.signature_image }}
                         {% if form.signature_image.errors %}
-                        <p class="text-red-600 text-xs mt-1">{{ form.signature_image.errors.0 }}</p>
+                        <p class="text-red-600 text-xs mt-1 font-medium">{{ form.signature_image.errors.0 }}</p>
                         {% else %}
-                        <p class="text-xs text-gray-500 mt-1">PNG, JPG, or WEBP recommended with transparent/white background.</p>
+                        <p class="text-xs text-gray-400 mt-1">PNG, JPG, or WEBP recommended with transparent/white background.</p>
                         {% endif %}
                     </div>
 
@@ -57,12 +60,12 @@
                         <label for="id_is_active" class="text-sm text-gray-700">Use this signature for certificate signing</label>
                     </div>
                     {% if form.is_active.errors %}
-                    <p class="text-red-600 text-xs">{{ form.is_active.errors.0 }}</p>
+                    <p class="text-red-600 text-xs font-medium">{{ form.is_active.errors.0 }}</p>
                     {% endif %}
 
                     <div class="pt-2">
                         <button type="submit"
-                                class="inline-flex items-center px-5 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+                                class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
                             Save Signature
                         </button>
                     </div>

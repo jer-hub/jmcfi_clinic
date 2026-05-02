@@ -558,101 +558,20 @@
     </div>
 </div>
 
-<!-- Enhanced Medical Record Detail Modal -->
-<div id="recordModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm overflow-y-auto h-full w-full hidden z-50" role="dialog" aria-modal="true" aria-labelledby="recordModalTitle">
-    <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative w-full max-w-4xl bg-white rounded-2xl shadow-2xl ring-1 ring-gray-200 transform transition-all">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 rounded-t-2xl">
-                <div class="flex items-center space-x-3">
-                    <div class="flex-shrink-0">
-                        <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
-                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                        </div>
-                    </div>
-                    <div>
-                        <h3 id="recordModalTitle" class="text-xl font-bold text-gray-900">Medical Record Details</h3>
-                        <p class="text-sm text-gray-600">Complete patient record information</p>
-                    </div>
-                </div>
-                <button id="recordModalClose" onclick="closeRecordModal()" class="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500" aria-label="Close modal">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            
-            <!-- Modal Content -->
-            <div id="recordDetails" class="px-6 py-6 max-h-96 overflow-y-auto" aria-live="polite">
-                <!-- Record details will be loaded here -->
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>
-function showRecordLoading() {
-    document.getElementById('recordDetails').innerHTML = `
-        <div class="flex flex-col items-center justify-center py-12 space-y-4">
-            <div class="relative">
-                <div class="w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-                <div class="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-primary-400 rounded-full animate-spin animation-delay-150"></div>
-            </div>
-            <div class="text-center">
-                <h4 class="text-lg font-semibold text-gray-900 mb-1">Loading Record Details</h4>
-                <p class="text-sm text-gray-600">Please wait while we fetch the information...</p>
-            </div>
-        </div>
-    `;
-}
-
+// View record details in the global modal via HTMX
 function viewRecord(recordId) {
-    const modal = document.getElementById('recordModal');
-    const closeBtn = document.getElementById('recordModalClose');
-    showRecordLoading();
-    modal.classList.remove('hidden');
-    // Move focus to close button for accessibility
-    setTimeout(() => closeBtn?.focus(), 0);
-
-    fetch(`/medical-records/${recordId}/details/`)
-        .then(async (response) => {
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            document.getElementById('recordDetails').innerHTML = data?.html || '<div class="text-center py-4 text-gray-600">No details available.</div>';
-            // Focus heading after content loads for screen readers
-            document.getElementById('recordModalTitle')?.focus?.();
-        })
-        .catch(() => {
-            document.getElementById('recordDetails').innerHTML = '<div class="text-center py-6 text-red-600">Error loading record details</div>';
-        });
-}
-
-function closeRecordModal() {
-    const modal = document.getElementById('recordModal');
-    modal.classList.add('hidden');
-}
-
-// Close modal when clicking outside
-document.getElementById('recordModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeRecordModal();
-    }
-});
-
-// Close on Escape
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const modal = document.getElementById('recordModal');
-        if (!modal.classList.contains('hidden')) {
-            closeRecordModal();
+    document.dispatchEvent(new CustomEvent('open-modal', {
+        bubbles: true,
+        detail: {
+            type: 'info',
+            title: 'Medical Record Details',
+            subtitle: 'Complete patient record information',
+            size: '4xl',
+            hxUrl: '/medical-records/' + recordId + '/details/',
+            actionLabel: ''
         }
-    }
-});
+    }));
+}
 </script>
 {% endblock content %}

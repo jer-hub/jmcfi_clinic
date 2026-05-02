@@ -26,24 +26,24 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'guardian_name', 'guardian_contact',
         ]
         widgets = {
-            'last_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'middle_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'permanent_address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
-            'zip_code': forms.TextInput(attrs={'class': 'form-input'}),
-            'current_address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
-            'religion': forms.TextInput(attrs={'class': 'form-input'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Dela Cruz'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Juan'}),
+            'middle_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Santos'}),
+            'permanent_address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'House/Unit No., Street, Barangay, City/Municipality, Province'}),
+            'zip_code': forms.TextInput(attrs={'class': 'form-input', 'placeholder': '1000'}),
+            'current_address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'Same as permanent or current residence'}),
+            'religion': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g., Roman Catholic'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
-            'place_of_birth': forms.TextInput(attrs={'class': 'form-input'}),
+            'place_of_birth': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'City/Municipality, Province'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
-            'citizenship': forms.TextInput(attrs={'class': 'form-input'}),
-            'age': forms.NumberInput(attrs={'class': 'form-input'}),
+            'citizenship': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Filipino'}),
+            'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
-            'email_address': forms.EmailInput(attrs={'class': 'form-input'}),
+            'email_address': forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'juan@example.com'}),
             'mobile_number': forms.TextInput(attrs={
                 'class': 'form-input',
                 'type': 'tel',
-                'placeholder': '9XXXXXXXXX',
+                'placeholder': '+639171234567',
                 'autocomplete': 'tel',
                 'inputmode': 'numeric',
                 'pattern': '^\+63\d{10}$',
@@ -54,7 +54,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'telephone_number': forms.TextInput(attrs={
                 'class': 'form-input',
                 'type': 'tel',
-                'placeholder': '9XXXXXXXXX',
+                'placeholder': '+639171234567',
                 'autocomplete': 'tel',
                 'inputmode': 'numeric',
                 'pattern': '^\+63\d{10}$',
@@ -63,21 +63,21 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                 'minlength': '13',
             }),
             'designation': forms.Select(attrs={'class': 'form-select'}),
-            'institution_id': forms.TextInput(attrs={'class': 'form-input'}),
-            'department_college_office': forms.TextInput(attrs={'class': 'form-input'}),
-            'course': forms.TextInput(attrs={'class': 'form-input'}),
-            'year_level': forms.TextInput(attrs={'class': 'form-input'}),
-            'position': forms.TextInput(attrs={'class': 'form-input'}),
-            'specialization': forms.TextInput(attrs={'class': 'form-input'}),
-            'license_number': forms.TextInput(attrs={'class': 'form-input'}),
-            'ptr_no': forms.TextInput(attrs={'class': 'form-input'}),
+            'institution_id': forms.TextInput(attrs={'class': 'form-input', 'placeholder': '2024-00001'}),
+            'department_college_office': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'College of Nursing'}),
+            'course': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'BS Nursing'}),
+            'year_level': forms.TextInput(attrs={'class': 'form-input', 'placeholder': '1st Year'}),
+            'position': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Clinical Instructor'}),
+            'specialization': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Internal Medicine'}),
+            'license_number': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'PRC License No.'}),
+            'ptr_no': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'PTR No.'}),
             'blood_type': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g., O+'}),
-            'medical_conditions': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
-            'guardian_name': forms.TextInput(attrs={'class': 'form-input'}),
+            'medical_conditions': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'List any known medical conditions, allergies, or medications'}),
+            'guardian_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Parent/Guardian Full Name'}),
             'guardian_contact': forms.TextInput(attrs={
                 'class': 'form-input',
                 'type': 'tel',
-                'placeholder': '9XXXXXXXXX',
+                'placeholder': '+639171234567',
                 'autocomplete': 'tel',
                 'inputmode': 'numeric',
                 'pattern': '^\+63\d{10}$',
@@ -105,15 +105,6 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             self.fields['telephone_number'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
         if 'guardian_contact' in self.fields:
             self.fields['guardian_contact'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
-
-        # Prefill +63 for empty contact fields so users enter only 10 remaining digits.
-        for contact_field in ['mobile_number', 'telephone_number', 'guardian_contact']:
-            if contact_field in self.fields:
-                current_value = self.initial.get(contact_field)
-                if not current_value and self.instance and self.instance.pk:
-                    current_value = getattr(self.instance, contact_field, '')
-                if not current_value:
-                    self.initial[contact_field] = '+63'
 
     def _clean_strict_ph(self, value):
         value = (value or '').strip()
@@ -769,8 +760,99 @@ class DentalServicesReviewForm(forms.ModelForm):
 # PRESCRIPTION FORMS (F-HSS-20-0004)
 # ========================================================================
 
+class DoctorSelectWidget(forms.Select):
+    """Select widget that adds data-license and data-ptr attributes to each option."""
+
+    def create_option(self, name, value, label, *args, **kwargs):
+        option = super().create_option(name, value, label, *args, **kwargs)
+        if value:
+            pk = value if isinstance(value, (int, str)) else getattr(value, 'value', value)
+            try:
+                user = User.objects.select_related('staff_profile').get(pk=pk)
+                profile = getattr(user, 'staff_profile', None)
+                option['attrs']['data-license'] = (profile.license_number or '') if profile else ''
+                option['attrs']['data-ptr'] = (profile.ptr_no or '') if profile else ''
+            except (User.DoesNotExist, ValueError, TypeError):
+                pass
+        return option
+
+
+SECTION_DIAGNOSIS = '___DIAGNOSIS___'
+SECTION_MEDICATIONS = '___MEDICATIONS___'
+SECTION_INSTRUCTIONS = '___INSTRUCTIONS___'
+
+
+def split_prescription_body(body):
+    """Split a section-delimited prescription body into its parts."""
+    if not body:
+        return {'diagnosis': '', 'medications': '', 'instructions': ''}
+    parts = {SECTION_DIAGNOSIS: '', SECTION_MEDICATIONS: '', SECTION_INSTRUCTIONS: ''}
+    current_section = SECTION_MEDICATIONS
+    for line in body.split('\n'):
+        stripped = line.strip()
+        if stripped in parts:
+            current_section = stripped
+        else:
+            parts[current_section] += line + '\n'
+    return {
+        'diagnosis': parts[SECTION_DIAGNOSIS].strip(),
+        'medications': parts[SECTION_MEDICATIONS].strip(),
+        'instructions': parts[SECTION_INSTRUCTIONS].strip(),
+    }
+
+
+def join_prescription_body(diagnosis, medications, instructions):
+    """Join prescription sections into a single body with section markers."""
+    parts = []
+    if diagnosis:
+        parts.append(SECTION_DIAGNOSIS)
+        parts.append(diagnosis)
+    if medications:
+        parts.append(SECTION_MEDICATIONS)
+        parts.append(medications)
+    if instructions:
+        parts.append(SECTION_INSTRUCTIONS)
+        parts.append(instructions)
+    return '\n'.join(parts)
+
+
 class PrescriptionPatientForm(forms.ModelForm):
     """Form for prescription patient information and physician details"""
+
+    physician = forms.ModelChoiceField(
+        queryset=User.objects.filter(role='doctor', is_active=True).order_by('first_name', 'last_name'),
+        required=False,
+        label='Select Physician',
+        widget=DoctorSelectWidget(attrs={
+            'class': 'form-select',
+            'data-physician-select': 'true',
+        }),
+    )
+
+    diagnosis = forms.CharField(
+        required=False,
+        label='Diagnosis / Impression',
+        widget=forms.Textarea(attrs={
+            'class': 'form-textarea', 'rows': 3,
+            'placeholder': 'e.g., Acute tonsillitis, URI, Hypertension...',
+        }),
+    )
+    medications = forms.CharField(
+        required=False,
+        label='Medications / Treatment',
+        widget=forms.Textarea(attrs={
+            'class': 'form-textarea', 'rows': 6,
+            'placeholder': 'Medication name, dosage, frequency, duration...',
+        }),
+    )
+    instructions = forms.CharField(
+        required=False,
+        label='Special Instructions',
+        widget=forms.Textarea(attrs={
+            'class': 'form-textarea', 'rows': 3,
+            'placeholder': 'e.g., Take with food, avoid alcohol, follow-up in 1 week...',
+        }),
+    )
 
     class Meta:
         model = Prescription
@@ -785,15 +867,56 @@ class PrescriptionPatientForm(forms.ModelForm):
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
             'date': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
-            'prescription_body': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 6, 'placeholder': 'Enter prescription details here...'}),
-            'physician_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Signature over Printed Name'}),
-            'license_no': forms.TextInput(attrs={'class': 'form-input'}),
-            'ptr_no': forms.TextInput(attrs={'class': 'form-input'}),
+            'prescription_body': forms.HiddenInput(attrs={'id': 'id_prescription_body_hidden'}),
+            'physician_name': forms.HiddenInput(attrs={
+                'data-physician-name': 'true',
+            }),
+            'license_no': forms.TextInput(attrs={
+                'class': 'form-input', 'placeholder': 'Auto-filled from selected physician',
+                'data-physician-license': 'true', 'readonly': True,
+            }),
+            'ptr_no': forms.TextInput(attrs={
+                'class': 'form-input', 'placeholder': 'Auto-filled from selected physician',
+                'data-physician-ptr': 'true', 'readonly': True,
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['patient_name'].required = True
+
+        # Split the existing prescription_body into separate fields
+        if self.instance and self.instance.pk:
+            parts = split_prescription_body(self.instance.prescription_body)
+            self.initial['diagnosis'] = parts['diagnosis']
+            self.initial['medications'] = parts['medications']
+            self.initial['instructions'] = parts['instructions']
+        elif self.initial.get('prescription_body'):
+            parts = split_prescription_body(self.initial['prescription_body'])
+            self.initial['diagnosis'] = parts['diagnosis']
+            self.initial['medications'] = parts['medications']
+            self.initial['instructions'] = parts['instructions']
+
+        # If an existing prescription has physician data, pre-select the matching doctor
+        if self.instance and self.instance.pk and self.instance.physician_name:
+            matching = User.objects.filter(
+                role__in=['doctor', 'staff'],
+                first_name__isnull=False,
+            ).filter(
+                first_name__icontains=self.instance.physician_name.split()[0] if self.instance.physician_name.split() else ''
+            ).first()
+            if matching:
+                self.initial['physician'] = matching.id
+
+    def clean(self):
+        cleaned = super().clean()
+        # Combine the separate fields into prescription_body
+        cleaned['prescription_body'] = join_prescription_body(
+            cleaned.get('diagnosis', ''),
+            cleaned.get('medications', ''),
+            cleaned.get('instructions', ''),
+        )
+        return cleaned
 
 
 class PrescriptionItemForm(forms.ModelForm):

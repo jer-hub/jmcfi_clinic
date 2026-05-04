@@ -14,6 +14,11 @@ from .appointment_utils import check_appointment_availability, get_available_tim
 from core.models import Notification
 from core.decorators import role_required, admin_required
 
+
+def _is_json_request(request):
+    content_type = (request.content_type or '').lower()
+    return content_type.startswith('application/json')
+
 User = get_user_model()
 
 
@@ -463,7 +468,7 @@ def toggle_appointment_type_default(request, default_id):
         message_text = f'Default for {default.get_appointment_type_display()} has been {status}.'
 
         # If request came from JS (fetch / AJAX), return JSON instead of redirect
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.content_type == 'application/json':
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or _is_json_request(request):
             return JsonResponse({
                 'success': True,
                 'is_active': default.is_active,

@@ -41,6 +41,11 @@ from ..forms import (
 )
 
 
+def _is_json_request(request):
+    content_type = (request.content_type or '').lower()
+    return content_type.startswith('application/json')
+
+
 # ===== Helper Functions =====
 
 def get_form_or_404(model, pk, user, select_related_fields=None):
@@ -610,7 +615,7 @@ def dental_form_chart_api_update(request, pk):
     """Add or update a tooth in the dental chart"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
 
-    if request.content_type == 'application/json':
+    if _is_json_request(request):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
@@ -688,7 +693,7 @@ def dental_form_chart_api_bulk_update(request, pk):
     """Bulk update multiple teeth at once"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
 
-    if request.content_type == 'application/json':
+    if _is_json_request(request):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:

@@ -11,6 +11,20 @@ from .profile_policy import (
     ADMIN_PROFILE_REQUIRED_FIELDS,
 )
 
+
+CLINICAL_ADMIN_BLOCKED_NAMESPACES = {
+    'health_forms_services',
+}
+
+
+def _blocks_admin_in_clinical_namespace(request, roles):
+    if 'admin' not in roles or getattr(request.user, 'role', None) != 'admin':
+        return False
+
+    match = getattr(request, 'resolver_match', None)
+    namespace = getattr(match, 'namespace', '') or ''
+    return namespace in CLINICAL_ADMIN_BLOCKED_NAMESPACES
+
 def role_required(*roles):
     def decorator(view_func):
         @wraps(view_func)
@@ -18,6 +32,10 @@ def role_required(*roles):
             if not request.user.is_authenticated:
                 messages.error(request, 'You must be logged in to access this page.')
                 return redirect('account_login')
+
+            if _blocks_admin_in_clinical_namespace(request, roles):
+                messages.error(request, 'Admin access is not permitted for clinical application pages.')
+                return redirect('core:dashboard')
             
             if request.user.role not in roles:
                 messages.error(request, f'Access denied. This page requires one of the following roles: {", ".join(roles)}. Your current role is: {request.user.role}.')

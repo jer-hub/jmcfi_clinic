@@ -29,6 +29,11 @@ from core.decorators import role_required
 from appointments.models import Appointment
 from medical_records.models import MedicalRecord
 
+
+def _is_json_request(request):
+    content_type = (request.content_type or '').lower()
+    return content_type.startswith('application/json')
+
 User = get_user_model()
 
 @login_required
@@ -1153,7 +1158,7 @@ def dental_chart_api_update_tooth(request, record_id):
     is_htmx = request.headers.get('HX-Request')
     
     # Parse data from either JSON or form data
-    if request.content_type == 'application/json':
+    if _is_json_request(request):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
@@ -1410,7 +1415,7 @@ def dental_chart_api_bulk_update(request, record_id):
     is_htmx = request.headers.get('HX-Request')
     
     # Parse data from either JSON or form data
-    if request.content_type == 'application/json':
+    if _is_json_request(request):
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:

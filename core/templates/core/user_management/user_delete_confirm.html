@@ -24,7 +24,7 @@
             <div class="p-5 sm:p-6">
                 <div class="mb-6">
                     <p class="text-sm text-gray-700 mb-4">
-                        Are you sure you want to delete the following user? This action cannot be undone.
+                        Are you sure you want to soft-delete the following user? The account will be deactivated and hidden from the default list, but the record will remain recoverable.
                     </p>
 
                     <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
@@ -46,15 +46,15 @@
                     <ul class="text-xs sm:text-sm text-red-700 space-y-1.5">
                         <li class="flex items-start gap-2">
                             <span class="mt-0.5 flex-shrink-0">•</span>
-                            <span>All user data will be permanently deleted</span>
+                            <span>The account will be hidden from the default list</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="mt-0.5 flex-shrink-0">•</span>
-                            <span>Associated appointments and records will be affected</span>
+                            <span>Associated appointments and records remain in the system</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="mt-0.5 flex-shrink-0">•</span>
-                            <span>This action cannot be undone</span>
+                            <span>The user can be restored later</span>
                         </li>
                     </ul>
                 </div>
@@ -68,7 +68,7 @@
                         </a>
                         <button type="submit"
                                 class="w-full sm:w-auto text-center px-5 py-2.5 sm:py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm">
-                            Delete User
+                            Soft Delete User
                         </button>
                     </div>
                 </form>

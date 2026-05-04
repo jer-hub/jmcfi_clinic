@@ -46,7 +46,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                 'placeholder': '+639171234567',
                 'autocomplete': 'tel',
                 'inputmode': 'numeric',
-                'pattern': '^\+63\d{10}$',
+                'pattern': r'^\+63\d{10}$',
                 'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
                 'maxlength': '13',
                 'minlength': '13',
@@ -57,7 +57,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                 'placeholder': '+639171234567',
                 'autocomplete': 'tel',
                 'inputmode': 'numeric',
-                'pattern': '^\+63\d{10}$',
+                'pattern': r'^\+63\d{10}$',
                 'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
                 'maxlength': '13',
                 'minlength': '13',
@@ -80,7 +80,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                 'placeholder': '+639171234567',
                 'autocomplete': 'tel',
                 'inputmode': 'numeric',
-                'pattern': '^\+63\d{10}$',
+                'pattern': r'^\+63\d{10}$',
                 'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
                 'maxlength': '13',
                 'minlength': '13',
@@ -777,28 +777,28 @@ class DoctorSelectWidget(forms.Select):
         return option
 
 
-SECTION_DIAGNOSIS = '___DIAGNOSIS___'
-SECTION_MEDICATIONS = '___MEDICATIONS___'
-SECTION_INSTRUCTIONS = '___INSTRUCTIONS___'
+# SECTION_DIAGNOSIS = '___DIAGNOSIS___'
+# SECTION_MEDICATIONS = '___MEDICATIONS___'
+# SECTION_INSTRUCTIONS = '___INSTRUCTIONS___'
 
 
-def split_prescription_body(body):
-    """Split a section-delimited prescription body into its parts."""
-    if not body:
-        return {'diagnosis': '', 'medications': '', 'instructions': ''}
-    parts = {SECTION_DIAGNOSIS: '', SECTION_MEDICATIONS: '', SECTION_INSTRUCTIONS: ''}
-    current_section = SECTION_MEDICATIONS
-    for line in body.split('\n'):
-        stripped = line.strip()
-        if stripped in parts:
-            current_section = stripped
-        else:
-            parts[current_section] += line + '\n'
-    return {
-        'diagnosis': parts[SECTION_DIAGNOSIS].strip(),
-        'medications': parts[SECTION_MEDICATIONS].strip(),
-        'instructions': parts[SECTION_INSTRUCTIONS].strip(),
-    }
+# def split_prescription_body(body):
+#     """Split a section-delimited prescription body into its parts."""
+#     if not body:
+#         return {'diagnosis': '', 'medications': '', 'instructions': ''}
+#     parts = {SECTION_DIAGNOSIS: '', SECTION_MEDICATIONS: '', SECTION_INSTRUCTIONS: ''}
+#     current_section = SECTION_MEDICATIONS
+#     for line in body.split('\n'):
+#         stripped = line.strip()
+#         if stripped in parts:
+#             current_section = stripped
+#         else:
+#             parts[current_section] += line + '\n'
+#     return {
+#         'diagnosis': parts[SECTION_DIAGNOSIS].strip(),
+#         'medications': parts[SECTION_MEDICATIONS].strip(),
+#         'instructions': parts[SECTION_INSTRUCTIONS].strip(),
+#     }
 
 
 def join_prescription_body(diagnosis, medications, instructions):
@@ -885,17 +885,17 @@ class PrescriptionPatientForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['patient_name'].required = True
 
-        # Split the existing prescription_body into separate fields
-        if self.instance and self.instance.pk:
-            parts = split_prescription_body(self.instance.prescription_body)
-            self.initial['diagnosis'] = parts['diagnosis']
-            self.initial['medications'] = parts['medications']
-            self.initial['instructions'] = parts['instructions']
-        elif self.initial.get('prescription_body'):
-            parts = split_prescription_body(self.initial['prescription_body'])
-            self.initial['diagnosis'] = parts['diagnosis']
-            self.initial['medications'] = parts['medications']
-            self.initial['instructions'] = parts['instructions']
+        # # Split the existing prescription_body into separate fields
+        # if self.instance and self.instance.pk:
+        #     parts = split_prescription_body(self.instance.prescription_body)
+        #     self.initial['diagnosis'] = parts['diagnosis']
+        #     self.initial['medications'] = parts['medications']
+        #     self.initial['instructions'] = parts['instructions']
+        # elif self.initial.get('prescription_body'):
+        #     parts = split_prescription_body(self.initial['prescription_body'])
+        #     self.initial['diagnosis'] = parts['diagnosis']
+        #     self.initial['medications'] = parts['medications']
+        #     self.initial['instructions'] = parts['instructions']
 
         # If an existing prescription has physician data, pre-select the matching doctor
         if self.instance and self.instance.pk and self.instance.physician_name:

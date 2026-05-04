@@ -218,7 +218,7 @@ class PrescriptionDetailView(BaseFormDetailView):
         obj = getattr(self, '_cached_obj', None)
         if not obj:
             return []
-
+        
         info_fields = [
             {'label': 'Patient', 'value': obj.patient_name or '—', 'span': 'half'},
             {'label': 'Physician', 'value': obj.physician_name or '—', 'span': 'half'},

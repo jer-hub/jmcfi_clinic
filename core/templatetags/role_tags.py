@@ -6,7 +6,7 @@ register = template.Library()
 
 @register.filter
 def has_role(user, role):
-    return user.role == role
+    return getattr(user, 'role', None) == role
 
 
 @register.filter

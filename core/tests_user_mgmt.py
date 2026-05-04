@@ -360,6 +360,74 @@ class AdminUserRestoreTests(TestCase):
         )
 
 
+class AdminUserDeleteTests(TestCase):
+    """Tests for soft-deleting users from the admin flow."""
+
+    def setUp(self):
+        self.admin_user = User.objects.create_user(
+            email='admin-delete@test.com',
+            password='AdminPass123!',
+            role='admin',
+            is_staff=True,
+            is_active=True,
+        )
+        _complete_staff_like_profile(self.admin_user, 'ADM-DELETE-001')
+
+        self.target_user = User.objects.create_user(
+            email='target-delete@test.com',
+            password='TestPass123!',
+            role='student',
+            is_active=True,
+        )
+        self.client.force_login(self.admin_user)
+        self.url = reverse('core:user_delete', kwargs={'user_id': self.target_user.id})
+
+    def test_delete_soft_deletes_user(self):
+        response = self.client.post(self.url)
+        self.assertRedirects(response, reverse('core:user_management'))
+
+        self.target_user.refresh_from_db()
+        self.assertTrue(self.target_user.is_deleted)
+        self.assertFalse(self.target_user.is_active)
+
+    def test_delete_creates_audit_log(self):
+        self.client.post(self.url)
+        self.assertTrue(
+            AccountProvisioningAudit.objects.filter(
+                target_user=self.target_user,
+                action=AccountProvisioningAudit.ACTION.SOFT_DELETED,
+            ).exists()
+        )
+
+
+class AdminUserDetailTests(TestCase):
+    """Tests for user detail behavior across roles."""
+
+    def setUp(self):
+        self.admin_user = User.objects.create_user(
+            email='admin-detail@test.com',
+            password='AdminPass123!',
+            role='admin',
+            is_staff=True,
+            is_active=True,
+        )
+        _complete_staff_like_profile(self.admin_user, 'ADM-DETAIL-001')
+        AccountProvisioningAudit.objects.create(
+            actor=self.admin_user,
+            target_user=self.admin_user,
+            action=AccountProvisioningAudit.ACTION.ACTIVATED,
+            ip_address='127.0.0.1',
+        )
+        self.client.force_login(self.admin_user)
+
+    def test_admin_detail_shows_staff_profile_fields(self):
+        response = self.client.get(reverse('core:user_detail', kwargs={'user_id': self.admin_user.id}))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ADM-DETAIL-001')
+        self.assertContains(response, 'Recent Audit Log')
+
+
+
 class AdminUserAuditLogTests(TestCase):
     """Tests for the user audit log view."""
 

@@ -540,6 +540,7 @@ class UserCreationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Limit role choices to student, staff, and doctor only
         self.fields['role'].choices = [
+            ('admin', 'Admin'),
             ('student', 'Student'),
             ('staff', 'Staff'),
             ('doctor', 'Doctor'),
@@ -610,7 +611,7 @@ class UserCreationForm(forms.ModelForm):
                         'date_of_birth': '2000-01-01',
                     }
                 )
-            elif user.role in ['staff', 'doctor']:
+            elif user.role in ['staff', 'doctor', 'admin']:
                 StaffProfile.objects.get_or_create(
                     user=user,
                     defaults={

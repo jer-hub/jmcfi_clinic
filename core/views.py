@@ -49,6 +49,12 @@ from .utils import (
     create_bulk_notifications
 )
 from .decorators import admin_required, role_required
+from .user_management_services import (
+    get_user_management_stats,
+    get_user_detail_summary,
+    soft_delete_user,
+    toggle_user_status,
+)
 
 User = get_user_model()
 MESSAGE_NOTIFICATION_TYPES = ("direct_message", "announcement_posted")
@@ -435,6 +441,7 @@ def dashboard(request):
             'stale_pending_users': stale_pending,
             'inactive_users': inactive_users,
             'low_stock_medicines': low_stock,
+            'hide_removed_app_links': True,
         })
 
     return render(request, 'core/dashboard.html', context)
@@ -1190,16 +1197,12 @@ def edit_profile(request):
 @admin_required
 def user_management(request):
     """List all users with filtering and search"""
-    from appointments.models import Appointment
-    from medical_records.models import MedicalRecord
-    from document_request.models import DocumentRequest as CertificateRequest
-    
     # Get filter parameters
     role_filter = request.GET.get('role', '')
     status_filter = request.GET.get('status', '')
     search_query = request.GET.get('search', '')
     
-        # Base queryset - exclude soft-deleted users by default
+    # Base queryset - exclude soft-deleted users by default
     users = User.objects.filter(is_deleted=False).order_by('-date_joined')
     
     # Apply filters
@@ -1231,18 +1234,7 @@ def user_management(request):
             Q(last_name__icontains=search_query)
         )
     
-    # Get statistics
-    stats = {
-        'total_users': User.objects.count(),
-        'total_appointments': Appointment.objects.count(),
-        'pending_certificates': CertificateRequest.objects.filter(status='pending').count(),
-        'active_doctors': User.objects.filter(role='doctor').count(),
-        'total_students': User.objects.filter(role='student').count(),
-        'total_staff': User.objects.filter(role__in=['staff', 'doctor']).count(),
-        'total_admins': User.objects.filter(role='admin').count(),
-        'active_users': User.objects.filter(is_active=True).count(),
-        'inactive_users': User.objects.filter(is_active=False).count(),
-    }
+    stats = get_user_management_stats()
     
     # Paginate results
     users = paginate_queryset(users, request, per_page=20)
@@ -1262,41 +1254,8 @@ def user_management(request):
 @admin_required
 def user_detail(request, user_id):
     """View detailed information about a specific user"""
-    from appointments.models import Appointment
-    from medical_records.models import MedicalRecord
-    from document_request.models import DocumentRequest as CertificateRequest
-    
     user = get_object_or_404(User, id=user_id)
-    profile = get_user_profile(user)
-    
-    # Get user statistics
-    if user.role == 'student':
-        stats = {
-            'Total Appointments': Appointment.objects.filter(student=user).count(),
-            'Completed Appointments': Appointment.objects.filter(student=user, status='completed').count(),
-            'Pending Appointments': Appointment.objects.filter(student=user, status='pending').count(),
-            'Medical Records': MedicalRecord.objects.filter(student=user).count(),
-            'Certificate Requests': CertificateRequest.objects.filter(student=user).count(),
-        }
-        recent_activity = {
-            'appointments': Appointment.objects.filter(student=user).order_by('-created_at')[:5],
-            'medical_records': MedicalRecord.objects.filter(student=user).order_by('-created_at')[:5],
-        }
-    elif user.role == 'staff':
-        stats = {
-            'Total Appointments': Appointment.objects.filter(doctor=user).count(),
-            'Completed Appointments': Appointment.objects.filter(doctor=user, status='completed').count(),
-            'Pending Appointments': Appointment.objects.filter(doctor=user, status='pending').count(),
-            'Medical Records': MedicalRecord.objects.filter(doctor=user).count(),
-            'Certificates Processed': CertificateRequest.objects.filter(processed_by=user).count(),
-        }
-        recent_activity = {
-            'appointments': Appointment.objects.filter(doctor=user).order_by('-created_at')[:5],
-            'medical_records': MedicalRecord.objects.filter(doctor=user).order_by('-created_at')[:5],
-        }
-    else:
-        stats = {}
-        recent_activity = {}
+    profile, stats, recent_activity = get_user_detail_summary(user)
     
     context = {
         'viewed_user': user,
@@ -1443,7 +1402,7 @@ def user_edit(request, user_id):
 @login_required
 @admin_required
 def user_delete(request, user_id):
-    """Delete a user — triggered via unified modal POST from user detail page."""
+    """Soft-delete a user — triggered via unified modal POST from user detail page."""
     user = get_object_or_404(User, id=user_id)
     
     # Prevent deleting admin users
@@ -1457,9 +1416,15 @@ def user_delete(request, user_id):
         return redirect('core:user_detail', user_id=user.id)
     
     if request.method == 'POST':
-        username = user.username
-        user.delete()
-        messages.success(request, f'User "{username}" has been deleted.')
+        username = user.username or user.email
+        soft_delete_user(request=request, actor=request.user, target_user=user)
+        create_notification(
+            user=user,
+            title='Account Deleted',
+            message='Your account has been soft-deleted by an administrator. Please contact an administrator if you need to restore access.',
+            notification_type='general',
+        )
+        messages.success(request, f'User "{username}" has been soft-deleted.')
         return redirect('core:user_management')
     
     # GET requests redirect to user detail page (modal trigger is there)
@@ -1486,13 +1451,7 @@ def user_toggle_status(request, user_id):
             return render(request, 'partials/messages.html')
         return redirect('core:user_detail', user_id=user.id)
     
-    was_pending = user.onboarding_status == User.ONBOARDING_STATUS.PENDING_ACTIVATION
-    user.is_active = not user.is_active
-    if user.is_active:
-        user.onboarding_status = User.ONBOARDING_STATUS.ACTIVE
-    else:
-        user.onboarding_status = User.ONBOARDING_STATUS.SUSPENDED
-    user.save()
+    was_pending = toggle_user_status(request=request, actor=request.user, target_user=user)
 
     # Get fresh status text for HTMX updating
     if user.onboarding_status == User.ONBOARDING_STATUS.PENDING_ACTIVATION:
@@ -1502,23 +1461,6 @@ def user_toggle_status(request, user_id):
     else:
         status_html = '''<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg>Suspended</span>'''
 
-    action = (
-        AccountProvisioningAudit.ACTION.ACTIVATED
-        if user.is_active
-        else AccountProvisioningAudit.ACTION.SUSPENDED
-    )
-    _log_provisioning_action(
-        request=request,
-        actor=request.user,
-        target_user=user,
-        action=action,
-        metadata={
-            'was_pending': was_pending,
-            'onboarding_status': user.onboarding_status,
-            'is_active': user.is_active,
-        },
-    )
-    
     if user.is_active:
         status_message = 'Account activated successfully.'
     else:
@@ -1534,7 +1476,7 @@ def user_toggle_status(request, user_id):
             notification_type='general'
         )
     else:
-                create_notification(
+        create_notification(
             user=user,
             title='Account Deactivated',
             message='Your account has been deactivated. Please contact an administrator for more information.',

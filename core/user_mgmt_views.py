@@ -17,6 +17,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .decorators import admin_required
+from .user_management_services import restore_user
 from .forms import BulkUserActionForm, UserExportForm
 from .models import (
     AccountProvisioningAudit,
@@ -125,7 +126,7 @@ def user_restore(request, user_id):
     """Restore a soft-deleted user."""
     user = get_object_or_404(User, id=user_id, is_deleted=True)
 
-    user.restore()
+    restore_user(request=request, actor=request.user, target_user=user)
     create_notification(
         user=user,
         title='Account Restored',

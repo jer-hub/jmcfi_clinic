@@ -53,7 +53,7 @@ class RoleRequiredMixin:
     def dispatch(self, request, *args, **kwargs):
         """Check if user has allowed role"""
         if not request.user.is_authenticated:
-            return redirect('login')
+            return redirect('account_login')
         
         if request.user.role not in self.allowed_roles:
             messages.error(request, f'Permission denied. Required roles: {", ".join(self.allowed_roles)}')

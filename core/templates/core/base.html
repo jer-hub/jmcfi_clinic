@@ -155,6 +155,7 @@
                     </div>
                   </div>
 
+                  {% if not hide_removed_app_links %}
                   <div class="relative" data-dropdown="health-forms">
                     <button type="button" class="nav-link {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="health-forms" aria-expanded="false">
                       Health Forms
@@ -171,6 +172,7 @@
                       <a href="{% url 'document_request:document_requests' %}" class="dropdown-item">Document Requests</a>
                     </div>
                   </div>
+                  {% endif %}
 
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
@@ -190,6 +192,10 @@
                     </div>
                   </div>
 
+                  {% if not hide_removed_app_links %}
+                  {% if not hide_removed_app_links %}
+                  {% if not hide_removed_app_links %}
+                  {% if not hide_removed_app_links %}
                   <div class="relative" data-dropdown="health-forms">
                     <button type="button" class="nav-link {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="health-forms" aria-expanded="false">
                       Health Forms
@@ -205,28 +211,11 @@
                       <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
                     </div>
                   </div>
+                  {% endif %}
+                  {% endif %}
+                  {% endif %}
+                  {% endif %}
 
-                  <div class="relative" data-dropdown="pharmacy">
-                    <button type="button" class="nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="pharmacy" aria-expanded="false">
-                      Pharmacy
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="pharmacy">
-                      <a href="{% url 'pharmacy:dashboard' %}" class="dropdown-item">Dashboard</a>
-                      <a href="{% url 'pharmacy:medicine_list' %}" class="dropdown-item">Medicines</a>
-                      <a href="{% url 'pharmacy:category_list' %}" class="dropdown-item">Categories</a>
-                      <a href="{% url 'pharmacy:batch_list' %}" class="dropdown-item">Batches</a>
-                      <a href="{% url 'pharmacy:supplier_list' %}" class="dropdown-item">Suppliers</a>
-                      <a href="{% url 'pharmacy:purchase_order_list' %}" class="dropdown-item">Purchase Orders</a>
-                      <a href="{% url 'pharmacy:dispensing_list' %}" class="dropdown-item">Dispensing</a>
-                      <a href="{% url 'pharmacy:adjustment_list' %}" class="dropdown-item">Stock Adjustments</a>
-                      <a href="{% url 'pharmacy:audit_log_list' %}" class="dropdown-item">Audit Log</a>
-                    </div>
-                  </div>
-
-                  <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% elif user.role == 'admin' %}
                   <div class="relative" data-dropdown="settings">
@@ -241,43 +230,7 @@
                     </div>
                   </div>
 
-                  <div class="relative" data-dropdown="health-forms">
-                    <button type="button" class="nav-link {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="health-forms" aria-expanded="false">
-                      Health Forms
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="health-forms">
-                      <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
-                      <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
-                      <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
-                      <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item">Dental Services</a>
-                      <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
-                    </div>
-                  </div>
-
-                  <div class="relative" data-dropdown="pharmacy">
-                    <button type="button" class="nav-link {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="pharmacy" aria-expanded="false">
-                      Pharmacy
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="pharmacy">
-                      <a href="{% url 'pharmacy:dashboard' %}" class="dropdown-item">Dashboard</a>
-                      <a href="{% url 'pharmacy:medicine_list' %}" class="dropdown-item">Medicines</a>
-                      <a href="{% url 'pharmacy:category_list' %}" class="dropdown-item">Categories</a>
-                      <a href="{% url 'pharmacy:batch_list' %}" class="dropdown-item">Batches</a>
-                      <a href="{% url 'pharmacy:supplier_list' %}" class="dropdown-item">Suppliers</a>
-                      <a href="{% url 'pharmacy:purchase_order_list' %}" class="dropdown-item">Purchase Orders</a>
-                      <a href="{% url 'pharmacy:dispensing_list' %}" class="dropdown-item">Dispensing</a>
-                      <a href="{% url 'pharmacy:adjustment_list' %}" class="dropdown-item">Stock Adjustments</a>
-                      <a href="{% url 'pharmacy:audit_log_list' %}" class="dropdown-item">Audit Log</a>
-                    </div>
-                  </div>
-
-                  <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                  
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% endif %}
               </div>
@@ -404,6 +357,7 @@
                   <a href="{% url 'document_request:document_requests' %}" class="mobile-link text-sm">Document Requests</a>
                 </div>
 
+                {% if not hide_removed_app_links %}
                 <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
                   <span>Health Forms</span>
                   <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,6 +372,7 @@
                   <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
                   <a href="{% url 'document_request:document_requests' %}" class="mobile-link text-sm">Document Requests</a>
                 </div>
+                {% endif %}
 
                 <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
@@ -436,6 +391,7 @@
                   <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>
                 </div>
 
+                {% if not hide_removed_app_links %}
                 <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
                   <span>Health Forms</span>
                   <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -449,26 +405,8 @@
                   <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
                   <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
                 </div>
+                {% endif %}
 
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="pharmacy" aria-expanded="false">
-                  <span>Pharmacy</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="pharmacy">
-                  <a href="{% url 'pharmacy:dashboard' %}" class="mobile-link text-sm">Dashboard</a>
-                  <a href="{% url 'pharmacy:medicine_list' %}" class="mobile-link text-sm">Medicines</a>
-                  <a href="{% url 'pharmacy:category_list' %}" class="mobile-link text-sm">Categories</a>
-                  <a href="{% url 'pharmacy:batch_list' %}" class="mobile-link text-sm">Batches</a>
-                  <a href="{% url 'pharmacy:supplier_list' %}" class="mobile-link text-sm">Suppliers</a>
-                  <a href="{% url 'pharmacy:purchase_order_list' %}" class="mobile-link text-sm">Purchase Orders</a>
-                  <a href="{% url 'pharmacy:dispensing_list' %}" class="mobile-link text-sm">Dispensing</a>
-                  <a href="{% url 'pharmacy:adjustment_list' %}" class="mobile-link text-sm">Stock Adjustments</a>
-                  <a href="{% url 'pharmacy:audit_log_list' %}" class="mobile-link text-sm">Audit Log</a>
-                </div>
-
-                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
               {% elif user.role == 'admin' %}
@@ -482,6 +420,7 @@
                   <a href="{% url 'appointments:appointment_type_settings' %}" class="mobile-link text-sm">Appointment Settings</a>
                 </div>
 
+                {% if not hide_removed_app_links %}
                 <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
                   <span>Health Forms</span>
                   <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -495,26 +434,9 @@
                   <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
                   <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
                 </div>
+                {% endif %}
 
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'pharmacy' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="pharmacy" aria-expanded="false">
-                  <span>Pharmacy</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="pharmacy" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="pharmacy">
-                  <a href="{% url 'pharmacy:dashboard' %}" class="mobile-link text-sm">Dashboard</a>
-                  <a href="{% url 'pharmacy:medicine_list' %}" class="mobile-link text-sm">Medicines</a>
-                  <a href="{% url 'pharmacy:category_list' %}" class="mobile-link text-sm">Categories</a>
-                  <a href="{% url 'pharmacy:batch_list' %}" class="mobile-link text-sm">Batches</a>
-                  <a href="{% url 'pharmacy:supplier_list' %}" class="mobile-link text-sm">Suppliers</a>
-                  <a href="{% url 'pharmacy:purchase_order_list' %}" class="mobile-link text-sm">Purchase Orders</a>
-                  <a href="{% url 'pharmacy:dispensing_list' %}" class="mobile-link text-sm">Dispensing</a>
-                  <a href="{% url 'pharmacy:adjustment_list' %}" class="mobile-link text-sm">Stock Adjustments</a>
-                  <a href="{% url 'pharmacy:audit_log_list' %}" class="mobile-link text-sm">Audit Log</a>
-                </div>
-
-                <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
+                
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
                 <a href="{% url 'core:user_management' %}" class="mobile-link {% if 'user_management' in request.resolver_match.view_name %}active{% endif %}">User Management</a>

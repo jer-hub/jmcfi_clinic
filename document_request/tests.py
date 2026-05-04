@@ -84,3 +84,17 @@ class DocumentRequestFlowTests(TestCase):
 		self.assertIsNotNone(created)
 		self.assertEqual(created.request_origin, 'student')
 		self.assertEqual(created.created_by, self.student)
+
+	def test_student_medical_certificate_request_leaves_physician_name_blank(self):
+		self.client.force_login(self.student)
+		self.client.post(
+			reverse('document_request:request_document'),
+			{'document_type': 'medical_certificate', 'purpose': 'Scholarship requirement'},
+			follow=True,
+		)
+
+		created = DocumentRequest.objects.get(
+			student=self.student,
+			document_type='medical_certificate',
+		)
+		self.assertEqual(created.medical_certificate.physician_name, '')

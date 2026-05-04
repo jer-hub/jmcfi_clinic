@@ -52,7 +52,7 @@
       <h3 class="text-sm font-semibold text-amber-800 uppercase tracking-wider">Needs Attention</h3>
     </div>
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {% if pending_reviews %}
+      {% if pending_reviews and not hide_removed_app_links %}
       <a href="{% url 'health_forms_services:forms_list' %}?status=pending" class="flex items-center gap-3 p-3 bg-white rounded-lg border border-amber-200 hover:border-amber-400 transition-colors">
         <span class="p-1.5 bg-emerald-50 rounded-lg"><i class="fas fa-notes-medical text-emerald-500 text-sm"></i></span>
         <span class="text-lg font-bold text-amber-700">{{ pending_reviews }}</span>
@@ -224,24 +224,16 @@
           <span class="text-xs font-medium text-gray-700 text-center">Appt Settings</span>
         </a>
         <!-- Health Forms -->
+        {% if not hide_removed_app_links %}
         <a href="{% url 'health_forms_services:forms_list' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-100 hover:border-emerald-300 transition-all group">
           <span class="p-2.5 bg-emerald-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-notes-medical text-white text-lg"></i></span>
           <span class="text-xs font-medium text-gray-700 text-center">Health Forms</span>
         </a>
-        <!-- Pharmacy -->
-        <a href="{% url 'pharmacy:dashboard' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-teal-50 hover:bg-teal-100 border border-teal-100 hover:border-teal-300 transition-all group">
-          <span class="p-2.5 bg-teal-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-prescription-bottle text-white text-lg"></i></span>
-          <span class="text-xs font-medium text-gray-700 text-center">Pharmacy</span>
-        </a>
+        {% endif %}
         <!-- Analytics -->
         <a href="{% url 'analytics:dashboard' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-violet-50 hover:bg-violet-100 border border-violet-100 hover:border-violet-300 transition-all group">
           <span class="p-2.5 bg-violet-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-chart-line text-white text-lg"></i></span>
           <span class="text-xs font-medium text-gray-700 text-center">Analytics</span>
-        </a>
-        <!-- Health Tips -->
-        <a href="{% url 'health_tips:health_tips_list' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-100 hover:border-amber-300 transition-all group">
-          <span class="p-2.5 bg-amber-500 rounded-xl group-hover:scale-110 transition-transform"><i class="fas fa-lightbulb text-white text-lg"></i></span>
-          <span class="text-xs font-medium text-gray-700 text-center">Health Tips</span>
         </a>
         <!-- Messages -->
         <a href="{% url 'messaging:inbox' %}" class="flex flex-col items-center gap-2 p-4 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-100 hover:border-rose-300 transition-all group">

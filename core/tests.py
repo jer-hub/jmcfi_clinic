@@ -482,6 +482,24 @@ class AdminUserCreateFlowTests(TestCase):
 		self.assertTrue(created_user.is_active)
 		self.assertEqual(created_user.onboarding_status, User.ONBOARDING_STATUS.ACTIVE)
 
+	def test_create_admin_user_provisions_staff_profile(self):
+		response = self.client.post(
+			self.url,
+			self._payload(
+				email='new.admin@jmcfi.edu.ph',
+				first_name='New',
+				last_name='Admin',
+				role='admin',
+				activate_now='on',
+			),
+		)
+
+		created_user = User.objects.get(email='new.admin@jmcfi.edu.ph')
+		self.assertRedirects(response, reverse('core:user_detail', kwargs={'user_id': created_user.id}))
+		self.assertEqual(created_user.role, 'admin')
+		self.assertTrue(created_user.is_active)
+		self.assertTrue(StaffProfile.objects.filter(user=created_user).exists())
+
 	def test_create_user_rejects_common_password(self):
 		response = self.client.post(
 			self.url,

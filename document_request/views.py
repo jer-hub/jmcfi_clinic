@@ -24,6 +24,11 @@ User = get_user_model()
 ALLOWED_DOCUMENT_TYPES = [('medical_certificate', 'Medical Certificate')]
 
 
+def _is_json_request(request):
+    content_type = (request.content_type or '').lower()
+    return content_type.startswith('application/json')
+
+
 def _resolve_wkhtmltopdf_path():
     """Resolve wkhtmltopdf executable path for pdfkit."""
     configured = getattr(settings, 'WKHTMLTOPDF_CMD', '')
@@ -225,6 +230,10 @@ def request_document(request):
                             'address': profile.address,
                         }
 
+                physician_name = ''
+                if request.user.role == 'doctor':
+                    physician_name = request.user.get_full_name() or request.user.email
+
                 cert = MedicalCertificate.objects.create(
                     user=student,
                     status=MedicalCertificate.Status.PENDING,
@@ -232,7 +241,7 @@ def request_document(request):
                     patient_name=student.get_full_name(),
                     consultation_date=timezone.now().date(),
                     diagnosis='',
-                    physician_name=request.user.get_full_name() or request.user.email if request.user.role == 'doctor' else '',
+                    physician_name=physician_name,
                     remarks_recommendations=additional_info or '',
                     **profile_data  # Auto-fill age, gender, address from student profile or submitted values
                 )

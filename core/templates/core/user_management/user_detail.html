@@ -128,12 +128,12 @@
                             Reset Password
                         </a>
                         <button type="button"
-                                onclick="document.getElementById('userDeleteForm').action='{% url 'core:user_delete' viewed_user.id %}';document.dispatchEvent(new CustomEvent('open-modal',{bubbles:true,detail:{type:'danger',title:'Delete User',message:'Are you sure you want to permanently delete {{ viewed_user.get_full_name|escapejs }}? This action cannot be undone and all associated data will be affected.',actionLabel:'Delete User',onConfirm:function(){document.getElementById('userDeleteForm').submit();}}}));"
+                                onclick="document.getElementById('userDeleteForm').action='{% url 'core:user_delete' viewed_user.id %}';document.dispatchEvent(new CustomEvent('open-modal',{bubbles:true,detail:{type:'danger',title:'Soft Delete User',message:'Are you sure you want to soft-delete {{ viewed_user.get_full_name|escapejs }}? The account will be deactivated and hidden from the default list, but the data will remain recoverable.',actionLabel:'Soft Delete User',onConfirm:function(){document.getElementById('userDeleteForm').submit();}}}));"
                                 class="w-full inline-flex justify-center items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                             </svg>
-                            Delete User
+                            Soft Delete User
                         </button>
                         {% endif %}
                         <div class="border-t border-gray-200 pt-2 mt-2">
@@ -199,7 +199,7 @@
                                     <dt class="text-xs font-medium text-gray-500 uppercase">Emergency Phone</dt>
                                     <dd class="mt-1 text-sm text-gray-900">{{ profile.emergency_phone }}</dd>
                                 </div>
-                            {% elif viewed_user.role == 'staff' or viewed_user.role == 'doctor' %}
+                            {% elif viewed_user.role == 'staff' or viewed_user.role == 'doctor' or viewed_user.role == 'admin' %}
                                 <div>
                                     <dt class="text-xs font-medium text-gray-500 uppercase">Staff ID</dt>
                                     <dd class="mt-1 text-sm text-gray-900">{{ profile.staff_id }}</dd>
@@ -256,6 +256,21 @@
 
                         {% if not recent_activity.appointments %}
                             <p class="text-sm text-gray-500 text-center py-4">No recent activity</p>
+                        {% endif %}
+
+                        {% if recent_activity.audit_logs %}
+                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Recent Audit Log</h4>
+                            <div class="space-y-2">
+                                {% for audit in recent_activity.audit_logs %}
+                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg gap-3">
+                                    <div class="min-w-0">
+                                        <p class="text-sm font-medium text-gray-900">{{ audit.get_action_display }}</p>
+                                        <p class="text-xs text-gray-500 truncate">Target: {{ audit.target_user.get_full_name|default:audit.target_user.email }}</p>
+                                    </div>
+                                    <span class="text-xs text-gray-500 whitespace-nowrap">{{ audit.created_at|date:"M d, Y" }}</span>
+                                </div>
+                                {% endfor %}
+                            </div>
                         {% endif %}
                     </div>
                 </div>

@@ -59,19 +59,6 @@
         background: #f3e8ff;
       }
 
-      .dropdown-menu {
-        opacity: 0;
-        transform: translateY(-6px);
-        pointer-events: none;
-        transition: opacity 0.2s ease, transform 0.2s ease;
-      }
-
-      .dropdown-menu.show {
-        opacity: 1;
-        transform: translateY(0);
-        pointer-events: auto;
-      }
-
       .dropdown-item {
         display: block;
         padding: 0.55rem 0.75rem;
@@ -103,16 +90,19 @@
         color: #7c3aed;
         background: #f3e8ff;
       }
+
+      [x-cloak] { display: none !important; }
     </style>
 
     <link rel="stylesheet" href="{% static 'css/form-errors.css' %}">
+    <link rel="stylesheet" href="{% static 'css/form-elements.css' %}">
 
     {% block head %}
     {% endblock %}
   </head>
   <body class="bg-gray-50" data-authenticated="{% if user.is_authenticated %}true{% endif %}">
     {% if user.is_authenticated %}
-      <nav class="bg-white border-b border-gray-200 sticky top-0 z-40">
+      <nav class="bg-white border-b border-gray-200 sticky top-0 z-40" x-data="{ mobileOpen: false, mobilePanel: '' }">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div class="h-16 flex items-center justify-between gap-4">
             <div class="flex items-center gap-4">
@@ -122,14 +112,14 @@
                 <a href="{% url 'core:dashboard' %}" class="nav-link {% if request.resolver_match.view_name == 'core:dashboard' %}active{% endif %}">Dashboard</a>
 
                 {% if user.role == 'student' %}
-                  <div class="relative" data-dropdown="services">
-                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="services" aria-expanded="false">
+                  <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" @click="open = !open" :class="open ? 'nav-link active' : 'nav-link'" class="{% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name %}active{% endif %}" :aria-expanded="open">
                       Services
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="services">
+                    <div x-show="open" x-cloak @click.outside="open = false" class="absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
                       <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">View Appointments</a>
                       <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
                       <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item">Dental Records</a>
@@ -140,14 +130,14 @@
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% elif user.role == 'doctor' %}
-                  <div class="relative" data-dropdown="services">
-                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="services" aria-expanded="false">
+                  <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" @click="open = !open" :class="open ? 'nav-link active' : 'nav-link'" class="{% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" :aria-expanded="open">
                       Services
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="services">
+                    <div x-show="open" x-cloak class="absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
                       <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">View Appointments</a>
                       <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
                       <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item">Dental Records</a>
@@ -156,14 +146,14 @@
                   </div>
 
                   {% if not hide_removed_app_links %}
-                  <div class="relative" data-dropdown="health-forms">
-                    <button type="button" class="nav-link {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="health-forms" aria-expanded="false">
+                  <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" @click="open = !open" :class="open ? 'nav-link active' : 'nav-link'" class="{% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" :aria-expanded="open">
                       Health Forms
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="health-forms">
+                    <div x-show="open" x-cloak class="absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
                       <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
                       <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
                       <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
@@ -177,14 +167,14 @@
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% elif user.role == 'staff' %}
-                  <div class="relative" data-dropdown="services">
-                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="services" aria-expanded="false">
+                  <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" @click="open = !open" :class="open ? 'nav-link active' : 'nav-link'" class="{% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" :aria-expanded="open">
                       Services
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="services">
+                    <div x-show="open" x-cloak class="absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
                       <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">View Appointments</a>
                       <a href="{% url 'appointments:schedule_for_student' %}" class="dropdown-item">Schedule for Student</a>
                       <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
@@ -196,14 +186,14 @@
                   {% if not hide_removed_app_links %}
                   {% if not hide_removed_app_links %}
                   {% if not hide_removed_app_links %}
-                  <div class="relative" data-dropdown="health-forms">
-                    <button type="button" class="nav-link {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="health-forms" aria-expanded="false">
+                  <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" @click="open = !open" :class="open ? 'nav-link active' : 'nav-link'" class="{% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" :aria-expanded="open">
                       Health Forms
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="health-forms">
+                    <div x-show="open" x-cloak class="absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
                       <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
                       <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
                       <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
@@ -218,14 +208,14 @@
 
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% elif user.role == 'admin' %}
-                  <div class="relative" data-dropdown="settings">
-                    <button type="button" class="nav-link {% if 'appointment' in request.resolver_match.view_name %}active{% endif %}" data-dropdown-trigger="settings" aria-expanded="false">
+                  <div class="relative" x-data="{ open: false }" @click.outside="open = false">
+                    <button type="button" @click="open = !open" :class="open ? 'nav-link active' : 'nav-link'" class="{% if 'appointment' in request.resolver_match.view_name %}active{% endif %}" :aria-expanded="open">
                       Settings
-                      <svg class="w-4 h-4 transition-transform" data-dropdown-arrow="settings" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                       </svg>
                     </button>
-                    <div class="dropdown-menu hidden absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2" data-dropdown-menu="settings">
+                    <div x-show="open" x-cloak class="absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
                       <a href="{% url 'appointments:appointment_type_settings' %}" class="dropdown-item">Appointment Settings</a>
                     </div>
                   </div>
@@ -263,8 +253,8 @@
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.76c0 1.6 1.123 2.994 2.707 3.227 1.338.197 2.69.347 4.054.45a1.125 1.125 0 0 1 .89.524l1.799 2.698a.75.75 0 0 0 1.248 0l1.799-2.698a1.125 1.125 0 0 1 .89-.524 48.108 48.108 0 0 0 4.054-.45 3.752 3.752 0 0 0 2.707-3.227V6.741a3.752 3.752 0 0 0-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513A3.752 3.752 0 0 0 2.25 6.741v6.018Z" />
                 </svg>
-                <span id="messages-unread-badge" data-unread-badge class="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 bg-emerald-500 rounded-full flex items-center justify-center {% if unread_messages_count == 0 %}hidden{% endif %}">
-                  <span id="messages-unread-count" data-unread-count class="text-xs font-medium text-white">{% if unread_messages_count > 9 %}9+{% else %}{{ unread_messages_count }}{% endif %}</span>
+                <span id="messages-unread-badge" data-unread-badge class="absolute -top-1 -right-1 h-4 min-w-[16px] bg-emerald-500 rounded-full flex items-center justify-center px-1 {% if unread_messages_count == 0 %}hidden{% endif %}">
+                  <span id="messages-unread-count" data-unread-count class="text-[9px] font-bold text-white leading-tight">{% if unread_messages_count > 9 %}9+{% else %}{{ unread_messages_count }}{% endif %}</span>
                 </span>
               </a>
 
@@ -275,8 +265,8 @@
                   <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
                 </svg>
                 {% if unread_notifications_count > 0 %}
-                <span class="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 bg-red-500 rounded-full flex items-center justify-center">
-                  <span class="text-xs font-medium text-white">{% if unread_notifications_count > 9 %}9+{% else %}{{ unread_notifications_count }}{% endif %}</span>
+                <span class="absolute -top-1 -right-1 h-4 min-w-[16px] bg-red-500 rounded-full flex items-center justify-center px-1">
+                  <span class="text-[9px] font-bold text-white leading-tight">{% if unread_notifications_count > 9 %}9+{% else %}{{ unread_notifications_count }}{% endif %}</span>
                 </span>
                 {% endif %}
               </a>
@@ -295,19 +285,19 @@
                 </form>
               </div>
 
-              <button type="button" class="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100" aria-controls="mobile-menu" aria-expanded="false" id="mobile-menu-button">
+              <button type="button" class="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100" @click="mobileOpen = !mobileOpen" :aria-expanded="mobileOpen" aria-controls="mobile-menu">
                 <span class="sr-only">Open main menu</span>
-                <svg id="menu-open" class="block h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg x-show="!mobileOpen" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
-                <svg id="menu-close" class="hidden h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg x-show="mobileOpen" x-cloak class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
           </div>
 
-          <div class="lg:hidden hidden border-t border-gray-200 py-3" id="mobile-menu">
+          <div class="lg:hidden border-t border-gray-200 py-3" x-show="mobileOpen" x-cloak @click.outside="mobileOpen = false">
             <div class="px-1 space-y-1">
               <div class="flex items-center px-2 py-2 bg-gray-50 rounded-lg mb-2">
                 <div class="flex-1 min-w-0">
@@ -327,13 +317,13 @@
               <a href="{% url 'core:dashboard' %}" class="mobile-link {% if request.resolver_match.view_name == 'core:dashboard' %}active{% endif %}">Dashboard</a>
 
               {% if user.role == 'student' %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="services" aria-expanded="false">
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'services' ? '' : 'services'" :class="mobilePanel === 'services' ? 'active' : ''">
                   <span>Services</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'services' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="services">
+                <div x-show="mobilePanel === 'services'" x-cloak class="px-2 pb-2">
                   <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">View Appointments</a>
                   <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">Medical Records</a>
                   <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>
@@ -344,13 +334,13 @@
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
               {% elif user.role == 'doctor' %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="services" aria-expanded="false">
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name or 'certificate' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'services' ? '' : 'services'" :class="mobilePanel === 'services' ? 'active' : ''">
                   <span>Services</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'services' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="services">
+                <div x-show="mobilePanel === 'services'" x-cloak class="px-2 pb-2">
                   <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">View Appointments</a>
                   <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">Medical Records</a>
                   <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>
@@ -358,13 +348,13 @@
                 </div>
 
                 {% if not hide_removed_app_links %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'health-forms' ? '' : 'health-forms'" :class="mobilePanel === 'health-forms' ? 'active' : ''">
                   <span>Health Forms</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'health-forms' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="health-forms">
+                <div x-show="mobilePanel === 'health-forms'" x-cloak class="px-2 pb-2">
                   <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
                   <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
                   <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
@@ -378,13 +368,13 @@
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
               {% elif user.role == 'staff' %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="services" aria-expanded="false">
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name or 'medical' in request.resolver_match.view_name or 'dental_records' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'services' ? '' : 'services'" :class="mobilePanel === 'services' ? 'active' : ''">
                   <span>Services</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="services" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'services' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="services">
+                <div x-show="mobilePanel === 'services'" x-cloak class="px-2 pb-2">
                   <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">View Appointments</a>
                   <a href="{% url 'appointments:schedule_for_student' %}" class="mobile-link text-sm">Schedule for Student</a>
                   <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">Medical Records</a>
@@ -392,13 +382,13 @@
                 </div>
 
                 {% if not hide_removed_app_links %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'health-forms' ? '' : 'health-forms'" :class="mobilePanel === 'health-forms' ? 'active' : ''">
                   <span>Health Forms</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'health-forms' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="health-forms">
+                <div x-show="mobilePanel === 'health-forms'" x-cloak class="px-2 pb-2">
                   <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
                   <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
                   <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
@@ -410,24 +400,24 @@
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
               {% elif user.role == 'admin' %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="settings" aria-expanded="false">
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'appointment' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'settings' ? '' : 'settings'" :class="mobilePanel === 'settings' ? 'active' : ''">
                   <span>Settings</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="settings" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'settings' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="settings">
+                <div x-show="mobilePanel === 'settings'" x-cloak class="px-2 pb-2">
                   <a href="{% url 'appointments:appointment_type_settings' %}" class="mobile-link text-sm">Appointment Settings</a>
                 </div>
 
                 {% if not hide_removed_app_links %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" data-mobile-trigger="health-forms" aria-expanded="false">
+                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'health-forms' ? '' : 'health-forms'" :class="mobilePanel === 'health-forms' ? 'active' : ''">
                   <span>Health Forms</span>
-                  <svg class="h-4 w-4 transition-transform" data-mobile-arrow="health-forms" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'health-forms' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
-                <div class="hidden px-2 pb-2" data-mobile-panel="health-forms">
+                <div x-show="mobilePanel === 'health-forms'" x-cloak class="px-2 pb-2">
                   <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
                   <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
                   <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
@@ -455,6 +445,53 @@
     {% if user.is_authenticated %}
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
       {% include 'partials/messages.html' %}
+    </div>
+    <div
+      x-data="{
+        toasts: [],
+        nextId: 1,
+        pushToast(detail) {
+          const toast = {
+            id: this.nextId++,
+            message: detail?.message || '',
+            type: detail?.type || 'success',
+            visible: true,
+          };
+          this.toasts.push(toast);
+          window.setTimeout(() => {
+            toast.visible = false;
+            window.setTimeout(() => {
+              this.toasts = this.toasts.filter(item => item.id !== toast.id);
+            }, 250);
+          }, 5000);
+        },
+        removeToast(id) {
+          this.toasts = this.toasts.filter(item => item.id !== id);
+        },
+        toastClasses(type) {
+          const base = 'border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3';
+          const map = {
+            success: 'bg-emerald-50 border-emerald-400 text-emerald-800',
+            error: 'bg-red-50 border-red-400 text-red-800',
+            info: 'bg-primary-50 border-primary-400 text-primary-800',
+            warning: 'bg-amber-50 border-amber-400 text-amber-800',
+          };
+          return `${base} ${map[type] || map.success}`;
+        }
+      }"
+      x-on:user-toast.window="pushToast($event.detail)"
+      class="pointer-events-none fixed top-20 right-4 z-50 w-full max-w-sm px-4 sm:px-6 lg:px-8"
+    >
+      <template x-for="toast in toasts" :key="toast.id">
+        <div x-show="toast.visible" x-transition.opacity.duration.200ms :class="toastClasses(toast.type)" class="pointer-events-auto mb-3 px-4 py-3">
+          <span class="flex-1 font-medium text-sm" x-text="toast.message"></span>
+          <button type="button" class="ml-2 opacity-70 hover:opacity-100 transition-opacity" @click="removeToast(toast.id)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </template>
     </div>
     {% endif %}
 
@@ -506,8 +543,9 @@
             if (opts.message) this.message = opts.message;
             if (opts.type) this.type = opts.type;
             if (opts.size) this.size = opts.size;
-            if (opts.hxUrl) this.hxUrl = opts.hxUrl;
-            if (opts.actionLabel) this.actionLabel = opts.actionLabel;
+            this.hxUrl = opts.hxUrl || '';
+            this.hasForm = Boolean(opts.hasForm);
+            this.actionLabel = opts.actionLabel || 'Confirm';
             // Store callback outside Alpine reactivity
             if (opts.onConfirm) _modalConfirmCb = opts.onConfirm;
             this.validationError = '';
@@ -519,106 +557,54 @@
             this.$nextTick(() => {
               const cb = this.$el.querySelector('[aria-label="Close modal"]');
               if (cb) cb.focus();
+              // Load HTMX modal body immediately after open.
+              try {
+                if (this.hxUrl && this.bodyContentId && typeof htmx !== 'undefined') {
+                  htmx.ajax('GET', this.hxUrl, {
+                    target: '#' + this.bodyContentId,
+                    swap: 'innerHTML'
+                  });
+                }
+              } catch (e) {
+                // no-op on any error to avoid breaking modal
+                console.warn('Modal HTMX trigger failed', e);
+              }
             });
           },
           closeModal() { this.isOpen = false; this.validationError = ''; _modalConfirmCb = null; },
+          refreshList() { window.location.reload(); },
           confirmAction() {
-            if (this.hasForm) { this.$el.querySelector('form')?.requestSubmit(); return; }
+            if (this.hasForm) {
+              const bodyEl = document.getElementById(this.bodyContentId);
+              const modalForm = bodyEl ? bodyEl.querySelector('form') : null;
+              if (modalForm) {
+                this.isSaving = true;
+
+                // Re-enable action button after each HTMX request so validation errors can be retried.
+                const resetSavingState = () => {
+                  this.isSaving = false;
+                };
+                modalForm.addEventListener('htmx:afterRequest', resetSavingState, { once: true });
+                modalForm.addEventListener('htmx:sendError', resetSavingState, { once: true });
+
+                htmx.trigger(modalForm, 'submit');
+                return;
+              }
+              this.validationError = 'Unable to submit action form. Please reopen the dialog.';
+              return;
+            }
             if (typeof _modalConfirmCb === 'function') { this.isSaving = true; _modalConfirmCb(); }
           }
         };
       }
 
-      function closeAllDesktopDropdowns() {
-        document.querySelectorAll('[data-dropdown-menu]').forEach((menu) => {
-          const name = menu.getAttribute('data-dropdown-menu');
-          const trigger = document.querySelector('[data-dropdown-trigger="' + name + '"]');
-          const arrow = document.querySelector('[data-dropdown-arrow="' + name + '"]');
-          menu.classList.remove('show');
-          menu.classList.add('hidden');
-          if (trigger) trigger.setAttribute('aria-expanded', 'false');
-          if (arrow) arrow.style.transform = 'rotate(0deg)';
-        });
-      }
-
-      function toggleDesktopDropdown(name) {
-        const menu = document.querySelector('[data-dropdown-menu="' + name + '"]');
-        const trigger = document.querySelector('[data-dropdown-trigger="' + name + '"]');
-        const arrow = document.querySelector('[data-dropdown-arrow="' + name + '"]');
-        if (!menu || !trigger) return;
-
-        const isOpen = !menu.classList.contains('hidden');
-        closeAllDesktopDropdowns();
-
-        if (!isOpen) {
-          menu.classList.remove('hidden');
-          setTimeout(() => menu.classList.add('show'), 10);
-          trigger.setAttribute('aria-expanded', 'true');
-          if (arrow) arrow.style.transform = 'rotate(180deg)';
-        }
-      }
-
-      document.querySelectorAll('[data-dropdown-trigger]').forEach((button) => {
-        button.addEventListener('click', (event) => {
-          const name = event.currentTarget.getAttribute('data-dropdown-trigger');
-          toggleDesktopDropdown(name);
-        });
-      });
-
-      const mobileMenuButton = document.getElementById('mobile-menu-button');
-      const mobileMenu = document.getElementById('mobile-menu');
-      const menuOpen = document.getElementById('menu-open');
-      const menuClose = document.getElementById('menu-close');
-
-      function setMobileMenuState(open) {
-        if (!mobileMenu || !mobileMenuButton || !menuOpen || !menuClose) return;
-        mobileMenu.classList.toggle('hidden', !open);
-        menuOpen.classList.toggle('hidden', open);
-        menuClose.classList.toggle('hidden', !open);
-        mobileMenuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
-      }
-
-      if (mobileMenuButton) {
-        mobileMenuButton.addEventListener('click', () => {
-          const isOpen = !mobileMenu.classList.contains('hidden');
-          setMobileMenuState(!isOpen);
-        });
-      }
-
-      function toggleMobilePanel(name) {
-        const panel = document.querySelector('[data-mobile-panel="' + name + '"]');
-        const trigger = document.querySelector('[data-mobile-trigger="' + name + '"]');
-        const arrow = document.querySelector('[data-mobile-arrow="' + name + '"]');
-        if (!panel || !trigger) return;
-
-        const isOpen = !panel.classList.contains('hidden');
-        panel.classList.toggle('hidden', isOpen);
-        trigger.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
-        if (arrow) arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
-      }
-
-      document.querySelectorAll('[data-mobile-trigger]').forEach((button) => {
-        button.addEventListener('click', (event) => {
-          const name = event.currentTarget.getAttribute('data-mobile-trigger');
-          toggleMobilePanel(name);
-        });
-      });
-
-      document.addEventListener('click', function(event) {
-        const inDesktopDropdown = event.target.closest('[data-dropdown]');
-        if (!inDesktopDropdown) {
-          closeAllDesktopDropdowns();
-        }
-
-        const clickedMobileButton = event.target.closest('#mobile-menu-button');
-        if (!clickedMobileButton && mobileMenu && !mobileMenu.classList.contains('hidden') && !mobileMenu.contains(event.target)) {
-          setMobileMenuState(false);
-        }
-      });
+      // Alpine.js handles all dropdown and mobile menu state.
+      // Only the WebSocket badge updater and form error highlighter remain.
 
       window.addEventListener('resize', function() {
         if (window.innerWidth >= 1024) {
-          setMobileMenuState(false);
+          const nav = document.querySelector('[x-data]');
+          if (nav && nav.__x) nav.__x.$data.mobileOpen = false;
         }
       });
 

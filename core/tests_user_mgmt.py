@@ -309,6 +309,41 @@ class AdminBulkActionTests(TestCase):
         self.assertEqual(notifications.count(), 3)
 
 
+class AdminUserToggleStatusTests(TestCase):
+    """Tests for HTMX status toggle feedback."""
+
+    def setUp(self):
+        self.admin_user = User.objects.create_user(
+            email='admin-toggle@test.com',
+            password='AdminPass123!',
+            role='admin',
+            is_staff=True,
+            is_active=True,
+        )
+        _complete_staff_like_profile(self.admin_user, 'ADM-TOGGLE-001')
+
+        self.target_user = User.objects.create_user(
+            email='target-toggle@test.com',
+            password='TestPass123!',
+            role='student',
+            is_active=True,
+        )
+        self.client.force_login(self.admin_user)
+        self.url = reverse('core:user_toggle_status', kwargs={'user_id': self.target_user.id})
+
+    def test_toggle_status_htmx_emits_toast(self):
+        response = self.client.post(self.url, HTTP_HX_REQUEST='true')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('HX-Trigger', response.headers)
+        self.assertIn('updateStatus', response.headers['HX-Trigger'])
+        self.assertIn('user-toast', response.headers['HX-Trigger'])
+
+        self.target_user.refresh_from_db()
+        self.assertFalse(self.target_user.is_active)
+        self.assertEqual(self.target_user.onboarding_status, User.ONBOARDING_STATUS.SUSPENDED)
+
+
 class AdminUserRestoreTests(TestCase):
     """Tests for restoring soft-deleted users."""
 
@@ -335,7 +370,18 @@ class AdminUserRestoreTests(TestCase):
 
     def test_restore_restores_user(self):
         response = self.client.post(self.url)
-        self.assertRedirects(response, reverse('core:user_detail', kwargs={'user_id': self.target_user.id}))
+        self.assertRedirects(response, reverse('core:deleted_user_management'))
+
+        self.target_user.refresh_from_db()
+        self.assertFalse(self.target_user.is_deleted)
+        self.assertTrue(self.target_user.is_active)
+
+    def test_restore_htmx_stays_on_deleted_page(self):
+        response = self.client.post(self.url, HTTP_HX_REQUEST='true')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('HX-Trigger', response.headers)
+        self.assertIn('user-toast', response.headers['HX-Trigger'])
+        self.assertContains(response, 'Deleted Accounts')
 
         self.target_user.refresh_from_db()
         self.assertFalse(self.target_user.is_deleted)
@@ -388,16 +434,134 @@ class AdminUserDeleteTests(TestCase):
 
         self.target_user.refresh_from_db()
         self.assertTrue(self.target_user.is_deleted)
-        self.assertFalse(self.target_user.is_active)
 
-    def test_delete_creates_audit_log(self):
-        self.client.post(self.url)
-        self.assertTrue(
-            AccountProvisioningAudit.objects.filter(
-                target_user=self.target_user,
-                action=AccountProvisioningAudit.ACTION.SOFT_DELETED,
-            ).exists()
+    def test_delete_get_redirects_to_user_detail(self):
+        response = self.client.get(self.url)
+        self.assertRedirects(response, reverse('core:user_detail', kwargs={'user_id': self.target_user.id}))
+
+    def test_delete_htmx_get_returns_modal_partial(self):
+        response = self.client.get(self.url, HTTP_HX_REQUEST='true')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'core/user_management/_user_delete_modal.html')
+        self.assertContains(response, 'Are you sure you want to soft-delete this user?')
+
+
+class AdminDeletedUsersBulkActionTests(TestCase):
+    """Tests for bulk actions on deleted users."""
+
+    def setUp(self):
+        self.admin_user = User.objects.create_user(
+            email='admin-bulk-action@test.com',
+            password='AdminPass123!',
+            role='admin',
+            is_staff=True,
+            is_active=True,
         )
+        _complete_staff_like_profile(self.admin_user, 'ADM-BULK-ACTION-001')
+
+        self.restore_users = []
+        for idx in range(2):
+            user = User.objects.create_user(
+                email=f'bulk-restore-{idx}@test.com',
+                password='TestPass123!',
+                role='student',
+                is_active=True,
+            )
+            user.soft_delete()
+            self.restore_users.append(user)
+
+        self.delete_users = []
+        for idx in range(2):
+            user = User.objects.create_user(
+                email=f'bulk-delete-{idx}@test.com',
+                password='TestPass123!',
+                role='student',
+                is_active=True,
+            )
+            user.soft_delete()
+            self.delete_users.append(user)
+
+        self.client.force_login(self.admin_user)
+        self.url = reverse('core:deleted_user_bulk_action')
+
+    def test_bulk_restore_restores_multiple_users(self):
+        response = self.client.post(
+            self.url,
+            {
+                'bulk_action': 'restore',
+                'user_ids': [str(user.id) for user in self.restore_users],
+            },
+            HTTP_HX_REQUEST='true',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('HX-Trigger', response.headers)
+        self.assertIn('user-toast', response.headers['HX-Trigger'])
+
+        for user in self.restore_users:
+            user.refresh_from_db()
+            self.assertFalse(user.is_deleted)
+            self.assertTrue(user.is_active)
+
+    def test_bulk_delete_permanently_removes_multiple_users(self):
+        user_ids = [str(user.id) for user in self.delete_users]
+        response = self.client.post(
+            self.url,
+            {
+                'bulk_action': 'delete_permanently',
+                'user_ids': user_ids,
+            },
+            HTTP_HX_REQUEST='true',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('HX-Trigger', response.headers)
+        self.assertIn('user-toast', response.headers['HX-Trigger'])
+        self.assertFalse(User.objects.filter(id__in=user_ids).exists())
+
+    def test_bulk_action_requires_selection(self):
+        response = self.client.post(self.url, {'bulk_action': 'restore'}, HTTP_HX_REQUEST='true')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('HX-Trigger', response.headers)
+        self.assertIn('error', response.headers['HX-Trigger'])
+
+
+class AdminDeletedUserPermanentDeleteTests(TestCase):
+    """Tests for permanently deleting a single deleted user."""
+
+    def setUp(self):
+        self.admin_user = User.objects.create_user(
+            email='admin-permanent-delete@test.com',
+            password='AdminPass123!',
+            role='admin',
+            is_staff=True,
+            is_active=True,
+        )
+        _complete_staff_like_profile(self.admin_user, 'ADM-PERM-DELETE-001')
+
+        self.target_user = User.objects.create_user(
+            email='target-permanent-delete@test.com',
+            password='TestPass123!',
+            role='student',
+            is_active=True,
+        )
+        self.target_user.soft_delete()
+
+        self.client.force_login(self.admin_user)
+        self.url = reverse('core:deleted_user_permanent_delete', kwargs={'user_id': self.target_user.id})
+
+    def test_permanent_delete_removes_user(self):
+        response = self.client.post(self.url)
+        self.assertRedirects(response, reverse('core:deleted_user_management'))
+        self.assertFalse(User.objects.filter(id=self.target_user.id).exists())
+
+    def test_permanent_delete_htmx_stays_on_deleted_page(self):
+        response = self.client.post(self.url, HTTP_HX_REQUEST='true')
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('HX-Trigger', response.headers)
+        self.assertIn('user-toast', response.headers['HX-Trigger'])
+        self.assertContains(response, 'Deleted Accounts')
+        self.assertFalse(User.objects.filter(id=self.target_user.id).exists())
 
 
 class AdminUserDetailTests(TestCase):
@@ -738,11 +902,16 @@ class UserManagementSoftDeleteIntegrationTests(TestCase):
         user_emails = [u.email for u in response.context['users']]
         self.assertNotIn(self.target_user.email, user_emails)
 
-    def test_user_list_shows_deleted_with_filter(self):
+    def test_deleted_page_shows_deleted_users(self):
         self.target_user.soft_delete()
-        response = self.client.get(reverse('core:user_management'), {'status': 'deleted'})
+        response = self.client.get(reverse('core:deleted_user_management'))
         user_emails = [u.email for u in response.context['users']]
         self.assertIn(self.target_user.email, user_emails)
+
+    def test_user_management_redirects_deleted_filter_to_deleted_page(self):
+        response = self.client.get(reverse('core:user_management'), {'status': 'deleted'})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('core:deleted_user_management'), response.url)
 
     def test_user_detail_shows_restore_button_for_deleted(self):
         self.target_user.soft_delete()

@@ -219,6 +219,7 @@ def dental_record_detail(request, record_id):
         'pediatric_history': pediatric_history,
         'dental_chart': dental_chart,
         'dental_chart_json': json.dumps(dental_chart_json),
+        'is_pediatric': dental_record.age and dental_record.age < 18,
     }
     
     return render(request, 'dental_records/dental_record_detail.html', context)
@@ -363,7 +364,7 @@ def dental_record_create(request):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('staff', 'doctor', 'admin')
 def dental_record_edit(request, record_id):
     """Edit comprehensive dental record with all sections"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -779,7 +780,7 @@ def student_dental_intake(request, appointment_id):
 # ============================================
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('staff', 'doctor', 'admin')
 def progress_note_list(request, record_id):
     """Return all progress notes for a dental record as JSON."""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -799,7 +800,7 @@ def progress_note_list(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('staff', 'doctor', 'admin')
 def progress_note_create(request, record_id):
     """Create a progress note via JSON POST. Returns the new note."""
     if request.method != 'POST':
@@ -825,9 +826,18 @@ def progress_note_create(request, record_id):
     if not procedure:
         return JsonResponse({'success': False, 'error': 'Procedure done is required.'}, status=400)
 
+    # Parse date string into a proper date object
+    if date_val:
+        try:
+            parsed_date = datetime.strptime(date_val, '%Y-%m-%d').date()
+        except (ValueError, TypeError):
+            parsed_date = timezone.now().date()
+    else:
+        parsed_date = timezone.now().date()
+
     note = ProgressNote.objects.create(
         dental_record=dental_record,
-        date=date_val or timezone.now().date(),
+        date=parsed_date,
         procedure_done=procedure,
         dentist=request.user,
         remarks=remarks,
@@ -846,7 +856,7 @@ def progress_note_create(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('staff', 'doctor', 'admin')
 def progress_note_delete(request, record_id, note_id):
     """Delete a progress note. Returns JSON."""
     if request.method != 'POST':

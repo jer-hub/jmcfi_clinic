@@ -13,13 +13,20 @@
                 <p class="mt-1 text-sm text-gray-600">Book an appointment with our medical staff</p>
             </div>
 
-            <form method="POST" class="p-6 space-y-6" id="appointment-form">
+            <form method="POST" class="p-6 space-y-6"
+                  x-data="appointmentForm()"
+                  @submit.prevent
+                  hx-post=""
+                  hx-target="this"
+                  hx-swap="outerHTML"
+                  hx-trigger="submit"
+                  @htmx:before-request="if(!validate()) $event.preventDefault()">
                 {% csrf_token %}
                 
                 <!-- Appointment Type -->
                 <div>
                     <label for="appointment_type" class="block text-sm font-medium text-gray-700">Appointment Type</label>
-                    <select id="appointment_type" name="appointment_type" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                    <select id="appointment_type" name="appointment_type" required x-model="selectedType" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
                         <option value="">Select type</option>
                         {% for default in active_defaults %}
                             <option value="{{ default.appointment_type }}">{{ default.get_appointment_type_display }}</option>
@@ -38,40 +45,34 @@
                     <label for="doctor" class="block text-sm font-medium text-gray-700">
                         Select Doctor
                     </label>
-                    <select id="doctor" name="doctor" required disabled
+                    <select id="doctor" name="doctor" required x-model="selectedDoctor"
+                        :disabled="!selectedType"
                         class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                         <option value="">Choose a doctor</option>
-                        {% for doctor in doctors %}
-                            <option value="{{ doctor.id }}" data-specialization="{{ doctor.staff_profile.specialization|default:'' }}" data-department="{{ doctor.staff_profile.department|default:'' }}">
-                                Dr. {{ doctor.get_full_name }}
-                                {% if doctor.staff_profile.specialization %}
-                                    - {{ doctor.staff_profile.specialization }}
-                                {% endif %}
-                                {% if doctor.staff_profile.department %}
-                                    ({{ doctor.staff_profile.department }})
-                                {% endif %}
-                            </option>
-                        {% endfor %}
+                        <template x-for="doc in filteredDoctors" :key="doc.id">
+                            <option :value="doc.id" x-text="doc.name"></option>
+                        </template>
                     </select>
-                    <p id="select-type-first-msg" class="mt-1.5 flex items-center gap-1.5 text-xs text-amber-600">
+                    <p x-show="!selectedType" class="mt-1.5 flex items-center gap-1.5 text-xs text-amber-600">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                         </svg>
                         Please select an appointment type first.
                     </p>
-                    <p id="no-doctors-msg" class="mt-1 text-xs text-red-500 hidden">No doctors are currently assigned to this appointment type. Please contact the clinic.</p>
+                    <p x-show="selectedType && filteredDoctors.length === 0" class="mt-1 text-xs text-red-500">No doctors are currently assigned to this appointment type. Please contact the clinic.</p>
                 </div>
 
                 <!-- Date and Time -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                         <label for="date" class="block text-sm font-medium text-gray-700">Preferred Date</label>
-                        <input type="date" id="date" name="date" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        <input type="date" id="date" name="date" required x-model="selectedDate" :min="minDate" :max="maxDate" @change="validateWeekday($event)"
+                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
                         <p class="mt-1 text-xs text-gray-500">Select a date from today onwards</p>
                     </div>
                     <div>
                         <label for="time" class="block text-sm font-medium text-gray-700">Preferred Time</label>
-                        <select id="time" name="time" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        <select id="time" name="time" required x-model="selectedTime" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
                             <option value="">Select time</option>
                             <optgroup label="Morning">
                                 <option value="09:00">9:00 AM</option>
@@ -97,7 +98,7 @@
                 <!-- Reason -->
                 <div>
                     <label for="reason" class="block text-sm font-medium text-gray-700">Reason for Visit</label>
-                    <textarea id="reason" name="reason" rows="4" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Please describe your symptoms or reason for the appointment..."></textarea>
+                    <textarea id="reason" name="reason" rows="4" required x-model.trim="reason" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Please describe your symptoms or reason for the appointment..."></textarea>
                 </div>
 
                 <!-- Submit Button -->
@@ -126,117 +127,48 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const dateInput = document.getElementById('date');
-        const timeSelect = document.getElementById('time');
-        const appointmentForm = document.getElementById('appointment-form');
-        const submitBtn = document.getElementById('submit-btn');
-        const appointmentTypeSelect = document.getElementById('appointment_type');
-        const doctorSelect = document.getElementById('doctor');
-
-        // Per-type allowed doctor IDs (empty array = all doctors allowed)
-        const typeDoctorMap = {{ type_doctor_map|safe }};
-
-        // Store all original doctor options for filtering
-        const allDoctorOptions = Array.from(doctorSelect.options).slice(1).map(opt => opt.cloneNode(true));
-
-        const selectTypeFirstMsg = document.getElementById('select-type-first-msg');
-        const noDoctorsMsg = document.getElementById('no-doctors-msg');
-
-        function filterDoctorsByType(selectedType) {
-            const allowedIds = typeDoctorMap[selectedType];
-            // Remove all options except the placeholder
-            while (doctorSelect.options.length > 1) {
-                doctorSelect.remove(1);
+    function appointmentForm() {
+        return {
+            selectedType: '',
+            selectedDoctor: '',
+            selectedDate: '',
+            selectedTime: '',
+            reason: '',
+            typeDoctorMap: {{ type_doctor_map|safe }},
+            doctors: [
+                {% for doctor in doctors %}
+                {id: '{{ doctor.id }}', name: 'Dr. {{ doctor.get_full_name }}{% if doctor.staff_profile.specialization %} - {{ doctor.staff_profile.specialization }}{% endif %}{% if doctor.staff_profile.department %} ({{ doctor.staff_profile.department }}){% endif %}'},
+                {% endfor %}
+            ],
+            get minDate() {
+                const t = new Date(); return t.toISOString().split('T')[0];
+            },
+            get maxDate() {
+                const t = new Date(); t.setMonth(t.getMonth() + 3); return t.toISOString().split('T')[0];
+            },
+            get filteredDoctors() {
+                if (!this.selectedType) return [];
+                const allowed = this.typeDoctorMap[this.selectedType];
+                if (!allowed || allowed.length === 0) return this.doctors;
+                return this.doctors.filter(d => allowed.includes(parseInt(d.id)));
+            },
+            validateWeekday(e) {
+                if (!this.selectedDate) return;
+                const d = new Date(this.selectedDate + 'T12:00:00');
+                if (d.getDay() === 0 || d.getDay() === 6) {
+                    alert('Please select a weekday. The clinic is closed on weekends.');
+                    this.selectedDate = '';
+                }
+            },
+            validate() {
+                if (!this.selectedType) { alert('Please select an appointment type.'); return false; }
+                if (!this.selectedDoctor) { alert('Please select a doctor.'); return false; }
+                if (!this.selectedDate) { alert('Please select a date.'); return false; }
+                if (!this.selectedTime) { alert('Please select a time.'); return false; }
+                if (!this.reason) { alert('Please provide a reason for your visit.'); return false; }
+                return true;
             }
-
-            if (!selectedType) {
-                // No type chosen yet — disable doctor select and show hint
-                doctorSelect.disabled = true;
-                selectTypeFirstMsg.classList.remove('hidden');
-                noDoctorsMsg.classList.add('hidden');
-                doctorSelect.value = '';
-                return;
-            }
-
-            // Type selected — enable the select, hide the hint
-            doctorSelect.disabled = false;
-            selectTypeFirstMsg.classList.add('hidden');
-
-            if (!allowedIds || allowedIds.length === 0) {
-                // No restriction — show all doctors
-                allDoctorOptions.forEach(opt => doctorSelect.appendChild(opt.cloneNode(true)));
-                noDoctorsMsg.classList.add('hidden');
-            } else {
-                const filtered = allDoctorOptions.filter(opt => allowedIds.includes(parseInt(opt.value)));
-                filtered.forEach(opt => doctorSelect.appendChild(opt.cloneNode(true)));
-                noDoctorsMsg.classList.toggle('hidden', filtered.length > 0);
-            }
-            doctorSelect.value = '';
-        }
-        
-        // Filter available doctors when appointment type changes
-        appointmentTypeSelect.addEventListener('change', function() {
-            filterDoctorsByType(this.value);
-        });
-        
-        // Set minimum date to today
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = String(today.getMonth() + 1).padStart(2, '0');
-        const day = String(today.getDate()).padStart(2, '0');
-        const todayString = `${year}-${month}-${day}`;
-        
-        dateInput.min = todayString;
-        
-        // Set maximum date to 3 months from today
-        const maxDate = new Date(today);
-        maxDate.setMonth(maxDate.getMonth() + 3);
-        const maxYear = maxDate.getFullYear();
-        const maxMonth = String(maxDate.getMonth() + 1).padStart(2, '0');
-        const maxDay = String(maxDate.getDate()).padStart(2, '0');
-        const maxDateString = `${maxYear}-${maxMonth}-${maxDay}`;
-        dateInput.max = maxDateString;
-        
-        // Disable weekends
-        dateInput.addEventListener('change', function() {
-            const selectedDate = new Date(this.value);
-            const dayOfWeek = selectedDate.getDay();
-            
-            if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday or Saturday
-                alert('Please select a weekday. The clinic is closed on weekends.');
-                this.value = '';
-                return;
-            }
-        });
-        
-        // Form submission with loading state
-        appointmentForm.addEventListener('submit', function() {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = 'Scheduling...';
-        });
-        
-        // Form validation
-        const requiredFields = ['doctor', 'appointment_type', 'date', 'time', 'reason'];
-        requiredFields.forEach(fieldName => {
-            const field = document.querySelector(`[name="${fieldName}"]`);
-            if (field) {
-                field.addEventListener('blur', validateField);
-                field.addEventListener('change', validateField);
-            }
-        });
-        
-        function validateField(e) {
-            const field = e.target;
-            const value = field.value.trim();
-            
-            // Remove existing error styling
-            field.classList.remove('border-red-500');
-            
-            if (field.hasAttribute('required') && !value) {
-                field.classList.add('border-red-500');
-            }
-        }
-    });
+        };
+    }
 </script>
 {% endblock content %}

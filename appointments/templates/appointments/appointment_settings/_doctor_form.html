@@ -1,12 +1,9 @@
-<form method="POST" action="{% url 'appointments:edit_appointment_type_default' type_key=item.type_key %}" class="flex items-center gap-3">
+<form method="POST" action="{% url 'appointments:edit_appointment_type_default' type_key=item.type_key %}" class="flex items-center gap-3" x-data="doctorDropdown()" x-init="init()" @change.debounce.400ms="submitForm()" hx-post="{% url 'appointments:edit_appointment_type_default' type_key=item.type_key %}" hx-target="closest .bg-white" hx-swap="outerHTML" hx-indicator=".form-spinner-{{ item.type_key }}" hx-on="htmx:beforeSend: this.classList.add('opacity-60'); this.style.pointerEvents = 'none'; htmx:afterSettle: this.classList.remove('opacity-60'); this.style.pointerEvents = 'auto'">
     {% csrf_token %}
     <input type="hidden" name="appointment_type" value="{{ item.type_key }}">
-    {% if item.instance and item.instance.is_active %}
-    <input type="hidden" name="is_active" value="on">
-    {% endif %}
 
     <!-- Crispy dropdown -->
-    <div class="relative flex-1 min-w-0" x-data="doctorDropdown()">
+    <div class="relative flex-1 min-w-0">
 
         <!-- Trigger -->
         <button type="button" @click="open = !open"
@@ -69,12 +66,11 @@
         </div>
     </div>
 
-    <!-- Save button inline -->
-    <button type="submit"
-        class="flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1 transition-colors duration-150">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+    <span class="form-spinner-{{ item.type_key }} htmx-indicator ml-2 inline-flex items-center gap-1">
+        <svg class="animate-spin h-3 w-3 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
-        Save
-    </button>
+    </span>
+
 </form>

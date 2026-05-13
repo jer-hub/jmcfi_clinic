@@ -126,7 +126,9 @@ class StudentProfileForm(forms.ModelForm):
             'profile_image': forms.FileInput(attrs={
                 'class': 'hidden',
                 'accept': 'image/*',
-                'id': 'profile-image-input'
+                'id': 'profile-image-input',
+                'x-ref': 'profileImageInput',
+                '@change': 'handleFileChange($event)',
             }),
             'middle_name': forms.TextInput(attrs={
                 'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
@@ -316,7 +318,9 @@ class StaffProfileForm(forms.ModelForm):
             'profile_image': forms.FileInput(attrs={
                 'class': 'hidden',
                 'accept': 'image/*',
-                'id': 'profile-image-input'
+                'id': 'profile-image-input',
+                'x-ref': 'profileImageInput',
+                '@change': 'handleFileChange($event)',
             }),
             'middle_name': forms.TextInput(attrs={
                 'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',

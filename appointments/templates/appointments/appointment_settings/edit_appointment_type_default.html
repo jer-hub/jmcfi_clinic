@@ -3,7 +3,7 @@
 {% block title %}{% if is_edit %}Edit{% else %}Configure{% endif %} Appointment Type{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="min-h-screen bg-gray-50 pt-0 pb-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {% include 'appointments/_subnav.html' %}
 
@@ -33,7 +33,7 @@
 
         <!-- Card — overflow-visible so the doctor dropdown panel is never clipped -->
         <div class="bg-white shadow sm:rounded-xl overflow-visible">
-            <form method="POST">
+            <form method="POST" x-data="doctorDropdown()" x-init="init()" @change.debounce.400ms="submitForm()">
                 {% csrf_token %}
 
                 <!-- ═══ Responsive Form Layout ═══ -->
@@ -88,7 +88,7 @@
                             <p class="mt-0.5 text-xs text-gray-400">Leave empty to allow all staff/doctors.</p>
                         </div>
                         <div class="px-4 sm:px-6 py-3 md:py-4 md:col-span-9 relative">
-                            <div x-data="doctorDropdown()">
+                            <div>
 
                                 <!-- Trigger -->
                                 <button type="button" @click="open = !open"
@@ -182,20 +182,13 @@
                         <svg class="h-4 w-4 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                         </svg>
-                        <p class="text-xs text-blue-600">Only assigned doctors appear when students book. Empty = all available.</p>
+                        <p class="text-xs text-blue-600">Changes save automatically. Empty = all available.</p>
                     </div>
                     <div class="flex items-center gap-3 w-full sm:w-auto">
                         <a href="{% url 'appointments:appointment_type_settings' %}"
                            class="flex-1 sm:flex-none text-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors">
                             Cancel
                         </a>
-                        <button type="submit"
-                                class="flex-1 sm:flex-none text-center inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 border border-transparent rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1 transition-colors">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                            </svg>
-                            {% if is_edit %}Update Settings{% else %}Save Settings{% endif %}
-                        </button>
                     </div>
                 </div>
 
@@ -249,6 +242,14 @@ function doctorDropdown() {
         clearAll() {
             this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
             this.updateCount();
+            this.submitForm();
+        },
+        submitForm() {
+            if (typeof this.$el.requestSubmit === 'function') {
+                this.$el.requestSubmit();
+            } else {
+                this.$el.submit();
+            }
         }
     }
 }

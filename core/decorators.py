@@ -1,6 +1,6 @@
 # decorators.py
 from functools import wraps
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.contrib import messages
 from .utils import get_user_profile
@@ -30,14 +30,20 @@ def role_required(*roles):
         @wraps(view_func)
         def wrapped_view(request, *args, **kwargs):
             if not request.user.is_authenticated:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': 'Authentication required.'}, status=401)
                 messages.error(request, 'You must be logged in to access this page.')
                 return redirect('account_login')
 
             if _blocks_admin_in_clinical_namespace(request, roles):
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': 'Admin access is not permitted for clinical application pages.'}, status=403)
                 messages.error(request, 'Admin access is not permitted for clinical application pages.')
                 return redirect('core:dashboard')
             
             if request.user.role not in roles:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'success': False, 'error': f'Access denied. Required role(s): {", ".join(roles)}.'}, status=403)
                 messages.error(request, f'Access denied. This page requires one of the following roles: {", ".join(roles)}. Your current role is: {request.user.role}.')
                 return redirect('core:dashboard')
             return view_func(request, *args, **kwargs)

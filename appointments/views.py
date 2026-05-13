@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.contrib.auth import get_user_model
@@ -40,7 +40,7 @@ def paginate_queryset(queryset, request, per_page=10):
 
 
 @login_required
-@role_required('student', 'staff', 'doctor')
+@role_required('student', 'staff', 'doctor', 'admin')
 def appointment_list(request):
     """Display list of appointments based on user role"""
     # Get appointments based on user role
@@ -48,6 +48,8 @@ def appointment_list(request):
         appointments = Appointment.objects.filter(student=request.user)
     elif request.user.role in ['staff', 'doctor']:
         appointments = Appointment.objects.filter(doctor=request.user)
+    elif request.user.role == 'admin':
+        appointments = Appointment.objects.all()
     else:
         appointments = Appointment.objects.none()
 
@@ -57,6 +59,7 @@ def appointment_list(request):
     date_to_str = request.GET.get('date_to')
     doctor_id = request.GET.get('doctor')
     appointment_type = request.GET.get('appointment_type')
+    student_search = request.GET.get('student_search')
 
     # Apply filters
     if status:
@@ -73,6 +76,12 @@ def appointment_list(request):
         appointments = appointments.filter(doctor_id=doctor_id)
     if appointment_type:
         appointments = appointments.filter(appointment_type=appointment_type)
+    if student_search and request.user.role in ['doctor', 'staff']:
+        appointments = appointments.filter(
+            Q(student__first_name__icontains=student_search) |
+            Q(student__last_name__icontains=student_search) |
+            Q(student__student_profile__student_id__icontains=student_search)
+        )
 
     # Status totals for the currently filtered result set
     status_totals = {
@@ -82,8 +91,8 @@ def appointment_list(request):
         'cancelled': appointments.filter(status='cancelled').count(),
     }
 
-    # Order by latest date and time first
-    appointments = appointments.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set').order_by('-date', '-time')
+    # Order by requested date (most recent first)
+    appointments = appointments.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set').order_by('-created_at')
     
     paginated_appointments = paginate_queryset(appointments, request)
 
@@ -102,6 +111,7 @@ def appointment_list(request):
             'date_to': date_to_str,
             'doctor': int(doctor_id) if doctor_id else None,
             'appointment_type': appointment_type,
+            'student_search': student_search,
         }
     }
     
@@ -119,7 +129,7 @@ def schedule_appointment(request):
         appointment_type = request.POST.get('appointment_type')
         date = request.POST.get('date')
         time = request.POST.get('time')
-        reason = request.POST.get('reason')
+        reason = request.POST.get('reason', '').strip()
         
         # Validation
         if not all([doctor_id, appointment_type, date, time, reason]):
@@ -269,7 +279,7 @@ def _get_schedule_context():
 
     for default in active_defaults:
         assigned = list(
-            default.assigned_doctors.filter(role='doctor', is_active=True).values_list('id', flat=True)
+            default.assigned_doctors.filter(role__in=['staff', 'doctor'], is_active=True).values_list('id', flat=True)
         )
         type_doctor_map[default.appointment_type] = assigned
         if assigned:
@@ -281,11 +291,11 @@ def _get_schedule_context():
     # Otherwise show only those who appear in at least one type.
     if has_unrestricted_type or not active_defaults.exists():
         doctors = User.objects.filter(
-            role='doctor', is_active=True
+            role__in=['staff', 'doctor'], is_active=True
         ).select_related('staff_profile').order_by('first_name', 'last_name')
     else:
         doctors = User.objects.filter(
-            id__in=all_assigned_ids, role='doctor', is_active=True
+            id__in=all_assigned_ids, role__in=['staff', 'doctor'], is_active=True
         ).select_related('staff_profile').order_by('first_name', 'last_name')
 
     return {
@@ -341,7 +351,7 @@ def appointment_detail(request, appointment_id):
                 related_id=appointment.id
             )
             
-            messages.success(request, 'Appointment updated successfully!')
+            doctor = User.objects.get(id=doctor_id, role__in=['staff', 'doctor'], is_active=True)
             
         elif request.user.role == 'student' and appointment.student == request.user:
             # Allow students to cancel their own appointments
@@ -409,15 +419,22 @@ def appointment_type_settings(request):
 @admin_required
 def edit_appointment_type_default(request, type_key=None):
     """
-    View for admin to edit or create a default in-charge for an appointment type.
+    Handle form submission for inline doctor assignment editing.
+    GET requests redirect to the settings page (no separate edit page).
+    POST requests process the form and redirect back to settings.
     """
-    # Try to get existing default or create new
-    if type_key:
-        appointment_default = AppointmentTypeDefault.objects.filter(appointment_type=type_key).first()
-    else:
-        appointment_default = None
+    # For GET requests, redirect to settings page (consolidate to inline edit only)
+    if request.method == 'GET':
+        return redirect('appointments:appointment_type_settings')
     
+    # Handle POST form submissions from inline dropdown
     if request.method == 'POST':
+        # Try to get existing default or create new
+        if type_key:
+            appointment_default = AppointmentTypeDefault.objects.filter(appointment_type=type_key).first()
+        else:
+            appointment_default = None
+        
         form = AppointmentTypeDefaultForm(request.POST, instance=appointment_default)
         if form.is_valid():
             default = form.save(commit=False)
@@ -426,30 +443,50 @@ def edit_appointment_type_default(request, type_key=None):
             form.save_m2m()  # persist assigned_doctors M2M after commit=False save
             
             type_display = default.get_appointment_type_display()
+            
+            # Check for HTMX request
+            if request.headers.get('HX-Request'):
+                from django.template.loader import render_to_string
+                
+                # Rebuild form context with updated data
+                form = AppointmentTypeDefaultForm(instance=default, auto_id=f'id_{type_key}_%s')
+                appointment_types = dict(Appointment.APPOINTMENT_TYPE_CHOICES)
+                
+                # Build item dict matching what template expects
+                item = {
+                    'type_key': type_key,
+                    'type_label': appointment_types.get(type_key, type_key),
+                    'form': form,
+                    'instance': default,
+                }
+                
+                # Render the updated row HTML
+                row_html = render_to_string(
+                    'appointments/appointment_settings/_settings_row.html',
+                    {'item': item}
+                )
+                
+                response = HttpResponse(row_html)
+                response['HX-Trigger'] = 'form-success'
+                return response
+            
             messages.success(
                 request,
                 f'Successfully updated doctor assignments for {type_display}.'
             )
-            return redirect('appointments:appointment_type_settings')
         else:
+            # Check for HTMX request
+            if request.headers.get('HX-Request'):
+                response = JsonResponse({
+                    'success': False,
+                    'errors': form.errors,
+                }, status=400)
+                response['HX-Trigger'] = 'form-error'
+                return response
+            
             messages.error(request, 'Please correct the errors below.')
-    else:
-        # Pre-fill appointment type if creating new
-        initial_data = {}
-        if type_key and not appointment_default:
-            initial_data['appointment_type'] = type_key
-            initial_data['is_active'] = True
-        
-        form = AppointmentTypeDefaultForm(instance=appointment_default, initial=initial_data)
     
-    context = {
-        'form': form,
-        'appointment_default': appointment_default,
-        'type_key': type_key,
-        'is_edit': appointment_default is not None,
-    }
-    
-    return render(request, 'appointments/appointment_settings/edit_appointment_type_default.html', context)
+    return redirect('appointments:appointment_type_settings')
 
 
 @login_required
@@ -457,6 +494,7 @@ def edit_appointment_type_default(request, type_key=None):
 def toggle_appointment_type_default(request, default_id):
     """
     Quick toggle for activating/deactivating an appointment type default.
+    Supports both HTMX and traditional AJAX requests.
     """
     if request.method == 'POST':
         default = get_object_or_404(AppointmentTypeDefault, id=default_id)
@@ -467,7 +505,24 @@ def toggle_appointment_type_default(request, default_id):
         status = "activated" if default.is_active else "deactivated"
         message_text = f'Default for {default.get_appointment_type_display()} has been {status}.'
 
-        # If request came from JS (fetch / AJAX), return JSON instead of redirect
+        # Detect HTMX request via HX-Request header
+        if request.headers.get('HX-Request'):
+            # Re-render the single settings row with updated state so HTMX can swap it in-place
+            from django.template.loader import render_to_string
+
+            form = AppointmentTypeDefaultForm(instance=default, auto_id=f'id_{default.appointment_type}_%s')
+            item = {
+                'type_key': default.appointment_type,
+                'type_label': default.get_appointment_type_display(),
+                'form': form,
+                'instance': default,
+            }
+            html = render_to_string('appointments/appointment_settings/_settings_row.html', {'item': item}, request=request)
+            response = HttpResponse(html)
+            response['HX-Trigger'] = 'toggle-success'
+            return response
+        
+        # If request came from legacy JS (fetch / AJAX), return JSON
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or _is_json_request(request):
             return JsonResponse({
                 'success': True,
@@ -482,25 +537,36 @@ def toggle_appointment_type_default(request, default_id):
 
 @login_required
 @admin_required
-def delete_appointment_type_default(request, default_id):
-    """
-    Delete an appointment type default.
-    """
-    if request.method == 'POST':
-        default = get_object_or_404(AppointmentTypeDefault, id=default_id)
-        type_display = default.get_appointment_type_display()
-        default.delete()
-        
-        messages.success(
-            request,
-            f'Default in-charge for {type_display} has been removed.'
-        )
+@login_required
+def completed_appointments_api(request, student_id):
+    """API endpoint to get completed appointments with medical records for a student."""
+    if request.user.role not in ['admin', 'staff', 'doctor']:
+        return JsonResponse({'error': 'Access denied'}, status=403)
     
-    return redirect('appointments:appointment_type_settings')
+    student = get_object_or_404(User, id=student_id, role='student')
+    appointments = Appointment.objects.filter(
+        student=student,
+        status='completed',
+        medicalrecord__isnull=False
+    ).prefetch_related('medicalrecord_set').order_by('-date', '-time')[:10]
+    
+    data = []
+    for apt in appointments:
+        mr = apt.medicalrecord_set.first()
+        if mr:
+            data.append({
+                'id': apt.id,
+                'date': apt.date.strftime('%B %d, %Y'),
+                'time': apt.time.strftime('%I:%M %p'),
+                'reason': apt.reason[:60],
+                'medical_record_id': mr.id,
+            })
+    
+    return JsonResponse({'appointments': data})
 
 
 @login_required
-@role_required('doctor', 'staff')
+@role_required('doctor', 'staff', 'admin')
 def schedule_for_student(request):
     """
     Allows staff and doctors to schedule an appointment for a student.
@@ -584,7 +650,23 @@ def schedule_for_student(request):
         
         return redirect('appointments:schedule_for_student')
 
+    # Only show appointment types that have an active AppointmentTypeDefault
+    active_type_keys = set(
+        AppointmentTypeDefault.objects
+        .filter(is_active=True)
+        .values_list('appointment_type', flat=True)
+    )
+    # If no active defaults exist, fall back to showing all types
+    if active_type_keys:
+        appointment_types = [
+            (key, label)
+            for key, label in Appointment.APPOINTMENT_TYPE_CHOICES
+            if key in active_type_keys
+        ]
+    else:
+        appointment_types = Appointment.APPOINTMENT_TYPE_CHOICES
+
     context = {
-        'appointment_types': Appointment.APPOINTMENT_TYPE_CHOICES
+        'appointment_types': appointment_types,
     }
     return render(request, 'appointments/schedule_for_student.html', context)

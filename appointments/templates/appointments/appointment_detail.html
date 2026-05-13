@@ -182,6 +182,21 @@
                             {% endif %}
                         {% endif %}
                         
+                        {% if user.role == 'doctor' and appointment.status == 'completed' %}
+                            {% with medical_record=appointment.medicalrecord_set.first %}
+                                {% if medical_record %}
+                            <button type="button"
+                                    onclick="scheduleFollowUp({{ medical_record.id }}, '{{ appointment.student.get_full_name|escapejs }}')"
+                                    class="block w-full text-center px-4 py-2 border border-amber-500 text-amber-700 rounded-md shadow-sm text-sm font-medium hover:bg-amber-50">
+                                <svg class="inline-block w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Schedule Follow-up
+                            </button>
+                                {% endif %}
+                            {% endwith %}
+                        {% endif %}
+                        
                         {% if user.role == 'student' and appointment.status == 'confirmed' %}
                             {% if appointment.appointment_type == 'dental' %}
                                 {% if not appointment.dental_records.exists %}
@@ -334,6 +349,22 @@ function confirmAppointment() {
         document.body.appendChild(form);
         form.submit();
     }
+}
+
+// Open follow-up scheduling modal
+function scheduleFollowUp(recordId, studentName) {
+    document.dispatchEvent(new CustomEvent('open-modal', {
+        bubbles: true,
+        detail: {
+            type: 'info',
+            title: 'Schedule Follow-up',
+            subtitle: studentName,
+            size: 'sm',
+            hxUrl: '/medical-records/' + recordId + '/schedule-follow-up/',
+            hasForm: true,
+            actionLabel: 'Schedule Follow-up'
+        }
+    }));
 }
 </script>
 {% endblock content %}

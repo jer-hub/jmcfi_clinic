@@ -4,7 +4,7 @@
 {% block title %}Schedule Appointment for Student - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+<div class="min-h-screen bg-gray-50 pt-0 pb-8 sm:pb-12">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
 
         <div class="bg-white rounded-lg shadow-lg">
@@ -58,7 +58,7 @@
                         </div>
                         <div>
                             <label for="reason" class="block text-sm font-medium text-gray-700 mb-2">Reason for Appointment</label>
-                            <input type="text" name="reason" id="reason" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors" required>
+                            <textarea name="reason" id="reason" rows="3" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors" required></textarea>
                         </div>
                         <div>
                             <label for="date" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
@@ -66,7 +66,26 @@
                         </div>
                         <div>
                             <label for="time" class="block text-sm font-medium text-gray-700 mb-2">Time</label>
-                            <input type="time" name="time" id="time" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors" required>
+                            <select name="time" id="time" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors" required>
+                                <option value="">Select a time...</option>
+                                <optgroup label="Morning">
+                                    <option value="09:00">9:00 AM</option>
+                                    <option value="09:30">9:30 AM</option>
+                                    <option value="10:00">10:00 AM</option>
+                                    <option value="10:30">10:30 AM</option>
+                                    <option value="11:00">11:00 AM</option>
+                                    <option value="11:30">11:30 AM</option>
+                                </optgroup>
+                                <optgroup label="Afternoon">
+                                    <option value="14:00">2:00 PM</option>
+                                    <option value="14:30">2:30 PM</option>
+                                    <option value="15:00">3:00 PM</option>
+                                    <option value="15:30">3:30 PM</option>
+                                    <option value="16:00">4:00 PM</option>
+                                    <option value="16:30">4:30 PM</option>
+                                </optgroup>
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Clinic hours: 9:00 AM - 5:00 PM</p>
                         </div>
                     </div>
                 </div>
@@ -81,6 +100,24 @@
                     </div>
                 </div>
             </form>
+
+            {% if user.role == 'doctor' %}
+            <!-- Schedule Follow-up Section -->
+            <div class="px-6 sm:px-8 py-6 border-t border-gray-200">
+                <div class="space-y-3">
+                    <label class="block text-lg font-semibold text-gray-800">3. Schedule Follow-up</label>
+                    <p class="text-sm text-gray-600">Select a completed appointment to schedule a follow-up for the student.</p>
+                    <div class="relative">
+                        <input type="text" id="followup-student-search" placeholder="Search student by name or email..." class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm transition-colors">
+                        <div id="followup-student-results" class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
+                    </div>
+                    <div id="followup-appointments-section" class="hidden mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Completed Appointments</label>
+                        <div id="followup-appointments-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -144,6 +181,115 @@ document.addEventListener('DOMContentLoaded', function() {
             resultsContainer.classList.add('hidden');
         }
     });
+
+    // Follow-up student search
+    const followupSearchInput = document.getElementById('followup-student-search');
+    const followupResultsContainer = document.getElementById('followup-student-results');
+    const followupAppointmentsSection = document.getElementById('followup-appointments-section');
+    const followupAppointmentsList = document.getElementById('followup-appointments-list');
+
+    if (followupSearchInput) {
+        let followupSearchTimeout;
+
+        followupSearchInput.addEventListener('keyup', function() {
+            clearTimeout(followupSearchTimeout);
+            const query = followupSearchInput.value;
+
+            if (query.length < 2) {
+                followupResultsContainer.innerHTML = '';
+                followupResultsContainer.classList.add('hidden');
+                followupAppointmentsSection.classList.add('hidden');
+                return;
+            }
+
+            followupSearchTimeout = setTimeout(() => {
+                fetch(`{% url 'core:search_students' %}?q=${query}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        followupResultsContainer.innerHTML = '';
+                        if (data.length > 0) {
+                            followupResultsContainer.classList.remove('hidden');
+                            data.forEach(student => {
+                                const item = document.createElement('div');
+                                item.className = 'p-3 hover:bg-amber-50 cursor-pointer';
+                                item.textContent = `${student.name} (${student.email})`;
+                                item.dataset.id = student.id;
+                                item.dataset.name = student.name;
+                                item.addEventListener('click', function() {
+                                    selectFollowupStudent(student.id, student.name);
+                                });
+                                followupResultsContainer.appendChild(item);
+                            });
+                        } else {
+                            followupResultsContainer.innerHTML = '<div class="p-3 text-gray-500">No students found.</div>';
+                            followupResultsContainer.classList.remove('hidden');
+                        }
+                    });
+            }, 300);
+        });
+
+        function selectFollowupStudent(studentId, studentName) {
+            followupSearchInput.value = studentName;
+            followupResultsContainer.classList.add('hidden');
+            followupAppointmentsSection.classList.remove('hidden');
+            followupAppointmentsList.innerHTML = '<div class="flex items-center justify-center py-4"><div class="w-5 h-5 border-2 border-amber-200 border-t-amber-600 rounded-full animate-spin"></div><span class="ml-2 text-sm text-gray-500">Loading appointments...</span></div>';
+
+            // Fetch completed appointments for this student
+            fetch(`/appointments/api/completed-appointments/${studentId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    followupAppointmentsList.innerHTML = '';
+                    if (data.appointments && data.appointments.length > 0) {
+                        data.appointments.forEach(apt => {
+                            const card = document.createElement('div');
+                            card.className = 'flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg';
+                            card.innerHTML = `
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate">${apt.date} at ${apt.time}</p>
+                                    <p class="text-xs text-gray-600 truncate">${apt.reason}</p>
+                                </div>
+                                <button type="button"
+                                        onclick="scheduleFollowUp(${apt.medical_record_id}, '${studentName.replace(/'/g, "\\'")}')"
+                                        class="ml-3 flex-shrink-0 inline-flex items-center px-3 py-1.5 border border-amber-300 text-xs font-medium rounded text-amber-700 bg-white hover:bg-amber-50 transition-colors">
+                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    Schedule Follow-up
+                                </button>
+                            `;
+                            followupAppointmentsList.appendChild(card);
+                        });
+                    } else {
+                        followupAppointmentsList.innerHTML = '<p class="text-sm text-gray-500 text-center py-4">No completed appointments with medical records found for this student.</p>';
+                    }
+                })
+                .catch(() => {
+                    followupAppointmentsList.innerHTML = '<p class="text-sm text-red-500 text-center py-4">Error loading appointments.</p>';
+                });
+        }
+
+        document.addEventListener('click', function(e) {
+            if (followupResultsContainer && !followupResultsContainer.contains(e.target) && e.target !== followupSearchInput) {
+                followupResultsContainer.classList.add('hidden');
+            }
+        });
+    }
 });
+
+// Open follow-up scheduling modal
+function scheduleFollowUp(recordId, studentName) {
+    document.dispatchEvent(new CustomEvent('open-modal', {
+        bubbles: true,
+        detail: {
+            type: 'info',
+            title: 'Schedule Follow-up',
+            subtitle: studentName,
+            size: 'sm',
+            hxUrl: '/medical-records/' + recordId + '/schedule-follow-up/',
+            hasForm: true,
+            actionLabel: 'Schedule Follow-up'
+        }
+    }));
+}
 </script>
 {% endblock content %}

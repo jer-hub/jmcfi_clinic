@@ -3,7 +3,7 @@
 {% block title %}User Management - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8 sm:py-12">
+<div class="min-h-screen bg-gray-50 pt-0 pb-8 sm:pb-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {% include 'core/_subnav.html' %}
 
@@ -31,6 +31,12 @@
                             </svg>
                             Clean Up
                         </a>
+                                            <a href="{% url 'core:deleted_user_management' %}" class="inline-flex items-center px-4 py-2 border border-red-300 bg-white text-red-700 text-sm font-medium rounded-lg hover:bg-red-50 shadow-sm transition-all duration-200" title="Review soft-deleted accounts">
+                                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                                Deleted Accounts
+                                            </a>
                         <a href="{% url 'core:user_export_csv' %}" class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 shadow-sm transition-all duration-200" title="Export users to CSV">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -47,88 +53,13 @@
                 </div>
             </div>
 
-            <!-- Statistics Section -->
-            <div class="px-6 sm:px-8 py-6 bg-gray-50/50 border-b border-gray-200">
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-medium text-gray-500 uppercase">Total Users</p>
-                                <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.total_users }}</p>
-                            </div>
-                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-medium text-gray-500 uppercase">Students</p>
-                                <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.total_students }}</p>
-                            </div>
-                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-medium text-gray-500 uppercase">Staff</p>
-                                <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.total_staff }}</p>
-                            </div>
-                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-medium text-gray-500 uppercase">Admins</p>
-                                <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.total_admins }}</p>
-                            </div>
-                            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-medium text-gray-500 uppercase">Active</p>
-                                <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.active_users }}</p>
-                            </div>
-                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs font-medium text-gray-500 uppercase">Inactive</p>
-                                <p class="mt-1 text-2xl font-bold text-gray-900">{{ stats.inactive_users }}</p>
-                            </div>
-                            <div class="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                                <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Statistics Section (HTMX auto-refresh via refreshUserStats trigger) -->
+            <div id="user-stats-cards"
+                 hx-get="{% url 'core:user_stats_cards' %}"
+                 hx-trigger="load, refreshUserStats from:body"
+                 hx-swap="innerHTML"
+                 hx-target="this">
+                {% include 'core/user_management/_user_stats_cards.html' %}
             </div>
 
             <!-- Filters Section -->
@@ -157,7 +88,6 @@
                                 <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Activation</option>
                                 <option value="suspended" {% if status_filter == 'suspended' %}selected{% endif %}>Suspended</option>
                                 <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive (Legacy)</option>
-                                <option value="deleted" {% if status_filter == 'deleted' %}selected{% endif %}>Deleted (Soft)</option>
                             </select>
                         </div>
                         <div class="flex items-end space-x-2">
@@ -213,7 +143,6 @@
                                     </div>
                                     <div class="ml-3 min-w-0">
                                         <div class="text-sm font-semibold text-gray-900 truncate">{{ user_item.get_full_name }}</div>
-                                        <div class="text-xs text-gray-500 truncate">@{{ user_item.username }}</div>
                                     </div>
                                 </div>
                                 <span class="px-2.5 py-1 inline-flex text-[11px] leading-5 font-semibold rounded-full whitespace-nowrap
@@ -255,7 +184,7 @@
 
                                 <div class="flex items-center justify-between gap-4 pt-2">
                                     <div class="flex items-center gap-3">
-                                        <form method="POST" action="{% url 'core:user_toggle_status' user_item.id %}" id="toggle-mobile-{{ user_item.id }}" {% if user_item.role != 'admin' %}hx-post="{% url 'core:user_toggle_status' user_item.id %}" hx-swap="beforeend" hx-target="#messages-container"{% endif %}>
+                                        <form method="POST" action="{% url 'core:user_toggle_status' user_item.id %}" id="toggle-mobile-{{ user_item.id }}" hx-post="{% url 'core:user_toggle_status' user_item.id %}" hx-swap="none" hx-trigger="change" hx-on="htmx:responseError: this.querySelector('.js-account-toggle').checked = !this.querySelector('.js-account-toggle').checked">
                                             {% csrf_token %}
                                             <label class="relative inline-flex items-center {% if user_item.role == 'admin' %}cursor-not-allowed opacity-50{% else %}cursor-pointer{% endif %}">
                                                 <input type="checkbox"
@@ -263,8 +192,7 @@
                                                        {% if user_item.is_active %}checked{% endif %}
                                                        data-user-id="{{ user_item.id }}"
                                                        data-user-role="{{ user_item.role }}"
-                                                       {% if user_item.role == 'admin' %}disabled title="Cannot deactivate admin accounts"{% endif %}
-                                                       onchange="handleToggleChange(event, this.form)">
+                                                       {% if user_item.role == 'admin' %}disabled title="Cannot deactivate admin accounts"{% endif %}>
                                                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                                                 <span class="sr-only" data-user-toggle-label>{% if user_item.is_active %}Deactivate account{% else %}Activate account{% endif %}</span>
                                             </label>
@@ -311,7 +239,6 @@
                                         </div>
                                         <div class="ml-4">
                                             <div class="text-sm font-medium text-gray-900">{{ user_item.get_full_name }}</div>
-                                            <div class="text-sm text-gray-500">@{{ user_item.username }}</div>
                                         </div>
                                     </div>
                                 </td>
@@ -355,7 +282,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <form method="POST" action="{% url 'core:user_toggle_status' user_item.id %}" class="inline-block" id="toggle-{{ user_item.id }}" {% if user_item.role != 'admin' %}hx-post="{% url 'core:user_toggle_status' user_item.id %}" hx-swap="beforeend" hx-target="#messages-container" hx-on="htmx:responseError: revertCheckbox(this)"{% endif %}>
+                                    <form method="POST" action="{% url 'core:user_toggle_status' user_item.id %}" class="inline-block" id="toggle-{{ user_item.id }}" hx-post="{% url 'core:user_toggle_status' user_item.id %}" hx-swap="none" hx-trigger="change" hx-on="htmx:responseError: this.querySelector('.js-account-toggle').checked = !this.querySelector('.js-account-toggle').checked">
                                         {% csrf_token %}
                                         <label class="relative inline-flex items-center {% if user_item.role == 'admin' %}cursor-not-allowed opacity-50{% else %}cursor-pointer{% endif %}">
                                             <input type="checkbox"
@@ -363,8 +290,7 @@
                                                    {% if user_item.is_active %}checked{% endif %}
                                                    data-user-id="{{ user_item.id }}"
                                                    data-user-role="{{ user_item.role }}"
-                                                   {% if user_item.role == 'admin' %}disabled title="Cannot deactivate admin accounts"{% endif %}
-                                                   onchange="handleToggleChange(event, this.form)">
+                                                   {% if user_item.role == 'admin' %}disabled title="Cannot deactivate admin accounts"{% endif %}>
                                             <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
                                         </label>
                                     </form>
@@ -451,309 +377,111 @@
 </div>
 {% endblock content %}
 
-{% block extra_js %}
-<script>
-// Store previous checkbox state
-const checkboxStates = {};
-
-function handleToggleChange(event, form) {
-    const checkbox = event.target;
-    const userId = checkbox.dataset.userId;
-    const userRole = checkbox.dataset.userRole;
-    
-    // Check if user is admin
-    if (userRole === 'admin') {
-        // Prevent toggle and show toast
-        checkbox.checked = !checkbox.checked; // Revert checkbox visually
-        showToast('Cannot deactivate admin accounts.', 'error');
-        return;
-    }
-    
-    // Store the current state before submitting
-    checkboxStates[userId] = checkbox.checked;
-    
-    // Submit the form
-    form.dispatchEvent(new Event('submit'));
-}
-
-function revertCheckbox(form) {
-    const checkbox = form.querySelector('.js-account-toggle');
-    const userId = checkbox.dataset.userId;
-    
-    // Revert to previous state if there was an error
-    if (checkboxStates.hasOwnProperty(userId)) {
-        checkbox.checked = !checkbox.checked;
-    }
-}
-
-document.body.addEventListener('updateStatus', function(evt) {
-    const data = evt.detail;
-    if (data.id && data.html) {
-        const td = document.getElementById('status-' + data.id);
-        if (td) {
-            td.innerHTML = data.html;
-        }
-    }
-});
-
-// Handle HTMX response errors to revert checkbox state
-document.body.addEventListener('htmx:responseError', function(evt) {
-    if (evt.detail.xhr.status >= 400) {
-        const form = evt.detail.xhr.target;
-        if (form && form.classList.contains('inline-block')) {
-            revertCheckbox(form);
-        }
-    }
-});
-
-// Listen for error messages to revert checkbox state
-document.addEventListener('DOMContentLoaded', function() {
-    const messageContainer = document.getElementById('messages-container');
-    if (messageContainer) {
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.addedNodes.length) {
-                    mutation.addedNodes.forEach(function(node) {
-                        if (node.classList && node.classList.contains('message-alert')) {
-                            // Check if this is an error message
-                            if (node.classList.contains('bg-red-50') || node.classList.contains('border-red-400')) {
-                                // Find the last toggled checkbox and revert it
-                                const lastToggledId = Object.keys(checkboxStates).pop();
-                                if (lastToggledId) {
-                                    const checkbox = document.querySelector(`input[data-user-id="${lastToggledId}"]`);
-                                    if (checkbox) {
-                                        checkbox.checked = !checkbox.checked;
-                                    }
-                                }
-                            }
-                        }
-                    });
-                }
-            });
-        });
-        
-        observer.observe(messageContainer, { childList: true });
-    }
-});
-</script>
-{% endblock %}
-
 {% block scripts %}
+<div x-data="userListController()">
+  <!-- Bulk action toolbar -->
+  <template x-if="selectedUsers.size > 0">
+    <div class="px-6 sm:px-8 py-3 border-b border-gray-200 bg-gray-50/50">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+          <input type="checkbox" @click="toggleSelectAll()" :checked="selectedUsers.size === totalUsers" class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+          <label class="text-sm font-medium text-gray-700">
+            Select All <span class="text-gray-500" x-text="`(${selectedUsers.size} selected)`"></span>
+          </label>
+        </div>
+        <div class="flex items-center space-x-2">
+          <select x-model="bulkAction" class="block w-48 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm">
+            <option value="">Select Action</option>
+            <option value="activate">Activate Accounts</option>
+            <option value="deactivate">Deactivate Accounts</option>
+            <option value="delete">Soft Delete Accounts</option>
+          </select>
+          <button type="button" @click="applyBulkAction()" :disabled="!bulkAction" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            Apply
+          </button>
+        </div>
+      </div>
+    </div>
+  </template>
+</div>
+
 <script>
-    // Bulk action functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        const selectAllCheckbox = document.getElementById('select-all-users');
-        const bulkActionBar = document.getElementById('bulk-action-bar');
-        const selectedCountSpan = document.getElementById('selected-count');
-        const bulkActionSelect = document.getElementById('bulk-action-select');
-        const bulkActionApply = document.getElementById('bulk-action-apply');
-        let selectedUsers = new Set();
+  // Global listener for updateStatus custom event from backend
+  document.addEventListener('updateStatus', (e) => {
+    const userId = e.detail?.id;
+    const newStatusHtml = e.detail?.html;
+    
+    if (!userId || !newStatusHtml) return;
 
-        // Add checkboxes to each user row
-        document.querySelectorAll('[data-user-row], [data-user-card]').forEach((row, index) => {
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'select-user h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded';
-            
-            const userId = row.querySelector('[data-user-id]')?.dataset.userId;
-            if (userId) {
-                checkbox.dataset.userId = userId;
-            } else {
-                // Try to get from the toggle
-                const toggle = row.querySelector('.js-account-toggle');
-                if (toggle) checkbox.dataset.userId = toggle.dataset.userId;
-            }
-
-            const cell = document.createElement('td');
-            if (row.dataset.userRow !== undefined) {
-                // Desktop table
-                cell.className = 'px-6 py-4 whitespace-nowrap';
-                cell.appendChild(checkbox);
-                row.insertBefore(cell, row.firstChild);
-            } else {
-                // Mobile card
-                const wrapper = document.createElement('div');
-                wrapper.className = 'flex items-center space-x-2 px-4 pt-3';
-                checkbox.className = 'select-user h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded';
-                wrapper.appendChild(checkbox);
-                row.insertBefore(wrapper, row.firstChild);
-            }
-
-            checkbox.addEventListener('change', function() {
-                if (this.checked) {
-                    selectedUsers.add(this.dataset.userId);
-                } else {
-                    selectedUsers.delete(this.dataset.userId);
-                }
-                updateBulkUI();
-            });
-        });
-
-        selectAllCheckbox.addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('.select-user');
-            checkboxes.forEach(cb => {
-                cb.checked = this.checked;
-                if (this.checked) {
-                    selectedUsers.add(cb.dataset.userId);
-                } else {
-                    selectedUsers.delete(cb.dataset.userId);
-                }
-            });
-            updateBulkUI();
-        });
-
-        function updateBulkUI() {
-            const count = selectedUsers.size;
-            selectedCountSpan.textContent = `(${count} selected)`;
-            if (count > 0) {
-                bulkActionBar.classList.remove('hidden');
-            } else {
-                bulkActionBar.classList.add('hidden');
-            }
-            bulkActionApply.disabled = count === 0 || !bulkActionSelect.value;
-        }
-
-        bulkActionSelect.addEventListener('change', function() {
-            bulkActionApply.disabled = selectedUsers.size === 0 || !this.value;
-        });
-
-        bulkActionApply.addEventListener('click', function() {
-            const action = bulkActionSelect.value;
-            const userIds = Array.from(selectedUsers).join(',');
-
-            if (!action || !userIds) return;
-
-            if (action === 'delete' && !confirm('Are you sure you want to soft-delete the selected users? This action can be reversed by restoring the accounts.')) {
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('action', action);
-            formData.append('user_ids', userIds);
-            formData.append('confirmation', 'True');
-
-            fetch('{% url "core:user_bulk_action" %}', {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    showToastNotification(data.message, 'success');
-                    setTimeout(() => window.location.reload(), 2000);
-                } else {
-                    showToastNotification(data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Bulk action error:', error);
-                showToastNotification('An error occurred while processing the bulk action.', 'error');
-            });
-        });
-    });
-
-    // Lightweight page toast for AJAX actions (fixed positioning, no stacking - matches appointments/settings)
-    function showToastNotification(message, type = 'success') {
-        const classes = {
-            success: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-emerald-50 border-emerald-400 text-emerald-800',
-            error:   'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-red-50 border-red-400 text-red-800',
-            warning: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-amber-50 border-amber-400 text-amber-800'
-        };
-        
-        const toast = document.createElement('div');
-        toast.className = classes[type] || classes.success;
-        toast.style.pointerEvents = 'auto';
-        
-        const icons = {
-            success: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>',
-            error: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>',
-            warning: '<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>'
-        };
-        
-        toast.innerHTML = `
-            <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                ${icons[type] || icons.success}
-            </svg>
-            <span class="flex-1 font-medium text-sm">${message}</span>
-            <button type="button" class="ml-2 opacity-70 hover:opacity-100 transition-opacity" onclick="this.parentElement.remove()">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        // Auto dismiss after 5 seconds
-        setTimeout(() => {
-            toast.style.transition = 'opacity 0.5s ease-out';
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 500);
-        }, 5000);
+    // Update status badge
+    const statusCell = document.getElementById(`status-${userId}`);
+    if (statusCell) {
+      statusCell.innerHTML = newStatusHtml;
     }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        const toggleInputs = document.querySelectorAll('.js-account-toggle');
-        toggleInputs.forEach(function(input) {
-            input.addEventListener('change', function(e) {
-                e.preventDefault();
-                const form = this.closest('form');
-                const url = form.getAttribute('action');
-                const formData = new FormData(form);
-                
-                fetch(url, {
-                    method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-                    }
-                })
-                .then(response => response.json())
-                .then(({status, is_active, message}) => {
-                    if (status === 'success') {
-                        showToastNotification(message, is_active ? 'success' : 'warning');
-                        
-                        const container = form.closest('[data-user-row], [data-user-card]');
-                        if (container) {
-                            const statusCell = container.querySelector('[data-user-status]');
-                            const toggleLabel = container.querySelector('[data-user-toggle-state]');
-                            if (statusCell) {
-                                statusCell.innerHTML = is_active
-                                    ? `
-                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                            </svg>
-                                            Active
-                                        </span>
-                                    `
-                                    : `
-                                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path>
-                                            </svg>
-                                            Suspended
-                                        </span>
-                                    `;
-                            }
-                            if (toggleLabel) {
-                                toggleLabel.textContent = is_active ? 'Active' : 'Inactive';
-                            }
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error toggling user status:', error);
-                    // Revert toggle if error
-                    this.checked = !this.checked;
-                });
+    // Update checkbox state based on new status
+    const checkbox = document.querySelector(`.js-account-toggle[data-user-id="${userId}"]`);
+    if (checkbox) {
+      // Check if status is Active (contains checkmark icon)
+      const isActive = newStatusHtml.includes('Active') && !newStatusHtml.includes('Pending');
+      checkbox.checked = isActive;
+    }
+  });
+
+  function userListController() {
+    return {
+      selectedUsers: new Set(),
+      totalUsers: {{ users.paginator.count }},
+      bulkAction: '',
+      
+      init() {
+        this.$nextTick(() => {
+          document.querySelectorAll('.select-user').forEach(cb => {
+            cb.addEventListener('change', () => {
+              if (cb.checked) this.selectedUsers.add(cb.dataset.userId);
+              else this.selectedUsers.delete(cb.dataset.userId);
             });
+          });
         });
-    });
+      },
+      
+      toggleSelectAll() {
+        const allChecked = this.selectedUsers.size === this.totalUsers;
+        document.querySelectorAll('.select-user').forEach(cb => {
+          cb.checked = !allChecked;
+          if (!allChecked) this.selectedUsers.add(cb.dataset.userId);
+          else this.selectedUsers.delete(cb.dataset.userId);
+        });
+      },
+      
+      applyBulkAction() {
+        if (!this.bulkAction) return;
+        if (this.bulkAction === 'delete' && !confirm('Are you sure you want to soft-delete the selected users? This action can be reversed by restoring the accounts.')) return;
+
+        const userIds = Array.from(this.selectedUsers).join(',');
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "core:user_bulk_action" %}';
+        form.innerHTML = `{% csrf_token %}<input type="hidden" name="action" value="${this.bulkAction}"><input type="hidden" name="user_ids" value="${userIds}"><input type="hidden" name="confirmation" value="True">`;
+        form.style.display = 'none';
+        document.body.appendChild(form);
+
+        htmx.ajax('POST', form.action, {
+          source: form,
+          swap: 'none',
+          values: {
+            csrfmiddlewaretoken: form.querySelector('[name=csrfmiddlewaretoken]').value,
+            action: this.bulkAction,
+            user_ids: userIds,
+            confirmation: 'True'
+          }
+        });
+        htmx.on('htmx:afterRequest', () => {
+          document.body.dispatchEvent(new CustomEvent('refreshUserStats'));
+          setTimeout(() => window.location.reload(), 2000);
+        });
+      }
+    };
+  }
 </script>
 {% endblock scripts %}

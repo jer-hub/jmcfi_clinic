@@ -1,10 +1,14 @@
 <!-- Student Profile Fields -->
 <div class="space-y-8"
-      x-data="studentAcademicEditForm(
-          '{{ form.department.value|default_if_none:""|escapejs }}',
-          '{{ form.course.value|default_if_none:""|escapejs }}',
-          '{{ form.year_level.value|default_if_none:""|escapejs }}'
-      )">
+     x-data="studentAcademicEditForm(
+         '{{ form.department.value|default_if_none:""|escapejs }}',
+         '{{ form.course.value|default_if_none:""|escapejs }}',
+         '{{ form.year_level.value|default_if_none:""|escapejs }}',
+         {{ college_options_json|safe }},
+         {{ course_options_by_college_json|safe }},
+         {{ year_level_options_by_college_json|safe }}
+     )"
+     x-init="init()">
     <!-- Demographics Section -->
      <div class="border-b-2 border-gray-200 pb-8">
         <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
@@ -244,9 +248,9 @@
                         class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                         required>
                     <option value="">Select college/department</option>
-                    {% for option in college_options %}
-                        <option value="{{ option|escape }}" {% if form.department.value == option %}selected{% endif %}>{{ option }}</option>
-                    {% endfor %}
+                    <template x-for="option in collegeOptions" :key="option">
+                        <option :value="option" x-text="option"></option>
+                    </template>
                 </select>
                 <p class="mt-1 text-xs text-gray-500">Select your college/department first</p>
                 {% if form.department.errors %}
@@ -270,14 +274,13 @@
                 </label>
                 <select name="course"
                         id="{{ form.course.id_for_label }}"
-                        x-ref="courseSelect"
                         x-model="course"
                         :required="!isCourseOptional"
                         class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                     <option value="">Select course/program</option>
-                    {% for option in initial_course_options %}
-                        <option value="{{ option|escape }}" {% if form.course.value == option %}selected{% endif %}>{{ option }}</option>
-                    {% endfor %}
+                    <template x-for="option in filteredCourseOptions" :key="option">
+                        <option :value="option" x-text="option"></option>
+                    </template>
                 </select>
                 <p class="mt-1 text-xs text-gray-500">Filtered by selected college/department</p>
                 {% if form.course.errors %}
@@ -299,14 +302,13 @@
                 </label>
                 <select name="year_level"
                         id="{{ form.year_level.id_for_label }}"
-                        x-ref="yearLevelSelect"
                         x-model="yearLevel"
                         required
                         class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                     <option value="">Select year level</option>
-                    {% for option in initial_year_level_options %}
-                        <option value="{{ option|escape }}" {% if form.year_level.value == option %}selected{% endif %}>{{ option }}</option>
-                    {% endfor %}
+                    <template x-for="option in filteredYearLevelOptions" :key="option">
+                        <option :value="option" x-text="option"></option>
+                    </template>
                 </select>
                 <p class="mt-1 text-xs text-gray-500">Filtered by selected college/department</p>
                 {% if form.year_level.errors %}

@@ -10,67 +10,83 @@
 
         <!-- Header -->
         <div class="mb-8">
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                        <span class="text-primary-600">
-                            <i class="fas fa-tooth"></i> Dental Record Details
+            <div class="flex items-start justify-between flex-wrap gap-6">
+                <div class="flex-1">
+                    <div class="flex items-center gap-4 mb-2">
+                        <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl shadow-lg">
+                            <i class="fas fa-tooth text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-3xl font-bold text-gray-900">Dental Record Details</h1>
+                            <p class="text-sm text-gray-500 mt-1">Comprehensive dental health record</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        {% if dental_record.status == 'completed' %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 text-xs font-semibold rounded-full border border-green-300 shadow-sm">
+                            <i class="fas fa-check-circle"></i> Completed
                         </span>
-                    </h1>
-                    <p class="mt-2 text-gray-600">Comprehensive dental health record</p>
+                        {% else %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full border border-amber-300 shadow-sm">
+                            <i class="fas fa-clock"></i> Pending
+                        </span>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="flex gap-2 flex-wrap">
+                <div class="flex flex-wrap items-center gap-2">
                     {% if user.role != 'student' %}
-                    <a href="{% url 'dental_records:dental_record_edit' dental_record.id %}" 
-                       class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors duration-200">
-                        <i class="fas fa-edit"></i> Edit
+                    <a href="{% url 'dental_records:dental_record_edit' dental_record.id %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-md hover:shadow-lg">
+                        <i class="fas fa-edit"></i> <span class="hidden sm:inline">Edit</span>
                     </a>
                     {% endif %}
-                    <a href="{% url 'dental_records:dental_record_export_json' dental_record.id %}" 
-                       class="inline-flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors duration-200" target="_blank">
-                        <i class="fas fa-download"></i> Export
+                    <a href="{% url 'dental_records:dental_record_export_json' dental_record.id %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white text-sm font-medium rounded-lg hover:bg-primary-600 transition-all duration-200 shadow-md hover:shadow-lg" target="_blank">
+                        <i class="fas fa-download"></i> <span class="hidden sm:inline">Export</span>
                     </a>
-                    <a href="{% url 'dental_records:dental_record_list' %}" 
-                       class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
-                        <i class="fas fa-arrow-left"></i> Back
+                    <a href="{% url 'dental_records:dental_record_list' %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md">
+                        <i class="fas fa-arrow-left"></i> <span class="hidden sm:inline">Back</span>
                     </a>
                 </div>
             </div>
         </div>
 
         <!-- Navigation Tabs -->
-        <div class="bg-white rounded-t-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div class="border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
-                <nav class="flex w-full -mb-px px-0" aria-label="Tabs">
-                    <button onclick="switchTab('demographics')" id="tab-demographics" class="tab-button active flex-1 py-2 px-3 border-b-2 border-primary-600 font-medium text-xs text-primary-600 focus:outline-none text-center">
-                        <i class="fas fa-user mr-1"></i> Demographics
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-8">
+            <div class="border-b border-gray-200 bg-gradient-to-r from-primary-50 via-white to-primary-50">
+                <nav class="flex overflow-x-auto -mb-px px-4 scrollbar-thin" aria-label="Tabs" style="scrollbar-width: thin;">
+                    <button onclick="switchTab('demographics')" id="tab-demographics" class="tab-button active inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 border-primary-600 font-semibold text-sm text-primary-600 focus:outline-none flex-shrink-0 transition-all duration-200">
+                        <i class="fas fa-user mr-2"></i> Demographics
                     </button>
-                    <button onclick="switchTab('health-questionnaire')" id="tab-health-questionnaire" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-clipboard-list mr-1"></i> Health Questionnaire
+                    <button onclick="switchTab('health-questionnaire')" id="tab-health-questionnaire" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 border-transparent font-semibold text-sm text-gray-600 hover:text-primary-700 hover:border-primary-300 focus:outline-none flex-shrink-0 transition-all duration-200">
+                        <i class="fas fa-clipboard-list mr-2"></i> <span class="hidden sm:inline">Health Questionnaire</span><span class="sm:hidden">Health Q.</span>
                     </button>
-                    <button onclick="switchTab('systems-review')" id="tab-systems-review" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-heartbeat mr-1"></i> Systems Review
+                    <button onclick="switchTab('systems-review')" id="tab-systems-review" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 border-transparent font-semibold text-sm text-gray-600 hover:text-primary-700 hover:border-primary-300 focus:outline-none flex-shrink-0 transition-all duration-200">
+                        <i class="fas fa-heartbeat mr-2"></i> <span class="hidden sm:inline">Systems Review</span><span class="sm:hidden">Systems</span>
                     </button>
-                    <button onclick="switchTab('dental-history')" id="tab-dental-history" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-history mr-1"></i> Dental History
+                    <button onclick="switchTab('dental-history')" id="tab-dental-history" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 border-transparent font-semibold text-sm text-gray-600 hover:text-primary-700 hover:border-primary-300 focus:outline-none flex-shrink-0 transition-all duration-200">
+                        <i class="fas fa-history mr-2"></i> <span class="hidden sm:inline">Dental History</span><span class="sm:hidden">History</span>
                     </button>
-                    <button onclick="switchTab('examination')" id="tab-examination" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-stethoscope mr-1"></i> Examination
+                    {% if is_pediatric %}
+                    <button onclick="switchTab('pediatric')" id="tab-pediatric" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 border-transparent font-semibold text-sm text-gray-600 hover:text-primary-700 hover:border-primary-300 focus:outline-none flex-shrink-0 transition-all duration-200">
+                        <i class="fas fa-child mr-2"></i> Pediatric
                     </button>
-                    <button onclick="switchTab('vital-signs')" id="tab-vital-signs" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-thermometer mr-1"></i> Vital Signs
+                    {% endif %}
+                    <button onclick="switchTab('examination')" id="tab-examination" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 border-transparent font-semibold text-sm text-gray-600 hover:text-primary-700 hover:border-primary-300 focus:outline-none flex-shrink-0 transition-all duration-200">
+                        <i class="fas fa-stethoscope mr-2"></i> Exam
                     </button>
-                    <button onclick="switchTab('dental-chart')" id="tab-dental-chart" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-teeth mr-1"></i> Dental Chart
+                    <button onclick="switchTab('vital-signs')" id="tab-vital-signs" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 border-transparent font-semibold text-sm text-gray-600 hover:text-primary-700 hover:border-primary-300 focus:outline-none flex-shrink-0 transition-all duration-200">
+                        <i class="fas fa-thermometer mr-2"></i> Vitals
                     </button>
-                    <button onclick="switchTab('consent')" id="tab-consent" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-file-signature mr-1"></i> Consent
+                    <button onclick="switchTab('dental-chart')" id="tab-dental-chart" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 border-transparent font-semibold text-sm text-gray-600 hover:text-primary-700 hover:border-primary-300 focus:outline-none flex-shrink-0 transition-all duration-200">
+                        <i class="fas fa-teeth mr-2"></i> Dental Chart
+                    </button>
+                    <button onclick="switchTab('consent')" id="tab-consent" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 border-transparent font-semibold text-sm text-gray-600 hover:text-primary-700 hover:border-primary-300 focus:outline-none flex-shrink-0 transition-all duration-200">
+                        <i class="fas fa-file-signature mr-2"></i> Consent
                     </button>
                 </nav>
             </div>
 
             <!-- Tab Panels -->
-            <div class="p-6 sm:p-8">
+            <div class="p-6 sm:p-8 bg-gradient-to-br from-gray-50 to-white">
 
                 <!-- Demographics Tab -->
                 <div id="panel-demographics" class="tab-panel">
@@ -198,68 +214,161 @@
                 <!-- Health Questionnaire Tab -->
                 <div id="panel-health-questionnaire" class="tab-panel hidden">
                     {% if health_questionnaire %}
-                    {% if health_questionnaire.last_hospital_date or health_questionnaire.doctor_care_2years or health_questionnaire.medications_2years or health_questionnaire.excessive_bleeding or health_questionnaire.easily_exhausted or health_questionnaire.is_pregnant %}
                     <div class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-4">
-                                {% if health_questionnaire.last_hospital_date %}
+                        <!-- Hospital Confinement -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-hospital text-primary-600"></i> Hospital &amp; Doctor History
+                            </h3>
+                            {% if health_questionnaire.last_hospital_date or health_questionnaire.last_hospital_reason or health_questionnaire.last_doctor_date or health_questionnaire.last_doctor_reason %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {% if health_questionnaire.last_hospital_date or health_questionnaire.last_hospital_reason %}
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-primary-900">Last Hospital Confinement</span>
-                                    <p class="text-primary-800 font-semibold mt-1">{{ health_questionnaire.last_hospital_date|date:"M d, Y" }}</p>
+                                    <p class="text-primary-800 font-semibold mt-1">{{ health_questionnaire.last_hospital_date|date:"M d, Y"|default:"—" }}</p>
+                                    {% if health_questionnaire.last_hospital_reason %}
                                     <p class="text-primary-700 text-sm mt-1">{{ health_questionnaire.last_hospital_reason }}</p>
+                                    {% endif %}
                                 </div>
                                 {% endif %}
-                                
+                                {% if health_questionnaire.last_doctor_date or health_questionnaire.last_doctor_reason %}
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-primary-900">Last Doctor Visit</span>
+                                    <p class="text-primary-800 font-semibold mt-1">{{ health_questionnaire.last_doctor_date|date:"M d, Y"|default:"—" }}</p>
+                                    {% if health_questionnaire.last_doctor_reason %}
+                                    <p class="text-primary-700 text-sm mt-1">{{ health_questionnaire.last_doctor_reason }}</p>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Medical Care & Medications -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-notes-medical text-primary-600"></i> Medical Care &amp; Medications
+                            </h3>
+                            {% if health_questionnaire.doctor_care_2years or health_questionnaire.medications_2years %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {% if health_questionnaire.doctor_care_2years %}
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-primary-900">Under Doctor's Care (Last 2 Years)</span>
                                     <p class="text-primary-800 font-semibold mt-1">Yes</p>
+                                    {% if health_questionnaire.doctor_care_reason %}
                                     <p class="text-primary-700 text-sm mt-1">{{ health_questionnaire.doctor_care_reason }}</p>
+                                    {% endif %}
                                 </div>
                                 {% endif %}
-                                
                                 {% if health_questionnaire.medications_2years %}
                                 <div class="p-4 bg-green-50 rounded-lg">
                                     <span class="text-sm font-medium text-green-900">Medications (Last 2 Years)</span>
                                     <p class="text-green-800 font-semibold mt-1">Yes</p>
+                                    {% if health_questionnaire.medications_for %}
                                     <p class="text-green-700 text-sm mt-1">{{ health_questionnaire.medications_for }}</p>
+                                    {% endif %}
                                 </div>
                                 {% endif %}
                             </div>
-                            <div class="space-y-4">
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Symptoms & Conditions -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-exclamation-triangle text-primary-600"></i> Symptoms &amp; Conditions
+                            </h3>
+                            {% if health_questionnaire.excessive_bleeding or health_questionnaire.easily_exhausted or health_questionnaire.swollen_ankles or health_questionnaire.more_than_2_pillows or health_questionnaire.tumor_cancer %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {% if health_questionnaire.excessive_bleeding %}
                                 <div class="p-4 bg-red-50 rounded-lg">
                                     <span class="text-sm font-medium text-red-900">Excessive Bleeding</span>
                                     <p class="text-red-800 font-semibold mt-1">Yes</p>
+                                    {% if health_questionnaire.excessive_bleeding_when %}
                                     <p class="text-red-700 text-sm mt-1">{{ health_questionnaire.excessive_bleeding_when }}</p>
+                                    {% endif %}
                                 </div>
                                 {% endif %}
-                                
                                 {% if health_questionnaire.easily_exhausted %}
                                 <div class="p-4 bg-yellow-50 rounded-lg">
                                     <span class="text-sm font-medium text-yellow-900">Easily Exhausted</span>
                                     <p class="text-yellow-800 font-semibold mt-1">Yes</p>
                                 </div>
                                 {% endif %}
-                                
+                                {% if health_questionnaire.swollen_ankles %}
+                                <div class="p-4 bg-yellow-50 rounded-lg">
+                                    <span class="text-sm font-medium text-yellow-900">Swollen Ankles</span>
+                                    <p class="text-yellow-800 font-semibold mt-1">Yes</p>
+                                </div>
+                                {% endif %}
+                                {% if health_questionnaire.more_than_2_pillows %}
+                                <div class="p-4 bg-yellow-50 rounded-lg">
+                                    <span class="text-sm font-medium text-yellow-900">Uses More Than 2 Pillows</span>
+                                    <p class="text-yellow-800 font-semibold mt-1">Yes</p>
+                                    {% if health_questionnaire.pillows_reason %}
+                                    <p class="text-yellow-700 text-sm mt-1">{{ health_questionnaire.pillows_reason }}</p>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                {% if health_questionnaire.tumor_cancer %}
+                                <div class="p-4 bg-red-50 rounded-lg">
+                                    <span class="text-sm font-medium text-red-900">Tumor/Cancer Diagnosis</span>
+                                    <p class="text-red-800 font-semibold mt-1">Yes</p>
+                                    {% if health_questionnaire.tumor_cancer_when %}
+                                    <p class="text-red-700 text-sm mt-1">{{ health_questionnaire.tumor_cancer_when }}</p>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Women's Health -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-pink-200 flex items-center gap-2">
+                                <i class="fas fa-female text-pink-600"></i> Women's Health
+                            </h3>
+                            {% if health_questionnaire.is_pregnant or health_questionnaire.birth_control_pills or health_questionnaire.anticipate_pregnancy or health_questionnaire.having_period %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 {% if health_questionnaire.is_pregnant %}
                                 <div class="p-4 bg-pink-50 rounded-lg">
                                     <span class="text-sm font-medium text-pink-900">Pregnant</span>
                                     <p class="text-pink-800 font-semibold mt-1">Yes ({{ health_questionnaire.pregnancy_months }} months)</p>
                                 </div>
                                 {% endif %}
+                                {% if health_questionnaire.birth_control_pills %}
+                                <div class="p-4 bg-pink-50 rounded-lg">
+                                    <span class="text-sm font-medium text-pink-900">Taking Birth Control Pills</span>
+                                    <p class="text-pink-800 font-semibold mt-1">Yes</p>
+                                    {% if health_questionnaire.birth_control_specify %}
+                                    <p class="text-pink-700 text-sm mt-1">{{ health_questionnaire.birth_control_specify }}</p>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                                {% if health_questionnaire.anticipate_pregnancy %}
+                                <div class="p-4 bg-pink-50 rounded-lg">
+                                    <span class="text-sm font-medium text-pink-900">Anticipating Pregnancy</span>
+                                    <p class="text-pink-800 font-semibold mt-1">Yes</p>
+                                </div>
+                                {% endif %}
+                                {% if health_questionnaire.having_period %}
+                                <div class="p-4 bg-pink-50 rounded-lg">
+                                    <span class="text-sm font-medium text-pink-900">Currently Having Period</span>
+                                    <p class="text-pink-800 font-semibold mt-1">Yes</p>
+                                </div>
+                                {% endif %}
                             </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
                         </div>
                     </div>
-                    {% else %}
-                    <div class="flex flex-col items-center justify-center py-16 text-center">
-                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                            <i class="fas fa-clipboard-list text-2xl text-gray-400"></i>
-                        </div>
-                        <h4 class="text-gray-700 font-semibold text-lg mb-1">No Notable Health Concerns</h4>
-                        <p class="text-gray-400 text-sm">No significant health concerns or conditions were reported in the questionnaire.</p>
-                    </div>
-                    {% endif %}
                     {% else %}
                     <div class="flex flex-col items-center justify-center py-16 text-center">
                         <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
@@ -274,7 +383,7 @@
                 <!-- Systems Review Tab -->
                 <div id="panel-systems-review" class="tab-panel hidden">
                     {% if systems_review %}
-                    {% if systems_review.allergies or systems_review.heart_disease or systems_review.hypertension or systems_review.diabetes or systems_review.asthma or systems_review.bleeding_tendencies %}
+                    {% if systems_review.allergies or systems_review.heart_disease or systems_review.hypertension or systems_review.diabetes or systems_review.asthma or systems_review.bleeding_tendencies or systems_review.rheumatic_heart_disease or systems_review.heart_surgery or systems_review.stroke or systems_review.emphysema or systems_review.cough or systems_review.pneumonia or systems_review.hay_fever or systems_review.sinus_problem or systems_review.tuberculosis or systems_review.anemia or systems_review.hemophilia or systems_review.sickle_cell_anemia or systems_review.blood_transfusion or systems_review.thyroid_problem or systems_review.glandular_problem or systems_review.stomach_ulcer or systems_review.liver_problem or systems_review.hepatitis_a or systems_review.hepatitis_b or systems_review.kidney_problem or systems_review.hiv_aids or systems_review.scarlet_fever or systems_review.std or systems_review.brain_injury or systems_review.psychiatric_visit or systems_review.arthritis or systems_review.rheumatism or systems_review.tmj_problem or systems_review.cancer_treatment or systems_review.glaucoma or systems_review.cold_sores or systems_review.bruising or systems_review.drug_addiction or systems_review.ear_infection or systems_review.hyperactivity or systems_review.skin_disorder or systems_review.development_problems or systems_review.aspirin_medication or systems_review.cortisone_medication or systems_review.other_conditions %}
                     <div class="space-y-6">
                         {% if systems_review.allergies %}
                         <div class="bg-red-50 border-l-4 border-red-500 p-4">
@@ -288,40 +397,184 @@
                         </div>
                         {% endif %}
                         
+                        <!-- Cardiovascular -->
                         <div>
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200">Medical Conditions:</h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {% if systems_review.heart_disease %}
-                                <div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg">
-                                    <i class="fas fa-check-circle text-primary-600"></i>
-                                    <span class="text-gray-800">Heart Disease</span>
-                                </div>
-                                {% endif %}
-                                {% if systems_review.hypertension %}
-                                <div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg">
-                                    <i class="fas fa-check-circle text-primary-600"></i>
-                                    <span class="text-gray-800">Hypertension</span>
-                                </div>
-                                {% endif %}
-                                {% if systems_review.diabetes %}
-                                <div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg">
-                                    <i class="fas fa-check-circle text-primary-600"></i>
-                                    <span class="text-gray-800">Diabetes</span>
-                                </div>
-                                {% endif %}
-                                {% if systems_review.asthma %}
-                                <div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg">
-                                    <i class="fas fa-check-circle text-primary-600"></i>
-                                    <span class="text-gray-800">Asthma</span>
-                                </div>
-                                {% endif %}
-                                {% if systems_review.bleeding_tendencies %}
-                                <div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg">
-                                    <i class="fas fa-check-circle text-primary-600"></i>
-                                    <span class="text-gray-800">Bleeding Tendencies</span>
-                                </div>
-                                {% endif %}
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-red-200 flex items-center gap-2">
+                                <i class="fas fa-heart text-red-500"></i> Cardiovascular
+                            </h3>
+                            {% if systems_review.heart_disease or systems_review.hypertension or systems_review.rheumatic_heart_disease or systems_review.heart_surgery or systems_review.stroke %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if systems_review.heart_disease %}<div class="flex items-center gap-2 p-3 bg-red-50 rounded-lg"><i class="fas fa-check-circle text-red-600"></i><span class="text-gray-800">Heart Disease</span></div>{% endif %}
+                                {% if systems_review.hypertension %}<div class="flex items-center gap-2 p-3 bg-red-50 rounded-lg"><i class="fas fa-check-circle text-red-600"></i><span class="text-gray-800">Hypertension</span></div>{% endif %}
+                                {% if systems_review.rheumatic_heart_disease %}<div class="flex items-center gap-2 p-3 bg-red-50 rounded-lg"><i class="fas fa-check-circle text-red-600"></i><span class="text-gray-800">Rheumatic Heart Disease</span></div>{% endif %}
+                                {% if systems_review.heart_surgery %}<div class="flex items-center gap-2 p-3 bg-red-50 rounded-lg"><i class="fas fa-check-circle text-red-600"></i><span class="text-gray-800">Heart Surgery</span></div>{% endif %}
+                                {% if systems_review.stroke %}<div class="flex items-center gap-2 p-3 bg-red-50 rounded-lg"><i class="fas fa-check-circle text-red-600"></i><span class="text-gray-800">Stroke</span></div>{% endif %}
                             </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Respiratory -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-blue-200 flex items-center gap-2">
+                                <i class="fas fa-lungs text-blue-500"></i> Respiratory
+                            </h3>
+                            {% if systems_review.asthma or systems_review.emphysema or systems_review.cough or systems_review.pneumonia or systems_review.hay_fever or systems_review.sinus_problem or systems_review.tuberculosis %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if systems_review.asthma %}<div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg"><i class="fas fa-check-circle text-blue-600"></i><span class="text-gray-800">Asthma</span></div>{% endif %}
+                                {% if systems_review.emphysema %}<div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg"><i class="fas fa-check-circle text-blue-600"></i><span class="text-gray-800">Emphysema</span></div>{% endif %}
+                                {% if systems_review.cough %}<div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg"><i class="fas fa-check-circle text-blue-600"></i><span class="text-gray-800">Cough</span></div>{% endif %}
+                                {% if systems_review.pneumonia %}<div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg"><i class="fas fa-check-circle text-blue-600"></i><span class="text-gray-800">Pneumonia</span></div>{% endif %}
+                                {% if systems_review.hay_fever %}<div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg"><i class="fas fa-check-circle text-blue-600"></i><span class="text-gray-800">Hay Fever</span></div>{% endif %}
+                                {% if systems_review.sinus_problem %}<div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg"><i class="fas fa-check-circle text-blue-600"></i><span class="text-gray-800">Sinus Problem</span></div>{% endif %}
+                                {% if systems_review.tuberculosis %}<div class="flex items-center gap-2 p-3 bg-blue-50 rounded-lg"><i class="fas fa-check-circle text-blue-600"></i><span class="text-gray-800">Tuberculosis</span></div>{% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Blood/Hematologic -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-purple-200 flex items-center gap-2">
+                                <i class="fas fa-tint text-purple-500"></i> Blood / Hematologic
+                            </h3>
+                            {% if systems_review.anemia or systems_review.bleeding_tendencies or systems_review.hemophilia or systems_review.sickle_cell_anemia or systems_review.blood_transfusion %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if systems_review.anemia %}<div class="flex items-center gap-2 p-3 bg-purple-50 rounded-lg"><i class="fas fa-check-circle text-purple-600"></i><span class="text-gray-800">Anemia</span></div>{% endif %}
+                                {% if systems_review.bleeding_tendencies %}<div class="flex items-center gap-2 p-3 bg-purple-50 rounded-lg"><i class="fas fa-check-circle text-purple-600"></i><span class="text-gray-800">Bleeding Tendencies</span></div>{% endif %}
+                                {% if systems_review.hemophilia %}<div class="flex items-center gap-2 p-3 bg-purple-50 rounded-lg"><i class="fas fa-check-circle text-purple-600"></i><span class="text-gray-800">Hemophilia</span></div>{% endif %}
+                                {% if systems_review.sickle_cell_anemia %}<div class="flex items-center gap-2 p-3 bg-purple-50 rounded-lg"><i class="fas fa-check-circle text-purple-600"></i><span class="text-gray-800">Sickle Cell Anemia</span></div>{% endif %}
+                                {% if systems_review.blood_transfusion %}<div class="flex items-center gap-2 p-3 bg-purple-50 rounded-lg"><i class="fas fa-check-circle text-purple-600"></i><span class="text-gray-800">Blood Transfusion</span></div>{% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Endocrine/Metabolic -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-yellow-200 flex items-center gap-2">
+                                <i class="fas fa-balance-scale text-yellow-500"></i> Endocrine / Metabolic
+                            </h3>
+                            {% if systems_review.diabetes or systems_review.thyroid_problem or systems_review.glandular_problem %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if systems_review.diabetes %}<div class="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg"><i class="fas fa-check-circle text-yellow-600"></i><span class="text-gray-800">Diabetes</span></div>{% endif %}
+                                {% if systems_review.thyroid_problem %}<div class="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg"><i class="fas fa-check-circle text-yellow-600"></i><span class="text-gray-800">Thyroid Problem</span></div>{% endif %}
+                                {% if systems_review.glandular_problem %}<div class="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg"><i class="fas fa-check-circle text-yellow-600"></i><span class="text-gray-800">Glandular Problem</span></div>{% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Gastrointestinal -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-green-200 flex items-center gap-2">
+                                <i class="fas fa-stomach text-green-500"></i> Gastrointestinal
+                            </h3>
+                            {% if systems_review.stomach_ulcer or systems_review.liver_problem or systems_review.hepatitis_a or systems_review.hepatitis_b %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if systems_review.stomach_ulcer %}<div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg"><i class="fas fa-check-circle text-green-600"></i><span class="text-gray-800">Stomach Ulcer</span></div>{% endif %}
+                                {% if systems_review.liver_problem %}<div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg"><i class="fas fa-check-circle text-green-600"></i><span class="text-gray-800">Liver Problem</span></div>{% endif %}
+                                {% if systems_review.hepatitis_a %}<div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg"><i class="fas fa-check-circle text-green-600"></i><span class="text-gray-800">Hepatitis A</span></div>{% endif %}
+                                {% if systems_review.hepatitis_b %}<div class="flex items-center gap-2 p-3 bg-green-50 rounded-lg"><i class="fas fa-check-circle text-green-600"></i><span class="text-gray-800">Hepatitis B</span></div>{% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Renal -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-200 flex items-center gap-2">
+                                <i class="fas fa-kidneys text-indigo-500"></i> Renal
+                            </h3>
+                            {% if systems_review.kidney_problem %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div class="flex items-center gap-2 p-3 bg-indigo-50 rounded-lg"><i class="fas fa-check-circle text-indigo-600"></i><span class="text-gray-800">Kidney Problem</span></div>
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Infectious Diseases -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-orange-200 flex items-center gap-2">
+                                <i class="fas fa-virus text-orange-500"></i> Infectious Diseases
+                            </h3>
+                            {% if systems_review.hiv_aids or systems_review.scarlet_fever or systems_review.std %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if systems_review.hiv_aids %}<div class="flex items-center gap-2 p-3 bg-orange-50 rounded-lg"><i class="fas fa-check-circle text-orange-600"></i><span class="text-gray-800">HIV/AIDS</span></div>{% endif %}
+                                {% if systems_review.scarlet_fever %}<div class="flex items-center gap-2 p-3 bg-orange-50 rounded-lg"><i class="fas fa-check-circle text-orange-600"></i><span class="text-gray-800">Scarlet Fever</span></div>{% endif %}
+                                {% if systems_review.std %}<div class="flex items-center gap-2 p-3 bg-orange-50 rounded-lg"><i class="fas fa-check-circle text-orange-600"></i><span class="text-gray-800">STD</span></div>{% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Neurological -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-teal-200 flex items-center gap-2">
+                                <i class="fas fa-brain text-teal-500"></i> Neurological
+                            </h3>
+                            {% if systems_review.brain_injury or systems_review.psychiatric_visit %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if systems_review.brain_injury %}<div class="flex items-center gap-2 p-3 bg-teal-50 rounded-lg"><i class="fas fa-check-circle text-teal-600"></i><span class="text-gray-800">Brain Injury</span></div>{% endif %}
+                                {% if systems_review.psychiatric_visit %}<div class="flex items-center gap-2 p-3 bg-teal-50 rounded-lg"><i class="fas fa-check-circle text-teal-600"></i><span class="text-gray-800">Psychiatric Visit</span></div>{% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Musculoskeletal -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-cyan-200 flex items-center gap-2">
+                                <i class="fas fa-bone text-cyan-500"></i> Musculoskeletal
+                            </h3>
+                            {% if systems_review.arthritis or systems_review.rheumatism or systems_review.tmj_problem %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if systems_review.arthritis %}<div class="flex items-center gap-2 p-3 bg-cyan-50 rounded-lg"><i class="fas fa-check-circle text-cyan-600"></i><span class="text-gray-800">Arthritis</span></div>{% endif %}
+                                {% if systems_review.rheumatism %}<div class="flex items-center gap-2 p-3 bg-cyan-50 rounded-lg"><i class="fas fa-check-circle text-cyan-600"></i><span class="text-gray-800">Rheumatism</span></div>{% endif %}
+                                {% if systems_review.tmj_problem %}<div class="flex items-center gap-2 p-3 bg-cyan-50 rounded-lg"><i class="fas fa-check-circle text-cyan-600"></i><span class="text-gray-800">TMJ Problem</span></div>{% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Other Conditions -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-gray-200 flex items-center gap-2">
+                                <i class="fas fa-ellipsis-h text-gray-500"></i> Other Conditions &amp; Medications
+                            </h3>
+                            {% if systems_review.cancer_treatment or systems_review.glaucoma or systems_review.cold_sores or systems_review.bruising or systems_review.drug_addiction or systems_review.ear_infection or systems_review.hyperactivity or systems_review.skin_disorder or systems_review.development_problems or systems_review.aspirin_medication or systems_review.cortisone_medication or systems_review.other_conditions %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if systems_review.cancer_treatment %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Cancer Treatment</span></div>{% endif %}
+                                {% if systems_review.glaucoma %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Glaucoma</span></div>{% endif %}
+                                {% if systems_review.cold_sores %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Cold Sores</span></div>{% endif %}
+                                {% if systems_review.bruising %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Bruising</span></div>{% endif %}
+                                {% if systems_review.drug_addiction %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Drug Addiction</span></div>{% endif %}
+                                {% if systems_review.ear_infection %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Ear Infection</span></div>{% endif %}
+                                {% if systems_review.hyperactivity %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Hyperactivity</span></div>{% endif %}
+                                {% if systems_review.skin_disorder %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Skin Disorder</span></div>{% endif %}
+                                {% if systems_review.development_problems %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Development Problems</span></div>{% endif %}
+                                {% if systems_review.aspirin_medication %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Aspirin Medication</span></div>{% endif %}
+                                {% if systems_review.cortisone_medication %}<div class="flex items-center gap-2 p-3 bg-gray-50 rounded-lg"><i class="fas fa-check-circle text-gray-600"></i><span class="text-gray-800">Cortisone Medication</span></div>{% endif %}
+                            </div>
+                            {% if systems_review.other_conditions %}
+                            <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+                                <span class="text-sm font-medium text-gray-600">Other Conditions</span>
+                                <p class="text-gray-900 mt-1">{{ systems_review.other_conditions }}</p>
+                            </div>
+                            {% endif %}
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
                         </div>
                     </div>
                     {% else %}
@@ -329,8 +582,8 @@
                         <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                             <i class="fas fa-heartbeat text-2xl text-gray-400"></i>
                         </div>
-                        <h4 class="text-gray-700 font-semibold text-lg mb-1">No Conditions Reported</h4>
-                        <p class="text-gray-400 text-sm">No allergies or medical conditions were reported during systems review.</p>
+                        <h4 class="text-gray-700 font-semibold text-lg mb-1">No Systems Review Data</h4>
+                        <p class="text-gray-400 text-sm">No medical conditions or allergies were reported during the systems review.</p>
                     </div>
                     {% endif %}
                     {% else %}
@@ -347,31 +600,125 @@
                 <!-- Dental History Tab -->
                 <div id="panel-dental-history" class="tab-panel hidden">
                     {% if dental_history %}
-                    <div class="space-y-4">
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Last Dental Visit</span>
-                            <p class="text-gray-900 font-semibold mt-1">{{ dental_history.last_dental_visit|date:"M d, Y"|default:"Not recorded" }}</p>
+                    <div class="space-y-6">
+                        <!-- Previous Dental Visits -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-calendar-check text-primary-600"></i> Previous Dental Visits
+                            </h3>
+                            {% if dental_history.first_dental_visit or dental_history.last_dental_visit or dental_history.last_visit_reason %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">First Dental Visit</span>
+                                    <p class="text-gray-900 font-semibold mt-1">{{ dental_history.first_dental_visit|yesno:"Yes,No" }}</p>
+                                </div>
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Last Dental Visit</span>
+                                    <p class="text-gray-900 mt-1">{{ dental_history.last_dental_visit|date:"M d, Y"|default:"no record" }}</p>
+                                </div>
+                                {% if dental_history.last_visit_reason %}
+                                <div class="p-4 bg-primary-50 rounded-lg md:col-span-2">
+                                    <span class="text-sm font-medium text-gray-600">Reason for Last Visit</span>
+                                    <p class="text-gray-900 mt-1">{{ dental_history.last_visit_reason }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
                         </div>
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Frequency of Brushing</span>
-                            <p class="text-gray-900 mt-1">{{ dental_history.get_frequency_brushing_display|default:"Not specified" }}</p>
+
+                        <!-- Teeth Extraction History -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-tooth text-primary-600"></i> Teeth Extraction History
+                            </h3>
+                            {% if dental_history.teeth_extracted or dental_history.extraction_when %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Teeth Extracted</span>
+                                    <p class="text-gray-900 font-semibold mt-1">{{ dental_history.teeth_extracted|yesno:"Yes,No" }}</p>
+                                </div>
+                                {% if dental_history.extraction_when %}
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">When Extraction Occurred</span>
+                                    <p class="text-gray-900 mt-1">{{ dental_history.extraction_when }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
                         </div>
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Frequency of Flossing</span>
-                            <p class="text-gray-900 mt-1">{{ dental_history.get_frequency_flossing_display|default:"Not specified" }}</p>
+
+                        <!-- Anesthesia Allergy -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-syringe text-primary-600"></i> Anesthesia Allergy
+                            </h3>
+                            {% if dental_history.anesthesia_allergy or dental_history.anesthesia_allergy_when %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Allergy to Anesthesia</span>
+                                    <p class="text-gray-900 font-semibold mt-1">{{ dental_history.anesthesia_allergy|yesno:"Yes,No" }}</p>
+                                </div>
+                                {% if dental_history.anesthesia_allergy_when %}
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">When Allergy Occurred</span>
+                                    <p class="text-gray-900 mt-1">{{ dental_history.anesthesia_allergy_when }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
                         </div>
-                        {% if dental_history.dental_problems %}
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Dental Problems</span>
-                            <p class="text-gray-900 mt-1">{{ dental_history.dental_problems }}</p>
+
+                        <!-- Dental Appliances -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-prescription text-primary-600"></i> Dental Appliances
+                            </h3>
+                            {% if dental_history.dental_appliance or dental_history.appliance_type %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Wearing Dental Appliance</span>
+                                    <p class="text-gray-900 font-semibold mt-1">{{ dental_history.dental_appliance|yesno:"Yes,No" }}</p>
+                                </div>
+                                {% if dental_history.appliance_type %}
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Appliance Type</span>
+                                    <p class="text-gray-900 mt-1">{{ dental_history.appliance_type }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
                         </div>
-                        {% endif %}
-                        {% if dental_history.orthodontic_treatment %}
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Orthodontic Treatment</span>
-                            <p class="text-gray-900 mt-1">{{ dental_history.orthodontic_treatment }}</p>
+
+                        <!-- Pain and Discomfort -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-exclamation-triangle text-primary-600"></i> Pain and Discomfort
+                            </h3>
+                            {% if dental_history.pain_discomfort or dental_history.pain_location %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Pain/Discomfort</span>
+                                    <p class="text-gray-900 font-semibold mt-1">{{ dental_history.pain_discomfort|yesno:"Yes,No" }}</p>
+                                </div>
+                                {% if dental_history.pain_location %}
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Pain Location</span>
+                                    <p class="text-gray-900 mt-1">{{ dental_history.pain_location }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
                         </div>
-                        {% endif %}
                     </div>
                     {% else %}
                     <div class="flex flex-col items-center justify-center py-16 text-center">
@@ -384,67 +731,146 @@
                     {% endif %}
                 </div>
 
+                <!-- Pediatric History Tab -->
+                <div id="panel-pediatric" class="tab-panel hidden">
+                    {% if pediatric_history %}
+                    <div class="space-y-6">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-child text-primary-600"></i> Pediatric Dental History
+                            </h3>
+                            {% if pediatric_history.child_mouth_condition or pediatric_history.normal_pregnancy_birth or pediatric_history.bottle_at_bedtime or pediatric_history.last_dentist_visit or pediatric_history.first_tooth_age_months %}
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {% if pediatric_history.child_mouth_condition %}
+                                <div class="p-4 bg-primary-50 rounded-lg md:col-span-2">
+                                    <span class="text-sm font-medium text-gray-600">Parent's Assessment of Child's Mouth Condition</span>
+                                    <p class="text-gray-900 mt-1">{{ pediatric_history.child_mouth_condition }}</p>
+                                </div>
+                                {% endif %}
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Normal Pregnancy &amp; Birth</span>
+                                    <p class="text-gray-900 font-semibold mt-1">{{ pediatric_history.normal_pregnancy_birth|yesno:"Yes,No" }}</p>
+                                </div>
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Bottle at Bedtime</span>
+                                    <p class="text-gray-900 mt-1">{{ pediatric_history.bottle_at_bedtime|yesno:"Yes,No" }}</p>
+                                </div>
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Last Dentist Visit</span>
+                                    <p class="text-gray-900 mt-1">{{ pediatric_history.last_dentist_visit|date:"M d, Y"|default:"no record" }}</p>
+                                </div>
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">First Tooth Age (Months)</span>
+                                    <p class="text-gray-900 mt-1">{{ pediatric_history.first_tooth_age_months|default:"no record" }}</p>
+                                </div>
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
+                                <i class="fas fa-info-circle text-primary-600"></i> Habits
+                            </h3>
+                            {% if pediatric_history.thumb_sucking or pediatric_history.tongue_thrusting or pediatric_history.nail_biting or pediatric_history.mouth_breathing or pediatric_history.teeth_grinding or pediatric_history.other_habits %}
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                {% if pediatric_history.thumb_sucking %}<div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg"><i class="fas fa-check-circle text-primary-600"></i><span class="text-gray-800">Thumb Sucking</span></div>{% endif %}
+                                {% if pediatric_history.tongue_thrusting %}<div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg"><i class="fas fa-check-circle text-primary-600"></i><span class="text-gray-800">Tongue Thrusting</span></div>{% endif %}
+                                {% if pediatric_history.nail_biting %}<div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg"><i class="fas fa-check-circle text-primary-600"></i><span class="text-gray-800">Nail Biting</span></div>{% endif %}
+                                {% if pediatric_history.mouth_breathing %}<div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg"><i class="fas fa-check-circle text-primary-600"></i><span class="text-gray-800">Mouth Breathing</span></div>{% endif %}
+                                {% if pediatric_history.teeth_grinding %}<div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg"><i class="fas fa-check-circle text-primary-600"></i><span class="text-gray-800">Teeth Grinding</span></div>{% endif %}
+                                {% if pediatric_history.other_habits %}<div class="flex items-center gap-2 p-3 bg-primary-50 rounded-lg md:col-span-3"><i class="fas fa-check-circle text-primary-600"></i><span class="text-gray-800">Other Habits: {{ pediatric_history.other_habits }}</span></div>{% endif %}
+                            </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex flex-col items-center justify-center py-16 text-center">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-child text-2xl text-gray-400"></i>
+                        </div>
+                        <h4 class="text-gray-700 font-semibold text-lg mb-1">No Pediatric History Data</h4>
+                        <p class="text-gray-400 text-sm">Pediatric dental history has not been recorded for this patient.</p>
+                    </div>
+                    {% endif %}
+                </div>
+
                 <!-- Examination Tab -->
                 <div id="panel-examination" class="tab-panel hidden">
                     {% if examination %}
                     <div class="space-y-6">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200">Extraoral Examination:</h3>
+                            {% if examination.facial_symmetry or examination.cutaneous_areas or examination.eyes or examination.lymph_nodes or examination.tmj %}
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Facial Symmetry</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.facial_symmetry|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.facial_symmetry|default:"no record" }}</p>
+                                </div>
+                                <div class="p-4 bg-primary-50 rounded-lg">
+                                    <span class="text-sm font-medium text-gray-600">Cutaneous Areas (Skin)</span>
+                                    <p class="text-gray-900 mt-1">{{ examination.cutaneous_areas|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Eyes</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.eyes|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.eyes|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Lymph Nodes</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.lymph_nodes|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.lymph_nodes|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">TMJ (Temporomandibular Joint)</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.tmj|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.tmj|default:"no record" }}</p>
                                 </div>
                             </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
                         </div>
                         <div>
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200">Intraoral Examination:</h3>
+                            {% if examination.buccal_labial_mucosa or examination.gingiva or examination.palate_hard or examination.palate_soft or examination.tongue or examination.salivary_flow or examination.oral_hygiene or examination.lips %}
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Buccal/Labial Mucosa</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.buccal_labial_mucosa|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.buccal_labial_mucosa|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Gingiva</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.gingiva|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.gingiva|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Palate (Hard)</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.palate_hard|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.palate_hard|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Palate (Soft)</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.palate_soft|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.palate_soft|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Tongue</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.tongue|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.tongue|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Salivary Flow</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.salivary_flow|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.salivary_flow|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Oral Hygiene</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.get_oral_hygiene_display|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.get_oral_hygiene_display|default:"no record" }}</p>
                                 </div>
                                 <div class="p-4 bg-primary-50 rounded-lg">
                                     <span class="text-sm font-medium text-gray-600">Lips</span>
-                                    <p class="text-gray-900 mt-1">{{ examination.lips|default:"Not recorded" }}</p>
+                                    <p class="text-gray-900 mt-1">{{ examination.lips|default:"no record" }}</p>
                                 </div>
                             </div>
+                            {% else %}
+                            <p class="text-gray-400 text-sm">no record</p>
+                            {% endif %}
                         </div>
                     </div>
                     {% else %}
@@ -465,31 +891,31 @@
                         <div class="space-y-4">
                             <div class="p-4 bg-primary-50 rounded-lg">
                                 <span class="text-sm font-medium text-gray-600">Blood Pressure</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.blood_pressure|default:"Not recorded" }}</p>
+                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.blood_pressure|default:"no record" }}</p>
                             </div>
                             <div class="p-4 bg-primary-50 rounded-lg">
                                 <span class="text-sm font-medium text-gray-600">Pulse Rate</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.pulse_rate|default:"Not recorded" }}</p>
+                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.pulse_rate|default:"no record" }}</p>
                             </div>
                         </div>
                         <div class="space-y-4">
                             <div class="p-4 bg-primary-50 rounded-lg">
                                 <span class="text-sm font-medium text-gray-600">Respiratory Rate</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.respiratory_rate|default:"Not recorded" }}</p>
+                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.respiratory_rate|default:"no record" }}</p>
                             </div>
                             <div class="p-4 bg-primary-50 rounded-lg">
                                 <span class="text-sm font-medium text-gray-600">Temperature</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.temperature|default:"Not recorded" }}</p>
+                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.temperature|default:"no record" }}</p>
                             </div>
                         </div>
                         <div class="space-y-4">
                             <div class="p-4 bg-primary-50 rounded-lg">
                                 <span class="text-sm font-medium text-gray-600">Weight</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.weight|default:"Not recorded" }}</p>
+                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.weight|default:"no record" }}</p>
                             </div>
                             <div class="p-4 bg-primary-50 rounded-lg">
                                 <span class="text-sm font-medium text-gray-600">Height</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.height|default:"Not recorded" }}</p>
+                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ vital_signs.height|default:"no record" }}</p>
                             </div>
                         </div>
                     </div>

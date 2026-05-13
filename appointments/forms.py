@@ -20,36 +20,31 @@ class AppointmentTypeDefaultForm(forms.ModelForm):
 
     class Meta:
         model = AppointmentTypeDefault
-        fields = ['appointment_type', 'assigned_doctors', 'is_active']
+        fields = ['appointment_type', 'assigned_doctors']  # Removed is_active - handled separately by toggle
         widgets = {
             'appointment_type': forms.Select(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm'
             }),
-            'is_active': forms.CheckboxInput(attrs={
-                'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
-            }),
         }
         labels = {
             'appointment_type': 'Appointment Type',
-            'is_active': 'Active',
         }
         help_texts = {
             'appointment_type': 'Select the type of appointment',
-            'is_active': 'Check if this setting should be active',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         doctors_qs = User.objects.filter(
-            role='doctor',
-            is_active=True
+            role__in=['doctor', 'staff'],
         ).order_by('first_name', 'last_name')
 
         self.fields['assigned_doctors'].queryset = doctors_qs
 
         def doctor_label(obj):
             dept = obj.staff_profile.department if hasattr(obj, 'staff_profile') and obj.staff_profile else 'N/A'
-            return f"Dr. {obj.get_full_name()} - {dept}"
+            prefix = 'Dr. ' if obj.role == 'doctor' else ''
+            return f"{prefix}{obj.get_full_name()} - {dept}"
 
         self.fields['assigned_doctors'].label_from_instance = doctor_label
 

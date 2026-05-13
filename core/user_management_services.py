@@ -18,16 +18,23 @@ def _get_client_ip(request):
 
 
 def get_user_management_stats():
+    """Get statistics for the user management page.
+
+    All user counts exclude soft-deleted users (is_deleted=True) for consistency
+    with the user list page which filters out deleted users by default.
+    """
     return {
-        'total_users': User.objects.count(),
+        'total_users': User.objects.filter(is_deleted=False).count(),
         'total_appointments': Appointment.objects.count(),
         'pending_certificates': CertificateRequest.objects.filter(status='pending').count(),
-        'active_doctors': User.objects.filter(role='doctor').count(),
-        'total_students': User.objects.filter(role='student').count(),
-        'total_staff': User.objects.filter(role__in=['staff', 'doctor']).count(),
-        'total_admins': User.objects.filter(role='admin').count(),
-        'active_users': User.objects.filter(is_active=True).count(),
-        'inactive_users': User.objects.filter(is_active=False).count(),
+        'active_doctors': User.objects.filter(role='doctor', is_deleted=False).count(),
+        'total_students': User.objects.filter(role='student', is_deleted=False).count(),
+        'total_staff': User.objects.filter(role='staff', is_deleted=False).count(),
+        'total_admins': User.objects.filter(role='admin', is_deleted=False).count(),
+        'active_users': User.objects.filter(is_active=True, is_deleted=False).count(),
+        'inactive_users': User.objects.filter(is_active=False, is_deleted=False).count(),
+        'pending_activations': User.objects.filter(onboarding_status='pending_activation', is_deleted=False).count(),
+        'deleted_users': User.objects.filter(is_deleted=True).count(),
     }
 
 
@@ -63,8 +70,8 @@ def get_user_detail_summary(user):
         stats = {
             'Provisioning Actions': audits.count(),
             'Users Touched': audits.values('target_user').distinct().count(),
-            'Active Users': User.objects.filter(is_active=True).count(),
-            'Pending Activations': User.objects.filter(onboarding_status=User.ONBOARDING_STATUS.PENDING_ACTIVATION).count(),
+            'Active Users': User.objects.filter(is_active=True, is_deleted=False).count(),
+            'Pending Activations': User.objects.filter(onboarding_status=User.ONBOARDING_STATUS.PENDING_ACTIVATION, is_deleted=False).count(),
         }
         recent_activity = {
             'audit_logs': audits[:5],

@@ -3,7 +3,7 @@
 {% block title %}Share Your Feedback - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 py-8 sm:py-12">
+<div class="min-h-screen bg-gradient-to-br from-primary-50 via-white to-blue-50 pt-0 pb-8 sm:pb-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     {% include 'feedback/_subnav.html' %}
 
@@ -27,7 +27,15 @@
         
         {% include 'partials/messages.html' %}
         
-        <form method="post" id="feedback-form">
+        <form method="post"
+      x-data="feedbackForm()"
+      @submit.prevent="submitForm"
+      hx-post="{% url 'feedback:submit_feedback' %}"
+      hx-target="this"
+      hx-swap="outerHTML"
+      hx-trigger="submit"
+      @htmx:before-request="if(!validate()) $event.preventDefault()"
+      @htmx:after-request="if($event.detail.successful) window.location.href='{% url 'feedback:feedback_list' %}'">
             {% csrf_token %}
             
             <!-- Main Form Card -->
@@ -36,25 +44,25 @@
                 <!-- Progress Steps -->
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                     <div class="flex items-center justify-center space-x-4">
-                        <div class="flex items-center" id="step-indicator-1">
-                            <div class="w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-medium">1</div>
-                            <span class="ml-2 text-sm font-medium text-gray-900 hidden sm:inline">Details</span>
+                        <div class="flex items-center">
+                            <div :class="stepClasses(1, 'circle')" x-text="stepIcon(1)"></div>
+                            <span :class="stepClasses(1, 'text')" class="ml-2 hidden sm:inline">Details</span>
                         </div>
-                        <div class="w-12 h-0.5 bg-gray-300" id="step-line-1"></div>
-                        <div class="flex items-center" id="step-indicator-2">
-                            <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm font-medium">2</div>
-                            <span class="ml-2 text-sm font-medium text-gray-500 hidden sm:inline">Ratings</span>
+                        <div :class="stepClasses(1, 'line')" class="w-12 h-0.5"></div>
+                        <div class="flex items-center">
+                            <div :class="stepClasses(2, 'circle')" x-text="stepIcon(2)"></div>
+                            <span :class="stepClasses(2, 'text')" class="ml-2 hidden sm:inline">Ratings</span>
                         </div>
-                        <div class="w-12 h-0.5 bg-gray-300" id="step-line-2"></div>
-                        <div class="flex items-center" id="step-indicator-3">
-                            <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm font-medium">3</div>
-                            <span class="ml-2 text-sm font-medium text-gray-500 hidden sm:inline">Comments</span>
+                        <div :class="stepClasses(2, 'line')" class="w-12 h-0.5"></div>
+                        <div class="flex items-center">
+                            <div :class="stepClasses(3, 'circle')" x-text="stepIcon(3)"></div>
+                            <span :class="stepClasses(3, 'text')" class="ml-2 hidden sm:inline">Comments</span>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Step 1: Feedback Details -->
-                <div id="step-1" class="p-6 space-y-6">
+                <div x-show="step === 1" class="p-6 space-y-6">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -68,7 +76,7 @@
                         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                             {% for value, label in feedback_types %}
                                 <label class="feedback-type-option relative cursor-pointer">
-                                    <input type="radio" name="feedback_type" value="{{ value }}" class="sr-only" {% if value == 'general' %}checked{% endif %}>
+                                    <input type="radio" name="feedback_type" value="{{ value }}" class="sr-only" x-model="feedbackType" {% if value == 'general' %}checked{% endif %}>
                                     <div class="p-4 border-2 border-gray-200 rounded-xl text-center hover:border-primary-300 hover:bg-primary-50 transition-all duration-200">
                                         <div class="mx-auto w-10 h-10 mb-2 rounded-full bg-gray-100 flex items-center justify-center">
                                             {% if value == 'general' %}
@@ -114,7 +122,7 @@
                             <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
                         </div>
                     {% elif recent_appointments %}
-                        <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 sm:p-5">
+                        <div class="rounded-xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-4 sm:p-5" x-data="{ searchTerm: '', selectedApt: '' }">
                             <label class="block text-sm font-semibold text-gray-800 mb-2">
                                 Link to a recent appointment <span class="text-gray-500 font-normal">(optional)</span>
                             </label>
@@ -128,7 +136,7 @@
                                 </span>
                                 <input
                                     type="text"
-                                    id="appointment-search"
+                                    x-model="searchTerm"
                                     class="w-full pl-10 pr-3 py-2.5 rounded-xl border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none bg-white text-sm"
                                     placeholder="Search appointment..."
                                     autocomplete="off">
@@ -139,36 +147,35 @@
                                     <p class="text-xs font-semibold tracking-wide uppercase text-slate-600">Recent Appointments</p>
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 text-xs font-medium">Pick one</span>
                                 </div>
-                                <input type="hidden" id="appointment-id" name="appointment_id" value="">
-                                <div id="appointment-option-list" class="max-h-64 overflow-y-auto p-2 space-y-2" role="listbox" aria-label="Recent appointments">
+                                <input type="hidden" name="appointment_id" x-model="selectedApt">
+                                <div class="max-h-64 overflow-y-auto p-2 space-y-2" role="listbox" aria-label="Recent appointments">
                                     <button
                                         type="button"
-                                        data-appointment-option
-                                        data-value=""
-                                        data-search="no specific appointment none"
-                                        class="w-full text-left rounded-xl border border-slate-200 bg-white px-3 py-2.5 hover:border-primary-300 hover:bg-primary-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                        @click="selectedApt = ''"
+                                        :class="selectedApt === '' ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300' : 'border-slate-200'"
+                                        class="w-full text-left rounded-xl border bg-white px-3 py-2.5 hover:border-primary-300 hover:bg-primary-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                                         <span class="text-sm font-medium text-slate-800">No specific appointment</span>
                                         <p class="text-xs text-slate-500 mt-0.5">Use this for general service feedback.</p>
                                     </button>
                                     {% for apt in recent_appointments %}
                                         <button
                                             type="button"
-                                            data-appointment-option
-                                            data-value="{{ apt.id }}"
-                                            data-search="{{ apt.date|date:'M d, Y'|lower }} {{ apt.date|date:'F d, Y'|lower }} {{ apt.time|time:'h:i A'|lower }} {% if apt.doctor %}dr {{ apt.doctor.get_full_name|lower }}{% endif %}"
-                                            class="w-full text-left rounded-xl border border-slate-200 bg-white px-3 py-2.5 hover:border-primary-300 hover:bg-primary-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                            @click="selectedApt = '{{ apt.id }}'"
+                                            :class="selectedApt === '{{ apt.id }}' ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-300' : 'border-slate-200'"
+                                            x-show="!searchTerm || '{{ apt.date|date:"M d, Y"|lower }} {{ apt.date|date:"F d, Y"|lower }} {{ apt.time|time:"h:i A"|lower }}{% if apt.doctor %} dr {{ apt.doctor.get_full_name|lower }}{% endif %}'.includes(searchTerm.toLowerCase())"
+                                            class="w-full text-left rounded-xl border bg-white px-3 py-2.5 hover:border-primary-300 hover:bg-primary-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500">
                                             <p class="text-sm font-semibold text-slate-800">{{ apt.date|date:"M d, Y" }} <span class="font-normal">at {{ apt.time|time:"h:i A" }}</span></p>
                                             <p class="text-xs text-slate-500 mt-0.5">{% if apt.doctor %}Dr. {{ apt.doctor.get_full_name }}{% else %}No assigned doctor{% endif %}</p>
                                         </button>
                                     {% endfor %}
                                 </div>
                             </div>
-                            <p id="appointment-search-result" class="text-xs text-gray-500 mt-2">Showing all recent appointments</p>
+                            <p class="text-xs text-gray-500 mt-2" x-text="searchTerm ? 'Filtering appointments...' : 'Showing all recent appointments'"></p>
                         </div>
                     {% endif %}
                     
                     <div class="flex justify-end pt-4">
-                        <button type="button" onclick="goToStep(2)" class="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <button type="button" @click="step = 2" class="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                             Continue
                             <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -178,7 +185,7 @@
                 </div>
                 
                 <!-- Step 2: Ratings -->
-                <div id="step-2" class="p-6 space-y-6 hidden">
+                <div x-show="step === 2" class="p-6 space-y-6">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path>
@@ -192,17 +199,17 @@
                             Overall Experience <span class="text-red-500">*</span>
                         </label>
                         <div class="flex flex-col items-center">
-                            <div class="flex items-center space-x-2" id="overall-rating">
+                            <div class="flex items-center space-x-2">
                                 {% for i in "12345" %}
-                                    <button type="button" onclick="setOverallRating({{ i }})" class="star-btn p-1 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded-lg transform hover:scale-110 transition-transform">
-                                        <svg id="overall-star-{{ i }}" class="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 transition-colors duration-200" viewBox="0 0 20 20" fill="currentColor">
+                                    <button type="button" @click="overallRating = {{ i }}" class="p-1 focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded-lg transform hover:scale-110 transition-transform">
+                                        <svg :class="overallRating >= {{ i }} ? 'text-yellow-400' : 'text-gray-300'" class="h-10 w-10 sm:h-12 sm:w-12 transition-colors duration-200" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                         </svg>
                                     </button>
                                 {% endfor %}
                             </div>
-                            <p id="overall-rating-text" class="mt-3 text-lg font-medium text-gray-600">Click to rate</p>
-                            <input type="hidden" name="rating" id="rating-input" required>
+                            <p class="mt-3 text-lg font-medium" x-text="ratingTexts[overallRating] || 'Click to rate'" :class="overallRating ? 'text-yellow-600' : 'text-gray-600'"></p>
+                            <input type="hidden" name="rating" x-model="overallRating" required>
                         </div>
                     </div>
                     
@@ -218,16 +225,16 @@
                                 </div>
                                 <span class="text-sm font-medium text-gray-700">Staff Service</span>
                             </div>
-                            <div class="flex items-center justify-center space-x-1" id="staff-rating">
+                            <div class="flex items-center justify-center space-x-1">
                                 {% for i in "12345" %}
-                                    <button type="button" onclick="setRating('staff', {{ i }})" class="p-0.5 focus:outline-none rounded hover:scale-110 transition-transform">
-                                        <svg id="staff-star-{{ i }}" class="h-6 w-6 text-gray-300 transition-colors" viewBox="0 0 20 20" fill="currentColor">
+                                    <button type="button" @click="staffRating = {{ i }}" class="p-0.5 focus:outline-none rounded hover:scale-110 transition-transform">
+                                        <svg :class="staffRating >= {{ i }} ? 'text-yellow-400' : 'text-gray-300'" class="h-6 w-6 transition-colors" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                         </svg>
                                     </button>
                                 {% endfor %}
                             </div>
-                            <input type="hidden" name="staff_rating" id="staff-rating-input">
+                            <input type="hidden" name="staff_rating" x-model="staffRating">
                         </div>
                         
                         <!-- Cleanliness Rating -->
@@ -240,16 +247,16 @@
                                 </div>
                                 <span class="text-sm font-medium text-gray-700">Cleanliness</span>
                             </div>
-                            <div class="flex items-center justify-center space-x-1" id="cleanliness-rating">
+                            <div class="flex items-center justify-center space-x-1">
                                 {% for i in "12345" %}
-                                    <button type="button" onclick="setRating('cleanliness', {{ i }})" class="p-0.5 focus:outline-none rounded hover:scale-110 transition-transform">
-                                        <svg id="cleanliness-star-{{ i }}" class="h-6 w-6 text-gray-300 transition-colors" viewBox="0 0 20 20" fill="currentColor">
+                                    <button type="button" @click="cleanlinessRating = {{ i }}" class="p-0.5 focus:outline-none rounded hover:scale-110 transition-transform">
+                                        <svg :class="cleanlinessRating >= {{ i }} ? 'text-yellow-400' : 'text-gray-300'" class="h-6 w-6 transition-colors" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                         </svg>
                                     </button>
                                 {% endfor %}
                             </div>
-                            <input type="hidden" name="cleanliness_rating" id="cleanliness-rating-input">
+                            <input type="hidden" name="cleanliness_rating" x-model="cleanlinessRating">
                         </div>
                         
                         <!-- Wait Time Rating -->
@@ -262,16 +269,16 @@
                                 </div>
                                 <span class="text-sm font-medium text-gray-700">Wait Time</span>
                             </div>
-                            <div class="flex items-center justify-center space-x-1" id="wait_time-rating">
+                            <div class="flex items-center justify-center space-x-1">
                                 {% for i in "12345" %}
-                                    <button type="button" onclick="setRating('wait_time', {{ i }})" class="p-0.5 focus:outline-none rounded hover:scale-110 transition-transform">
-                                        <svg id="wait_time-star-{{ i }}" class="h-6 w-6 text-gray-300 transition-colors" viewBox="0 0 20 20" fill="currentColor">
+                                    <button type="button" @click="waitTimeRating = {{ i }}" class="p-0.5 focus:outline-none rounded hover:scale-110 transition-transform">
+                                        <svg :class="waitTimeRating >= {{ i }} ? 'text-yellow-400' : 'text-gray-300'" class="h-6 w-6 transition-colors" viewBox="0 0 20 20" fill="currentColor">
                                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                                         </svg>
                                     </button>
                                 {% endfor %}
                             </div>
-                            <input type="hidden" name="wait_time_rating" id="wait_time-rating-input">
+                            <input type="hidden" name="wait_time_rating" x-model="waitTimeRating">
                         </div>
                     </div>
                     
@@ -280,8 +287,8 @@
                         <label class="block text-sm font-medium text-gray-700 mb-4">Would you recommend JMCFI Clinic to others?</label>
                         <div class="flex flex-col sm:flex-row gap-3">
                             <label class="flex-1 cursor-pointer">
-                                <input type="radio" name="would_recommend" value="yes" class="sr-only" checked>
-                                <div class="recommend-option p-4 border-2 border-gray-200 rounded-xl text-center hover:border-green-300 transition-all">
+                                <input type="radio" name="would_recommend" value="yes" class="sr-only" x-model="wouldRecommend">
+                                <div class="recommend-option p-4 border-2 border-gray-200 rounded-xl text-center hover:border-green-300 transition-all" :class="wouldRecommend === 'yes' ? 'border-green-500 bg-green-50' : ''">
                                     <div class="w-12 h-12 mx-auto mb-2 rounded-full bg-green-100 flex items-center justify-center">
                                         <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
@@ -291,8 +298,8 @@
                                 </div>
                             </label>
                             <label class="flex-1 cursor-pointer">
-                                <input type="radio" name="would_recommend" value="no" class="sr-only">
-                                <div class="recommend-option p-4 border-2 border-gray-200 rounded-xl text-center hover:border-red-300 transition-all">
+                                <input type="radio" name="would_recommend" value="no" class="sr-only" x-model="wouldRecommend">
+                                <div class="recommend-option p-4 border-2 border-gray-200 rounded-xl text-center hover:border-red-300 transition-all" :class="wouldRecommend === 'no' ? 'border-red-500 bg-red-50' : ''">
                                     <div class="w-12 h-12 mx-auto mb-2 rounded-full bg-red-100 flex items-center justify-center">
                                         <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018a2 2 0 01.485.06l3.76.94m-7 10v5a2 2 0 002 2h.096c.5 0 .905-.405.905-.904 0-.715.211-1.413.608-2.008L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"></path>
@@ -305,13 +312,13 @@
                     </div>
                     
                     <div class="flex justify-between pt-4">
-                        <button type="button" onclick="goToStep(1)" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <button type="button" @click="step = 1" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                             <svg class="mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
                             Back
                         </button>
-                        <button type="button" onclick="goToStep(3)" class="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <button type="button" @click="step = 3" class="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-xl text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                             Continue
                             <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -321,7 +328,7 @@
                 </div>
                 
                 <!-- Step 3: Comments & Submit -->
-                <div id="step-3" class="p-6 space-y-6 hidden">
+                <div x-show="step === 3" class="p-6 space-y-6">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                         <svg class="w-5 h-5 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
@@ -334,12 +341,12 @@
                         <label for="comments" class="block text-sm font-medium text-gray-700 mb-2">
                             Tell us about your experience <span class="text-red-500">*</span>
                         </label>
-                        <textarea id="comments" name="comments" rows="5" required minlength="10"
+                        <textarea id="comments" name="comments" rows="5" required minlength="10" x-model="comments"
                             class="block w-full px-4 py-3 rounded-xl border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none text-sm resize-none bg-white placeholder-gray-400"
                             placeholder="What did you like? What could we do better? Share your experience with us..."></textarea>
                         <div class="flex justify-between mt-2">
                             <p class="text-xs text-gray-500">Minimum 10 characters</p>
-                            <p class="text-xs text-gray-500"><span id="comment-count">0</span> characters</p>
+                            <p class="text-xs text-gray-500"><span x-text="comments.length"></span> characters</p>
                         </div>
                     </div>
                     
@@ -351,7 +358,7 @@
                                 <span class="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded-full">Optional</span>
                             </span>
                         </label>
-                        <textarea id="suggestions" name="suggestions" rows="3"
+                        <textarea id="suggestions" name="suggestions" rows="3" x-model="suggestions"
                             class="block w-full px-4 py-3 rounded-xl border border-gray-300 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:outline-none text-sm resize-none bg-white placeholder-gray-400"
                             placeholder="Any ideas on how we can make your next visit even better?"></textarea>
                     </div>
@@ -359,7 +366,7 @@
                     <!-- Anonymous Option -->
                     <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
                         <label class="flex items-start cursor-pointer">
-                            <input id="is_anonymous" name="is_anonymous" type="checkbox"
+                            <input name="is_anonymous" type="checkbox" x-model="isAnonymous"
                                 class="h-5 w-5 text-primary-600 focus:ring-primary-500 border border-gray-300 rounded mt-0.5">
                             <div class="ml-3">
                                 <span class="text-sm font-medium text-gray-700">Submit anonymously</span>
@@ -370,7 +377,7 @@
                     
                     <!-- Submit Buttons -->
                     <div class="flex flex-col sm:flex-row justify-between gap-3 pt-4 border-t border-gray-200">
-                        <button type="button" onclick="goToStep(2)" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <button type="button" @click="step = 2" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                             <svg class="mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                             </svg>
@@ -426,197 +433,57 @@
 </style>
 
 <script>
-    let currentStep = 1;
-    const ratingTexts = {
-        1: 'Poor - Needs Improvement',
-        2: 'Fair - Below Average',
-        3: 'Good - Satisfactory',
-        4: 'Very Good - Above Average',
-        5: 'Excellent - Outstanding!'
-    };
-    
-    function goToStep(step) {
-        // Validate before moving forward
-        if (step > currentStep) {
-            if (currentStep === 2) {
-                const rating = document.getElementById('rating-input').value;
-                if (!rating) {
-                    alert('Please select an overall rating before continuing.');
-                    return;
+    function feedbackForm() {
+        return {
+            step: 1,
+            feedbackType: 'general',
+            overallRating: 0,
+            staffRating: 0,
+            cleanlinessRating: 0,
+            waitTimeRating: 0,
+            wouldRecommend: 'yes',
+            isAnonymous: false,
+            comments: '',
+            suggestions: '',
+            ratingTexts: {
+                1: 'Poor - Needs Improvement',
+                2: 'Fair - Below Average',
+                3: 'Good - Satisfactory',
+                4: 'Very Good - Above Average',
+                5: 'Excellent - Outstanding!'
+            },
+            stepClasses(index, type) {
+                if (type === 'circle') {
+                    if (index < this.step) return 'w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-medium';
+                    if (index === this.step) return 'w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-medium';
+                    return 'w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm font-medium';
                 }
-            }
-        }
-        
-        // Hide all steps
-        document.querySelectorAll('[id^="step-"]').forEach(el => {
-            if (el.id.match(/^step-\d+$/)) {
-                el.classList.add('hidden');
-            }
-        });
-        
-        // Show target step
-        document.getElementById('step-' + step).classList.remove('hidden');
-        
-        // Update progress indicators
-        for (let i = 1; i <= 3; i++) {
-            const indicator = document.getElementById('step-indicator-' + i);
-            const circle = indicator.querySelector('div');
-            const text = indicator.querySelector('span');
-            
-            if (i < step) {
-                circle.className = 'w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-medium';
-                circle.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
-                if (text) text.className = 'ml-2 text-sm font-medium text-green-600 hidden sm:inline';
-            } else if (i === step) {
-                circle.className = 'w-8 h-8 rounded-full bg-primary-600 text-white flex items-center justify-center text-sm font-medium';
-                circle.textContent = i;
-                if (text) text.className = 'ml-2 text-sm font-medium text-gray-900 hidden sm:inline';
-            } else {
-                circle.className = 'w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center text-sm font-medium';
-                circle.textContent = i;
-                if (text) text.className = 'ml-2 text-sm font-medium text-gray-500 hidden sm:inline';
-            }
-            
-            // Update step lines
-            if (i < 3) {
-                const line = document.getElementById('step-line-' + i);
-                line.className = i < step ? 'w-12 h-0.5 bg-green-500' : 'w-12 h-0.5 bg-gray-300';
-            }
-        }
-        
-        currentStep = step;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-    
-    function setOverallRating(value) {
-        document.getElementById('rating-input').value = value;
-        document.getElementById('overall-rating-text').textContent = ratingTexts[value];
-        
-        for (let i = 1; i <= 5; i++) {
-            const star = document.getElementById('overall-star-' + i);
-            if (i <= value) {
-                star.classList.remove('text-gray-300');
-                star.classList.add('text-yellow-400');
-            } else {
-                star.classList.remove('text-yellow-400');
-                star.classList.add('text-gray-300');
-            }
-        }
-    }
-    
-    function setRating(type, value) {
-        document.getElementById(type + '-rating-input').value = value;
-        
-        for (let i = 1; i <= 5; i++) {
-            const star = document.getElementById(type + '-star-' + i);
-            if (i <= value) {
-                star.classList.remove('text-gray-300');
-                star.classList.add('text-yellow-400');
-            } else {
-                star.classList.remove('text-yellow-400');
-                star.classList.add('text-gray-300');
-            }
-        }
-    }
-    
-    // Character counter for comments
-    document.addEventListener('DOMContentLoaded', function() {
-        const commentsField = document.getElementById('comments');
-        const commentCount = document.getElementById('comment-count');
-        const appointmentSearchField = document.getElementById('appointment-search');
-        const appointmentInput = document.getElementById('appointment-id');
-        const appointmentOptionList = document.getElementById('appointment-option-list');
-        const appointmentOptionButtons = appointmentOptionList
-            ? Array.from(appointmentOptionList.querySelectorAll('[data-appointment-option]'))
-            : [];
-        const appointmentSearchResult = document.getElementById('appointment-search-result');
-        
-        commentsField.addEventListener('input', function() {
-            commentCount.textContent = this.value.length;
-        });
-
-        if (appointmentSearchField && appointmentInput && appointmentOptionButtons.length) {
-            const selectAppointmentOption = function(optionButton) {
-                const optionValue = optionButton.dataset.value || '';
-                appointmentInput.value = optionValue;
-
-                appointmentOptionButtons.forEach((btn) => {
-                    const isSelected = btn === optionButton;
-                    btn.classList.toggle('border-primary-500', isSelected);
-                    btn.classList.toggle('bg-primary-50', isSelected);
-                    btn.classList.toggle('ring-1', isSelected);
-                    btn.classList.toggle('ring-primary-300', isSelected);
-                });
-            };
-
-            appointmentOptionButtons.forEach((optionButton, index) => {
-                optionButton.addEventListener('click', function() {
-                    selectAppointmentOption(optionButton);
-                });
-
-                // Default selection: no specific appointment.
-                if (index === 0) {
-                    selectAppointmentOption(optionButton);
+                if (type === 'text') {
+                    if (index < this.step) return 'ml-2 text-sm font-medium text-green-600';
+                    if (index === this.step) return 'ml-2 text-sm font-medium text-gray-900';
+                    return 'ml-2 text-sm font-medium text-gray-500';
                 }
-            });
-
-            const filterAppointments = function() {
-                const term = (appointmentSearchField.value || '').trim().toLowerCase();
-                let visibleCount = 0;
-
-                appointmentOptionButtons.forEach((optionButton) => {
-                    const optionValue = optionButton.dataset.value || '';
-                    if (!optionValue) {
-                        optionButton.classList.remove('hidden');
-                        return;
-                    }
-
-                    const searchableText = (optionButton.dataset.search || optionButton.textContent || '').toLowerCase();
-                    const isMatch = !term || searchableText.includes(term);
-                    optionButton.classList.toggle('hidden', !isMatch);
-
-                    if (isMatch) {
-                        visibleCount += 1;
-                    }
-
-                    if (!isMatch && appointmentInput.value === optionValue) {
-                        const noSpecificButton = appointmentOptionButtons.find((btn) => (btn.dataset.value || '') === '');
-                        if (noSpecificButton) {
-                            selectAppointmentOption(noSpecificButton);
-                        }
-                    }
-                });
-
-                if (appointmentSearchResult) {
-                    appointmentSearchResult.textContent = term
-                        ? `${visibleCount} appointment${visibleCount === 1 ? '' : 's'} match your search`
-                        : 'Showing all recent appointments';
+                if (type === 'line') {
+                    return index < this.step ? 'w-12 h-0.5 bg-green-500' : 'w-12 h-0.5 bg-gray-300';
                 }
-            };
-
-            appointmentSearchField.addEventListener('input', filterAppointments);
-            filterAppointments();
-        }
-        
-        // Form validation before submit
-        document.getElementById('feedback-form').addEventListener('submit', function(e) {
-            const rating = document.getElementById('rating-input').value;
-            const comments = document.getElementById('comments').value.trim();
-            
-            if (!rating) {
-                e.preventDefault();
-                alert('Please select an overall rating.');
-                goToStep(2);
-                return;
+                return '';
+            },
+            stepIcon(index) {
+                if (index < this.step) return '✓';
+                return index;
+            },
+            validate() {
+                if (!this.overallRating) {
+                    alert('Please select an overall rating before submitting.');
+                    return false;
+                }
+                if (!this.comments || this.comments.length < 10) {
+                    alert('Please provide comments (minimum 10 characters).');
+                    return false;
+                }
+                return true;
             }
-            
-            if (comments.length < 10) {
-                e.preventDefault();
-                alert('Please provide comments (minimum 10 characters).');
-                goToStep(3);
-                return;
-            }
-        });
-    });
+        };
+    }
 </script>
 {% endblock %}

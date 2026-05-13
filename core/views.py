@@ -14,6 +14,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_http_methods
+from urllib.parse import urlencode
 import re
 import json
 import hashlib
@@ -43,10 +44,11 @@ from .profile_policy import (
     STUDENT_PROFILE_REQUIRED_FIELDS,
     STAFF_PROFILE_REQUIRED_FIELDS,
     DOCTOR_PROFILE_REQUIRED_FIELDS,
+    ADMIN_PROFILE_REQUIRED_FIELDS,
 )
 from .utils import (
     get_user_profile, create_notification, paginate_queryset,
-    create_bulk_notifications
+    create_bulk_notifications, get_missing_profile_fields
 )
 from .decorators import admin_required, role_required
 from .user_management_services import (
@@ -55,6 +57,13 @@ from .user_management_services import (
     soft_delete_user,
     toggle_user_status,
 )
+from .htmx_utils import htmx_add_trigger, htmx_add_toast, htmx_redirect
+from appointments.models import Appointment
+from medical_records.models import MedicalRecord
+from dental_records.models import DentalRecord
+from document_request.models import DocumentRequest as CertificateRequest
+from health_forms_services.models import HealthProfileForm, DentalHealthForm
+from pharmacy.models import Medicine, Batch
 
 User = get_user_model()
 MESSAGE_NOTIFICATION_TYPES = ("direct_message", "announcement_posted")
@@ -292,7 +301,6 @@ def accept_invite(request, token):
 @login_required
 def profile_required(request):
     """View to show profile completion required page – access to all services is blocked."""
-    from .utils import get_missing_profile_fields
     # Returns a list of (field_name, friendly_label) tuples
     missing = get_missing_profile_fields(request.user)
     # Pass only the labels to the template
@@ -309,10 +317,6 @@ def profile_required(request):
 @login_required
 def dashboard(request):
     """Main dashboard view - role-based content"""
-    from appointments.models import Appointment
-    from medical_records.models import MedicalRecord
-    from document_request.models import DocumentRequest as CertificateRequest
-    
     context = {}
     
     if request.user.role == 'student':
@@ -386,15 +390,10 @@ def dashboard(request):
         })
     
     elif request.user.role == 'admin':
-        from appointments.models import Appointment
-        from document_request.models import DocumentRequest as CertificateRequest
-        from health_forms_services.models import HealthProfileForm, DentalHealthForm
-        from pharmacy.models import Medicine, Batch
-        
-        total_students = User.objects.filter(role='student').count()
-        total_staff = User.objects.filter(role='staff').count()
-        total_doctors = User.objects.filter(role='doctor').count()
-        total_admins = User.objects.filter(role='admin').count()
+        total_students = User.objects.filter(role='student', is_deleted=False).count()
+        total_staff = User.objects.filter(role='staff', is_deleted=False).count()
+        total_doctors = User.objects.filter(role='doctor', is_deleted=False).count()
+        total_admins = User.objects.filter(role='admin', is_deleted=False).count()
         
         # Pending items needing admin attention
         pending_health_forms = HealthProfileForm.objects.filter(status='pending').count()
@@ -423,7 +422,7 @@ def dashboard(request):
         
         context.update({
             # KPI row
-            'total_users': User.objects.count(),
+            'total_users': User.objects.filter(is_deleted=False).count(),
             'total_students': total_students,
             'total_staff': total_staff,
             'total_doctors': total_doctors,
@@ -588,19 +587,8 @@ def create_system_notification(request):
 
 @login_required
 def profile_view(request):
-    """Display user profile information with related dental and medical records"""
-    from dental_records.models import DentalRecord
-    
+    """Display user profile information"""
     profile = get_user_profile(request.user)
-    
-    # Get the latest dental record for the user
-    dental_record = None
-    try:
-        dental_record = DentalRecord.objects.filter(patient=request.user).select_related(
-            'vital_signs', 'health_questionnaire', 'systems_review'
-        ).latest('created_at')
-    except DentalRecord.DoesNotExist:
-        pass
     
     # Calculate profile completion percentage
     completion_percentage = 0
@@ -609,6 +597,8 @@ def profile_view(request):
             required_fields = STUDENT_PROFILE_REQUIRED_FIELDS
         elif request.user.role == 'doctor':
             required_fields = DOCTOR_PROFILE_REQUIRED_FIELDS
+        elif request.user.role == 'admin':
+            required_fields = ADMIN_PROFILE_REQUIRED_FIELDS
         else:
             required_fields = STAFF_PROFILE_REQUIRED_FIELDS
         
@@ -639,7 +629,6 @@ def profile_view(request):
     context = {
         'user': request.user,
         'profile': profile,
-        'dental_record': dental_record,
         'completion_percentage': completion_percentage,
         'course_options': course_options,
         'college_options': college_options,
@@ -1022,8 +1011,6 @@ def quick_edit_profile(request):
 @login_required
 def edit_profile(request):
     """Edit user profile information"""
-    from dental_records.models import DentalRecord
-    
     profile = get_user_profile(request.user)
     is_first_time = profile is None
     
@@ -1195,6 +1182,14 @@ def edit_profile(request):
 
 @login_required
 @admin_required
+def user_stats_cards(request):
+    """HTMX partial: return just the stats cards for dynamic refresh."""
+    stats = get_user_management_stats()
+    return render(request, 'core/user_management/_user_stats_cards.html', {'stats': stats})
+
+
+@login_required
+@admin_required
 def user_management(request):
     """List all users with filtering and search"""
     # Get filter parameters
@@ -1222,8 +1217,10 @@ def user_management(request):
         # Legacy filter value retained for compatibility with existing links/bookmarks.
         users = users.filter(is_active=False)
     elif status_filter == 'deleted':
-        # Show soft-deleted users
-        users = User.objects.filter(is_deleted=True).order_by('-deleted_at')
+        # Redirect deleted-account requests to the dedicated page.
+        query_string = urlencode({k: v for k, v in {'role': role_filter, 'search': search_query}.items() if v})
+        target = reverse('core:deleted_user_management')
+        return redirect(f'{target}?{query_string}' if query_string else target)
     
     # Apply search
     if search_query:
@@ -1402,17 +1399,22 @@ def user_edit(request, user_id):
 @login_required
 @admin_required
 def user_delete(request, user_id):
-    """Soft-delete a user — triggered via unified modal POST from user detail page."""
+    """Soft-delete a user using the shared modal confirmation flow."""
     user = get_object_or_404(User, id=user_id)
+    modal_template = 'core/user_management/_user_delete_modal.html'
     
     # Prevent deleting admin users
     if user.role == 'admin':
         messages.error(request, 'Cannot delete admin users.')
+        if request.headers.get('HX-Request') == 'true':
+            return htmx_redirect(reverse('core:user_detail', kwargs={'user_id': user.id}))
         return redirect('core:user_detail', user_id=user.id)
     
     # Prevent deleting self
     if user.id == request.user.id:
         messages.error(request, 'Cannot delete your own account.')
+        if request.headers.get('HX-Request') == 'true':
+            return htmx_redirect(reverse('core:user_detail', kwargs={'user_id': user.id}))
         return redirect('core:user_detail', user_id=user.id)
     
     if request.method == 'POST':
@@ -1425,9 +1427,15 @@ def user_delete(request, user_id):
             notification_type='general',
         )
         messages.success(request, f'User "{username}" has been soft-deleted.')
+        if request.headers.get('HX-Request') == 'true':
+            return htmx_redirect(reverse('core:user_management'))
         return redirect('core:user_management')
     
-    # GET requests redirect to user detail page (modal trigger is there)
+    if request.headers.get('HX-Request') == 'true':
+        return render(request, modal_template, {
+            'viewed_user': user,
+        })
+
     return redirect('core:user_detail', user_id=user.id)
 
 
@@ -1441,14 +1449,16 @@ def user_toggle_status(request, user_id):
     if user.role == 'admin':
         messages.error(request, 'Cannot deactivate admin users.')
         if request.headers.get('HX-Request') == 'true':
-            return render(request, 'partials/messages.html')
+            response = render(request, 'partials/messages.html')
+            return htmx_add_toast(response, 'Cannot deactivate admin users.', 'error')
         return redirect('core:user_detail', user_id=user.id)
     
     # Prevent deactivating self
     if user.id == request.user.id:
         messages.error(request, 'Cannot deactivate your own account.')
         if request.headers.get('HX-Request') == 'true':
-            return render(request, 'partials/messages.html')
+            response = render(request, 'partials/messages.html')
+            return htmx_add_toast(response, 'Cannot deactivate your own account.', 'error')
         return redirect('core:user_detail', user_id=user.id)
     
     was_pending = toggle_user_status(request=request, actor=request.user, target_user=user)
@@ -1493,8 +1503,16 @@ def user_toggle_status(request, user_id):
             })
         else:
             response = render(request, 'partials/messages.html')
-            response['HX-Trigger'] = '{"updateStatus": {"id": "' + str(user.id) + '", "html": "' + status_html.replace('"', '\\"') + '"}}'
-            return response
+            response = htmx_add_trigger(
+                response,
+                'updateStatus',
+                {
+                    'id': str(user.id),
+                    'html': status_html,
+                },
+            )
+            response = htmx_add_trigger(response, 'refreshUserStats')
+            return htmx_add_toast(response, status_message)
     return redirect('core:user_detail', user_id=user.id)
 
 

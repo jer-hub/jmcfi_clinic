@@ -1,0 +1,122 @@
+<script>
+// Configure HTMX to include CSRF token for all requests
+document.addEventListener('htmx:configRequest', function(evt) {
+    // Add CSRF token from cookie
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                      document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    if (csrftoken) {
+        evt.detail.headers['X-CSRFToken'] = csrftoken;
+    }
+});
+
+// Define doctorDropdown at global scope (window object)
+window.doctorDropdown = function() {
+    return {
+        open: false,
+        search: '',
+        count: 0,
+        init() {
+            this.updateCount();
+            this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.addEventListener('change', () => this.updateCount());
+            });
+        },
+        updateCount() {
+            this.count = this.$el.querySelectorAll('input[type="checkbox"]:checked').length;
+        },
+        selectedLabel() {
+            if (this.count === 0) return 'All doctors available';
+            if (this.count === 1) return '1 doctor assigned';
+            return `${this.count} doctors assigned`;
+        },
+        selectAll() {
+            this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = true; });
+            this.updateCount();
+            this.submitForm();
+        },
+        clearAll() {
+            this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+            this.updateCount();
+            this.submitForm();
+        },
+        submitForm() {
+            // HTMX will intercept the form submission via hx-post
+            if (typeof this.$el.requestSubmit === 'function') {
+                this.$el.requestSubmit();
+            } else {
+                this.$el.submit();
+            }
+        }
+    }
+};
+
+// Lightweight page toast for HTMX actions
+function showPageToast(message, type='success') {
+    const classes = {
+        success: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-emerald-50 border-emerald-400 text-emerald-800',
+        error:   'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-red-50 border-red-400 text-red-800',
+        warning: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-amber-50 border-amber-400 text-amber-800',
+    };
+    const toast = document.createElement('div');
+    toast.className = classes[type] || classes.success;
+    toast.innerHTML = `
+        <span class="flex-shrink-0">
+            ${type === 'success' ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}
+        </span>
+        <span class="flex-1 font-medium text-sm">${message}</span>
+        <button type="button" class="ml-2 opacity-70 hover:opacity-100" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'transition-opacity');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// Initialize Alpine after a brief delay to ensure Alpine is loaded and ready
+setTimeout(() => {
+    if (window.Alpine && window.Alpine.initTree) {
+        console.log('Initializing Alpine components');
+        window.Alpine.initTree(document.body);
+    }
+}, 500);
+
+// Re-initialize Alpine components when HTMX swaps content
+document.addEventListener('htmx:afterSwap', function(evt) {
+    if (typeof Alpine !== 'undefined' && Alpine.initTree) {
+        console.log('Reinitializing Alpine after HTMX swap');
+        Alpine.initTree(evt.detail.target);
+    }
+});
+
+// HTMX event handlers for all HTMX responses
+document.addEventListener('htmx:afterSettle', function(evt) {
+    if (!evt.detail.xhr) return;
+    
+    const trigger = evt.detail.xhr.getResponseHeader('HX-Trigger');
+    
+    // Handle form success response (doctor assignment saved)
+    if (trigger === 'form-success') {
+        showPageToast('Doctor assignments saved', 'success');
+    }
+    // Handle toggle success response
+    else if (trigger === 'toggle-success') {
+        showPageToast('Status updated', 'success');
+    }
+    // Handle form-specific errors
+    else if (trigger === 'form-error') {
+        showPageToast('Please correct the errors in the form.', 'error');
+    }
+});
+
+// Handle HTMX response errors - show error for unexpected failures
+document.addEventListener('htmx:responseError', function(evt) {
+    // Only show error if it's not a form-error trigger (form errors are handled separately)
+    const trigger = evt.detail.xhr?.getResponseHeader('HX-Trigger');
+    if (trigger !== 'form-error') {
+        showPageToast('An error occurred. Please try again.', 'error');
+    }
+});
+</script>

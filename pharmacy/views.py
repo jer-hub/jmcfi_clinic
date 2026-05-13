@@ -37,7 +37,7 @@ def _log(action, user, medicine=None, batch=None, quantity=0, details=''):
 # ─── Dashboard ───────────────────────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def pharmacy_dashboard(request):
     """Pharmacy overview with KPIs and alerts."""
     today = timezone.now().date()
@@ -110,7 +110,7 @@ def pharmacy_dashboard(request):
 # ─── Medicine CRUD ───────────────────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def medicine_list(request):
     qs = Medicine.objects.select_related('category').all()
     # Search
@@ -148,7 +148,7 @@ def medicine_list(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def medicine_detail(request, medicine_id):
     medicine = get_object_or_404(Medicine, pk=medicine_id)
     batches = medicine.batches.all()
@@ -165,7 +165,7 @@ def medicine_detail(request, medicine_id):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def medicine_create(request):
     if request.method == 'POST':
         form = MedicineForm(request.POST)
@@ -212,7 +212,7 @@ def medicine_create(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def medicine_edit(request, medicine_id):
     medicine = get_object_or_404(Medicine, pk=medicine_id)
     if request.method == 'POST':
@@ -231,7 +231,7 @@ def medicine_edit(request, medicine_id):
 # ─── Category CRUD ───────────────────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def category_list(request):
     categories = MedicineCategory.objects.annotate(
         medicine_count=Count('medicines')
@@ -240,7 +240,7 @@ def category_list(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def category_create(request):
     if request.method == 'POST':
         form = MedicineCategoryForm(request.POST)
@@ -254,7 +254,7 @@ def category_create(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def category_edit(request, category_id):
     cat = get_object_or_404(MedicineCategory, pk=category_id)
     if request.method == 'POST':
@@ -271,7 +271,7 @@ def category_edit(request, category_id):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def category_delete(request, category_id):
     cat = get_object_or_404(MedicineCategory, pk=category_id)
     if request.method == 'POST':
@@ -284,7 +284,7 @@ def category_delete(request, category_id):
 # ─── Batch Management ────────────────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def batch_list(request):
     qs = Batch.objects.select_related('medicine').all()
     q = request.GET.get('q', '').strip()
@@ -311,7 +311,7 @@ def batch_list(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def batch_create(request):
     if request.method == 'POST':
         form = BatchForm(request.POST)
@@ -327,7 +327,7 @@ def batch_create(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def batch_edit(request, batch_id):
     batch = get_object_or_404(Batch, pk=batch_id)
     old_qty = batch.quantity
@@ -350,7 +350,7 @@ def batch_edit(request, batch_id):
 # ─── Supplier Management ─────────────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def supplier_list(request):
     qs = Supplier.objects.annotate(order_count=Count('purchase_orders')).order_by('name', 'id')
     q = request.GET.get('q', '').strip()
@@ -363,7 +363,7 @@ def supplier_list(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def supplier_create(request):
     if request.method == 'POST':
         form = SupplierForm(request.POST)
@@ -377,7 +377,7 @@ def supplier_create(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def supplier_edit(request, supplier_id):
     supplier = get_object_or_404(Supplier, pk=supplier_id)
     if request.method == 'POST':
@@ -396,7 +396,7 @@ def supplier_edit(request, supplier_id):
 # ─── Purchase Orders ─────────────────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def purchase_order_list(request):
     qs = PurchaseOrder.objects.select_related('supplier', 'ordered_by').all()
     status = request.GET.get('status', '')
@@ -409,7 +409,7 @@ def purchase_order_list(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def purchase_order_create(request):
     if request.method == 'POST':
         form = PurchaseOrderForm(request.POST)
@@ -433,7 +433,7 @@ def purchase_order_create(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def purchase_order_detail(request, order_id):
     order = get_object_or_404(
         PurchaseOrder.objects.select_related('supplier', 'ordered_by', 'approved_by'),
@@ -446,7 +446,7 @@ def purchase_order_detail(request, order_id):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def purchase_order_approve(request, order_id):
     order = get_object_or_404(PurchaseOrder, pk=order_id)
     if request.method == 'POST' and order.status in ('draft', 'submitted'):
@@ -460,7 +460,7 @@ def purchase_order_approve(request, order_id):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def purchase_order_receive(request, order_id):
     order = get_object_or_404(PurchaseOrder, pk=order_id)
     if request.method == 'POST' and order.status == 'approved':
@@ -497,7 +497,7 @@ def purchase_order_receive(request, order_id):
 # ─── Dispensing ──────────────────────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def dispensing_list(request):
     qs = Dispensing.objects.select_related(
         'patient', 'dispensed_by', 'batch__medicine', 'prescribing_doctor'
@@ -515,7 +515,7 @@ def dispensing_list(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def dispensing_create(request):
     if request.method == 'POST':
         form = DispensingForm(request.POST)
@@ -553,7 +553,7 @@ def dispensing_create(request):
 # ─── Stock Adjustments ──────────────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def stock_adjustment_list(request):
     qs = StockAdjustment.objects.select_related(
         'batch__medicine', 'adjusted_by'
@@ -565,7 +565,7 @@ def stock_adjustment_list(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def stock_adjustment_create(request):
     if request.method == 'POST':
         form = StockAdjustmentForm(request.POST)
@@ -594,7 +594,7 @@ def stock_adjustment_create(request):
 # ─── Audit & Compliance Reports ─────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def audit_log_list(request):
     qs = AuditLog.objects.select_related(
         'performed_by', 'medicine', 'batch'
@@ -622,7 +622,7 @@ def audit_log_list(request):
 
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def compliance_report(request):
     """Generate DOH / CHED compliance summary report."""
     today = timezone.now().date()
@@ -688,7 +688,7 @@ def compliance_report(request):
 # ─── Cost & Budget Analysis ─────────────────────────────────────────────────
 
 @login_required
-@role_required('staff', 'admin')
+@role_required('staff')
 def cost_analysis(request):
     """PHP-denominated cost breakdowns and comparisons."""
     today = timezone.now().date()

@@ -215,32 +215,7 @@ class PrescriptionDetailView(BaseFormDetailView):
 
     @property
     def detail_sections(self):
-        obj = getattr(self, '_cached_obj', None)
-        if not obj:
-            return []
-        
-        info_fields = [
-            {'label': 'Patient', 'value': obj.patient_name or '—', 'span': 'half'},
-            {'label': 'Physician', 'value': obj.physician_name or '—', 'span': 'half'},
-            {'label': 'Date', 'value': obj.date.strftime('%B %d, %Y') if obj.date else '—', 'type': 'date', 'span': 'half'},
-            {'label': 'Age / Gender', 'value': f"{obj.age or '—'} / {obj.get_gender_display() or '—'}", 'span': 'half'},
-            {'label': 'Body', 'value': obj.prescription_body or '—', 'type': 'text', 'span': 'full'},
-        ]
-
-        item_fields = []
-        for item in obj.items.all():
-            item_fields.append({
-                'label': item.medication_name or 'Item',
-                'value': f"{item.dosage or ''} — {item.instructions or ''}",
-                'span': 'full',
-            })
-
-        sections = [
-            {'key': 'info', 'label': 'Prescription Details', 'icon': 'fa-prescription', 'fields': info_fields},
-        ]
-        if item_fields:
-            sections.append({'key': 'items', 'label': 'Prescribed Items', 'icon': 'fa-pills', 'fields': item_fields})
-        return sections
+        return []
 
     def get_object(self):
         obj = super().get_object()

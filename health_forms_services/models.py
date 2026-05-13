@@ -823,6 +823,13 @@ class Prescription(models.Model):
         on_delete=models.CASCADE,
         related_name='prescriptions'
     )
+    medical_record = models.OneToOneField(
+        'medical_records.MedicalRecord',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='prescription_record'
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.INCOMPLETE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

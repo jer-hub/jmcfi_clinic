@@ -25,7 +25,6 @@ class MedicalRecord(models.Model):
     )
     diagnosis = models.TextField()
     treatment = models.TextField()
-    prescription = models.TextField(blank=True)
     vital_signs = models.JSONField(default=dict, blank=True)  # Store BP, temperature, etc.
     lab_results = models.TextField(blank=True)
     follow_up_required = models.BooleanField(default=False)

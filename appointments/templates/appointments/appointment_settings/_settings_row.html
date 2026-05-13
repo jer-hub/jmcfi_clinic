@@ -1,0 +1,91 @@
+<div class="bg-white shadow rounded-xl border border-gray-200 overflow-visible">
+    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,2fr)_auto_auto_auto]">
+        <div class="px-4 py-4 sm:px-5 lg:px-6 lg:py-4 border-b border-gray-100 lg:border-b-0 lg:border-r lg:border-gray-100">
+            <div class="flex items-start gap-3">
+                {% include 'appointments/appointment_settings/_type_icon.html' with type_key=item.type_key %}
+                <div class="min-w-0">
+                    <span class="block text-[11px] font-semibold uppercase tracking-wide text-gray-400 lg:hidden">Appointment type</span>
+                    <span class="text-sm font-medium text-gray-900">{{ item.type_label }}</span>
+                    <p class="mt-1 text-xs text-gray-500 lg:hidden">
+                        {% if item.instance %}
+                            Managed default for this appointment type.
+                        {% else %}
+                            No doctor assignment has been configured yet.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="px-4 py-4 sm:px-5 lg:px-6 lg:py-4 border-b border-gray-100 lg:border-b-0 lg:border-r lg:border-gray-100">
+            <span class="block text-[11px] font-semibold uppercase tracking-wide text-gray-400 lg:hidden mb-2">Assigned doctors</span>
+            {% include 'appointments/appointment_settings/_doctor_form.html' with item=item %}
+        </div>
+
+        <div class="px-4 py-4 sm:px-5 lg:px-6 lg:py-4 border-b border-gray-100 lg:border-b-0 lg:border-r lg:border-gray-100 lg:text-center">
+            <span class="block text-[11px] font-semibold uppercase tracking-wide text-gray-400 lg:hidden mb-2">Assignment status</span>
+            {% if item.instance %}
+                {% if not item.instance.is_active %}
+                    <!-- Inactive state -->
+                    <div class="inline-flex flex-col items-center gap-0.5">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold text-red-800 bg-red-100">
+                            <span class="w-1.5 h-1.5 bg-red-400 rounded-full"></span>
+                            Inactive
+                        </span>
+                        <span class="text-[10px] text-red-600 font-medium">Not accepting appointments</span>
+                    </div>
+                {% elif item.instance.assigned_doctors.exists %}
+                    <!-- Restricted to subset -->
+                    <div class="inline-flex flex-col items-center gap-0.5">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold text-blue-800 bg-blue-100">
+                            <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
+                            Restricted
+                        </span>
+                        <span class="text-[10px] text-blue-600 font-medium">{{ item.instance.assigned_doctors.count }} doctor{{ item.instance.assigned_doctors.count|pluralize }}</span>
+                    </div>
+                {% else %}
+                    <!-- All available (no restriction) -->
+                    <div class="inline-flex flex-col items-center gap-0.5">
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold text-green-800 bg-green-100">
+                            <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                            All available
+                        </span>
+                        <span class="text-[10px] text-green-600 font-medium">Any doctor can book</span>
+                    </div>
+                {% endif %}
+            {% else %}
+                <!-- No assignment configured -->
+                <div class="inline-flex flex-col items-center gap-0.5">
+                    <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">Unrestricted</span>
+                    <span class="text-[10px] text-gray-500 font-medium">No setting configured</span>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="px-4 py-4 sm:px-5 lg:px-6 lg:py-4 border-b border-gray-100 lg:border-b-0 lg:border-r lg:border-gray-100 lg:text-center">
+            <span class="block text-[11px] font-semibold uppercase tracking-wide text-gray-400 lg:hidden mb-2">Toggle</span>
+            {% if item.instance %}
+                <form class="inline" hx-post="{% url 'appointments:toggle_appointment_type_default' default_id=item.instance.id %}"
+                      hx-target="closest .bg-white" hx-swap="outerHTML" hx-indicator=".spinner-{{ item.instance.id }}"
+                      hx-on="htmx:responseError: this.querySelector('input[type=checkbox]').checked = {{ item.instance.is_active|lower }}; this.parentElement.classList.remove('opacity-50'); this.parentElement.style.pointerEvents = 'auto';">
+                    {% csrf_token %}
+                    <label class="relative inline-flex items-center cursor-pointer" title="Toggle active state" data-toggle-state="{{ item.instance.is_active|lower }}">
+                        <input type="checkbox" class="sr-only peer" {% if item.instance.is_active %}checked{% endif %}
+                               onchange="this.parentElement.parentElement.parentElement.classList.add('opacity-50'); this.parentElement.parentElement.parentElement.style.pointerEvents = 'none'; this.form.requestSubmit()">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+                    </label>
+                    <span class="spinner-{{ item.instance.id }} htmx-indicator ml-2 inline-flex items-center gap-1">
+                        <svg class="animate-spin h-3 w-3 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </span>
+                </form>
+            {% else %}
+                <span class="text-xs text-gray-400">—</span>
+            {% endif %}
+        </div>
+
+
+    </div>
+</div>

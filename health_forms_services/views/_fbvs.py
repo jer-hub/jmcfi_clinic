@@ -76,7 +76,7 @@ def get_form_or_404(model, pk, user, select_related_fields=None):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def health_forms_list(request):
     """List health profile forms - filtered by user role"""
     user = request.user
@@ -119,7 +119,7 @@ def health_forms_list(request):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def form_detail(request, pk):
     """View health profile form details"""
     user = request.user
@@ -135,7 +135,7 @@ def form_detail(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def edit_form(request, pk):
     """Edit health profile form data - with AJAX auto-save support"""
     user = request.user
@@ -197,7 +197,7 @@ def edit_form(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def load_form_section(request, pk):
     """Load a specific form section via AJAX (for lazy-loading tabs)"""
     user = request.user
@@ -259,7 +259,7 @@ def review_form(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def delete_form(request, pk):
     """Delete a health profile form"""
     user = request.user
@@ -281,7 +281,7 @@ def delete_form(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def manual_entry(request):
     """Create a new health profile form — only personal info required.
     Clinical details are added from the edit page after creation."""
@@ -308,7 +308,7 @@ def manual_entry(request):
 
 @login_required
 @require_GET
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def export_form_json(request, pk):
     """Export form data as JSON"""
     user = request.user
@@ -396,7 +396,7 @@ def export_form_json(request, pk):
 # ========== DENTAL RECORDS FORM VIEWS (F-HSS-20-0003) ==========
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def dental_forms_list(request):
     """List dental records forms"""
     user = request.user
@@ -438,7 +438,7 @@ def dental_forms_list(request):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def dental_form_detail(request, pk):
     """View dental records form details"""
     user = request.user
@@ -461,7 +461,7 @@ def dental_form_detail(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def edit_dental_form(request, pk):
     """Edit dental records form - 4 tabs: Personal, Chart, Examination, Conditions"""
     user = request.user
@@ -499,7 +499,7 @@ def edit_dental_form(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def create_dental_form(request):
     """Create a new dental records form — only personal info required.
     Clinical details are added from the edit page after creation."""
@@ -549,7 +549,7 @@ def review_dental_form(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def delete_dental_form(request, pk):
     """Delete a dental records form"""
     user = request.user
@@ -573,7 +573,7 @@ def delete_dental_form(request, pk):
 
 @login_required
 @require_GET
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def dental_form_chart_api_get(request, pk):
     """Get all teeth data for the dental chart as JSON"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
@@ -610,7 +610,7 @@ def dental_form_chart_api_get(request, pk):
 
 @login_required
 @require_POST
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def dental_form_chart_api_update(request, pk):
     """Add or update a tooth in the dental chart"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
@@ -688,7 +688,7 @@ def dental_form_chart_api_update(request, pk):
 
 @login_required
 @require_POST
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def dental_form_chart_api_bulk_update(request, pk):
     """Bulk update multiple teeth at once"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
@@ -754,7 +754,7 @@ def dental_form_chart_api_bulk_update(request, pk):
 
 @login_required
 @require_http_methods(["DELETE", "POST"])
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def dental_form_chart_api_delete(request, pk, tooth_id):
     """Delete a tooth from the dental chart"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
@@ -772,7 +772,7 @@ def dental_form_chart_api_delete(request, pk, tooth_id):
 # ========== PATIENT CHART VIEWS (F-HSS-20-0002) ==========
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def patient_chart_list(request):
     """List patient charts"""
     user = request.user
@@ -813,7 +813,7 @@ def patient_chart_list(request):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def patient_chart_detail(request, pk):
     """View patient chart details including consultation entries"""
     user = request.user
@@ -838,7 +838,7 @@ def patient_chart_detail(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def edit_patient_chart(request, pk):
     """Edit patient chart personal information"""
     user = request.user
@@ -866,7 +866,7 @@ def edit_patient_chart(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def create_patient_chart(request):
     """Create a new patient chart"""
     if request.method == 'POST':
@@ -915,7 +915,7 @@ def review_patient_chart(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def delete_patient_chart(request, pk):
     """Delete a patient chart"""
     user = request.user
@@ -939,7 +939,7 @@ def delete_patient_chart(request, pk):
 
 @login_required
 @require_POST
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def add_chart_entry(request, pk):
     """Add a consultation entry to a patient chart (AJAX)"""
     chart = get_object_or_404(PatientChart, pk=pk)
@@ -967,7 +967,7 @@ def add_chart_entry(request, pk):
 
 @login_required
 @require_POST
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def delete_chart_entry(request, pk, entry_id):
     """Delete a consultation entry from a patient chart (AJAX)"""
     chart = get_object_or_404(PatientChart, pk=pk)
@@ -980,7 +980,7 @@ def delete_chart_entry(request, pk, entry_id):
 # ========== DENTAL SERVICES REQUEST VIEWS (DENTAL FORM 2) ==========
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def dental_services_list(request):
     """List dental services request forms"""
     user = request.user
@@ -1021,7 +1021,7 @@ def dental_services_list(request):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def dental_services_detail(request, pk):
     """View dental services request details"""
     user = request.user
@@ -1041,7 +1041,7 @@ def dental_services_detail(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def edit_dental_services(request, pk):
     """Edit dental services request — 2 tabs: Personal Info, Services Checklist"""
     user = request.user
@@ -1076,7 +1076,7 @@ def edit_dental_services(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def create_dental_services(request):
     """Create a new dental services request — personal info first"""
     if request.method == 'POST':
@@ -1125,7 +1125,7 @@ def review_dental_services(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def delete_dental_services(request, pk):
     """Delete a dental services request"""
     user = request.user
@@ -1148,7 +1148,7 @@ def delete_dental_services(request, pk):
 # ========== PRESCRIPTION VIEWS (F-HSS-20-0004) ==========
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def prescription_list(request):
     """List prescriptions"""
     user = request.user
@@ -1187,7 +1187,7 @@ def prescription_list(request):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def prescription_detail(request, pk):
     """View prescription details including medication items"""
     user = request.user
@@ -1212,7 +1212,7 @@ def prescription_detail(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def edit_prescription(request, pk):
     """Edit a prescription"""
     user = request.user
@@ -1240,7 +1240,7 @@ def edit_prescription(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def create_prescription(request):
     """Create a new prescription"""
     if request.method == 'POST':
@@ -1288,7 +1288,7 @@ def review_prescription(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def delete_prescription(request, pk):
     """Delete a prescription"""
     user = request.user
@@ -1312,7 +1312,7 @@ def delete_prescription(request, pk):
 
 @login_required
 @require_POST
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def add_prescription_item(request, pk):
     """Add a medication item to a prescription (AJAX)"""
     prescription = get_object_or_404(Prescription, pk=pk)
@@ -1341,7 +1341,7 @@ def add_prescription_item(request, pk):
 
 @login_required
 @require_POST
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def delete_prescription_item(request, pk, item_id):
     """Delete a medication item from a prescription (AJAX)"""
     prescription = get_object_or_404(Prescription, pk=pk)
@@ -1365,7 +1365,7 @@ from ..exports import (
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def export_health_profile_docx(request, pk):
     """Export Health Profile Form as .docx"""
     form = get_object_or_404(HealthProfileForm, pk=pk)
@@ -1375,7 +1375,7 @@ def export_health_profile_docx(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def export_patient_chart_docx(request, pk):
     """Export Patient Chart as .docx"""
     chart = get_object_or_404(PatientChart, pk=pk)
@@ -1385,7 +1385,7 @@ def export_patient_chart_docx(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def export_dental_form_docx(request, pk):
     """Export Dental Records as .docx"""
     form = get_object_or_404(DentalHealthForm, pk=pk)
@@ -1395,7 +1395,7 @@ def export_dental_form_docx(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def export_dental_services_docx(request, pk):
     """Export Dental Services Request as .docx"""
     form = get_object_or_404(DentalServicesRequest, pk=pk)
@@ -1405,7 +1405,7 @@ def export_dental_services_docx(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('staff', 'doctor')
 def export_prescription_docx(request, pk):
     """Export Prescription as print-ready HTML that mirrors the official .docx template."""
     rx = get_object_or_404(Prescription, pk=pk)

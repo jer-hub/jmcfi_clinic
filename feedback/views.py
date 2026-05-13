@@ -7,6 +7,7 @@ from django.db.models.functions import TruncMonth, TruncWeek
 from django.utils import timezone
 from datetime import timedelta
 from core.decorators import role_required
+from core.htmx_utils import is_htmx_request
 
 from .models import Feedback
 from appointments.models import Appointment

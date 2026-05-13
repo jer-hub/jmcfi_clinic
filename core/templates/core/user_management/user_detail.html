@@ -3,14 +3,12 @@
 {% block title %}{{ viewed_user.get_full_name }} - User Details{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="min-h-screen bg-gray-50 pt-0 pb-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% include 'core/_subnav.html' %}
-
         <!-- Header -->
-        <div class="mb-6">
-            <a href="{% url 'core:user_management' %}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="mb-4">
+            <a href="{% url 'core:user_management' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
                 Back to Users
@@ -128,7 +126,8 @@
                             Reset Password
                         </a>
                         <button type="button"
-                                onclick="document.getElementById('userDeleteForm').action='{% url 'core:user_delete' viewed_user.id %}';document.dispatchEvent(new CustomEvent('open-modal',{bubbles:true,detail:{type:'danger',title:'Soft Delete User',message:'Are you sure you want to soft-delete {{ viewed_user.get_full_name|escapejs }}? The account will be deactivated and hidden from the default list, but the data will remain recoverable.',actionLabel:'Soft Delete User',onConfirm:function(){document.getElementById('userDeleteForm').submit();}}}));"
+                                x-data="{}"
+                                @click="$dispatch('open-modal', {type:'danger', title:'Delete User', subtitle:'{{ viewed_user.get_full_name|escapejs }} (@{{ viewed_user.username|escapejs }})', size:'lg', hxUrl:'{% url 'core:user_delete' viewed_user.id %}', actionLabel:'Soft Delete User', hasForm:true})"
                                 class="w-full inline-flex justify-center items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -279,8 +278,6 @@
         </div>
     </div>
 </div>
-
-<form id="userDeleteForm" method="POST" class="hidden">{% csrf_token %}</form>
 
 {% endblock content %}
 

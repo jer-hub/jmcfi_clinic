@@ -5,7 +5,7 @@
 {% block title %}Dental Records - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-4 sm:py-6">
+<div class="min-h-screen bg-gray-50 pt-0 pb-4 sm:pb-6">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {% include 'dental_records/_subnav.html' %}
 
@@ -85,52 +85,52 @@
                     </h3>
                     <p class="text-sm text-gray-600">Search and filter dental records by various criteria</p>
                 </div>
-                <form method="GET" class="grid grid-cols-1 {% if user.role == 'student' %}md:grid-cols-2 lg:grid-cols-3{% else %}md:grid-cols-3 lg:grid-cols-4{% endif %} gap-4">
-                    {% if user.role != 'student' %}
-                    <div class="relative">
-                        <label for="search" class="block text-sm font-medium text-gray-700 mb-2">
-                            {% if user.role == 'student' %}Search Records{% else %}Search Patient{% endif %}
-                        </label>
-                        <div class="relative">
-                            <input type="text" id="search" name="search" value="{{ search_query }}" 
-                                   class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors"
-                                   placeholder="{% if user.role == 'student' %}Keyword...{% else %}Name or email...{% endif %}">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
+                <form method="GET" class="space-y-3">
+                    <div class="grid grid-cols-1 {% if user.role == 'student' %}sm:grid-cols-2 lg:grid-cols-3{% else %}sm:grid-cols-2 lg:grid-cols-4{% endif %} gap-3">
+                        {% if user.role != 'student' %}
+                        <div>
+                            <label for="search" class="block text-sm font-semibold text-gray-700 mb-1">
+                                {% if user.role == 'student' %}Search Records{% else %}Search Patient{% endif %}
+                            </label>
+                            <div class="relative">
+                                <input type="text" id="search" name="search" value="{{ search_query }}" 
+                                       class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm transition-all hover:border-gray-400"
+                                       placeholder="{% if user.role == 'student' %}Keyword...{% else %}Name or email...{% endif %}">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    {% endif %}
-                    
-                    <div>
-                        <label for="date_from" class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
-                        <input type="date" id="date_from" name="date_from" value="{{ date_from }}" 
-                               class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
-                    </div>
-                    
-                    <div>
-                        <label for="date_to" class="block text-sm font-medium text-gray-700 mb-2">To Date</label>
-                        <input type="date" id="date_to" name="date_to" value="{{ date_to }}" 
-                               class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
-                    </div>
-                    
-                    <div class="flex flex-col justify-end">
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <button type="submit" class="flex-1 inline-flex items-center justify-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-all duration-200 hover:shadow-md">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                                Search
-                            </button>
-                            <a href="{% url 'dental_records:dental_record_list' %}" class="flex-1 inline-flex items-center justify-center px-6 py-3 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-all duration-200 hover:shadow-md">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Reset
-                            </a>
+                        {% endif %}
+                        
+                        <div>
+                            <label for="date_from" class="block text-sm font-semibold text-gray-700 mb-1">From Date</label>
+                            <input type="date" id="date_from" name="date_from" value="{{ date_from }}" 
+                                   class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm transition-all hover:border-gray-400">
                         </div>
+                        
+                        <div>
+                            <label for="date_to" class="block text-sm font-semibold text-gray-700 mb-1">To Date</label>
+                            <input type="date" id="date_to" name="date_to" value="{{ date_to }}" 
+                                   class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-sm transition-all hover:border-gray-400">
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-end gap-3 pt-1">
+                        <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-semibold rounded-lg text-white bg-primary-600 hover:bg-primary-700 active:bg-primary-800 shadow-md transition-all duration-200 hover:shadow-lg">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            Apply Filters
+                        </button>
+                        <a href="{% url 'dental_records:dental_record_list' %}" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 active:bg-gray-100 shadow-sm transition-all duration-200 hover:shadow-md">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Clear Filters
+                        </a>
                     </div>
                 </form>
             </div>

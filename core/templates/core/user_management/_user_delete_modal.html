@@ -1,0 +1,41 @@
+<div class="space-y-6">
+    <p class="text-sm text-gray-700 leading-relaxed">
+        Are you sure you want to soft-delete this user? The account will be deactivated and hidden from the default list, but the record will remain recoverable.
+    </p>
+
+    <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+        <div class="flex items-center gap-4">
+            <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-base sm:text-lg">
+                {{ viewed_user.first_name.0|upper }}{{ viewed_user.last_name.0|upper }}
+            </div>
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-gray-900 truncate">{{ viewed_user.get_full_name }}</p>
+                <p class="text-xs sm:text-sm text-gray-500 truncate">@{{ viewed_user.username }}</p>
+                <p class="text-xs sm:text-sm text-gray-500 truncate">{{ viewed_user.email }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+        <h3 class="text-xs sm:text-sm font-semibold text-red-800 mb-2">Warning</h3>
+        <ul class="text-xs sm:text-sm text-red-700 space-y-1.5">
+            <li class="flex items-start gap-2">
+                <span class="mt-0.5 flex-shrink-0">•</span>
+                <span>The account will be hidden from the default list</span>
+            </li>
+            <li class="flex items-start gap-2">
+                <span class="mt-0.5 flex-shrink-0">•</span>
+                <span>Associated appointments and records remain in the system</span>
+            </li>
+            <li class="flex items-start gap-2">
+                <span class="mt-0.5 flex-shrink-0">•</span>
+                <span>The user can be restored later</span>
+            </li>
+        </ul>
+    </div>
+
+    <form method="POST" action="{% url 'core:user_delete' viewed_user.id %}" hx-post="{% url 'core:user_delete' viewed_user.id %}">
+        {% csrf_token %}
+        <p class="sr-only">Confirming will soft-delete this user.</p>
+    </form>
+</div>

@@ -21,6 +21,8 @@
 <div x-data="modalComponent()"
      x-cloak
      @open-modal.window="openModal($event.detail)"
+     @close-modal.window="closeModal()"
+     @refresh-list.window="refreshList()"
      @keydown.escape.window="closeModal()">
     <template x-teleport="body">
         <div x-show="isOpen"
@@ -110,11 +112,11 @@
                         </template>
                         <!-- HTMX Content (dynamic) -->
                         <template x-if="!isConfirmation">
-                            <div x-show="hxUrl"
-                                 hx-trigger="load"
-                                 :hx-get="hxUrl"
-                                 :hx-target="'#' + bodyContentId"
-                                 hx-swap="innerHTML">
+                               <div x-show="hxUrl"
+                                   data-modal-hx-loader
+                                   :hx-get="hxUrl"
+                                   :hx-target="'#' + bodyContentId"
+                                   hx-swap="innerHTML">
                                 <div class="flex flex-col items-center justify-center py-12 space-y-4">
                                     <div class="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
                                     <p class="text-sm text-gray-500">Loading...</p>
@@ -124,7 +126,8 @@
                     </div>
 
                     <!-- ═══ Footer ═══ -->
-                    <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3">
+                    <div x-show="actionLabel || validationError"
+                         class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3">
                         <p x-show="validationError" x-text="validationError" class="flex-1 text-sm text-red-600"></p>
                         <button type="button" @click="closeModal()"
                                 class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">

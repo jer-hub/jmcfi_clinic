@@ -5,11 +5,12 @@ These views are separated from core/views.py to keep the main views file managea
 They are imported and registered in core/urls.py.
 """
 import csv
+import json
 import logging
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -29,9 +30,52 @@ from .utils import (
     get_user_profile,
     paginate_queryset,
 )
+from .htmx_utils import htmx_add_toast, htmx_add_trigger
+from .user_management_services import get_user_management_stats
 
 auth_logger = logging.getLogger('security.auth')
 User = User  # Use the global User model
+
+
+def _hard_delete_user(user):
+    """Delete a user and known user-owned records inside a transaction."""
+    with transaction.atomic():
+        if hasattr(user, 'student_profile'):
+            user.student_profile.delete()
+        if hasattr(user, 'staff_profile'):
+            user.staff_profile.delete()
+        user.notifications.all().delete()
+        user.invites.all().delete()
+        user.delete()
+
+
+def _get_deleted_user_management_context(request):
+    """Build the deleted-users page context with the active filters."""
+    role_filter = request.GET.get('role', '')
+    search_query = request.GET.get('search', '')
+
+    users = User.objects.filter(is_deleted=True).order_by('-deleted_at')
+
+    if role_filter:
+        users = users.filter(role=role_filter)
+
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query)
+        )
+
+    stats = get_user_management_stats()
+    users = paginate_queryset(users, request, per_page=20)
+
+    return {
+        'users': users,
+        'stats': stats,
+        'role_filter': role_filter,
+        'search_query': search_query,
+    }
 
 
 @login_required
@@ -135,7 +179,175 @@ def user_restore(request, user_id):
     )
     _log_audit(request, user, AccountProvisioningAudit.ACTION.RESTORED)
     messages.success(request, f'User "{user.email}" has been restored successfully.')
-    return redirect('core:user_detail', user_id=user.id)
+    if request.headers.get('HX-Request') == 'true':
+        response = render(request, 'core/user_management/user_deleted_list.html', _get_deleted_user_management_context(request))
+        response = htmx_add_trigger(response, 'refreshUserStats')
+        return htmx_add_toast(response, f'User "{user.email}" restored successfully.')
+
+    query_string = request.GET.urlencode()
+    target = reverse('core:deleted_user_management')
+    return redirect(f'{target}?{query_string}' if query_string else target)
+
+
+@login_required
+@admin_required
+def deleted_user_permanent_delete(request, user_id):
+    """Permanently delete a soft-deleted user."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required.'}, status=405)
+
+    user = get_object_or_404(User, id=user_id, is_deleted=True)
+    user_email = user.email
+    try:
+        _hard_delete_user(user)
+    except (IntegrityError, Exception) as exc:
+        logger = logging.getLogger(__name__)
+        logger.exception('Failed to permanently delete user %s', user_email)
+        message = f'Could not permanently delete "{user_email}".'
+        messages.error(request, message)
+        if request.headers.get('HX-Request') == 'true':
+            response = render(request, 'core/user_management/user_deleted_list.html', _get_deleted_user_management_context(request))
+            return htmx_add_toast(response, message, 'error')
+        query_string = request.GET.urlencode()
+        target = reverse('core:deleted_user_management')
+        return redirect(f'{target}?{query_string}' if query_string else target)
+
+    message = f'User "{user_email}" was permanently deleted.'
+    messages.success(request, message)
+    auth_logger.info(
+        'Permanent deleted user %s by %s',
+        user_email,
+        request.user.email,
+    )
+
+    if request.headers.get('HX-Request') == 'true':
+        response = render(request, 'core/user_management/user_deleted_list.html', _get_deleted_user_management_context(request))
+        return htmx_add_toast(response, message)
+
+    query_string = request.GET.urlencode()
+    target = reverse('core:deleted_user_management')
+    return redirect(f'{target}?{query_string}' if query_string else target)
+
+
+@login_required
+@admin_required
+def deleted_user_bulk_restore(request):
+    """Restore multiple soft-deleted users from the deleted accounts page."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required.'}, status=405)
+
+    user_ids = request.POST.getlist('user_ids')
+    users = User.objects.filter(id__in=user_ids, is_deleted=True)
+
+    if not users.exists():
+        message = 'No deleted users were selected for restoration.'
+        messages.error(request, message)
+        if request.headers.get('HX-Request') == 'true':
+            response = render(request, 'core/user_management/user_deleted_list.html', _get_deleted_user_management_context(request))
+            return htmx_add_toast(response, message, 'error')
+        query_string = request.GET.urlencode()
+        target = reverse('core:deleted_user_management')
+        return redirect(f'{target}?{query_string}' if query_string else target)
+
+    restored_count = 0
+    for user in users:
+        restore_user(request=request, actor=request.user, target_user=user)
+        create_notification(
+            user=user,
+            title='Account Restored',
+            message='Your account has been restored by an administrator.',
+            notification_type='general',
+        )
+        _log_audit(request, user, AccountProvisioningAudit.ACTION.RESTORED)
+        restored_count += 1
+
+    message = f'{restored_count} user(s) restored successfully.'
+    messages.success(request, message)
+
+    if request.headers.get('HX-Request') == 'true':
+        response = render(request, 'core/user_management/user_deleted_list.html', _get_deleted_user_management_context(request))
+        return htmx_add_toast(response, message)
+
+    query_string = request.GET.urlencode()
+    target = reverse('core:deleted_user_management')
+    return redirect(f'{target}?{query_string}' if query_string else target)
+
+
+@login_required
+@admin_required
+def deleted_user_bulk_action(request):
+    """Apply a bulk action to soft-deleted users."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'POST required.'}, status=405)
+
+    action = request.POST.get('bulk_action', '')
+    user_ids = request.POST.getlist('user_ids')
+    users = User.objects.filter(id__in=user_ids, is_deleted=True)
+
+    if not users.exists():
+        message = 'No deleted users were selected.'
+        messages.error(request, message)
+        if request.headers.get('HX-Request') == 'true':
+            response = render(request, 'core/user_management/user_deleted_list.html', _get_deleted_user_management_context(request))
+            return htmx_add_toast(response, message, 'error')
+        query_string = request.GET.urlencode()
+        target = reverse('core:deleted_user_management')
+        return redirect(f'{target}?{query_string}' if query_string else target)
+
+    if action == 'restore':
+        handled_count = 0
+        for user in users:
+            restore_user(request=request, actor=request.user, target_user=user)
+            create_notification(
+                user=user,
+                title='Account Restored',
+                message='Your account has been restored by an administrator.',
+                notification_type='general',
+            )
+            _log_audit(request, user, AccountProvisioningAudit.ACTION.RESTORED)
+            handled_count += 1
+        message = f'{handled_count} user(s) restored successfully.'
+
+    elif action == 'delete_permanently':
+        handled_count = 0
+        failed_count = 0
+        for user in users:
+            user_email = user.email
+            try:
+                _hard_delete_user(user)
+            except (IntegrityError, Exception):
+                logging.getLogger(__name__).exception('Failed to permanently delete user %s in bulk action', user_email)
+                failed_count += 1
+                continue
+            auth_logger.info(
+                'Permanent deleted user %s by %s (bulk action)',
+                user_email,
+                request.user.email,
+            )
+            handled_count += 1
+        message = f'{handled_count} user(s) permanently deleted successfully.'
+        if failed_count:
+            message = f'{message} {failed_count} user(s) could not be deleted.'
+
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Unknown bulk action.'}, status=400)
+
+    messages.success(request, message)
+
+    if request.headers.get('HX-Request') == 'true':
+        response = render(request, 'core/user_management/user_deleted_list.html', _get_deleted_user_management_context(request))
+        return htmx_add_toast(response, message)
+
+    query_string = request.GET.urlencode()
+    target = reverse('core:deleted_user_management')
+    return redirect(f'{target}?{query_string}' if query_string else target)
+
+
+@login_required
+@admin_required
+def deleted_user_management(request):
+    """List soft-deleted users with restore-focused actions."""
+    return render(request, 'core/user_management/user_deleted_list.html', _get_deleted_user_management_context(request))
 
 
 @login_required

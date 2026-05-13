@@ -777,28 +777,9 @@ class DoctorSelectWidget(forms.Select):
         return option
 
 
-# SECTION_DIAGNOSIS = '___DIAGNOSIS___'
-# SECTION_MEDICATIONS = '___MEDICATIONS___'
-# SECTION_INSTRUCTIONS = '___INSTRUCTIONS___'
-
-
-# def split_prescription_body(body):
-#     """Split a section-delimited prescription body into its parts."""
-#     if not body:
-#         return {'diagnosis': '', 'medications': '', 'instructions': ''}
-#     parts = {SECTION_DIAGNOSIS: '', SECTION_MEDICATIONS: '', SECTION_INSTRUCTIONS: ''}
-#     current_section = SECTION_MEDICATIONS
-#     for line in body.split('\n'):
-#         stripped = line.strip()
-#         if stripped in parts:
-#             current_section = stripped
-#         else:
-#             parts[current_section] += line + '\n'
-#     return {
-#         'diagnosis': parts[SECTION_DIAGNOSIS].strip(),
-#         'medications': parts[SECTION_MEDICATIONS].strip(),
-#         'instructions': parts[SECTION_INSTRUCTIONS].strip(),
-#     }
+SECTION_DIAGNOSIS = '___DIAGNOSIS___'
+SECTION_MEDICATIONS = '___MEDICATIONS___'
+SECTION_INSTRUCTIONS = '___INSTRUCTIONS___'
 
 
 def join_prescription_body(diagnosis, medications, instructions):
@@ -824,8 +805,10 @@ class PrescriptionPatientForm(forms.ModelForm):
         required=False,
         label='Select Physician',
         widget=DoctorSelectWidget(attrs={
-            'class': 'form-select',
+            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors appearance-none',
             'data-physician-select': 'true',
+            'x-ref': 'physicianSelect',
+            '@change': 'syncPhysician()',
         }),
     )
 
@@ -833,7 +816,8 @@ class PrescriptionPatientForm(forms.ModelForm):
         required=False,
         label='Diagnosis / Impression',
         widget=forms.Textarea(attrs={
-            'class': 'form-textarea', 'rows': 3,
+            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[80px]',
+            'rows': 3,
             'placeholder': 'e.g., Acute tonsillitis, URI, Hypertension...',
         }),
     )
@@ -841,7 +825,8 @@ class PrescriptionPatientForm(forms.ModelForm):
         required=False,
         label='Medications / Treatment',
         widget=forms.Textarea(attrs={
-            'class': 'form-textarea', 'rows': 6,
+            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[80px]',
+            'rows': 6,
             'placeholder': 'Medication name, dosage, frequency, duration...',
         }),
     )
@@ -849,7 +834,8 @@ class PrescriptionPatientForm(forms.ModelForm):
         required=False,
         label='Special Instructions',
         widget=forms.Textarea(attrs={
-            'class': 'form-textarea', 'rows': 3,
+            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[80px]',
+            'rows': 3,
             'placeholder': 'e.g., Take with food, avoid alcohol, follow-up in 1 week...',
         }),
     )
@@ -862,22 +848,40 @@ class PrescriptionPatientForm(forms.ModelForm):
             'physician_name', 'license_no', 'ptr_no',
         ]
         widgets = {
-            'patient_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Full name of the patient'}),
-            'age': forms.NumberInput(attrs={'class': 'form-input'}),
-            'gender': forms.Select(attrs={'class': 'form-select'}),
-            'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
-            'date': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
+            'patient_name': forms.TextInput(attrs={
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors',
+                'placeholder': 'Full name of the patient',
+            }),
+            'age': forms.NumberInput(attrs={
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors',
+            }),
+            'gender': forms.Select(attrs={
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors appearance-none',
+            }),
+            'address': forms.Textarea(attrs={
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[60px]',
+                'rows': 2,
+            }),
+            'date': forms.DateInput(attrs={
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors',
+                'type': 'date',
+            }),
             'prescription_body': forms.HiddenInput(attrs={'id': 'id_prescription_body_hidden'}),
             'physician_name': forms.HiddenInput(attrs={
                 'data-physician-name': 'true',
+                'x-model': 'physicianName',
             }),
             'license_no': forms.TextInput(attrs={
-                'class': 'form-input', 'placeholder': 'Auto-filled from selected physician',
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors bg-gray-50 cursor-default',
+                'placeholder': 'Auto-filled from selected physician',
                 'data-physician-license': 'true', 'readonly': True,
+                'x-model': 'physicianLicense',
             }),
             'ptr_no': forms.TextInput(attrs={
-                'class': 'form-input', 'placeholder': 'Auto-filled from selected physician',
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors bg-gray-50 cursor-default',
+                'placeholder': 'Auto-filled from selected physician',
                 'data-physician-ptr': 'true', 'readonly': True,
+                'x-model': 'physicianPtr',
             }),
         }
 

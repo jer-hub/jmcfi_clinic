@@ -1,0 +1,573 @@
+/* ================================================================
+   Form Element Styles — JMCFI Clinic
+   Provides consistent styling for form-input, form-textarea,
+   form-select, form-checkbox classes used by Django form widgets.
+   ================================================================ */
+
+/* ── Base Input / Textarea / Select ── */
+.form-input,
+.form-textarea,
+.form-select {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #111827;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+}
+
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #9ca3af;
+}
+
+.form-input:hover,
+.form-textarea:hover,
+.form-select:hover {
+  border-color: #9ca3af;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+}
+
+.form-input:disabled,
+.form-textarea:disabled,
+.form-select:disabled {
+  background-color: #f9fafb;
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: #e5e7eb;
+}
+
+/* ── Textarea specific ── */
+.form-textarea {
+  min-height: 5rem;
+  resize: vertical;
+}
+
+/* ── Select specific ── */
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 1.25rem;
+  padding-right: 2.25rem;
+}
+
+/* ── Checkbox ── */
+.form-checkbox {
+  width: 1rem;
+  height: 1rem;
+  color: #a855f7;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  accent-color: #a855f7;
+}
+
+.form-checkbox:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.12);
+  outline: none;
+}
+
+.form-checkbox:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Input with left icon padding ── */
+.form-input.pl-12,
+.form-textarea.pl-12 {
+  padding-left: 2.75rem;
+}
+
+/* ── Readonly inputs ── */
+.form-input[readonly],
+.form-textarea[readonly] {
+  background-color: #f9fafb;
+  color: #6b7280;
+  cursor: default;
+}
+
+/* ── Error state ── */
+.form-input.form-field-error,
+.form-textarea.form-field-error,
+.form-select.form-field-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08) !important;
+}
+
+.form-input.form-field-error:focus,
+.form-textarea.form-field-error:focus,
+.form-select.form-field-error:focus {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* ── Form group spacing ── */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.form-group label .required-star {
+  color: #ef4444;
+  margin-left: 0.125rem;
+}
+
+/* ── Compact variant (for grids) ── */
+.form-input--compact,
+.form-textarea--compact,
+.form-select--compact {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+/* ── Large variant ── */
+.form-input--lg,
+.form-textarea--lg,
+.form-select--lg {
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+}
+
+/* ── Inline label + input ── */
+.form-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-inline label {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+/* ── Input with icon (left) ── */
+.form-input-icon {
+  position: relative;
+}
+
+.form-input-icon .form-input-icon__icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
+.form-input-icon .form-input,
+.form-input-icon .form-textarea {
+  padding-left: 2.5rem;
+}
+
+/* ── Textarea with icon ── */
+.form-input-icon .form-input-icon__icon--textarea {
+  top: 0.75rem;
+  transform: none;
+}
+
+/* ── Fieldset / card grouping ── */
+.form-fieldset {
+  padding: 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background-color: #fff;
+}
+
+.form-fieldset legend {
+  padding: 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Two-column form layout ── */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Action bar ── */
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1.5rem;
+}
+
+/* ── Button base ── */
+.form-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-decoration: none;
+  line-height: 1.5;
+}
+
+.form-btn:focus-visible {
+  outline: 2px solid #a855f7;
+  outline-offset: 2px;
+}
+
+.form-btn--primary {
+  background-color: #9333ea;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.form-btn--primary:hover {
+  background-color: #7c3aed;
+}
+
+.form-btn--primary:active {
+  background-color: #6b21a8;
+}
+
+.form-btn--secondary {
+  background-color: #fff;
+  color: #374151;
+  border-color: #d1d5db;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.form-btn--secondary:hover {
+  background-color: #f9fafb;
+  color: #111827;
+}
+
+.form-btn--danger {
+  background-color: #fff;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.form-btn--danger:hover {
+  background-color: #fef2f2;
+}
+
+.form-btn--sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.form-btn--xs {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+}
+
+.form-btn--icon {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+/* ── Help text ── */
+.form-help {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* ── Required indicator ── */
+.form-required {
+  color: #ef4444;
+}
+
+/* ── Optional badge ── */
+.form-optional-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #7c3aed;
+  background-color: #f3e8ff;
+  border-radius: 9999px;
+}
+
+/* ── Section header ── */
+.form-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-section-header__bar {
+  width: 0.25rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+
+.form-section-header__bar--purple { background-color: #a855f7; }
+.form-section-header__bar--blue   { background-color: #3b82f6; }
+.form-section-header__bar--amber  { background-color: #f59e0b; }
+.form-section-header__bar--green  { background-color: #10b981; }
+.form-section-header__bar--red    { background-color: #ef4444; }
+
+.form-section-header__title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Card-style form container ── */
+.form-card {
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.form-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #f3f4f6;
+  background-color: #fafafa;
+}
+
+.form-card__header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.75rem;
+  flex-shrink: 0;
+}
+
+.form-card__header-icon--purple { background-color: #f3e8ff; color: #9333ea; }
+.form-card__header-icon--blue   { background-color: #dbeafe; color: #2563eb; }
+.form-card__header-icon--amber  { background-color: #fef3c7; color: #d97706; }
+.form-card__header-icon--green  { background-color: #d1fae5; color: #059669; }
+
+.form-card__body {
+  padding: 1.25rem;
+}
+
+/* ── Medication entry card ── */
+.med-card {
+  background-color: #fff;
+  border: 1px solid #e9d5ff;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.15s ease;
+}
+
+.med-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.med-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  background: linear-gradient(to right, #faf5ff, #fff);
+  border-bottom: 1px solid #f3e8ff;
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.med-card__index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 9999px;
+  background-color: #f3e8ff;
+  color: #7c3aed;
+  font-size: 0.6875rem;
+  font-weight: 700;
+}
+
+.med-card__label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b21a8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.med-card__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  border-radius: 0.375rem;
+  color: #f87171;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.med-card__remove:hover {
+  color: #dc2626;
+  background-color: #fef2f2;
+}
+
+.med-card__body {
+  padding: 1rem;
+}
+
+/* ── Empty state ── */
+.form-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  text-align: center;
+  border: 2px dashed #e9d5ff;
+  border-radius: 0.75rem;
+  background-color: rgba(250, 245, 255, 0.5);
+}
+
+.form-empty-state__icon {
+  color: #d8b4fe;
+  margin-bottom: 0.5rem;
+}
+
+.form-empty-state__title {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.form-empty-state__subtitle {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+/* ── Add button ── */
+.form-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #7c3aed;
+  background-color: #f3e8ff;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.form-add-btn:hover {
+  background-color: #e9d5ff;
+}
+
+.form-add-btn:focus-visible {
+  outline: 2px solid #a855f7;
+  outline-offset: 2px;
+}
+
+/* ── Physician info box ── */
+.physician-box {
+  background-color: #fff;
+  border: 1px solid #f3e8ff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.physician-box__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.physician-box__icon {
+  color: #a855f7;
+  flex-shrink: 0;
+}
+
+.physician-box__title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Patient info read-only row ── */
+.patient-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+@media (max-width: 640px) {
+  .patient-info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.patient-info-item__label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #9ca3af;
+  margin-bottom: 0.125rem;
+}
+
+.patient-info-item__value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-info-item__value--muted {
+  font-weight: 400;
+  color: #374151;
+}

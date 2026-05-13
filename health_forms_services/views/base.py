@@ -28,8 +28,8 @@ from core.decorators import role_required
 # ---------------------------------------------------------------------------
 
 def staff_doctor_admin_required(view):
-    """Class-compatible wrapper for @role_required('staff', 'doctor', 'admin')."""
-    return method_decorator(role_required('staff', 'doctor', 'admin'), name='dispatch')(view)
+    """Class-compatible wrapper for @role_required('staff', 'doctor')."""
+    return method_decorator(role_required('staff', 'doctor'), name='dispatch')(view)
 
 
 # ---------------------------------------------------------------------------

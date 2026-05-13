@@ -3,7 +3,7 @@
 {% block title %}Appointment Type Settings{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="min-h-screen bg-gray-50 pt-0 pb-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {% include 'appointments/_subnav.html' %}
 
@@ -20,178 +20,25 @@
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                 </svg>
                 <p class="ml-3 text-sm text-blue-700">
-                    Use the dropdown to assign doctors per appointment type, then click <strong>Save</strong>. Leave the dropdown unchanged to allow all staff/doctors.
+                    Use the dropdown to assign doctors per appointment type. Changes save automatically. Leave the dropdown unchanged to allow all staff/doctors.
                 </p>
             </div>
         </div>
 
-        <!-- ═══ Desktop Table (md+) ═══ -->
-        <div class="hidden md:block bg-white shadow sm:rounded-xl overflow-visible">
-            <table class="min-w-full">
-                <thead>
-                    <tr class="border-b border-gray-200 bg-gray-50 rounded-t-xl">
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-44">
-                            Appointment Type
-                        </th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Assigned Doctors
-                        </th>
-                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
-                            Status
-                        </th>
-                        <th class="px-6 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
-                            Active
-                        </th>
-                        <th class="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">
-                            Actions
-                        </th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                    {% for item in settings_data %}
-                    <tr {% if item.instance %}x-data="appointmentTypeRow({{ item.instance.id }}, {{ item.instance.is_active|yesno:'true,false' }})"{% endif %} class="hover:bg-gray-50 transition-colors duration-100">
-
-                        <!-- Type -->
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                {% include 'appointments/appointment_settings/_type_icon.html' with type_key=item.type_key %}
-                                <span class="text-sm font-medium text-gray-900">{{ item.type_label }}</span>
-                            </div>
-                        </td>
-
-                        <!-- Assigned Doctors (crispy dropdown inside form) -->
-                        <td class="px-6 py-4">
-                            {% include 'appointments/appointment_settings/_doctor_form.html' with item=item %}
-                        </td>
-
-                        <!-- Status badge -->
-                        <td class="px-6 py-4 text-center">
-                            {% if item.instance %}
-                                <span :class="isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" 
-                                      class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors duration-200">
-                                    <span :class="isActive ? 'bg-green-500' : 'bg-red-400'" class="w-1.5 h-1.5 rounded-full"></span>
-                                    <span x-text="isActive ? 'Active' : 'Inactive'"></span>
-                                </span>
-                            {% else %}
-                                <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">Not set</span>
-                            {% endif %}
-                        </td>
-
-                        <!-- Active toggle (separate form) -->
-                        <td class="px-6 py-4 text-center">
-                            {% if item.instance %}
-                            <div class="inline">
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" 
-                                           class="sr-only peer" 
-                                           :checked="isActive"
-                                           @change="toggle()">
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                                </label>
-                            </div>
-                            {% else %}
-                            <span class="text-xs text-gray-400">—</span>
-                            {% endif %}
-                        </td>
-
-                        <!-- Actions -->
-                        <td class="px-6 py-4 text-right">
-                            {% if item.instance %}
-                            <button type="button"
-                                    onclick="window._deleteDefaultId={{ item.instance.id }}; window._deleteTypeLabel='{{ item.type_label }}';
-                                             document.dispatchEvent(new CustomEvent('open-modal', {bubbles:true,detail:{
-                                               type:'danger', title:'Delete Doctor Assignments',
-                                               message:'Are you sure you want to delete the doctor assignments for &quot;{{ item.type_label }}&quot;?',
-                                               actionLabel:'Delete',
-                                               onConfirm:function(){
-                                                 var f = document.getElementById('deleteForm');
-                                                 f.action = '{% url 'appointments:delete_appointment_type_default' default_id=0 %}'.replace('0', window._deleteDefaultId);
-                                                 f.submit();
-                                               }
-                                             }}));"
-                                class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors duration-150">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                </svg>
-                                Delete
-                            </button>
-                            {% else %}
-                            <span class="text-xs text-gray-400 italic">—</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- ═══ Mobile Cards (< md) ═══ -->
-        <div class="block md:hidden space-y-4">
+        <div class="space-y-4">
             {% for item in settings_data %}
-            <div {% if item.instance %}x-data="appointmentTypeRow({{ item.instance.id }}, {{ item.instance.is_active|yesno:'true,false' }})"{% endif %} class="bg-white shadow rounded-xl border border-gray-200 overflow-visible">
-                <!-- Card Header -->
-                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                    <div class="flex items-center gap-3 min-w-0">
-                        {% include 'appointments/appointment_settings/_type_icon.html' with type_key=item.type_key %}
-                        <div class="min-w-0">
-                            <span class="text-sm font-semibold text-gray-900 block truncate">{{ item.type_label }}</span>
-                            {% if item.instance %}
-                            <span :class="isActive ? 'text-green-600' : 'text-red-500'" class="text-xs font-medium">
-                                <span x-text="isActive ? 'Active' : 'Inactive'"></span>
-                            </span>
-                            {% else %}
-                            <span class="text-xs text-gray-400">Not configured</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        {% if item.instance %}
-                        <label class="relative inline-flex items-center cursor-pointer" title="Toggle active state">
-                            <input type="checkbox" 
-                                   class="sr-only peer" 
-                                   :checked="isActive"
-                                   @change="toggle()">
-                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[0.5px] after:left-[0.5px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-primary-600"></div>
-                        </label>
-                        <button type="button"
-                                onclick="window._deleteDefaultId={{ item.instance.id }}; window._deleteTypeLabel='{{ item.type_label }}';
-                                         document.dispatchEvent(new CustomEvent('open-modal', {bubbles:true,detail:{
-                                           type:'danger', title:'Delete Doctor Assignments',
-                                           message:'Are you sure you want to delete the doctor assignments for &quot;{{ item.type_label }}&quot;?',
-                                           actionLabel:'Delete',
-                                           onConfirm:function(){
-                                             var f = document.getElementById('deleteForm');
-                                             f.action = '{% url 'appointments:delete_appointment_type_default' default_id=0 %}'.replace('0', window._deleteDefaultId);
-                                             f.submit();
-                                           }
-                                         }}));"
-                                class="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                                title="Delete">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                            </svg>
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Card Body - Doctor Assignment -->
-                <div class="px-4 py-3">
-                    <label class="block text-xs font-medium text-gray-500 mb-1.5">Assigned Doctors</label>
-                    {% include 'appointments/appointment_settings/_doctor_form.html' with item=item %}
-                </div>
-            </div>
+                {% include 'appointments/appointment_settings/_settings_row.html' with item=item %}
             {% empty %}
-            <div class="text-center py-8 text-sm text-gray-500 bg-white rounded-xl border border-gray-200">
-                No appointment types found.
-            </div>
+                <div class="text-center py-8 text-sm text-gray-500 bg-white rounded-xl border border-gray-200">
+                    No appointment types found.
+                </div>
             {% endfor %}
         </div>
 
     </div>
 </div>
 
-<form id="deleteForm" method="POST" class="hidden">{% csrf_token %}</form>
+{% include 'appointments/appointment_settings/_shared_scripts.html' %}
 
 <style>
 .doctor-cb-list input[type="checkbox"] {
@@ -211,117 +58,4 @@
 [x-cloak] { display: none !important; }
 </style>
 
-<script>
-function doctorDropdown() {
-    return {
-        open: false,
-        search: '',
-        count: 0,
-        init() {
-            this.updateCount();
-            this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-                cb.addEventListener('change', () => this.updateCount());
-            });
-        },
-        updateCount() {
-            this.count = this.$el.querySelectorAll('input[type="checkbox"]:checked').length;
-        },
-        selectedLabel() {
-            if (this.count === 0) return 'All doctors available';
-            if (this.count === 1) return '1 doctor assigned';
-            return `${this.count} doctors assigned`;
-        },
-        selectAll() {
-            this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = true; });
-            this.updateCount();
-        },
-        clearAll() {
-            this.$el.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
-            this.updateCount();
-        }
-    }
-}
-// CSRF helper and Alpine row factory for toggling active state without reload
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-function appointmentTypeRow(id, initialActive) {
-    return {
-        id: id,
-        isActive: initialActive,
-        loading: false,
-        async toggle() {
-            if (this.loading) return;
-            this.loading = true;
-            try {
-                const url = "{% url 'appointments:toggle_appointment_type_default' default_id=0 %}".replace('0', this.id);
-                const resp = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': getCookie('csrftoken'),
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json'
-                    },
-                    body: new URLSearchParams({})
-                });
-
-                if (!resp.ok) {
-                    console.error('Toggle failed', resp.statusText);
-                    return;
-                }
-
-                const data = await resp.json();
-                if (data && data.success) {
-                    this.isActive = data.is_active;
-                    showPageToast(data.message || 'Updated', 'success');
-                } else {
-                    showPageToast((data && data.message) || 'Failed to update', 'error');
-                }
-            } catch (e) {
-                console.error('Error toggling appointment default:', e);
-                showPageToast('An error occurred while updating', 'error');
-            } finally {
-                this.loading = false;
-            }
-        }
-    }
-}
-
-// Lightweight page toast for AJAX actions (matches shared floating style)
-function showPageToast(message, type='success') {
-    const classes = {
-        success: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-emerald-50 border-emerald-400 text-emerald-800',
-        error:   'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-red-50 border-red-400 text-red-800',
-        warning: 'fixed top-20 right-4 z-50 max-w-sm w-full px-4 py-3 border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3 bg-amber-50 border-amber-400 text-amber-800',
-    };
-    const toast = document.createElement('div');
-    toast.className = classes[type] || classes.success;
-    toast.innerHTML = `
-        <span class="flex-shrink-0">
-            ${type === 'success' ? '<i class="fas fa-check-circle"></i>' : '<i class="fas fa-times-circle"></i>'}
-        </span>
-        <span class="flex-1 font-medium text-sm">${message}</span>
-        <button type="button" class="ml-2 opacity-70 hover:opacity-100" onclick="this.parentElement.remove()">
-            <i class="fas fa-times"></i>
-        </button>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.add('opacity-0', 'transition-opacity');
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
-</script>
 {% endblock content %}

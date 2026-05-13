@@ -5,72 +5,215 @@
 {% endblock %}
 
 {% block content %}
-  <div class="min-h-screen flex items-center justify-center px-4 py-10 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-100 via-white to-slate-200">
-    <div class="w-full max-w-md">
-      {% include 'partials/messages.html' %}
+<div
+  x-data="adminLogin()"
+  class="min-h-screen flex items-center justify-center px-4 py-10 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 via-white to-slate-100"
+>
+  <div class="w-full max-w-md">
+    {% include 'partials/messages.html' %}
 
-      <div class="rounded-2xl bg-white shadow-xl ring-1 ring-slate-200 overflow-hidden">
-        <div class="bg-slate-900 px-8 py-6 text-white">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-300">Restricted Access</p>
-          <h1 class="mt-2 text-2xl font-bold">Administrator Login</h1>
-          <p class="mt-2 text-sm text-slate-300">Password sign-in only for admin-role accounts.</p>
+    <!-- Card -->
+    <div
+      x-cloak
+      x-show="!loading"
+      x-transition:enter="transition ease-out duration-500"
+      x-transition:enter-start="opacity-0 translate-y-6"
+      x-transition:enter-end="opacity-100 translate-y-0"
+      class="rounded-2xl bg-white shadow-lg ring-1 ring-slate-200/70 overflow-hidden"
+    >
+      <!-- Header -->
+      <div class="relative px-8 pt-8 pb-5 text-center overflow-hidden">
+        <!-- Decorative background accent -->
+        <div class="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-slate-900 pointer-events-none"></div>
+        <div class="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-white/5 pointer-events-none"></div>
+        <div class="absolute -bottom-8 -left-8 w-28 h-28 rounded-full bg-white/5 pointer-events-none"></div>
+
+        <!-- Logo / Icon -->
+        <div class="relative mx-auto mb-5 flex items-center justify-center w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-sm ring-1 ring-white/20 shadow-lg">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+          </svg>
         </div>
 
-        <form method="post" class="px-8 py-7 space-y-5" novalidate>
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ next }}">
+        <h1 class="relative text-2xl font-bold text-white tracking-tight">Administrator Login</h1>
+        <p class="relative mt-2 text-sm text-primary-200 font-medium">
+          Password sign-in for admin-role accounts
+        </p>
+      </div>
 
-          {% if form.non_field_errors %}
-            <div class="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {% for error in form.non_field_errors %}
-                <p>{{ error }}</p>
-              {% endfor %}
-            </div>
-          {% endif %}
+      <!-- Form Body -->
+      <form
+        method="post"
+        class="px-8 pt-4 pb-7 space-y-5"
+        novalidate
+        @submit="submitting = true"
+      >
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
 
-          <div>
-            <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-slate-700">Admin Email</label>
-            <div class="mt-1">{{ form.email }}</div>
-            {% for error in form.email.errors %}
-              <p class="mt-1 text-sm text-red-600">{{ error }}</p>
-            {% endfor %}
-          </div>
-
-          <div>
-            <label for="{{ form.password.id_for_label }}" class="block text-sm font-medium text-slate-700">Password</label>
-            <div class="mt-1">{{ form.password }}</div>
-            {% for error in form.password.errors %}
-              <p class="mt-1 text-sm text-red-600">{{ error }}</p>
-            {% endfor %}
-          </div>
-
-          <div class="flex items-center">
-            <input
-              id="{{ form.remember_me.id_for_label }}"
-              name="{{ form.remember_me.name }}"
-              type="checkbox"
-              value="on"
-              {% if form.remember_me.value %}checked{% endif %}
-              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-            >
-            <label for="{{ form.remember_me.id_for_label }}" class="ml-2 block text-sm text-slate-700">
-              Keep me signed in
-            </label>
-          </div>
-
-          <button
-            type="submit"
-            class="w-full rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+        <!-- Non-field errors (Alpine dismissible) -->
+        {% if form.non_field_errors %}
+          <div
+            x-data="{ show: true }"
+            x-show="show"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95"
+            class="rounded-xl border border-red-200 bg-red-50 px-4 py-3"
           >
-            Sign In as Admin
-          </button>
-        </form>
+            <div class="flex flex-nowrap items-center gap-2 overflow-hidden">
+              <svg class="w-5 h-5 text-red-500 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd"></path>
+              </svg>
+              <div class="min-w-0 flex-1 text-sm leading-5 text-red-700 truncate">
+                {% for error in form.non_field_errors %}
+                  <span class="whitespace-nowrap">{% if not forloop.first %} {% endif %}{{ error }}</span>
+                {% endfor %}
+              </div>
+              <button type="button" @click="show = false" class="shrink-0 text-red-400 hover:text-red-600 transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          </div>
+        {% endif %}
 
-        <div class="border-t border-slate-200 bg-slate-50 px-8 py-4 text-xs text-slate-600">
-          Student/staff access uses Google OAuth.
-          <a href="{% url 'account_login' %}" class="font-semibold text-primary-700 hover:text-primary-800">Go to Google sign-in</a>
+        <!-- Email Field -->
+        <div x-data="{ hasError: {% if form.email.errors %}true{% else %}false{% endif %} }">
+          <label for="{{ form.email.id_for_label }}" class="block text-sm font-semibold text-slate-700">
+            Admin Email
+          </label>
+          <div class="mt-1.5 relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+              </svg>
+            </div>
+            <input
+              type="email"
+              name="{{ form.email.name }}"
+              id="{{ form.email.id_for_label }}"
+              :class="hasError
+                ? 'block w-full rounded-xl border border-red-400 bg-red-50 pl-11 pr-4 py-2.5 text-sm text-red-900 placeholder-red-300 shadow-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none transition-colors'
+                : 'block w-full rounded-xl border border-slate-300 bg-white pl-11 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none transition-colors'"
+              placeholder="admin@jmcfi.edu.ph"
+              value="{% if form.email.value %}{{ form.email.value }}{% endif %}"
+              @input="if (hasError) hasError = false"
+              aria-describedby="{% if form.email.errors %}email-error{% endif %}"
+            >
+          </div>
+          {% for error in form.email.errors %}
+            <div id="email-error" class="mt-2 flex w-full items-center gap-2 overflow-hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 shadow-sm" role="alert">
+              <svg class="h-4 w-4 shrink-0 text-red-500" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
+              </svg>
+              <span class="min-w-0 truncate">{{ error }}</span>
+            </div>
+          {% endfor %}
         </div>
+
+        <!-- Password Field -->
+        <div x-data="{ hasError: {% if form.password.errors %}true{% else %}false{% endif %}, showPassword: false }">
+          <label for="{{ form.password.id_for_label }}" class="block text-sm font-semibold text-slate-700">
+            Password
+          </label>
+          <div class="mt-1.5 relative">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+              <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+              </svg>
+            </div>
+            <input
+              type="password"
+              name="{{ form.password.name }}"
+              id="{{ form.password.id_for_label }}"
+              :type="showPassword ? 'text' : 'password'"
+              :class="hasError
+                ? 'block w-full rounded-xl border border-red-400 bg-red-50 pl-11 pr-10 py-2.5 text-sm text-red-900 placeholder-red-300 shadow-sm focus:border-red-500 focus:ring-2 focus:ring-red-500/30 focus:outline-none transition-colors'
+                : 'block w-full rounded-xl border border-slate-300 bg-white pl-11 pr-10 py-2.5 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500/30 focus:outline-none transition-colors'"
+              placeholder="Enter your password"
+              value="{% if form.password.value %}{{ form.password.value }}{% endif %}"
+              @input="if (hasError) hasError = false"
+              aria-describedby="{% if form.password.errors %}password-error{% endif %}"
+            >
+            <button
+              type="button"
+              @click="showPassword = !showPassword"
+              class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <svg x-show="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <svg x-show="showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="display: none;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+              </svg>
+            </button>
+          </div>
+          {% for error in form.password.errors %}
+            <div id="password-error" class="mt-2 flex w-full items-center gap-2 overflow-hidden rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 shadow-sm" role="alert">
+              <svg class="h-4 w-4 shrink-0 text-red-500" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
+              </svg>
+              <span class="min-w-0 truncate">{{ error }}</span>
+            </div>
+          {% endfor %}
+        </div>
+
+        <!-- Remember Me -->
+        <div class="flex items-center">
+          <input
+            id="{{ form.remember_me.id_for_label }}"
+            name="{{ form.remember_me.name }}"
+            type="checkbox"
+            value="on"
+            {% if form.remember_me.value %}checked{% endif %}
+            class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 transition-shadow"
+          >
+          <label for="{{ form.remember_me.id_for_label }}" class="ml-2.5 block text-sm text-slate-600">
+            Keep me signed in
+          </label>
+        </div>
+
+        <!-- Submit Button with loading state -->
+        <button
+          type="submit"
+          :disabled="submitting"
+          class="group relative w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-md hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+        >
+          <span x-show="!submitting">Sign In as Admin</span>
+          <span x-show="submitting" class="inline-flex items-center gap-2" style="display: none;">
+            <svg class="animate-spin -ml-1 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Signing in...
+          </span>
+        </button>
+      </form>
+
+      <!-- Footer -->
+      <div class="border-t border-slate-200 bg-slate-50 px-8 py-4">
+        <p class="text-xs text-slate-500 text-center">
+          Student / staff access uses Google OAuth.
+          <a href="{% url 'account_login' %}" class="font-semibold text-primary-600 hover:text-primary-700 transition-colors">
+            Go to Google sign-in
+          </a>
+        </p>
       </div>
     </div>
   </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function adminLogin() {
+    return {
+      loading: false,
+      submitting: false,
+    };
+  }
+</script>
 {% endblock %}

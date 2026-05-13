@@ -122,16 +122,23 @@ def get_inbox_conversations(user):
         return []
 
     conversation_ids = [conversation.id for conversation in conversations]
+    
+    # Get the user's specific last_read_at for each conversation
+    user_last_read = ConversationParticipant.objects.filter(
+        conversation=OuterRef("conversation_id"),
+        user=user,
+        is_active=True,
+    ).values("last_read_at")[:1]
+    
     unread_rows = (
         Message.objects.filter(
             conversation_id__in=conversation_ids,
-            conversation__participant_links__user=user,
-            conversation__participant_links__is_active=True,
         )
         .exclude(sender=user)
+        .annotate(user_last_read_at=Subquery(user_last_read))
         .filter(
-            Q(conversation__participant_links__last_read_at__isnull=True)
-            | Q(created_at__gt=F("conversation__participant_links__last_read_at"))
+            Q(user_last_read_at__isnull=True)
+            | Q(created_at__gt=F("user_last_read_at"))
         )
         .values("conversation_id")
         .annotate(unread_count=Count("id"))
@@ -151,16 +158,29 @@ def get_unread_message_count(user):
     if not getattr(user, "is_authenticated", False):
         return 0
 
+    # Get the user's specific last_read_at for each conversation
+    user_last_read = ConversationParticipant.objects.filter(
+        conversation=OuterRef("conversation_id"),
+        user=user,
+        is_active=True,
+    ).values("last_read_at")[:1]
+    
+    # Get conversation IDs where user is an active participant
+    user_conversation_ids = ConversationParticipant.objects.filter(
+        user=user,
+        is_active=True,
+    ).values_list("conversation_id", flat=True)
+    
     return (
         Message.objects.filter(
-            conversation__participant_links__user=user,
-            conversation__participant_links__is_active=True,
+            conversation_id__in=user_conversation_ids,
             conversation__is_active=True,
         )
         .exclude(sender=user)
+        .annotate(user_last_read_at=Subquery(user_last_read))
         .filter(
-            Q(conversation__participant_links__last_read_at__isnull=True)
-            | Q(created_at__gt=F("conversation__participant_links__last_read_at"))
+            Q(user_last_read_at__isnull=True)
+            | Q(created_at__gt=F("user_last_read_at"))
         )
         .count()
     )
@@ -170,16 +190,29 @@ def get_unread_conversation_count(user):
     if not getattr(user, "is_authenticated", False):
         return 0
 
+    # Get the user's specific last_read_at for each conversation
+    user_last_read = ConversationParticipant.objects.filter(
+        conversation=OuterRef("conversation_id"),
+        user=user,
+        is_active=True,
+    ).values("last_read_at")[:1]
+    
+    # Get conversation IDs where user is an active participant
+    user_conversation_ids = ConversationParticipant.objects.filter(
+        user=user,
+        is_active=True,
+    ).values_list("conversation_id", flat=True)
+    
     return (
         Message.objects.filter(
-            conversation__participant_links__user=user,
-            conversation__participant_links__is_active=True,
+            conversation_id__in=user_conversation_ids,
             conversation__is_active=True,
         )
         .exclude(sender=user)
+        .annotate(user_last_read_at=Subquery(user_last_read))
         .filter(
-            Q(conversation__participant_links__last_read_at__isnull=True)
-            | Q(created_at__gt=F("conversation__participant_links__last_read_at"))
+            Q(user_last_read_at__isnull=True)
+            | Q(created_at__gt=F("user_last_read_at"))
         )
         .values("conversation_id")
         .distinct()

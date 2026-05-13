@@ -90,11 +90,11 @@
             <!-- Medication Items -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900">Medication Items</h2>
+                    <h2 class="text-lg font-semibold text-gray-900">Prescribed Medications</h2>
                     {% if can_edit %}
                     <button @click="showAddForm = !showAddForm"
                             class="no-print px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 font-medium">
-                        <span x-text="showAddForm ? 'Cancel' : 'Add Item'"></span>
+                        <span x-text="showAddForm ? 'Cancel' : 'Add Medication'"></span>
                     </button>
                     {% endif %}
                 </div>
@@ -102,7 +102,7 @@
                 <!-- Add Item Form -->
                 {% if can_edit %}
                 <div x-show="showAddForm" x-transition class="p-6 border-b border-gray-200 bg-blue-50 no-print">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-4">New Medication Item</h3>
+                    <h3 class="text-sm font-semibold text-gray-700 mb-4">New Medication</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-1">Medication Name *</label>
@@ -143,7 +143,7 @@
                         <div class="md:col-span-2 flex justify-end">
                             <button @click="addItem()" :disabled="saving"
                                     class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm disabled:opacity-50">
-                                <span x-show="!saving">Save Item</span>
+                                <span x-show="!saving">Save Medication</span>
                                 <span x-show="saving">Saving...</span>
                             </button>
                         </div>
@@ -151,48 +151,80 @@
                 </div>
                 {% endif %}
 
-                <!-- Items Table -->
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Medication</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Dosage</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frequency</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Qty</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Instructions</th>
+                <!-- Grouped Medication Cards -->
+                <div class="p-6">
+                    <template x-if="groupedItems.length === 0">
+                        <div class="text-center py-8 text-gray-500 text-sm">
+                            No medications prescribed yet. Click "Add Medication" to add one.
+                        </div>
+                    </template>
+
+                    <template x-for="(group, medName) in groupedItems" :key="medName">
+                        <div class="mb-4 last:mb-0 border border-gray-200 rounded-lg overflow-hidden">
+                            <!-- Medication Header -->
+                            <div class="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-bold">
+                                        <span x-text="medName.charAt(0).toUpperCase()"></span>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-semibold text-gray-900" x-text="medName"></h3>
+                                        <p class="text-xs text-gray-500" x-text="group.length + ' item' + (group.length > 1 ? 's' : '')"></p>
+                                    </div>
+                                </div>
                                 {% if can_edit %}
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase no-print" style="width:80px;">Actions</th>
+                                <button @click="deleteGroup(medName)"
+                                        class="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                                        title="Delete all items with this medication">
+                                    Remove All
+                                </button>
                                 {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <template x-for="item in items" :key="item.id">
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 text-sm font-medium text-gray-900" x-text="item.medication_name"></td>
-                                    <td class="px-6 py-4 text-sm text-gray-500" x-text="item.dosage || '-'"></td>
-                                    <td class="px-6 py-4 text-sm text-gray-500" x-text="item.frequency || '-'"></td>
-                                    <td class="px-6 py-4 text-sm text-gray-500" x-text="item.duration || '-'"></td>
-                                    <td class="px-6 py-4 text-sm text-gray-500" x-text="item.quantity || '-'"></td>
-                                    <td class="px-6 py-4 text-sm text-gray-500 whitespace-pre-wrap" x-text="item.instructions || '-'"></td>
-                                    {% if can_edit %}
-                                    <td class="px-6 py-4 text-sm no-print">
-                                        <button @click="deleteItem(item.id)"
-                                                class="text-red-600 hover:text-red-800 font-medium text-xs">
-                                            Delete
-                                        </button>
-                                    </td>
-                                    {% endif %}
-                                </tr>
-                            </template>
-                            <tr x-show="items.length === 0">
-                                <td colspan="{% if can_edit %}7{% else %}6{% endif %}" class="px-6 py-8 text-center text-gray-500 text-sm">
-                                    No medication items yet. Click "Add Item" to add a medication.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                            </div>
+
+                            <!-- Medication Details -->
+                            <div class="divide-y divide-gray-100">
+                                <template x-for="(item, idx) in group" :key="item.id">
+                                    <div class="px-5 py-3 hover:bg-gray-50 transition-colors">
+                                        <div class="flex items-start justify-between gap-4">
+                                            <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
+                                                <div>
+                                                    <span class="text-xs text-gray-400 block">Dosage</span>
+                                                    <span class="text-gray-800 font-medium" x-text="item.dosage || '—'"></span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-xs text-gray-400 block">Frequency</span>
+                                                    <span class="text-gray-800" x-text="item.frequency || '—'"></span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-xs text-gray-400 block">Duration</span>
+                                                    <span class="text-gray-800" x-text="item.duration || '—'"></span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-xs text-gray-400 block">Quantity</span>
+                                                    <span class="text-gray-800" x-text="item.quantity || '—'"></span>
+                                                </div>
+                                            </div>
+                                            {% if can_edit %}
+                                            <button @click="deleteItem(item.id)"
+                                                    class="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0 mt-1"
+                                                    title="Remove this item">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                                </svg>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                        <template x-if="item.instructions">
+                                            <div class="mt-2 text-sm text-gray-600 bg-gray-50 rounded px-3 py-2">
+                                                <span class="text-xs text-gray-400 block mb-0.5">Instructions</span>
+                                                <span x-text="item.instructions"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
 
@@ -224,6 +256,8 @@
             <!-- Review Section -->
             {% if can_review %}
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden no-print">
+                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Review & Approve</h2>
                 </div>
                 <div class="p-6">
                     {% if prescription.reviewed_by %}
@@ -311,6 +345,23 @@ function prescriptionItems() {
             {% endfor %}
         ],
 
+        get groupedItems() {
+            const groups = {};
+            for (const item of this.items) {
+                const name = item.medication_name.trim();
+                if (!groups[name]) {
+                    groups[name] = [];
+                }
+                groups[name].push(item);
+            }
+            // Sort groups alphabetically by medication name
+            const sorted = {};
+            Object.keys(groups).sort().forEach(key => {
+                sorted[key] = groups[key];
+            });
+            return sorted;
+        },
+
         async addItem() {
             if (!this.newItem.medication_name) {
                 alert('Please enter a medication name.');
@@ -355,7 +406,7 @@ function prescriptionItems() {
         },
 
         async deleteItem(itemId) {
-            if (!confirm('Delete this medication item?')) return;
+            if (!confirm('Remove this medication item?')) return;
             try {
                 const formData = new FormData();
                 formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
@@ -374,6 +425,29 @@ function prescriptionItems() {
                 alert('Error deleting item.');
                 console.error(err);
             }
+        },
+
+        async deleteGroup(medicationName) {
+            const groupItems = this.groupedItems[medicationName];
+            if (!groupItems || groupItems.length === 0) return;
+            const count = groupItems.length;
+            if (!confirm(`Remove all ${count} item${count > 1 ? 's' : ''} for "${medicationName}"?`)) return;
+
+            // Delete items one by one
+            for (const item of groupItems) {
+                try {
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+                    const deleteUrl = '{% url "health_forms_services:delete_prescription_item" prescription.pk 0 %}'.replace('/0/delete/', '/' + item.id + '/delete/');
+                    await fetch(deleteUrl, {
+                        method: 'POST',
+                        body: formData
+                    });
+                } catch (err) {
+                    console.error('Error deleting item', item.id, err);
+                }
+            }
+            this.items = this.items.filter(i => i.medication_name.trim() !== medicationName);
         }
     };
 }

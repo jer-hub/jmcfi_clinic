@@ -1,8 +1,8 @@
 {% comment %}Staff dashboard.{% endcomment %}
 
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  {% include "components/stat_card.html" with label="Today's Appointments" value=today_appointments.count icon="fa-calendar-day" variant="primary" hint="Scheduled today" %}
-  {% include "components/stat_card.html" with label="Pending Appointments" value=pending_appointments icon="fa-clock" variant="warning" hint="Awaiting confirmation" %}
+  {% include "components/stat_card.html" with label="Today's Appointments" value=today_appointments.count icon="fa-calendar-day" variant="primary" hint="Scheduled today" href=appointment_list_today_url %}
+  {% include "components/stat_card.html" with label="Pending Appointments" value=pending_appointments icon="fa-clock" variant="warning" hint="Awaiting confirmation" href=appointment_list_pending_url %}
   {% include "components/stat_card.html" with label="Total Patients" value=total_patients icon="fa-users" variant="success" hint="Registered patients" %}
   {% include "components/stat_card.html" with label="Completed Appointments" value=completed_appointments icon="fa-circle-check" variant="info" hint="Lifetime" %}
 </div>
@@ -13,7 +13,7 @@
       <i class="fas fa-bolt text-warning-500"></i>Quick Actions
     </h3>
   </div>
-  <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+  <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
     <a href="{% url 'appointments:appointment_list' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-200 transition-colors group">
       <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-600 text-white"><i class="fas fa-calendar-days"></i></span>
       <div class="min-w-0">
@@ -33,6 +33,13 @@
       <div class="min-w-0">
         <p class="text-sm font-semibold text-gray-900">Medical Records</p>
         <p class="text-xs text-gray-500">View patient records</p>
+      </div>
+    </a>
+    <a href="{% url 'document_request:document_requests' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-success-50 hover:border-success-200 transition-colors group">
+      <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-success-600 text-white"><i class="fas fa-file-circle-check"></i></span>
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-gray-900">Certificates</p>
+        <p class="text-xs text-gray-500">Process document requests</p>
       </div>
     </a>
     <a href="{% url 'pharmacy:dashboard' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-warning-50 hover:border-warning-200 transition-colors group">

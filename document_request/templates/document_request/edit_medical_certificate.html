@@ -20,32 +20,8 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
     {% include "components/page_header.html" with title="Edit Medical Certificate" subtitle=certificate.patient_name icon="fa-pen-to-square" %}
-
-    {% if linked_doc_request %}
-    <div class="bg-info-50 border border-info-200 rounded-card p-4 mb-6">
-        <div class="flex items-start gap-3">
-            <i class="fas fa-link text-info-600 mt-0.5"></i>
-            <div class="flex-1">
-                <h3 class="text-sm font-semibold text-info-800">Document Request</h3>
-                <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                    <span class="text-info-700 font-medium">{{ linked_doc_request.student.get_full_name }}</span>
-                    <span class="text-info-600">{{ linked_doc_request.get_document_type_display }}</span>
-                    <span class="text-info-500 text-xs">Purpose: {{ linked_doc_request.purpose }}</span>
-                    {% if linked_doc_request.status == 'completed' %}
-                      {% include "components/status_badge.html" with label=linked_doc_request.get_status_display variant="success" size="sm" %}
-                    {% elif linked_doc_request.status == 'pending' %}
-                      {% include "components/status_badge.html" with label=linked_doc_request.get_status_display variant="warning" size="sm" %}
-                    {% else %}
-                      {% include "components/status_badge.html" with label=linked_doc_request.get_status_display variant="muted" size="sm" %}
-                    {% endif %}
-                </div>
-                <p class="text-xs text-info-600 mt-2">Complete the certificate details below, then update the status to "Completed" when ready.</p>
-            </div>
-        </div>
-    </div>
-    {% endif %}
 
         {% if missing_signature_warning %}
         <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
@@ -53,7 +29,7 @@
                 <p class="text-sm text-amber-800">
                     Your active signature is not set. You won't be able to mark this certificate as completed until you upload one.
                 </p>
-                <a href="{% url 'document_request:document_requests' %}"
+                <a href="{% url 'document_request:clinician_signature' %}"
                    class="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-amber-900 bg-amber-100 hover:bg-amber-200 transition-colors">
                     Set My Signature
                 </a>
@@ -96,23 +72,9 @@
                 </div>
             </div>
 
-            <!-- Status & Review Section -->
-            <!-- Note: Review form is handled in the document_request:process_document view -->
-
-            <div class="bg-info-50 border border-info-200 rounded-card p-4 mb-6 flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-info-900">Preview Certificate</p>
-                    <p class="text-xs text-info-700 mt-1">View how the certificate will look when issued</p>
-                </div>
-                <a href="{% url 'document_request:preview_medical_certificate' certificate.pk %}"
-                   class="inline-flex items-center gap-2 px-4 py-2 bg-info-600 text-white rounded-lg hover:bg-info-700 text-sm font-medium transition-colors">
-                    <i class="fas fa-eye"></i>View Preview
-                </a>
-            </div>
-
             <div class="flex justify-end gap-3 pt-2 border-t border-gray-200">
                 {% if linked_doc_request %}
-                    <a href="{% url 'document_request:process_document' linked_doc_request.pk %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm transition-colors">Cancel</a>
+                    <a href="{% url 'document_request:document_request_detail' linked_doc_request.pk %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm transition-colors">Cancel</a>
                 {% else %}
                     <a href="{% url 'document_request:document_requests' %}" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm transition-colors">Cancel</a>
                 {% endif %}

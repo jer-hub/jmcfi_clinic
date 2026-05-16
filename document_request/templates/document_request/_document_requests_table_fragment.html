@@ -1,0 +1,171 @@
+{% load user_filters %}
+{% if requests %}
+{# Mobile cards #}
+<div class="md:hidden divide-y divide-gray-100">
+  {% for cert_request in requests %}
+  <article class="p-4 space-y-3 {% cycle 'bg-white' 'bg-gray-50/40' %}">
+    <p class="text-xs text-gray-500">
+      <span class="font-medium text-gray-700">{{ cert_request.created_at|date:"M d, Y" }}</span>
+      · {{ cert_request.created_at|time:"g:i A" }}
+    </p>
+    {% if user.role != 'student' %}
+    <div class="flex items-center gap-3">
+      {% include "components/avatar.html" with user=cert_request.student size="md" %}
+      <div class="min-w-0">
+        <p class="text-sm font-medium text-gray-900 truncate">{{ cert_request.student|format_student_name }}</p>
+        <p class="text-xs text-gray-500 truncate">{{ cert_request.student.email }}</p>
+      </div>
+    </div>
+    {% endif %}
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="text-sm font-medium text-gray-900">{{ cert_request.get_document_type_display }}</div>
+      <div>
+        {% if user.role == 'student' %}
+          {% if cert_request.status == 'rejected' %}
+            {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
+              <button type="button"
+                      data-rejection-reason="{{ cert_request.rejection_reason|escape }}"
+                      onclick="window.__jmcfiDocRejectionReasonModal(this)"
+                      class="cursor-pointer hover:opacity-80 transition-opacity">
+                {% include "components/status_badge.html" with label="Rejected (view reason)" variant="danger" icon="fa-circle-info" size="sm" %}
+              </button>
+            {% else %}
+              {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" size="sm" %}
+            {% endif %}
+          {% elif cert_request.status == 'completed' %}
+            {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" size="sm" %}
+          {% else %}
+            {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" size="sm" %}
+          {% endif %}
+        {% else %}
+          {% if cert_request.status == 'pending_review' %}
+            {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" size="sm" %}
+          {% elif cert_request.status == 'completed' %}
+            {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" size="sm" %}
+          {% elif cert_request.status == 'rejected' %}
+            {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
+              <button type="button"
+                      data-rejection-reason="{{ cert_request.rejection_reason|escape }}"
+                      onclick="window.__jmcfiDocRejectionReasonModal(this)"
+                      class="cursor-pointer hover:opacity-80 transition-opacity">
+                {% include "components/status_badge.html" with label="Rejected (view reason)" variant="danger" icon="fa-circle-info" size="sm" %}
+              </button>
+            {% else %}
+              {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" size="sm" %}
+            {% endif %}
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    <p class="text-sm text-gray-700"><span class="text-gray-500">Purpose:</span> {{ cert_request.purpose|truncatechars:120 }}</p>
+    <div class="pt-1">
+      {% include "document_request/_document_requests_row_actions.html" with cert_request=cert_request %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+{# Desktop table #}
+<div class="hidden md:block overflow-x-auto">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap">Request Date</th>
+        {% if user.role != 'student' %}
+        <th class="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-52">Student</th>
+        {% endif %}
+        <th class="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-48">Document Type</th>
+        <th class="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-56">Purpose</th>
+        <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">Status</th>
+        <th class="px-2 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wide">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-100">
+      {% for cert_request in requests %}
+      <tr class="group hover:bg-primary-50/30 transition-all duration-200 {% cycle 'bg-white' 'bg-gray-50/30' %}">
+        <td class="px-2 py-3 whitespace-nowrap align-middle text-xs">
+          <div class="font-medium text-gray-900">{{ cert_request.created_at|date:"M d, Y" }}</div>
+          <div class="text-gray-500">{{ cert_request.created_at|time:"g:i A" }}</div>
+        </td>
+        {% if user.role != 'student' %}
+        <td class="px-3 py-3 whitespace-nowrap align-middle">
+          <div class="flex items-center gap-3">
+            {% include "components/avatar.html" with user=cert_request.student size="md" %}
+            <div>
+              <div class="text-sm font-medium text-gray-900 truncate">{{ cert_request.student|format_student_name }}</div>
+              <div class="text-xs text-gray-500 truncate">{{ cert_request.student.email }}</div>
+            </div>
+          </div>
+        </td>
+        {% endif %}
+        <td class="px-3 py-3 whitespace-nowrap align-middle">
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-success-50 text-success-600"><i class="fas fa-file-medical"></i></span>
+            <div>
+              <div class="text-sm font-medium text-gray-900">{{ cert_request.get_document_type_display }}</div>
+            </div>
+          </div>
+        </td>
+        <td class="px-3 py-3 align-middle">
+          <div class="min-w-0 max-w-xs">
+            <div class="text-xs text-gray-900 break-words line-clamp-2">{{ cert_request.purpose|truncatechars:80 }}</div>
+            {% if cert_request.additional_info %}
+            <div class="text-xs text-gray-500 mt-1 break-words line-clamp-1">{{ cert_request.additional_info|truncatechars:45 }}</div>
+            {% endif %}
+          </div>
+        </td>
+        <td class="px-2 py-3 whitespace-nowrap align-middle">
+          {% if user.role == 'student' %}
+            {% if cert_request.status == 'rejected' %}
+              {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
+                <button type="button"
+                        data-rejection-reason="{{ cert_request.rejection_reason|escape }}"
+                        onclick="window.__jmcfiDocRejectionReasonModal(this)"
+                        class="cursor-pointer hover:opacity-80 transition-opacity">
+                  {% include "components/status_badge.html" with label="Rejected (view reason)" variant="danger" icon="fa-circle-info" size="sm" %}
+                </button>
+              {% else %}
+                {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" size="sm" %}
+              {% endif %}
+            {% elif cert_request.status == 'completed' %}
+              {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" size="sm" %}
+            {% else %}
+              {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" size="sm" %}
+            {% endif %}
+          {% else %}
+            {% if cert_request.status == 'pending_review' %}
+              {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" size="sm" %}
+            {% elif cert_request.status == 'completed' %}
+              {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" size="sm" %}
+            {% elif cert_request.status == 'rejected' %}
+              {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
+                <button type="button"
+                        data-rejection-reason="{{ cert_request.rejection_reason|escape }}"
+                        onclick="window.__jmcfiDocRejectionReasonModal(this)"
+                        class="cursor-pointer hover:opacity-80 transition-opacity">
+                  {% include "components/status_badge.html" with label="Rejected (view reason)" variant="danger" icon="fa-circle-info" size="sm" %}
+                </button>
+              {% else %}
+                {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" size="sm" %}
+              {% endif %}
+            {% endif %}
+          {% endif %}
+        </td>
+        <td class="px-2 py-3 whitespace-nowrap text-right align-middle">
+          {% include "document_request/_document_requests_row_actions.html" with cert_request=cert_request %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% include "components/pagination.html" with page_obj=requests hx_target="body" hx_swap="none" querystring=doc_list_querystring %}
+{% else %}
+  {% url 'document_request:request_document' as doc_request_new_url %}
+  {% if user.role == 'student' %}
+    {% include "components/empty_state.html" with icon="fa-file-circle-question" title="No document requests yet" description="Start by requesting your first certificate." action_label="Request Certificate" action_url=doc_request_new_url %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="fa-file-circle-question" title="No document requests found" description="No requests match your current filters." %}
+  {% endif %}
+{% endif %}

@@ -161,7 +161,7 @@
           <span class="text-xl font-bold text-gray-900">{{ total_appointments }}</span>
         </div>
 
-        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <a href="{{ appointment_list_today_url }}" class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 border border-transparent hover:border-primary-100 transition-colors cursor-pointer">
           <div class="flex items-center gap-3">
             <span class="p-2 bg-blue-50 rounded-lg"><i class="fas fa-calendar-day text-blue-500"></i></span>
             <div>
@@ -170,7 +170,7 @@
             </div>
           </div>
           <span class="text-xl font-bold text-gray-900">{{ today_appointments }}</span>
-        </div>
+        </a>
 
         <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
           <div class="flex items-center gap-3">

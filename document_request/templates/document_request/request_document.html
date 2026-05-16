@@ -3,7 +3,7 @@
 {% block title %}Request Document - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
     {% include 'document_request/_subnav.html' %}
 
     {% if is_doctor_flow %}
@@ -13,65 +13,171 @@
     {% endif %}
 
     <div class="bg-white rounded-card shadow-sm border border-gray-200">
-        <form method="POST" class="p-6 sm:p-8 space-y-6">
+        <form method="POST" class="p-6 sm:p-8 space-y-6" novalidate
+              data-doctor-flow="{% if is_doctor_flow %}true{% else %}false{% endif %}">
                 {% csrf_token %}
                 {% if is_doctor_flow %}
                 <input type="hidden" name="source" value="doctor_on_behalf">
                 {% endif %}
 
+                {% if form_warning_list %}
+                <div id="doc-request-warnings-summary"
+                     class="rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800"
+                     role="status"
+                     tabindex="-1"
+                     aria-live="polite">
+                  <div class="flex items-start gap-2">
+                    <i class="fas fa-triangle-exclamation mt-0.5 flex-shrink-0 text-warning-600" aria-hidden="true"></i>
+                    <div>
+                      <p class="font-semibold text-warning-900">
+                        {% if is_doctor_flow %}Pending request exists{% else %}Request already in progress{% endif %}
+                      </p>
+                      <ul id="doc-request-warnings-list" class="mt-1.5 space-y-0.5 list-disc list-inside text-warning-800">
+                        {% for warn in form_warning_list %}
+                        <li>{{ warn }}</li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+
                 {% if is_doctor_flow %}
-                <div class="space-y-2">
-                    <label for="student_search" class="text-sm font-medium text-gray-700 inline-flex items-center gap-2"><i class="fas fa-user text-primary-600"></i>Student <span class="text-red-500">*</span></label>
-                    <input type="hidden" id="student_id" name="student_id">
-                    <div class="relative">
-                        <input
-                            type="text"
-                            id="student_search"
-                            autocomplete="off"
-                            placeholder="Search by student name or email"
-                            class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-all duration-200 bg-white hover:border-primary-400"
-                        >
-                        <div id="student_search_results" class="hidden absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
-                            {% for student in students %}
-                            <button
-                                type="button"
-                                class="student-option hidden w-full text-left px-4 py-3 hover:bg-primary-50 focus:bg-primary-50 focus:outline-none border-b border-gray-100 last:border-b-0"
-                                data-student-id="{{ student.id }}"
-                                data-student-label="{{ student.get_full_name|default:student.email }}"
-                                data-student-search="{{ student.get_full_name|default:student.email|lower }} {{ student.email|lower }}"
-                            >
-                                <div class="text-sm font-medium text-gray-900">{{ student.get_full_name|default:student.email }}</div>
-                                <div class="text-xs text-gray-500">{{ student.email }}</div>
-                            </button>
-                            {% endfor %}
-                            <div id="student_no_results" class="hidden px-4 py-3 text-sm text-gray-500">No matching students found.</div>
+                {# Matches appointments/schedule_for_student.html student block #}
+                <div id="doc-req-field-student" data-doc-req-field="student_id" class="rounded-xl border shadow-sm {% if field_errors.student_id %}border-danger-300 ring-1 ring-danger-200{% else %}border-gray-200{% endif %}">
+                    <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/60 rounded-t-xl">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary-100 text-primary-600">
+                                <i class="fas fa-user-magnifying-glass text-xs" aria-hidden="true"></i>
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <h2 class="text-sm font-semibold text-gray-800">
+                                    Student <span class="text-red-500">*</span>
+                                </h2>
+                                <p id="student_selected_hint" class="text-xs text-gray-500 mt-0.5">
+                                    Search and select a student to continue.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                    <p id="student_selected_hint" class="text-xs text-gray-500">No student selected yet.</p>
+                    <div class="p-5 space-y-4 bg-white rounded-b-xl">
+                        <input type="hidden" id="student_id" name="student_id" value="{{ form_data.student_id }}">
+
+                        {# Selected student — matches appointments/schedule_for_student selected card #}
+                        <div id="student_selected_card" class="hidden">
+                            <div class="relative p-4 bg-gradient-to-r from-primary-50 to-primary-50/50 border border-primary-200 rounded-xl">
+                                <div class="flex items-center gap-3.5 pr-24">
+                                    <span id="student_selected_initial"
+                                          class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-base font-semibold flex-shrink-0 shadow-md ring-2 ring-white"
+                                          aria-hidden="true">?</span>
+                                    <div class="min-w-0 flex-1">
+                                        <p id="student_selected_display_name" class="text-sm font-bold text-gray-900 truncate"></p>
+                                        <p id="student_selected_display_email" class="text-xs text-gray-500 truncate mt-0.5"></p>
+                                        <p id="student_selected_display_sid" class="text-xs text-primary-700 font-mono mt-0.5 hidden"></p>
+                                    </div>
+                                </div>
+                                <button type="button"
+                                        id="student_change_btn"
+                                        class="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 bg-white/80 border border-gray-200 hover:text-danger-600 hover:border-danger-200 hover:bg-danger-50 transition-colors">
+                                    <i class="fas fa-xmark text-[10px]" aria-hidden="true"></i>
+                                    Change
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="student_search_shell">
+                        <label for="student_search" class="sr-only">Search students</label>
+                        <div class="relative isolate">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-10 items-center justify-center text-gray-500" aria-hidden="true">
+                                <i class="fas fa-magnifying-glass text-sm leading-none"></i>
+                            </span>
+                            <input type="text"
+                                   id="student_search"
+                                   autocomplete="off"
+                                   placeholder="Search by name, email, or student ID…"
+                                   aria-describedby="student_search_helper"
+                                   {% if field_errors.student_id %}aria-invalid="true"{% endif %}
+                                   class="w-full pl-10 pr-10 py-3 border rounded-xl text-sm text-gray-900 shadow-sm bg-white placeholder:text-gray-500 transition-[border-color,box-shadow] focus:outline-none focus:ring-2 focus:ring-primary-500/35 focus:ring-offset-0 focus:border-primary-500 {% if field_errors.student_id %}border-danger-500 ring-1 ring-danger-200{% else %}border-gray-300{% endif %}">
+                            <button type="button"
+                                    id="student_search_clear"
+                                    class="hidden absolute inset-y-0 right-0 z-10 flex w-10 items-center justify-center text-gray-400 hover:text-gray-600 min-h-[2.75rem]"
+                                    aria-label="Clear search">
+                                <span class="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"><i class="fas fa-circle-xmark text-sm leading-none"></i></span>
+                            </button>
+
+                            <div id="student_search_results"
+                                 class="hidden absolute left-0 right-0 top-full z-[100] mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl max-h-72 overflow-y-auto ring-1 ring-black/5">
+                                <div id="student_results_inner" class="p-1.5 hidden">
+                                    {% for student in students %}
+                                    {% with label=student.get_full_name|default:student.email %}
+                                    <button type="button"
+                                            class="student-option hidden w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left border border-transparent hover:bg-primary-50 focus:outline-none focus:bg-primary-50 focus-visible:ring-2 focus-visible:ring-primary-500/30"
+                                            data-student-id="{{ student.id }}"
+                                            data-student-label="{{ label }}"
+                                            data-student-email="{{ student.email }}"
+                                            data-student-sid="{% if student.student_profile and student.student_profile.student_id %}{{ student.student_profile.student_id }}{% endif %}"
+                                            data-student-search="{{ label|lower }} {{ student.email|lower }}{% if student.student_profile %}{% if student.student_profile.student_id %} {{ student.student_profile.student_id|lower }}{% endif %}{% endif %}">
+                                        <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-sm font-semibold flex-shrink-0"
+                                              aria-hidden="true">{{ label|slice:":1"|upper }}</span>
+                                        <div class="min-w-0 flex-1">
+                                            <span class="font-semibold text-gray-900 truncate block">{{ label }}</span>
+                                            <span class="text-xs text-gray-500 truncate block">{{ student.email }}</span>
+                                            {% if student.student_profile and student.student_profile.student_id %}
+                                            <span class="text-xs text-gray-400 truncate block">ID: {{ student.student_profile.student_id }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </button>
+                                    {% endwith %}
+                                    {% endfor %}
+                                </div>
+                                <div id="student_no_results" class="hidden px-4 py-8 text-center text-sm text-gray-500">
+                                    No students found.
+                                </div>
+                            </div>
+                        </div>
+
+                        <p id="student_search_helper" class="pl-10 text-xs text-gray-600 leading-snug">
+                            Type at least 2 characters to search.
+                        </p>
+                        <p id="doc-req-inline-error-student_id"
+                           class="text-sm text-danger-600 {% if not field_errors.student_id %}hidden{% endif %}"
+                           role="alert">{% if field_errors.student_id %}{{ field_errors.student_id.0 }}{% endif %}</p>
+                                                </div>
+                    </div>
                 </div>
                 {% endif %}
                 
-                <div class="space-y-2">
+                <div id="doc-req-field-document_type" data-doc-req-field="document_type" class="space-y-2">
                     <label for="document_type" class="text-sm font-medium text-gray-700 inline-flex items-center gap-2"><i class="fas fa-file-medical text-primary-600"></i>Document Type <span class="text-red-500">*</span></label>
-                    <select id="document_type" name="document_type" required class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm bg-white">
+                    <select id="document_type" name="document_type" required
+                            class="block w-full px-4 py-3 border rounded-lg shadow-sm text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 {% if field_errors.document_type %}border-danger-500 ring-1 ring-danger-200{% else %}border-gray-300{% endif %}"
+                            {% if field_errors.document_type %}aria-invalid="true"{% endif %}>
                         {% for value, label in certificate_types %}
-                        <option value="{{ value }}">{{ label }}</option>
+                        <option value="{{ value }}" {% if form_data.document_type == value %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
                     </select>
+                    <p id="doc-req-inline-error-document_type"
+                       class="text-sm text-danger-600 {% if not field_errors.document_type %}hidden{% endif %}"
+                       role="alert">{% if field_errors.document_type %}{{ field_errors.document_type.0 }}{% endif %}</p>
                 </div>
 
-                <div class="space-y-2">
+                <div id="doc-req-field-purpose" data-doc-req-field="purpose" class="space-y-2">
                     <label for="purpose" class="text-sm font-medium text-gray-700 inline-flex items-center gap-2"><i class="fas fa-clipboard text-primary-600"></i>Purpose <span class="text-red-500">*</span></label>
                     <input type="text" id="purpose" name="purpose" required
-                           class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                           placeholder="e.g., Job application, Sports participation, Travel">
+                           value="{{ form_data.purpose }}"
+                           class="block w-full px-4 py-3 border rounded-lg shadow-sm text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 {% if field_errors.purpose %}border-danger-500 ring-1 ring-danger-200{% else %}border-gray-300{% endif %}"
+                           placeholder="e.g., Job application, Sports participation, Travel"
+                           {% if field_errors.purpose %}aria-invalid="true"{% endif %}>
+                    <p id="doc-req-inline-error-purpose"
+                       class="text-sm text-danger-600 {% if not field_errors.purpose %}hidden{% endif %}"
+                       role="alert">{% if field_errors.purpose %}{{ field_errors.purpose.0 }}{% endif %}</p>
                 </div>
 
                 <div class="space-y-2">
                     <label for="additional_info" class="text-sm font-medium text-gray-700 inline-flex items-center gap-2"><i class="fas fa-pen text-primary-600"></i>Additional Information</label>
                     <textarea id="additional_info" name="additional_info" rows="4"
                               class="block w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm resize-y"
-                              placeholder="Any additional details or special requirements..."></textarea>
+                              placeholder="Any additional details or special requirements...">{{ form_data.additional_info }}</textarea>
                 </div>
 
                 <div class="rounded-lg border border-primary-200 bg-primary-50 p-5">
@@ -89,29 +195,195 @@
                     </div>
                 </div>
 
+                <p id="doc-req-inline-error-form"
+                   class="text-sm text-danger-600 {% if not form_non_field_error %}hidden{% endif %}"
+                   role="alert">{% if form_non_field_error %}{{ form_non_field_error }}{% endif %}</p>
+
                 <div class="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-200">
                     <a href="{% url 'document_request:document_requests' %}"
                        class="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
                         <i class="fas fa-arrow-left"></i>Cancel
                     </a>
-                    <button type="submit"
-                            class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors">
-                        <i class="fas fa-paper-plane"></i>{% if is_doctor_flow %}Create Request{% else %}Submit Request{% endif %}
+                    <button type="submit" id="doc-request-submit-btn"
+                            class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                        <i class="fas fa-paper-plane" id="doc-request-submit-icon"></i>
+                        <span id="doc-request-submit-label">{% if is_doctor_flow %}Create Request{% else %}Submit Request{% endif %}</span>
                     </button>
                 </div>
             </form>
         </div>
 </div>
 
-{% if is_doctor_flow %}
+{% if selected_student %}
+{{ selected_student|json_script:"doc-request-selected-student" }}
+{% endif %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const form = document.querySelector('form[method="POST"]');
+    const submitBtn = document.getElementById('doc-request-submit-btn');
+    const submitIcon = document.getElementById('doc-request-submit-icon');
+    const submitLabel = document.getElementById('doc-request-submit-label');
+    const isDoctorFlow = form && form.dataset.doctorFlow === 'true';
+    const warningsSummary = document.getElementById('doc-request-warnings-summary');
+    const INLINE_ERROR_IDS = ['student_id', 'document_type', 'purpose', 'form'];
+    const FIELD_FOCUS_ORDER = ['student_id', 'document_type', 'purpose', 'form'];
+
+    function getInlineErrorEl(fieldKey) {
+        return document.getElementById('doc-req-inline-error-' + fieldKey);
+    }
+
+    function showInlineError(fieldKey, message) {
+        const el = getInlineErrorEl(fieldKey);
+        if (!el) {
+            return;
+        }
+        el.textContent = message;
+        el.classList.remove('hidden');
+    }
+
+    function hideInlineError(fieldKey) {
+        const el = getInlineErrorEl(fieldKey);
+        if (!el) {
+            return;
+        }
+        el.textContent = '';
+        el.classList.add('hidden');
+    }
+
+    function clearInlineErrors() {
+        INLINE_ERROR_IDS.forEach(hideInlineError);
+    }
+
+    function setFieldHighlight(fieldKey, on) {
+        if (fieldKey === 'student_id') {
+            const wrap = document.getElementById('doc-req-field-student');
+            const searchInput = document.getElementById('student_search');
+            if (wrap) {
+                wrap.classList.toggle('border-danger-300', on);
+                wrap.classList.toggle('ring-1', on);
+                wrap.classList.toggle('ring-danger-200', on);
+                wrap.classList.toggle('border-gray-200', !on);
+            }
+            if (searchInput) {
+                searchInput.classList.toggle('border-danger-500', on);
+                searchInput.classList.toggle('ring-1', on);
+                searchInput.classList.toggle('ring-danger-200', on);
+                searchInput.classList.toggle('border-gray-300', !on);
+                if (on) {
+                    searchInput.setAttribute('aria-invalid', 'true');
+                } else {
+                    searchInput.removeAttribute('aria-invalid');
+                }
+            }
+            return;
+        }
+        if (fieldKey === 'form') {
+            return;
+        }
+        const el = document.getElementById(fieldKey === 'document_type' ? 'document_type' : fieldKey);
+        if (!el) {
+            return;
+        }
+        el.classList.toggle('border-danger-500', on);
+        el.classList.toggle('ring-1', on);
+        el.classList.toggle('ring-danger-200', on);
+        el.classList.toggle('border-gray-300', !on);
+        if (on) {
+            el.setAttribute('aria-invalid', 'true');
+        } else {
+            el.removeAttribute('aria-invalid');
+        }
+    }
+
+    function clearFieldHighlights() {
+        ['student_id', 'document_type', 'purpose'].forEach(function (key) {
+            setFieldHighlight(key, false);
+        });
+    }
+
+    function focusInvalidField(fieldKey) {
+        if (fieldKey === 'student_id') {
+            if (typeof window.jmcfiDocReqShowStudentSearch === 'function') {
+                window.jmcfiDocReqShowStudentSearch();
+            }
+            const searchInput = document.getElementById('student_search');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+        if (fieldKey === 'form') {
+            const el = getInlineErrorEl('form');
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            return;
+        }
+        const el = document.getElementById(fieldKey);
+        if (el) {
+            el.focus();
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    function focusFirstInvalidField(invalidFields) {
+        for (let i = 0; i < FIELD_FOCUS_ORDER.length; i += 1) {
+            const key = FIELD_FOCUS_ORDER[i];
+            if (invalidFields[key]) {
+                focusInvalidField(key);
+                return;
+            }
+        }
+    }
+    const warningsList = document.getElementById('doc-request-warnings-list');
+
+    function resetSubmitButton() {
+        if (!submitBtn) {
+            return;
+        }
+        submitBtn.disabled = false;
+        if (submitIcon) {
+            submitIcon.className = 'fas fa-paper-plane';
+        }
+        if (submitLabel) {
+            submitLabel.textContent = isDoctorFlow ? 'Create Request' : 'Submit Request';
+        }
+    }
+
+    function beginSubmit() {
+        if (!submitBtn || submitBtn.disabled) {
+            return;
+        }
+        submitBtn.disabled = true;
+        if (submitIcon) {
+            submitIcon.className = 'fas fa-spinner fa-spin';
+        }
+        if (submitLabel) {
+            submitLabel.textContent = 'Submitting…';
+        }
+    }
+
+{% if is_doctor_flow %}
+    if (!form) {
+        return;
+    }
+    const MIN_QUERY = 2;
     const searchInput = document.getElementById('student_search');
     const hiddenStudentId = document.getElementById('student_id');
     const resultsPanel = document.getElementById('student_search_results');
+    const resultsInner = document.getElementById('student_results_inner');
     const noResults = document.getElementById('student_no_results');
     const selectedHint = document.getElementById('student_selected_hint');
+    const helperEl = document.getElementById('student_search_helper');
+    const clearBtn = document.getElementById('student_search_clear');
+    const studentSelectedCard = document.getElementById('student_selected_card');
+    const studentSearchShell = document.getElementById('student_search_shell');
+    const studentSelectedInitial = document.getElementById('student_selected_initial');
+    const studentSelectedDisplayName = document.getElementById('student_selected_display_name');
+    const studentSelectedDisplayEmail = document.getElementById('student_selected_display_email');
+    const studentSelectedDisplaySid = document.getElementById('student_selected_display_sid');
+    const studentChangeBtn = document.getElementById('student_change_btn');
     const options = Array.from(document.querySelectorAll('.student-option'));
 
     function normalize(value) {
@@ -122,46 +394,128 @@ document.addEventListener('DOMContentLoaded', function () {
         resultsPanel.classList.add('hidden');
     }
 
+    function showStudentSearchPanel() {
+        hiddenStudentId.value = '';
+        studentSelectedCard.classList.add('hidden');
+        studentSearchShell.classList.remove('hidden');
+        searchInput.value = '';
+        clearBtn.classList.add('hidden');
+        closeResults();
+        helperEl.classList.remove('hidden');
+        helperEl.textContent = 'Type at least 2 characters to search.';
+        selectedHint.textContent = 'Search and select a student to continue.';
+        selectedHint.classList.remove('text-red-600');
+        searchInput.setCustomValidity('');
+        options.forEach(function (opt) {
+            opt.classList.add('hidden');
+        });
+    }
+    window.jmcfiDocReqShowStudentSearch = showStudentSearchPanel;
+
+    function initialLetter(label) {
+        const s = (label || '').trim();
+        if (!s) {
+            return '?';
+        }
+        return s.charAt(0).toUpperCase();
+    }
+
     function filterResults() {
         const query = normalize(searchInput.value);
+        clearBtn.classList.toggle('hidden', query.length === 0);
+
+        if (query.length < MIN_QUERY) {
+            closeResults();
+            helperEl.classList.remove('hidden');
+            helperEl.textContent = 'Type at least 2 characters to search.';
+            options.forEach(function (opt) {
+                opt.classList.add('hidden');
+            });
+            return;
+        }
+
+        helperEl.classList.add('hidden');
         let visibleCount = 0;
 
         options.forEach(function (option) {
             const haystack = option.getAttribute('data-student-search') || '';
-            const isMatch = query.length > 0 && haystack.includes(query);
+            const isMatch = haystack.includes(query);
             option.classList.toggle('hidden', !isMatch);
             if (isMatch) {
                 visibleCount += 1;
             }
         });
 
-        noResults.classList.toggle('hidden', visibleCount !== 0 || query.length === 0);
-        resultsPanel.classList.toggle('hidden', query.length === 0);
+        resultsPanel.classList.remove('hidden');
+        resultsInner.classList.toggle('hidden', visibleCount === 0);
+        noResults.classList.toggle('hidden', visibleCount > 0);
+    }
+
+    function showSelectedStudentCard(data) {
+        hiddenStudentId.value = String(data.id || '');
+        studentSelectedInitial.textContent = initialLetter(data.label);
+        studentSelectedDisplayName.textContent = data.label || '';
+        studentSelectedDisplayEmail.textContent = data.email || '';
+        const sid = (data.sid || '').trim();
+        if (sid) {
+            studentSelectedDisplaySid.textContent = sid;
+            studentSelectedDisplaySid.classList.remove('hidden');
+        } else {
+            studentSelectedDisplaySid.textContent = '';
+            studentSelectedDisplaySid.classList.add('hidden');
+        }
+        studentSearchShell.classList.add('hidden');
+        studentSelectedCard.classList.remove('hidden');
+        selectedHint.textContent = 'Student confirmed — continue below or tap Change.';
+        selectedHint.classList.remove('text-red-600');
     }
 
     function selectStudent(option) {
         const studentId = option.getAttribute('data-student-id') || '';
         const studentLabel = option.getAttribute('data-student-label') || '';
-        searchInput.value = studentLabel;
-        hiddenStudentId.value = studentId;
-        selectedHint.textContent = 'Selected: ' + studentLabel;
-        selectedHint.classList.remove('text-red-600');
+        const studentEmail = option.getAttribute('data-student-email') || '';
+        const studentSid = (option.getAttribute('data-student-sid') || '').trim();
+
+        searchInput.value = '';
         searchInput.setCustomValidity('');
+        clearBtn.classList.add('hidden');
         closeResults();
+        showSelectedStudentCard({
+            id: studentId,
+            label: studentLabel,
+            email: studentEmail,
+            sid: studentSid,
+        });
+        hideInlineError('student_id');
+        setFieldHighlight('student_id', false);
     }
 
-    function syncStudentSelection() {
-        const inputValue = normalize(searchInput.value);
-        let selectedId = '';
-        options.forEach(function (opt) {
-            const label = normalize(opt.getAttribute('data-student-label'));
-            if (label === inputValue) {
-                selectedId = opt.getAttribute('data-student-id') || '';
+    const prefillNode = document.getElementById('doc-request-selected-student');
+    if (prefillNode && prefillNode.textContent) {
+        try {
+            const prefill = JSON.parse(prefillNode.textContent);
+            const match = options.find(function (opt) {
+                return opt.getAttribute('data-student-id') === String(prefill.id);
+            });
+            if (match) {
+                selectStudent(match);
+            } else {
+                showSelectedStudentCard(prefill);
             }
-        });
-        hiddenStudentId.value = selectedId;
-        return !!selectedId;
+        } catch (e) {
+            /* ignore malformed prefill */
+        }
     }
+
+    studentChangeBtn.addEventListener('click', function () {
+        showStudentSearchPanel();
+        searchInput.focus();
+    });
+
+    clearBtn.addEventListener('click', function () {
+        showStudentSearchPanel();
+        searchInput.focus();
+    });
 
     options.forEach(function (option) {
         option.addEventListener('click', function () {
@@ -171,7 +525,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     searchInput.addEventListener('input', function () {
         hiddenStudentId.value = '';
-        selectedHint.textContent = 'No student selected yet.';
+        selectedHint.textContent = 'Search and select a student to continue.';
         filterResults();
         searchInput.setCustomValidity('');
     });
@@ -186,7 +540,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         if (event.key === 'Enter' && !resultsPanel.classList.contains('hidden')) {
             event.preventDefault();
-            const firstVisible = options.find(function (opt) { return !opt.classList.contains('hidden'); });
+            const firstVisible = options.find(function (opt) {
+                return !opt.classList.contains('hidden');
+            });
             if (firstVisible) {
                 selectStudent(firstVisible);
             }
@@ -194,25 +550,136 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     document.addEventListener('click', function (event) {
-        if (!resultsPanel.contains(event.target) && event.target !== searchInput) {
-            closeResults();
+        const t = event.target;
+        if (
+            resultsPanel.contains(t)
+            || t === searchInput
+            || t === clearBtn
+            || (clearBtn && clearBtn.contains(t))
+            || t === studentChangeBtn
+            || (studentChangeBtn && studentChangeBtn.contains(t))
+        ) {
+            return;
         }
+        closeResults();
     });
 
-    form.addEventListener('submit', function (event) {
-        const isValidSelection = syncStudentSelection();
-        if (!isValidSelection) {
-            event.preventDefault();
-            selectedHint.textContent = 'Please choose a student from the list before submitting.';
-            selectedHint.classList.add('text-red-600');
-            searchInput.setCustomValidity('Please select a student from the results list.');
-            searchInput.reportValidity();
-            filterResults();
-        } else {
-            selectedHint.classList.remove('text-red-600');
+{% endif %}
+
+    function collectFormErrors() {
+        const invalidFields = {};
+
+        if (isDoctorFlow) {
+            const studentId = document.getElementById('student_id');
+            if (!studentId || !(studentId.value || '').trim()) {
+                invalidFields.student_id = 'Please select a student from the search results.';
+            }
         }
-    });
+
+        const documentType = document.getElementById('document_type');
+        const purpose = document.getElementById('purpose');
+
+        if (documentType && !documentType.value) {
+            invalidFields.document_type = 'Certificate type is required.';
+        } else if (documentType && documentType.value !== 'medical_certificate') {
+            invalidFields.document_type = 'Only Medical Certificate requests are accepted at this time.';
+        }
+
+        if (purpose && !(purpose.value || '').trim()) {
+            invalidFields.purpose = 'Purpose is required.';
+        }
+
+        return { invalidFields: invalidFields };
+    }
+
+    function clearFormWarnings() {
+        if (warningsSummary) {
+            warningsSummary.classList.add('hidden');
+        }
+        if (warningsList) {
+            warningsList.innerHTML = '';
+        }
+    }
+
+    function clearFieldErrors() {
+        clearInlineErrors();
+        clearFieldHighlights();
+    }
+    window.jmcfiDocReqClearFieldErrors = clearFieldErrors;
+
+    function applyFormErrors(invalidFields) {
+        const keys = Object.keys(invalidFields);
+        if (!keys.length) {
+            return;
+        }
+        keys.forEach(function (key) {
+            const fieldKey = key === '__all__' ? 'form' : key;
+            showInlineError(fieldKey, invalidFields[key]);
+            setFieldHighlight(fieldKey, true);
+        });
+        focusFirstInvalidField(
+            keys.reduce(function (acc, key) {
+                const fieldKey = key === '__all__' ? 'form' : key;
+                acc[fieldKey] = invalidFields[key];
+                return acc;
+            }, {}),
+        );
+    }
+
+    if (warningsSummary) {
+        resetSubmitButton();
+        warningsSummary.focus();
+        warningsSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+        const firstInline = INLINE_ERROR_IDS.map(getInlineErrorEl).find(function (el) {
+            return el && !el.classList.contains('hidden') && (el.textContent || '').trim();
+        });
+        if (firstInline) {
+            resetSubmitButton();
+            const fieldKey = firstInline.id.replace('doc-req-inline-error-', '');
+            focusInvalidField(fieldKey);
+        }
+    }
+
+    if (form) {
+        form.addEventListener('submit', function (event) {
+            clearFieldErrors();
+            const result = collectFormErrors();
+            if (Object.keys(result.invalidFields).length) {
+                event.preventDefault();
+                applyFormErrors(result.invalidFields);
+                return;
+            }
+            if (submitBtn && submitBtn.disabled) {
+                event.preventDefault();
+                return;
+            }
+            beginSubmit();
+        });
+
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted) {
+                resetSubmitButton();
+            }
+        });
+
+        ['input', 'change'].forEach(function (evtName) {
+            form.addEventListener(evtName, function (event) {
+                if (event.target.id === 'purpose') {
+                    hideInlineError('purpose');
+                    setFieldHighlight('purpose', false);
+                }
+                if (event.target.id === 'document_type') {
+                    hideInlineError('document_type');
+                    setFieldHighlight('document_type', false);
+                }
+                if (event.target.id === 'student_search') {
+                    hideInlineError('student_id');
+                    setFieldHighlight('student_id', false);
+                }
+            });
+        });
+    }
 });
 </script>
-{% endif %}
 {% endblock content %}

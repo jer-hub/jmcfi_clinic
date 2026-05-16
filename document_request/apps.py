@@ -7,4 +7,4 @@ class DocumentRequestConfig(AppConfig):
     verbose_name = 'Document Request'
 
     def ready(self):
-        import document_request.signals  # noqa: F401
+        pass

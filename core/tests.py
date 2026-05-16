@@ -264,7 +264,7 @@ class StaffDashboardNavigationTests(TestCase):
 		)
 		_complete_staff_like_profile(self.staff_user, 'STF-NAV-001')
 
-	def test_staff_dashboard_hides_document_request_links(self):
+	def test_staff_dashboard_shows_document_request_quick_action(self):
 		self.client.force_login(self.staff_user)
 		session = self.client.session
 		session[f'profile_complete_{self.staff_user.id}_{self.staff_user.role}'] = True
@@ -272,7 +272,7 @@ class StaffDashboardNavigationTests(TestCase):
 		response = self.client.get(reverse('core:dashboard'))
 
 		self.assertEqual(response.status_code, 200)
-		self.assertNotContains(response, f'href="{reverse("document_request:document_requests")}"')
+		self.assertContains(response, f'href="{reverse("document_request:document_requests")}"')
 
 	def test_staff_dashboard_keeps_allowed_service_links_visible(self):
 		self.client.force_login(self.staff_user)

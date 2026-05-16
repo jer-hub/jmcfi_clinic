@@ -131,6 +131,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.notification_context",
                 "core.context_processors.profile_context",
+                "core.nav_context.nav_bar_context",
             ],
         },
     },

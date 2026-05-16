@@ -77,7 +77,7 @@ def _dental_list_request_for_params(original_request, get_params: QueryDict):
     return list_req
 
 
-_DENTAL_LIST_STATUS_KEYS = ('pending', 'missed', 'completed')
+_DENTAL_LIST_STATUS_KEYS = ('pending', 'missed', 'completed', 'cancelled')
 _DENTAL_LIST_PAGE_SIZE = 20
 
 
@@ -94,7 +94,11 @@ def _effective_dental_row_status(row) -> str:
     if row.get('missed_slot'):
         return 'missed'
     if row['row_type'] == 'record':
-        return row['record'].status
+        record = row['record']
+        appt = record.appointment if record.appointment_id else None
+        if appt and appt.status == 'cancelled':
+            return 'cancelled'
+        return record.status
     appointment = row['appointment']
     if appointment.status == 'cancelled':
         return 'cancelled'

@@ -1,0 +1,11 @@
+{# Rejection reason — sidebar card when request is declined. #}
+<div class="bg-white rounded-card shadow-sm border border-danger-200 overflow-hidden">
+  <div class="px-5 py-4 border-b border-danger-100 bg-danger-50/40">
+    <h3 class="text-base font-semibold text-danger-900 flex items-center gap-2">
+      <i class="fas fa-ban text-danger-500" aria-hidden="true"></i>Rejection Reason
+    </h3>
+  </div>
+  <div class="p-4">
+    <p class="text-sm text-danger-800 leading-relaxed">{{ cert_request.rejection_reason|default:"No reason was provided." }}</p>
+  </div>
+</div>

@@ -345,6 +345,34 @@ def title_case_name(value):
     return ' '.join(words)
 
 
+def student_name_field_q(term: str) -> Q:
+    """Match one token against student first/last/middle name, email, or ID."""
+    return (
+        Q(first_name__icontains=term)
+        | Q(last_name__icontains=term)
+        | Q(email__icontains=term)
+        | Q(student_profile__middle_name__icontains=term)
+        | Q(student_profile__student_id__icontains=term)
+    )
+
+
+def student_search_q(query: str) -> Q:
+    """Support single-field and multi-word full-name searches (e.g. \"Jane Doe\")."""
+    q = (query or '').strip()
+    if not q:
+        return Q(pk__in=[])
+
+    whole_phrase = student_name_field_q(q)
+    terms = [part for part in re.split(r'\s+', q) if part]
+    if len(terms) <= 1:
+        return whole_phrase
+
+    multi_word = Q()
+    for term in terms:
+        multi_word &= student_name_field_q(term)
+    return whole_phrase | multi_word
+
+
 def student_display_name(student):
     """Full student display name (first, middle, last) in title case."""
     profile = getattr(student, 'student_profile', None)
@@ -426,7 +454,7 @@ def get_dashboard_stats(user):
     """Get dashboard statistics based on user role"""
     from appointments.models import Appointment
     from medical_records.models import MedicalRecord
-    from document_request.models import DocumentRequest as CertificateRequest
+    from document_request.models import DocumentRequest
     from health_tips.models import HealthTip
     from feedback.models import Feedback
     
@@ -441,9 +469,9 @@ def get_dashboard_stats(user):
             ).count(),
             'total_appointments': Appointment.objects.filter(student=user).count(),
             'medical_records': MedicalRecord.objects.filter(student=user).count(),
-            'pending_certificates': CertificateRequest.objects.filter(
+            'pending_certificates': DocumentRequest.objects.filter(
                 student=user,
-                status='pending'
+                status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
             'unread_notifications': user.notifications.filter(is_read=False).count(),
         }
@@ -462,8 +490,8 @@ def get_dashboard_stats(user):
             'total_patients': MedicalRecord.objects.filter(
                 doctor=user
             ).values('student').distinct().count(),
-            'pending_certificates': CertificateRequest.objects.filter(
-                status='pending'
+            'pending_certificates': DocumentRequest.objects.filter(
+                status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
             'completed_appointments': Appointment.objects.filter(
                 doctor=user,
@@ -477,12 +505,12 @@ def get_dashboard_stats(user):
             'total_students': User.objects.filter(role='student').count(),
             'total_staff': User.objects.filter(role__in=['staff', 'doctor']).count(),
             'today_appointments': Appointment.objects.filter(date=today).count(),
-            'pending_certificates': CertificateRequest.objects.filter(
-                status='pending'
+            'pending_certificates': DocumentRequest.objects.filter(
+                status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
             'total_appointments': Appointment.objects.count(),
             'total_records': MedicalRecord.objects.count(),
-            'total_certificates': CertificateRequest.objects.count(),
+            'total_certificates': DocumentRequest.objects.count(),
             'total_health_tips': HealthTip.objects.filter(is_active=True).count(),
             'avg_rating': Feedback.objects.aggregate(
                 avg_rating=Avg('rating')
@@ -496,7 +524,7 @@ def get_recent_activity(user, limit=5):
     """Get recent activity based on user role"""
     from appointments.models import Appointment
     from medical_records.models import MedicalRecord
-    from document_request.models import DocumentRequest as CertificateRequest
+    from document_request.models import DocumentRequest
     from feedback.models import Feedback
     
     activity = {}
@@ -509,7 +537,7 @@ def get_recent_activity(user, limit=5):
             'records': MedicalRecord.objects.filter(
                 student=user
             ).order_by('-created_at')[:limit],
-            'certificates': CertificateRequest.objects.filter(
+            'certificates': DocumentRequest.objects.filter(
                 student=user
             ).order_by('-created_at')[:limit],
         }
@@ -524,8 +552,8 @@ def get_recent_activity(user, limit=5):
             'recent_records': MedicalRecord.objects.filter(
                 doctor=user
             ).order_by('-created_at')[:limit],
-            'pending_certificates': CertificateRequest.objects.filter(
-                status='pending'
+            'pending_certificates': DocumentRequest.objects.filter(
+                status=DocumentRequest.Status.PENDING_REVIEW,
             ).order_by('-created_at')[:limit],
         }
     
@@ -536,7 +564,7 @@ def get_recent_activity(user, limit=5):
                 date=today
             ).order_by('-created_at')[:limit],
             'recent_feedbacks': Feedback.objects.all().order_by('-created_at')[:limit],
-            'recent_certificates': CertificateRequest.objects.all().order_by('-created_at')[:limit],
+            'recent_certificates': DocumentRequest.objects.all().order_by('-created_at')[:limit],
         }
     
     return activity
@@ -545,7 +573,7 @@ def get_recent_activity(user, limit=5):
 def get_weekly_stats():
     """Get weekly statistics for charts"""
     from appointments.models import Appointment
-    from document_request.models import DocumentRequest as CertificateRequest
+    from document_request.models import DocumentRequest
     
     end_date = timezone.now().date()
     start_date = end_date - timedelta(days=7)
@@ -564,7 +592,7 @@ def get_weekly_stats():
         'appointment_types': Appointment.objects.values('appointment_type').annotate(
             count=Count('id')
         ).order_by('-count'),
-        'certificate_status': CertificateRequest.objects.values('status').annotate(
+        'certificate_status': DocumentRequest.objects.values('status').annotate(
             count=Count('id')
         ).order_by('-count'),
     }

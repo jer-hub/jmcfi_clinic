@@ -49,7 +49,7 @@ from .profile_policy import (
 from .utils import (
     get_user_profile, create_notification, paginate_queryset,
     create_bulk_notifications, get_missing_profile_fields, get_client_ip,
-    resolve_notification_url, student_display_name,
+    resolve_notification_url, student_display_name, student_search_q,
 )
 from .decorators import admin_required, role_required
 from .user_management_services import (
@@ -62,7 +62,7 @@ from .htmx_utils import htmx_add_trigger, htmx_add_toast, htmx_redirect, is_htmx
 from appointments.models import Appointment
 from medical_records.models import MedicalRecord
 from dental_records.models import DentalRecord
-from document_request.models import DocumentRequest as CertificateRequest
+from document_request.models import DocumentRequest
 from health_forms_services.models import HealthProfileForm, DentalHealthForm
 from pharmacy.models import Medicine, Batch
 
@@ -307,6 +307,23 @@ def profile_required(request):
     })
 
 
+def _appointment_list_url_for_local_date(d):
+    """Appointment list filtered to a single local calendar day."""
+    query = urlencode({'date_from': d.isoformat(), 'date_to': d.isoformat()})
+    return f"{reverse('appointments:appointment_list')}?{query}"
+
+
+def _appointment_list_url_status(status: str) -> str:
+    """Appointment list filtered by appointment status query param."""
+    return f"{reverse('appointments:appointment_list')}?{urlencode({'status': status})}"
+
+
+def _appointment_list_url_status(status: str) -> str:
+    """Appointment list filtered by appointment status (GET param matches list view)."""
+    query = urlencode({'status': status})
+    return f"{reverse('appointments:appointment_list')}?{query}"
+
+
 # =====================
 # Dashboard Views
 # =====================
@@ -332,15 +349,15 @@ def dashboard(request):
             ).exclude(
                 transaction_type__in=MESSAGE_NOTIFICATION_TYPES
             ).count(),
-            'pending_certificates': CertificateRequest.objects.filter(
+            'pending_certificates': DocumentRequest.objects.filter(
                 student=request.user,
-                status='pending'
+                status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
             'total_appointments': Appointment.objects.filter(student=request.user).count(),
             'total_records': MedicalRecord.objects.filter(student=request.user).count(),
-            'approved_certificates': CertificateRequest.objects.filter(
+            'approved_certificates': DocumentRequest.objects.filter(
                 student=request.user,
-                status='approved'
+                status=DocumentRequest.Status.COMPLETED,
             ).count(),
         })
     
@@ -355,8 +372,8 @@ def dashboard(request):
                 doctor=request.user,
                 status='pending'
             ).count(),
-            'pending_certificates': CertificateRequest.objects.filter(
-                status='pending'
+            'pending_certificates': DocumentRequest.objects.filter(
+                status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
             'total_patients': MedicalRecord.objects.filter(
                 doctor=request.user
@@ -368,6 +385,8 @@ def dashboard(request):
             'recent_records': MedicalRecord.objects.filter(
                 doctor=request.user
             ).order_by('-created_at')[:5],
+            'appointment_list_today_url': _appointment_list_url_for_local_date(today),
+            'appointment_list_pending_url': _appointment_list_url_status('pending'),
         })
 
     elif request.user.role == 'staff':
@@ -384,6 +403,8 @@ def dashboard(request):
                 status='completed'
             ).count(),
             'recent_records': MedicalRecord.objects.order_by('-created_at')[:5],
+            'appointment_list_today_url': _appointment_list_url_for_local_date(today),
+            'appointment_list_pending_url': _appointment_list_url_status('pending'),
         })
     
     elif request.user.role == 'admin':
@@ -395,7 +416,9 @@ def dashboard(request):
         # Pending items needing admin attention
         pending_health_forms = HealthProfileForm.objects.filter(status='pending').count()
         pending_dental_forms = DentalHealthForm.objects.filter(status='pending').count()
-        pending_certs = CertificateRequest.objects.filter(status='pending').count()
+        pending_certs = DocumentRequest.objects.filter(
+            status=DocumentRequest.Status.PENDING_REVIEW,
+        ).count()
         pending_reviews = pending_health_forms + pending_dental_forms
         
         # Stale / inactive users
@@ -438,6 +461,7 @@ def dashboard(request):
             'inactive_users': inactive_users,
             'low_stock_medicines': low_stock,
             'hide_removed_app_links': True,
+            'appointment_list_today_url': _appointment_list_url_for_local_date(today),
         })
 
     return render(request, 'core/dashboard.html', context)
@@ -1580,34 +1604,6 @@ def user_reset_password(request, user_id):
 # =====================
 
 
-def _student_name_field_q(term):
-    """Match a single token against student name, email, or ID fields."""
-    return (
-        Q(first_name__icontains=term)
-        | Q(last_name__icontains=term)
-        | Q(email__icontains=term)
-        | Q(student_profile__middle_name__icontains=term)
-        | Q(student_profile__student_id__icontains=term)
-    )
-
-
-def _student_search_q(query):
-    """Support single-field and multi-word full-name searches (e.g. \"Jane Doe\")."""
-    q = query.strip()
-    if not q:
-        return Q(pk__in=[])
-
-    whole_phrase = _student_name_field_q(q)
-    terms = [part for part in re.split(r'\s+', q) if part]
-    if len(terms) <= 1:
-        return whole_phrase
-
-    multi_word = Q()
-    for term in terms:
-        multi_word &= _student_name_field_q(term)
-    return whole_phrase | multi_word
-
-
 @login_required
 @role_required('staff', 'doctor', 'admin')
 def search_students(request):
@@ -1620,7 +1616,7 @@ def search_students(request):
         return JsonResponse([], safe=False)
 
     students = (
-        User.objects.filter(Q(role='student') & _student_search_q(query))
+        User.objects.filter(Q(role='student') & student_search_q(query))
         .select_related('student_profile')
         .distinct()[:10]
     )

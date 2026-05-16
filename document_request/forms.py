@@ -1,5 +1,7 @@
 from django import forms
-from .models import DocumentRequest, MedicalCertificate, DoctorSignature
+from .models import ClinicianSignature, DocumentRequest, MedicalCertificate
+
+DoctorSignature = ClinicianSignature
 
 
 class DocumentRequestForm(forms.ModelForm):
@@ -33,12 +35,11 @@ class DocumentRequestForm(forms.ModelForm):
 
 
 class ProcessDocumentForm(forms.Form):
-    """Form for processing document requests (approve/reject)."""
-    
+    """Form for processing document requests (complete/reject)."""
+
     ACTION_CHOICES = [
-        ('approve', 'Approve'),
+        ('review', 'Complete'),
         ('reject', 'Reject'),
-        ('ready', 'Mark as Ready'),
     ]
     
     action = forms.ChoiceField(choices=ACTION_CHOICES, widget=forms.HiddenInput())
@@ -91,11 +92,11 @@ class MedicalCertificateForm(forms.ModelForm):
         self.fields['patient_name'].required = True
 
 
-class DoctorSignatureForm(forms.ModelForm):
-    """Doctor self-service form for uploading and managing signature."""
+class ClinicianSignatureForm(forms.ModelForm):
+    """Clinician self-service form for uploading and managing signature."""
 
     class Meta:
-        model = DoctorSignature
+        model = ClinicianSignature
         fields = ['signature_image', 'is_active']
         widgets = {
             'signature_image': forms.ClearableFileInput(attrs={
@@ -115,3 +116,6 @@ class DoctorSignatureForm(forms.ModelForm):
         if signature_image is None and self.instance and self.instance.pk and self.instance.signature_image:
             return self.instance.signature_image
         return signature_image
+
+
+DoctorSignatureForm = ClinicianSignatureForm

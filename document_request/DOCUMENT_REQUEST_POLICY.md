@@ -10,7 +10,7 @@ Students can submit document requests anytime without schedule window restrictio
 - No daily time window validation
 - No allowed days restriction
 - No StudentRequestSchedule requirement
-- Doctor/admin can initiate requests on behalf of students
+- Doctor, staff, or admin can initiate requests on behalf of students
 
 ### 2. Document Types
 Only `medical_certificate` supported for requests.
@@ -24,10 +24,15 @@ Only `medical_certificate` supported for requests.
 3. Doctor reviews and signs certificate
 4. Certificate sent to student
 
-**Request States:**
-- `pending`: Awaiting doctor review/signature
-- `completed`: Doctor signed, ready for download
-- `rejected`: Doctor rejected with reason
+**Request States (DocumentRequest — single source of truth):**
+- `pending_review`: Awaiting clinician review/signature
+- `ready_for_pickup`: Approved; certificate issued
+- `rejected`: Rejected with reason
+
+**Certificate States (MedicalCertificate):**
+- `draft`: Editable while request is under review
+- `issued`: Signed and approved
+- `void`: Request was rejected
 
 ### 4. Request Workflow - Doctor Path (Doctor-Initiated)
 1. Doctor directly creates request on behalf of student
@@ -48,23 +53,27 @@ Only `medical_certificate` supported for requests.
 - Can view own requests only
 - Can request anytime (no schedule restriction)
 - Cannot directly sign certificates
-- Can submit multiple requests
+- Only one **pending_review** request per document type at a time (additional requests allowed after ready_for_pickup/rejection)
 
-**Doctor:**
+**Doctor / Staff:**
 - Can view all requests
 - Can request on behalf of students anytime
-- Can sign/reject/approve certificates
+- Can complete or reject certificates (must upload signature before completing)
 - Can view request details and student info
 
 **Admin:**
-- Can view all requests
-- Can override any restrictions
-- Can manually update request status
+- Can view all requests and process complete/reject flows
+- Must upload a signature before completing requests (same as doctor/staff)
 
 ### 7. Notification Flow
 
 **When student requests:**
-→ Notification sent to assigned doctor
+→ Notification sent to the **assigned doctor** (see resolution order below)
+
+**Assigned doctor resolution:**
+1. Clinician on the student's most recent non-cancelled appointment
+2. Otherwise, clinician(s) assigned to the active `consultation` appointment type default (all assigned if multiple)
+3. If none configured, no automatic notification is sent (logged server-side)
 
 **When doctor signs:**
 → Notification sent to student
@@ -75,13 +84,13 @@ Only `medical_certificate` supported for requests.
 ### 8. Edge Cases
 
 #### Multiple Requests Same Term
-- Allowed. Student can request multiple documents anytime
-- Example: Medical cert now + another cert later same day = OK
+- Allowed after a prior request is completed or rejected
+- Only one pending medical certificate request per student at a time
 
-#### Doctor Signature Requirements
-- Doctor must upload signature image first
-- Cannot process/sign certificate without signature on file
-- System checks for existing DoctorSignature record
+#### Clinician Signature Requirements
+- Doctors and staff must upload a signature image on the **My Signature** page (`/documents/signature/`)
+- Cannot complete a request without an on-file signature
+- Completion copies the signature to the certificate snapshot and records `signed_by` / `signed_at`
 
 #### Expired Certificates
 - Certificates valid per clinic policy (external to this system)
@@ -94,7 +103,8 @@ Only `medical_certificate` supported for requests.
 DocumentRequest
   - student (FK to User, role='student')
   - document_type (choices: [medical_certificate only])
-  - status (pending | completed | rejected)
+  - status (pending_review | ready_for_pickup | rejected)
+  - assigned_to (FK — clinician notified at create)
   - rejection_reason (optional)
   - created_by (FK to User, for audit trail)
   - request_origin (student | doctor | admin)
@@ -106,7 +116,11 @@ MedicalCertificate (auto-created from DocumentRequest)
   - consultation_date
   - diagnosis
   - remarks
-  - signature (FK to DoctorSignature)
+  - status (draft | issued | void)
+  - issued_pdf (cached on approve)
+  - signature (ClinicianSignature snapshot)
+
+Workflow commands live in `document_request/services/` (`approve_request`, `reject_request`, `save_certificate_draft`). Status is **not** synced via signals.
 ```
 
 ### Validation Points

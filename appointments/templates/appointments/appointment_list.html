@@ -3,20 +3,10 @@
 {% block title %}Appointments - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
   {% include "appointments/_subnav.html" %}
 
-  {% include "components/page_header.html" with title=appointments_title|default:"Appointments" subtitle=appointments_subtitle|default:"View and manage appointments" icon="fa-calendar-days" %}
-
-  {% if user.role == 'student' %}
-    <div class="flex justify-end mb-4">
-      <a href="{% url 'appointments:schedule_appointment' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm transition-colors">
-        <i class="fas fa-plus"></i>
-        <span class="hidden sm:inline">Schedule Appointment</span>
-        <span class="sm:hidden">Schedule</span>
-      </a>
-    </div>
-  {% endif %}
+  {% include "components/page_header.html" with title=appointments_title|default:"Appointments" subtitle=appointments_subtitle|default:"View and manage appointments" icon="fa-calendar-days" actions_include="appointments/_appt_list_header_actions.html" header_mb="mb-4" %}
 
   <div id="jmcfi-appt-list-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
     {% include "appointments/_appt_list_stat_cards_inner.html" %}

@@ -4,1305 +4,796 @@
 {% block title %}{{ title }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto">
-        {% include 'dental_records/_subnav.html' %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  {% include "components/page_header.html" with title=title subtitle="Comprehensive dental health record" icon="fa-tooth" breadcrumbs=breadcrumbs %}
 
-        <!-- Header -->
-        <div class="mb-8">
-            <div class="flex items-start justify-between flex-wrap gap-6">
-                <div class="flex-1">
-                    <div class="flex items-center gap-4 mb-2">
-                        <div class="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl shadow-lg">
-                            <i class="fas fa-tooth text-white text-lg"></i>
-                        </div>
-                        <div>
-                            <h1 class="text-3xl font-bold text-gray-900">{{ title }}</h1>
-                            <p class="text-sm text-gray-500 mt-1">Comprehensive dental health record</p>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2 mt-3">
-                        {% if dental_record.status == 'completed' %}
-                        <span class="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 text-xs font-semibold rounded-full border border-green-300 shadow-sm">
-                            <i class="fas fa-check-circle"></i> Completed
-                        </span>
-                        {% else %}
-                        <span class="inline-flex items-center gap-2 px-4 py-2 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full border border-amber-300 shadow-sm">
-                            <i class="fas fa-clock"></i> Pending
-                        </span>
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="flex flex-wrap items-center gap-2">
-                    {% if dental_record.status == 'pending' %}
-                    <form method="post" action="{% url 'dental_records:mark_record_completed' dental_record.id %}" class="inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="status" value="completed">
-                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-all duration-200 shadow-md hover:shadow-lg">
-                            <i class="fas fa-check-double"></i> <span class="hidden sm:inline">{% if appointment and appointment.status != 'completed' %}Mark &amp; Complete{% else %}Mark Completed{% endif %}</span>
-                        </button>
-                    </form>
-                    {% else %}
-                    <form method="post" action="{% url 'dental_records:mark_record_completed' dental_record.id %}" class="inline">
-                        {% csrf_token %}
-                        <input type="hidden" name="status" value="pending">
-                        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2.5 bg-amber-500 text-white text-sm font-medium rounded-lg hover:bg-amber-600 transition-all duration-200 shadow-md hover:shadow-lg">
-                            <i class="fas fa-undo"></i> <span class="hidden sm:inline">Revert</span>
-                        </button>
-                    </form>
-                    {% endif %}
-                    <a href="{% url 'dental_records:dental_record_list' %}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md">
-                        <i class="fas fa-arrow-left"></i> <span class="hidden sm:inline">Back</span>
-                    </a>
-                </div>
+  {# ── Action Bar ── #}
+  <div id="jmcfi-dental-edit-action-bar" class="flex flex-wrap items-center justify-between gap-3 mb-6">
+    {% include "dental_records/_dental_edit_action_bar_inner.html" %}
+  </div>
+
+  {# ── Tabbed Edit Panel ── #}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8"
+       x-data="{ tab: 'demographics' }">
+    <div class="border-b border-gray-200">
+      <nav class="flex overflow-x-auto -mb-px px-3" aria-label="Tabs" style="scrollbar-width: thin;">
+        {% with btn_cls="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none" %}
+        <button type="button" @click="tab='demographics'"
+                :class="tab==='demographics' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ btn_cls }}"><i class="fas fa-user text-xs"></i> Demographics</button>
+        <button type="button" @click="tab='questionnaire'"
+                :class="tab==='questionnaire' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ btn_cls }}"><i class="fas fa-clipboard-list text-xs"></i> <span class="hidden sm:inline">Health Questionnaire</span><span class="sm:hidden">Health Q.</span></button>
+        <button type="button" @click="tab='systems'"
+                :class="tab==='systems' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ btn_cls }}"><i class="fas fa-heartbeat text-xs"></i> <span class="hidden sm:inline">Systems Review</span><span class="sm:hidden">Systems</span></button>
+        <button type="button" @click="tab='history'"
+                :class="tab==='history' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ btn_cls }}"><i class="fas fa-history text-xs"></i> <span class="hidden sm:inline">Dental History</span><span class="sm:hidden">History</span></button>
+        {% if is_pediatric %}
+        <button type="button" @click="tab='pediatric'"
+                :class="tab==='pediatric' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ btn_cls }}"><i class="fas fa-child text-xs"></i> Pediatric</button>
+        {% endif %}
+        <button type="button" @click="tab='exam'"
+                :class="tab==='exam' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ btn_cls }}"><i class="fas fa-stethoscope text-xs"></i> Exam</button>
+        <button type="button" @click="tab='vitals'"
+                :class="tab==='vitals' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ btn_cls }}"><i class="fas fa-thermometer text-xs"></i> Vitals</button>
+        <button type="button" @click="tab='chart'"
+                :class="tab==='chart' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ btn_cls }}"><i class="fas fa-teeth text-xs"></i> Dental Chart</button>
+        <button type="button" @click="tab='notes'"
+                :class="tab==='notes' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ btn_cls }}"><i class="fas fa-notes-medical text-xs"></i> <span class="hidden sm:inline">Progress Notes</span><span class="sm:hidden">Notes</span></button>
+        {% endwith %}
+      </nav>
+    </div>
+
+    <div class="p-5 sm:p-6">
+
+      {# ════════════════════════════════════ #}
+      {# ── Demographics Tab               ── #}
+      {# ════════════════════════════════════ #}
+      <div x-show="tab==='demographics'" x-cloak>
+        <form method="post" class="space-y-6"
+              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              hx-swap="none"
+              hx-on::after-request="handleFormResponse(event, 'Demographics')">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="demographics">
+
+          {% if demographics_form.non_field_errors %}
+          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
+              {% for error in demographics_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          {# Patient info (read-only) #}
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-id-card text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Patient Information</h3>
             </div>
-        </div>
-
-        <!-- Navigation Tabs -->
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mb-8"
-             x-data="{ activeTab: 'demographics' }">
-            <div class="border-b border-gray-200 bg-gradient-to-r from-primary-50 via-white to-primary-50">
-                <nav class="flex overflow-x-auto -mb-px px-4 scrollbar-thin" aria-label="Tabs" style="scrollbar-width: thin;">
-                    <button type="button" @click="activeTab = 'demographics'" :class="activeTab === 'demographics' ? 'border-primary-600 text-primary-600 bg-primary-50' : 'border-transparent text-gray-600 hover:text-primary-700 hover:border-primary-300'" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 font-semibold text-sm focus:outline-none flex-shrink-0 transition-all duration-200">
-                        <i class="fas fa-user mr-2"></i> Demographics
-                    </button>
-                    <button type="button" @click="activeTab = 'health-questionnaire'" :class="activeTab === 'health-questionnaire' ? 'border-primary-600 text-primary-600 bg-primary-50' : 'border-transparent text-gray-600 hover:text-primary-700 hover:border-primary-300'" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 font-semibold text-sm focus:outline-none flex-shrink-0 transition-all duration-200">
-                        <i class="fas fa-clipboard-list mr-2"></i> <span class="hidden sm:inline">Health Questionnaire</span><span class="sm:hidden">Health Q.</span>
-                    </button>
-                    <button type="button" @click="activeTab = 'systems-review'" :class="activeTab === 'systems-review' ? 'border-primary-600 text-primary-600 bg-primary-50' : 'border-transparent text-gray-600 hover:text-primary-700 hover:border-primary-300'" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 font-semibold text-sm focus:outline-none flex-shrink-0 transition-all duration-200">
-                        <i class="fas fa-heartbeat mr-2"></i> <span class="hidden sm:inline">Systems Review</span><span class="sm:hidden">Systems</span>
-                    </button>
-                    <button type="button" @click="activeTab = 'dental-history'" :class="activeTab === 'dental-history' ? 'border-primary-600 text-primary-600 bg-primary-50' : 'border-transparent text-gray-600 hover:text-primary-700 hover:border-primary-300'" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 font-semibold text-sm focus:outline-none flex-shrink-0 transition-all duration-200">
-                        <i class="fas fa-history mr-2"></i> <span class="hidden sm:inline">Dental History</span><span class="sm:hidden">History</span>
-                    </button>
-                    {% if is_pediatric %}
-                    <button type="button" @click="activeTab = 'pediatric'" :class="activeTab === 'pediatric' ? 'border-primary-600 text-primary-600 bg-primary-50' : 'border-transparent text-gray-600 hover:text-primary-700 hover:border-primary-300'" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 font-semibold text-sm focus:outline-none flex-shrink-0 transition-all duration-200">
-                        <i class="fas fa-child mr-2"></i> Pediatric
-                    </button>
-                    {% endif %}
-                    <button type="button" @click="activeTab = 'examination'" :class="activeTab === 'examination' ? 'border-primary-600 text-primary-600 bg-primary-50' : 'border-transparent text-gray-600 hover:text-primary-700 hover:border-primary-300'" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 font-semibold text-sm focus:outline-none flex-shrink-0 transition-all duration-200">
-                        <i class="fas fa-stethoscope mr-2"></i> Exam
-                    </button>
-                    <button type="button" @click="activeTab = 'vital-signs'" :class="activeTab === 'vital-signs' ? 'border-primary-600 text-primary-600 bg-primary-50' : 'border-transparent text-gray-600 hover:text-primary-700 hover:border-primary-300'" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 font-semibold text-sm focus:outline-none flex-shrink-0 transition-all duration-200">
-                        <i class="fas fa-thermometer mr-2"></i> Vitals
-                    </button>
-                    <button type="button" @click="activeTab = 'dental-chart'" :class="activeTab === 'dental-chart' ? 'border-primary-600 text-primary-600 bg-primary-50' : 'border-transparent text-gray-600 hover:text-primary-700 hover:border-primary-300'" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 font-semibold text-sm focus:outline-none flex-shrink-0 transition-all duration-200">
-                        <i class="fas fa-teeth mr-2"></i> Dental Chart
-                    </button>
-                    <button type="button" @click="activeTab = 'progress-notes'" :class="activeTab === 'progress-notes' ? 'border-primary-600 text-primary-600 bg-primary-50' : 'border-transparent text-gray-600 hover:text-primary-700 hover:border-primary-300'" class="tab-button inline-flex items-center whitespace-nowrap py-4 px-4 lg:px-5 border-b-2 font-semibold text-sm focus:outline-none flex-shrink-0 transition-all duration-200">
-                        <i class="fas fa-notes-medical mr-2"></i> <span class="hidden sm:inline">Progress Notes</span><span class="sm:hidden">Notes</span>
-                    </button>
-                </nav>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</dt>
+                <dd class="mt-1 text-sm text-gray-900 font-medium">{{ dental_record.patient.get_full_name }}</dd>
+              </div>
+              <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ dental_record.patient.email }}</dd>
+              </div>
+              <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Role</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ dental_record.patient.get_role_display }}</dd>
+              </div>
             </div>
+          </section>
 
-            <!-- Tab Panels -->
-            <div class="p-6 sm:p-8 bg-gradient-to-br from-gray-50 to-white">
-                <!-- Demographics Tab -->
-                <div x-show="activeTab === 'demographics'" class="tab-panel">
-                    <form method="post" class="space-y-6"
-                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-                          hx-swap="none"
-                          hx-on::after-request="handleFormResponse(event, 'Demographics')">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="demographics">
+          {# Personal Details #}
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-address-card text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Personal Details</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.middle_name.label }}</label>{{ demographics_form.middle_name }}{% include 'partials/field_errors.html' with errors=demographics_form.middle_name.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.age.label }}</label>{{ demographics_form.age }}{% include 'partials/field_errors.html' with errors=demographics_form.age.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.gender.label }}</label>{{ demographics_form.gender }}{% include 'partials/field_errors.html' with errors=demographics_form.gender.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.civil_status.label }}</label>{{ demographics_form.civil_status }}{% include 'partials/field_errors.html' with errors=demographics_form.civil_status.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.date_of_birth.label }}</label>{{ demographics_form.date_of_birth }}{% include 'partials/field_errors.html' with errors=demographics_form.date_of_birth.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.place_of_birth.label }}</label>{{ demographics_form.place_of_birth }}{% include 'partials/field_errors.html' with errors=demographics_form.place_of_birth.errors %}</div>
+            </div>
+          </section>
 
-                        {% if demographics_form.non_field_errors %}
-                        <div class="mb-6 p-4 rounded-xl bg-red-50 border-l-4 border-red-400 shadow-sm flex items-start gap-3">
-                            <div class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-red-100 mt-0.5">
-                                <i class="fas fa-exclamation text-red-600 text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="font-semibold text-red-800 text-sm mb-2">Form Errors</h4>
-                                <ul class="text-sm text-red-700 list-disc list-inside space-y-1">
-                                    {% for error in demographics_form.non_field_errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-8">
-                            <div class="flex items-center gap-3 mb-6">
-                                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600">
-                                    <i class="fas fa-user-circle text-white"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-gray-900">Patient Demographics</h3>
-                            </div>
-                        </div>
-
-                        <!-- Patient Information Section -->
-                        <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-5 mb-8 border border-primary-200 shadow-sm">
-                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                                <i class="fas fa-id-card text-primary-600"></i> Patient Information
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Patient Name</label>
-                                    <input type="text" value="{{ dental_record.patient.get_full_name }}" readonly 
-                                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                                    <input type="text" value="{{ dental_record.patient.email }}" readonly 
-                                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                                    <input type="text" value="{{ dental_record.patient.get_role_display }}" readonly 
-                                           class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-100 text-gray-700">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Personal Details Section -->
-                        <div class="mb-8 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
-                            <h4 class="font-bold text-gray-900 mb-5 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                                <i class="fas fa-address-card text-primary-600"></i> Personal Details
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.middle_name.label }}</label>
-                                    {{ demographics_form.middle_name }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.middle_name.errors %}
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.age.label }}</label>
-                                    {{ demographics_form.age }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.age.errors %}
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.gender.label }}</label>
-                                    {{ demographics_form.gender }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.gender.errors %}
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.civil_status.label }}</label>
-                                    {{ demographics_form.civil_status }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.civil_status.errors %}
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.date_of_birth.label }}</label>
-                                    {{ demographics_form.date_of_birth }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.date_of_birth.errors %}
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.place_of_birth.label }}</label>
-                                    {{ demographics_form.place_of_birth }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.place_of_birth.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Contact Information Section -->
-                        <div class="mb-8 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
-                            <h4 class="font-bold text-gray-900 mb-5 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                                <i class="fas fa-phone text-primary-600"></i> Contact Information
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="md:col-span-2">
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.address.label }}</label>
-                                    {{ demographics_form.address }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.address.errors %}
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.email.label }}</label>
-                                    {{ demographics_form.email }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.email.errors %}
-                                </div>
-                                <div data-phone-wrapper>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                                        <svg class="w-4 h-4 mr-2 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                                        </svg>
-                                        {{ demographics_form.contact_number.label }}
-                                    </label>
-                                    <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500">
-                                        <span class="flex items-center px-3 bg-gray-100 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
-                                        {{ demographics_form.contact_number }}
-                                    </div>
-                                    <div class="mt-1 flex items-center justify-between">
-                                        <p class="text-xs text-gray-500">e.g. 917 123 4567</p>
-                                        <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span>
-                                    </div>
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.contact_number.errors %}
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.telephone_number.label }}</label>
-                                    {{ demographics_form.telephone_number }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.telephone_number.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Institutional Information Section -->
-                        <div class="mb-8 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
-                            <h4 class="font-bold text-gray-900 mb-5 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                                <i class="fas fa-building text-primary-600"></i> Institutional Information
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.designation.label }}</label>
-                                    {{ demographics_form.designation }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.designation.errors %}
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.department_college_office.label }}</label>
-                                    {{ demographics_form.department_college_office }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.department_college_office.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Guardian/Emergency Contact Section -->
-                        <div class="mb-8 p-6 bg-white rounded-xl border border-gray-200 shadow-sm">
-                            <h4 class="font-bold text-gray-900 mb-5 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                                <i class="fas fa-user-shield text-primary-600"></i> Guardian/Emergency Contact
-                            </h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.guardian_name.label }}</label>
-                                    {{ demographics_form.guardian_name }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.guardian_name.errors %}
-                                </div>
-                                <div data-phone-wrapper>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center">
-                                        <svg class="w-4 h-4 mr-2 text-orange-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
-                                        </svg>
-                                        {{ demographics_form.guardian_contact.label }}
-                                    </label>
-                                    <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500">
-                                        <span class="flex items-center px-3 bg-gray-100 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
-                                        {{ demographics_form.guardian_contact }}
-                                    </div>
-                                    <div class="mt-1 flex items-center justify-between">
-                                        <p class="text-xs text-gray-500">e.g. 917 123 4567</p>
-                                        <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span>
-                                    </div>
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.guardian_contact.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Examination Details Section -->
-                        <!-- Divider -->
-                        <div class="border-t-2 border-dashed border-gray-200 my-8"></div>
-
-                        <div class="mb-6">
-                            <h4 class="font-semibold text-gray-800 mb-1 flex items-center gap-2">
-                                <i class="fas fa-calendar-check text-primary-600"></i> Examination Details
-                            </h4>
-                            <p class="text-xs text-gray-500 mb-5">Record the date and attending doctor for this examination.</p>
-
-                            <!-- Row 1: Examination -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.date_of_examination.label }}</label>
-                                    {{ demographics_form.date_of_examination }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.date_of_examination.errors %}
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.examined_by.label }}</label>
-                                    {{ demographics_form.examined_by }}
-                                    <p class="mt-1 text-xs text-gray-400">The doctor or staff who conducted this examination.</p>
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.examined_by.errors %}
-                                </div>
-                            </div>
-
-                            <!-- Consent sub-header -->
-                            <p class="text-sm font-medium text-gray-700 mb-1">Patient Consent</p>
-                            <p class="text-xs text-gray-500 mb-4">Confirm that the patient has signed both the general and informed consent forms.</p>
-
-                            <!-- Divider -->
-                            <div class="border-t border-gray-200 mb-6"></div>
-
-                            <!-- Row 2: Consent -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.consent_date.label }}</label>
-                                    {{ demographics_form.consent_date }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.consent_date.errors %}
-                                </div>
-                                <div class="flex items-end pb-1">
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        {{ demographics_form.consent_signed }}
-                                        <span class="text-sm font-medium text-gray-700">{{ demographics_form.consent_signed.label }}</span>
-                                    </label>
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.consent_signed.errors %}
-                                </div>
-                            </div>
-
-                            <!-- Row 3: Informed Consent -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ demographics_form.informed_consent_date.label }}</label>
-                                    {{ demographics_form.informed_consent_date }}
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.informed_consent_date.errors %}
-                                </div>
-                                <div class="flex items-end pb-1">
-                                    <label class="flex items-center gap-2 cursor-pointer">
-                                        {{ demographics_form.informed_consent_signed }}
-                                        <span class="text-sm font-medium text-gray-700">{{ demographics_form.informed_consent_signed.label }}</span>
-                                    </label>
-                                    {% include 'partials/field_errors.html' with errors=demographics_form.informed_consent_signed.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Hidden patient field -->
-                        {{ demographics_form.patient }}
-                        {{ demographics_form.appointment.as_hidden }}
-
-                        <!-- Linked Appointment -->
-                        <div class="mb-6">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
-                                <i class="fas fa-calendar-alt text-primary-500 mr-1"></i> Linked Appointment
-                            </label>
-                            {% if appointment %}
-                            <div class="flex items-center gap-4 px-4 py-3 rounded-lg border border-gray-200 bg-gray-50">
-                                <div class="flex items-center gap-2 text-sm text-gray-700">
-                                    <i class="fas fa-calendar text-gray-400"></i>
-                                    <span class="font-medium">{{ appointment.date|date:"F j, Y" }}</span>
-                                </div>
-                                <span class="text-gray-300">|</span>
-                                <div class="flex items-center gap-2 text-sm text-gray-700">
-                                    <i class="fas fa-clock text-gray-400"></i>
-                                    <span class="font-medium">{{ appointment.time|time:"g:i A" }}</span>
-                                </div>
-                                <span class="text-gray-300">|</span>
-                                <div class="flex items-center gap-2 text-sm text-gray-500">
-                                    <i class="fas fa-user text-gray-400"></i>
-                                    <span>{{ appointment.student.get_full_name }}</span>
-                                </div>
-                            </div>
-                            {% else %}
-                            <div class="px-4 py-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-400 flex items-center gap-2">
-                                <i class="fas fa-unlink"></i> No appointment linked to this record.
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="flex justify-end pt-6 border-t border-gray-200 mt-8">
-                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:shadow-lg transition-all duration-200 shadow-md font-semibold">
-                                <i class="fas fa-save"></i> Save Demographics
-                            </button>
-                        </div>
-                    </form>
+          {# Contact Information #}
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-phone text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Contact Information</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.address.label }}</label>{{ demographics_form.address }}{% include 'partials/field_errors.html' with errors=demographics_form.address.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.email.label }}</label>{{ demographics_form.email }}{% include 'partials/field_errors.html' with errors=demographics_form.email.errors %}</div>
+              <div data-phone-wrapper>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.contact_number.label }}</label>
+                <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
+                  <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
+                  {{ demographics_form.contact_number }}
                 </div>
+                <div class="mt-1 flex items-center justify-between"><p class="text-xs text-gray-400">e.g. 917 123 4567</p><span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span></div>
+                {% include 'partials/field_errors.html' with errors=demographics_form.contact_number.errors %}
+              </div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.telephone_number.label }}</label>{{ demographics_form.telephone_number }}{% include 'partials/field_errors.html' with errors=demographics_form.telephone_number.errors %}</div>
+            </div>
+          </section>
 
-                <!-- Health Questionnaire Tab -->
-                <div x-show="activeTab === 'health-questionnaire'" class="tab-panel">
-                    <form method="post" class="space-y-6"
-                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-                          hx-swap="none"
-                          hx-on::after-request="handleFormResponse(event, 'Health Questionnaire')">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="health_questionnaire">
+          {# Institutional Information #}
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-building text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Institutional Information</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.designation.label }}</label>{{ demographics_form.designation }}{% include 'partials/field_errors.html' with errors=demographics_form.designation.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.department_college_office.label }}</label>{{ demographics_form.department_college_office }}{% include 'partials/field_errors.html' with errors=demographics_form.department_college_office.errors %}</div>
+            </div>
+          </section>
 
-                        {% if health_questionnaire_form.non_field_errors %}
-                        <div class="mb-6 p-4 rounded-xl bg-red-50 border-l-4 border-red-400 shadow-sm flex items-start gap-3">
-                            <div class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-red-100 mt-0.5">
-                                <i class="fas fa-exclamation text-red-600 text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="font-semibold text-red-800 text-sm mb-2">Form Errors</h4>
-                                <ul class="text-sm text-red-700 list-disc list-inside space-y-1">
-                                    {% for error in health_questionnaire_form.non_field_errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-8">
-                            <div class="flex items-center gap-3 mb-6">
-                                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600">
-                                    <i class="fas fa-clipboard-list text-white"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-gray-900">Health Questionnaire</h3>
-                            </div>
-                        </div>
-
-                        <div class="p-6 bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {% for field in health_questionnaire_form %}
-                            <div>
-                                {% if field.field.widget.input_type == 'checkbox' %}
-                                    <div class="flex items-center">
-                                        {{ field }}
-                                        <label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label>
-                                    </div>
-                                {% else %}
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ field.label }}</label>
-                                    {{ field }}
-                                {% endif %}
-                                {% include 'partials/field_errors.html' with errors=field.errors %}
-                            </div>
-                            {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end pt-6 border-t border-gray-200 mt-8">
-                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:shadow-lg transition-all duration-200 shadow-md font-semibold">
-                                <i class="fas fa-save"></i> Save Health Questionnaire
-                            </button>
-                        </div>
-                    </form>
+          {# Emergency Contact #}
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-user-shield text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Emergency Contact</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.guardian_name.label }}</label>{{ demographics_form.guardian_name }}{% include 'partials/field_errors.html' with errors=demographics_form.guardian_name.errors %}</div>
+              <div data-phone-wrapper>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.guardian_contact.label }}</label>
+                <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
+                  <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
+                  {{ demographics_form.guardian_contact }}
                 </div>
+                <div class="mt-1 flex items-center justify-between"><p class="text-xs text-gray-400">e.g. 917 123 4567</p><span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span></div>
+                {% include 'partials/field_errors.html' with errors=demographics_form.guardian_contact.errors %}
+              </div>
+            </div>
+          </section>
 
-                <!-- Systems Review Tab -->
-                <div x-show="activeTab === 'systems-review'" class="tab-panel">
-                    <form method="post" class="space-y-6"
-                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-                          hx-swap="none"
-                          hx-on::after-request="handleFormResponse(event, 'Systems Review')">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="systems_review">
+          {# Examination & Consent #}
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-calendar-check text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Examination &amp; Consent</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.date_of_examination.label }}</label>{{ demographics_form.date_of_examination }}{% include 'partials/field_errors.html' with errors=demographics_form.date_of_examination.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.examined_by.label }}</label>{{ demographics_form.examined_by }}<p class="mt-1 text-xs text-gray-400">The doctor or staff who conducted this examination.</p>{% include 'partials/field_errors.html' with errors=demographics_form.examined_by.errors %}</div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.consent_date.label }}</label>{{ demographics_form.consent_date }}{% include 'partials/field_errors.html' with errors=demographics_form.consent_date.errors %}</div>
+              <div class="flex items-end pb-1">
+                <label class="flex items-center gap-2 cursor-pointer">{{ demographics_form.consent_signed }}<span class="text-sm font-medium text-gray-700">{{ demographics_form.consent_signed.label }}</span></label>
+                {% include 'partials/field_errors.html' with errors=demographics_form.consent_signed.errors %}
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.informed_consent_date.label }}</label>{{ demographics_form.informed_consent_date }}{% include 'partials/field_errors.html' with errors=demographics_form.informed_consent_date.errors %}</div>
+              <div class="flex items-end pb-1">
+                <label class="flex items-center gap-2 cursor-pointer">{{ demographics_form.informed_consent_signed }}<span class="text-sm font-medium text-gray-700">{{ demographics_form.informed_consent_signed.label }}</span></label>
+                {% include 'partials/field_errors.html' with errors=demographics_form.informed_consent_signed.errors %}
+              </div>
+            </div>
+          </section>
 
-                        {% if systems_review_form.non_field_errors %}
-                        <div class="mb-6 p-4 rounded-xl bg-red-50 border-l-4 border-red-400 shadow-sm flex items-start gap-3">
-                            <div class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-red-100 mt-0.5">
-                                <i class="fas fa-exclamation text-red-600 text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="font-semibold text-red-800 text-sm mb-2">Form Errors</h4>
-                                <ul class="text-sm text-red-700 list-disc list-inside space-y-1">
-                                    {% for error in systems_review_form.non_field_errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-8">
-                            <div class="flex items-center gap-3 mb-6">
-                                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-red-600">
-                                    <i class="fas fa-heartbeat text-white"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-gray-900">Systems Review</h3>
-                            </div>
-                        </div>
+          {{ demographics_form.patient }}
+          {{ demographics_form.appointment.as_hidden }}
 
-                        <div class="p-6 bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                            {% for field in systems_review_form %}
-                                {% if field.field.widget.input_type == 'checkbox' %}
-                                <div class="flex items-center">
-                                    {{ field }}
-                                    <label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label>
-                                </div>
-                                {% endif %}
-                            {% endfor %}
-                            </div>
-                        </div>
+          {# Linked Appointment #}
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-calendar-alt text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Linked Appointment</h3>
+            </div>
+            {% if appointment %}
+            <div class="flex flex-wrap items-center gap-4 px-4 py-3 rounded-lg border border-gray-200 bg-gray-50 text-sm">
+              <span class="flex items-center gap-1.5 text-gray-700"><i class="fas fa-calendar text-gray-400"></i> <strong>{{ appointment.date|date:"F j, Y" }}</strong></span>
+              <span class="text-gray-300">|</span>
+              <span class="flex items-center gap-1.5 text-gray-700"><i class="fas fa-clock text-gray-400"></i> <strong>{{ appointment.time|time:"g:i A" }}</strong></span>
+              <span class="text-gray-300">|</span>
+              <span class="flex items-center gap-1.5 text-gray-500"><i class="fas fa-user text-gray-400"></i> {{ appointment.student.get_full_name }}</span>
+            </div>
+            {% else %}
+            <div class="px-4 py-3 rounded-lg border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-400 flex items-center gap-2">
+              <i class="fas fa-unlink"></i> No appointment linked to this record.
+            </div>
+            {% endif %}
+          </section>
 
-                        <div class="flex justify-end pt-6 border-t border-gray-200 mt-8">
-                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:shadow-lg transition-all duration-200 shadow-md font-semibold">
-                                <i class="fas fa-save"></i> Save Systems Review
-                            </button>
-                        </div>
-                    </form>
-                </div>
+          <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
+            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+              <i class="fas fa-save"></i> Save Demographics
+            </button>
+          </div>
+        </form>
+      </div>
 
-                <!-- Dental History Tab -->
-                <div x-show="activeTab === 'dental-history'" class="tab-panel">
-                    <form method="post" class="space-y-6"
-                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-                          hx-swap="none"
-                          hx-on::after-request="handleFormResponse(event, 'Dental History')">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="dental_history">
+      {# ════════════════════════════════════ #}
+      {# ── Health Questionnaire Tab       ── #}
+      {# ════════════════════════════════════ #}
+      <div x-show="tab==='questionnaire'" x-cloak>
+        <form method="post" class="space-y-6"
+              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              hx-swap="none"
+              hx-on::after-request="handleFormResponse(event, 'Health Questionnaire')">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="health_questionnaire">
 
-                        {% if dental_history_form.non_field_errors %}
-                        <div class="mb-6 p-4 rounded-xl bg-red-50 border-l-4 border-red-400 shadow-sm flex items-start gap-3">
-                            <div class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-red-100 mt-0.5">
-                                <i class="fas fa-exclamation text-red-600 text-sm"></i>
-                            </div>
-                            <div class="flex-1">
-                                <h4 class="font-semibold text-red-800 text-sm mb-2">Form Errors</h4>
-                                <ul class="text-sm text-red-700 list-disc list-inside space-y-1">
-                                    {% for error in dental_history_form.non_field_errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-8">
-                            <div class="flex items-center gap-3 mb-6">
-                                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-yellow-500 to-yellow-600">
-                                    <i class="fas fa-history text-white"></i>
-                                </div>
-                                <h3 class="text-xl font-bold text-gray-900">Dental History</h3>
-                            </div>
-                        </div>
+          {% if health_questionnaire_form.non_field_errors %}
+          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
+              {% for error in health_questionnaire_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
 
-                        <div class="p-6 bg-white rounded-xl border border-gray-200 shadow-sm mb-8">
-                                <i class="fas fa-history text-primary-600"></i> Section C: Dental History
-                            </h3>
-                        </div>
-
-                        <!-- Previous Dental Visits -->
-                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
-                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                                <i class="fas fa-calendar-check text-primary-500"></i>
-                                Previous Dental Visits
-                            </h4>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <!-- First Dental Visit Checkbox -->
-                                <div class="md:col-span-2">
-                                    <div class="flex items-start">
-                                        {{ dental_history_form.first_dental_visit }}
-                                        <label for="{{ dental_history_form.first_dental_visit.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
-                                            {{ dental_history_form.first_dental_visit.label }}
-                                        </label>
-                                    </div>
-                                    {% include 'partials/field_errors.html' with errors=dental_history_form.first_dental_visit.errors %}
-                                </div>
-
-                                <!-- Last Dental Visit Date -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">
-                                        {{ dental_history_form.last_dental_visit.label }}
-                                    </label>
-                                    {{ dental_history_form.last_dental_visit }}
-                                    {% include 'partials/field_errors.html' with errors=dental_history_form.last_dental_visit.errors %}
-                                </div>
-
-                                <!-- Last Visit Reason -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">
-                                        {{ dental_history_form.last_visit_reason.label }}
-                                    </label>
-                                    {{ dental_history_form.last_visit_reason }}
-                                    {% include 'partials/field_errors.html' with errors=dental_history_form.last_visit_reason.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Teeth Extraction History -->
-                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
-                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                                <i class="fas fa-tooth text-primary-500"></i>
-                                Teeth Extraction History
-                            </h4>
-                            
-                            <div class="space-y-4">
-                                <!-- Teeth Extracted Checkbox -->
-                                <div class="flex items-start">
-                                    {{ dental_history_form.teeth_extracted }}
-                                    <label for="{{ dental_history_form.teeth_extracted.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
-                                        {{ dental_history_form.teeth_extracted.label }}
-                                    </label>
-                                </div>
-                                {% include 'partials/field_errors.html' with errors=dental_history_form.teeth_extracted.errors %}
-
-                                <!-- When Extraction Occurred -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">
-                                        {{ dental_history_form.extraction_when.label }}
-                                    </label>
-                                    {{ dental_history_form.extraction_when }}
-                                    {% include 'partials/field_errors.html' with errors=dental_history_form.extraction_when.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Anesthesia Allergy -->
-                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
-                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                                <i class="fas fa-syringe text-primary-500"></i>
-                                Anesthesia Allergy
-                            </h4>
-                            
-                            <div class="space-y-4">
-                                <!-- Anesthesia Allergy Checkbox -->
-                                <div class="flex items-start">
-                                    {{ dental_history_form.anesthesia_allergy }}
-                                    <label for="{{ dental_history_form.anesthesia_allergy.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
-                                        {{ dental_history_form.anesthesia_allergy.label }}
-                                    </label>
-                                </div>
-                                {% include 'partials/field_errors.html' with errors=dental_history_form.anesthesia_allergy.errors %}
-
-                                <!-- When Allergy Occurred -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                        {{ dental_history_form.anesthesia_allergy_when.label }}
-                                    </label>
-                                    {{ dental_history_form.anesthesia_allergy_when }}
-                                    {% include 'partials/field_errors.html' with errors=dental_history_form.anesthesia_allergy_when.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Dental Appliances -->
-                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
-                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                                <i class="fas fa-prescription text-primary-500"></i>
-                                Dental Appliances
-                            </h4>
-                            
-                            <div class="space-y-4">
-                                <!-- Dental Appliance Checkbox -->
-                                <div class="flex items-start">
-                                    {{ dental_history_form.dental_appliance }}
-                                    <label for="{{ dental_history_form.dental_appliance.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
-                                        {{ dental_history_form.dental_appliance.label }}
-                                    </label>
-                                </div>
-                                {% include 'partials/field_errors.html' with errors=dental_history_form.dental_appliance.errors %}
-
-                                <!-- Appliance Type -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                        {{ dental_history_form.appliance_type.label }}
-                                    </label>
-                                    {{ dental_history_form.appliance_type }}
-                                    {% include 'partials/field_errors.html' with errors=dental_history_form.appliance_type.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Pain and Discomfort -->
-                        <div class="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
-                            <h4 class="font-semibold text-gray-700 flex items-center gap-2 mb-4">
-                                <i class="fas fa-exclamation-triangle text-primary-500"></i>
-                                Pain and Discomfort
-                            </h4>
-                            
-                            <div class="space-y-4">
-                                <!-- Pain/Discomfort Checkbox -->
-                                <div class="flex items-start">
-                                    {{ dental_history_form.pain_discomfort }}
-                                    <label for="{{ dental_history_form.pain_discomfort.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">
-                                        {{ dental_history_form.pain_discomfort.label }}
-                                    </label>
-                                </div>
-                                {% include 'partials/field_errors.html' with errors=dental_history_form.pain_discomfort.errors %}
-
-                                <!-- Pain Location -->
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                                        {{ dental_history_form.pain_location.label }}
-                                    </label>
-                                    {{ dental_history_form.pain_location }}
-                                    {% include 'partials/field_errors.html' with errors=dental_history_form.pain_location.errors %}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="flex justify-end pt-6 border-t border-gray-200">
-                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
-                                <i class="fas fa-save"></i> Save Dental History
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Pediatric History Tab -->
-                {% if is_pediatric %}
-                <div x-show="activeTab === 'pediatric'" class="tab-panel">
-                    <form method="post" class="space-y-6"
-                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-                          hx-swap="none"
-                          hx-on::after-request="handleFormResponse(event, 'Pediatric History')">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="pediatric_history">
-
-                        {% if pediatric_history_form.non_field_errors %}
-                        <div class="mb-6 bg-red-50 border-l-4 border-red-400 rounded-lg p-4 shadow-sm">
-                            <div class="flex items-start gap-3">
-                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
-                                <div>
-                                    <ul class="text-sm text-red-800 list-disc list-inside">
-                                        {% for error in pediatric_history_form.non_field_errors %}
-                                            <li>{{ error }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
-                                <i class="fas fa-child text-primary-600"></i> Pediatric Dental History
-                            </h3>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {% for field in pediatric_history_form %}
-                            <div>
-                                {% if field.field.widget.input_type == 'checkbox' %}
-                                    <div class="flex items-center">
-                                        {{ field }}
-                                        <label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label>
-                                    </div>
-                                {% else %}
-                                    <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ field.label }}</label>
-                                    {{ field }}
-                                {% endif %}
-                                {% include 'partials/field_errors.html' with errors=field.errors %}
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <div class="flex justify-end pt-6 border-t border-gray-200">
-                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
-                                <i class="fas fa-save"></i> Save Pediatric History
-                            </button>
-                        </div>
-                    </form>
-                </div>
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-clipboard-list text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Health Questionnaire</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {% for field in health_questionnaire_form %}
+              <div>
+                {% if field.field.widget.input_type == 'checkbox' %}
+                <div class="flex items-center">{{ field }}<label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label></div>
+                {% else %}
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ field.label }}</label>{{ field }}
                 {% endif %}
-
-                <!-- Examination Tab -->
-                <div x-show="activeTab === 'examination'" class="tab-panel">
-                    <form method="post" class="space-y-6"
-                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-                          hx-swap="none"
-                          hx-on::after-request="handleFormResponse(event, 'Examination')">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="examination">
-
-                        {% if examination_form.non_field_errors %}
-                        <div class="mb-6 bg-red-50 border-l-4 border-red-400 rounded-lg p-4 shadow-sm">
-                            <div class="flex items-start gap-3">
-                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
-                                <div>
-                                    <ul class="text-sm text-red-800 list-disc list-inside">
-                                        {% for error in examination_form.non_field_errors %}
-                                            <li>{{ error }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
-                                <i class="fas fa-stethoscope text-primary-600"></i> Dental Examination
-                            </h3>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {% for field in examination_form %}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ field.label }}</label>
-                                {{ field }}
-                                {% include 'partials/field_errors.html' with errors=field.errors %}
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <div class="flex justify-end pt-6 border-t border-gray-200">
-                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md font-medium">
-                                <i class="fas fa-save"></i> Save Examination Findings
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Vital Signs Tab -->
-                <div x-show="activeTab === 'vital-signs'" class="tab-panel">
-                    <form method="post" class="space-y-6"
-                          hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-                          hx-swap="none"
-                          hx-on::after-request="handleFormResponse(event, 'Vital Signs')">
-                        {% csrf_token %}
-                        <input type="hidden" name="form_type" value="vital_signs">
-
-                        {% if vital_signs_form.non_field_errors %}
-                        <div class="mb-6 bg-red-50 border-l-4 border-red-400 rounded-lg p-4 shadow-sm">
-                            <div class="flex items-start gap-3">
-                                <i class="fas fa-exclamation-triangle text-red-600 mt-0.5"></i>
-                                <div>
-                                    <ul class="text-sm text-red-800 list-disc list-inside">
-                                        {% for error in vital_signs_form.non_field_errors %}
-                                            <li>{{ error }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
-                                <i class="fas fa-thermometer text-primary-600"></i> Vital Signs
-                            </h3>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {% for field in vital_signs_form %}
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2.5">{{ field.label }}</label>
-                                {{ field }}
-                                {% include 'partials/field_errors.html' with errors=field.errors %}
-                            </div>
-                            {% endfor %}
-                        </div>
-
-                        <div class="flex justify-end pt-6 border-t border-gray-200 mt-8">
-                            <button type="submit" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:shadow-lg transition-all duration-200 shadow-md font-semibold">
-                                <i class="fas fa-save"></i> Save Vital Signs
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Dental Chart Tab -->
-                <div x-show="activeTab === 'dental-chart'" class="tab-panel pt-6 px-6">
-                    <div class="space-y-6">
-                        {% include 'dental_records/partials/interactive_dental_chart.html' %}
-                    </div>
-                </div>
-
-                <!-- Progress Notes Tab -->
-                <div x-show="activeTab === 'progress-notes'" class="tab-panel pt-6 px-6"
-                     x-data="progressNotes()"
-                     x-init="init()">
-                    <div class="mb-8">
-                        <div class="flex items-center justify-between mb-6 pb-6 border-b-2 border-blue-200">
-                            <div class="flex items-center gap-3">
-                                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
-                                    <i class="fas fa-notes-medical text-white"></i>
-                                </div>
-                                <div>
-                                    <h3 class="text-xl font-bold text-gray-900">Progress Notes</h3>
-                                    <p class="text-sm text-gray-500">Track procedures and treatments performed on this patient.</p>
-                                </div>
-                            </div>
-                            <span x-show="notes.length" class="inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-primary-100 to-primary-50 text-primary-700 text-sm font-bold rounded-full border border-primary-200 shadow-sm" x-text="`${notes.length} note${notes.length !== 1 ? 's' : ''}`"></span>
-                        </div>
-                    </div>
-
-                    <!-- Toast notification -->
-                    <div x-show="toast.show" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-2"
-                         :class="toast.type === 'success' ? 'bg-emerald-50 border-emerald-400 text-emerald-800' : 'bg-red-50 border-red-400 text-red-800'"
-                         class="fixed top-20 right-4 z-[9999] max-w-md p-4 rounded-lg border-l-4 shadow-lg flex items-center gap-2 text-sm font-medium">
-                        <i :class="toast.type === 'success' ? 'fas fa-check-circle text-emerald-500' : 'fas fa-exclamation-circle text-red-500'"></i>
-                        <span x-text="toast.message"></span>
-                    </div>
-
-                    <!-- Add Progress Note Form -->
-                    <form id="progress-notes-form" @submit.prevent="addNote()" class="mt-8 mb-10 p-7 bg-white rounded-xl border border-gray-200 shadow-sm">
-                        {% csrf_token %}
-                        <h4 class="text-lg font-bold text-gray-900 mb-6 pb-4 border-b-2 border-primary-200 flex items-center gap-2">
-                            <i class="fas fa-plus-circle text-primary-600"></i> Add Progress Note
-                        </h4>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Date</label>
-                                <input type="date" x-model="form.date" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all focus:shadow-md">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-2">Dentist</label>
-                                <input type="text" value="{{ request.user.get_full_name }}" readonly class="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 font-medium">
-                            </div>
-                        </div>
-                        <div class="mb-6">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5 flex items-center gap-2">
-                                <i class="fas fa-stethoscope text-primary-600"></i>Procedure Done <span class="text-red-500 ml-1">*</span>
-                            </label>
-                            <textarea x-model="form.procedure_done" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all focus:shadow-md" placeholder="Describe the procedure performed..." :class="errors.procedure_done ? 'border-red-400 ring-1 ring-red-400' : ''"></textarea>
-                            <p x-show="errors.procedure_done" class="mt-2 text-xs text-red-600 flex items-center gap-1" x-text="errors.procedure_done"></p>
-                        </div>
-                        <div class="mb-6">
-                            <label class="block text-sm font-semibold text-gray-700 mb-2.5">Remarks</label>
-                            <textarea x-model="form.remarks" rows="2" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all focus:shadow-md" placeholder="Additional remarks..."></textarea>
-                        </div>
-                        <div class="flex justify-end pt-4 border-t border-gray-200">
-                            <button type="submit" :disabled="submitting" class="inline-flex items-center justify-center gap-2 min-w-[10rem] px-6 py-2.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:shadow-lg transition-all duration-200 shadow-md font-semibold whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed">
-                                <i :class="submitting ? 'fas fa-spinner fa-spin' : 'fas fa-plus'"></i>
-                                <span>Add Note</span>
-                                <span x-show="submitting" x-cloak>Saving...</span>
-                            </button>
-                        </div>
-                    </form>
-
-                    <!-- Existing Progress Notes -->
-                    <div x-show="notes.length > 0">
-                        <div class="mt-10 mb-6 pb-6">
-                            <h4 class="text-lg font-bold text-gray-900 mb-4 pb-3 border-b-2 border-blue-200 flex items-center gap-2">
-                                <i class="fas fa-history text-blue-600"></i> Note History
-                            </h4>
-                        </div>
-                        <div class="overflow-x-auto bg-white rounded-xl border border-gray-200 shadow-sm">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gradient-to-r from-primary-50 to-primary-100 border-b-2 border-primary-200">
-                                    <tr>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Date</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Procedure</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Dentist</th>
-                                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Remarks</th>
-                                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200">
-                                    <template x-for="note in notes" :key="note.id">
-                                        <tr class="hover:bg-gray-50 transition-colors duration-150">
-                                            <td class="px-6 py-4 text-sm text-gray-700 font-medium whitespace-nowrap" x-text="note.date_display"></td>
-                                            <td class="px-6 py-4 text-sm text-gray-700" x-text="note.procedure_done"></td>
-                                            <td class="px-6 py-4 text-sm text-gray-700 whitespace-nowrap" x-text="note.dentist"></td>
-                                            <td class="px-6 py-4 text-sm text-gray-600 line-clamp-2" x-text="note.remarks || '-'"></td>
-                                            <td class="px-6 py-4 text-center">
-                                                <button @click="confirmDelete(note)" type="button" class="inline-flex items-center justify-center w-9 h-9 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200" title="Delete note">
-                                                    <i class="fas fa-trash-alt text-sm"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div x-show="notes.length === 0">
-                        <div class="text-center py-10 text-gray-400">
-                            <i class="fas fa-clipboard text-5xl mb-3"></i>
-                            <p class="text-lg font-medium text-gray-500">No progress notes yet</p>
-                            <p class="text-sm">Add the first progress note using the form above.</p>
-                        </div>
-                    </div>
-
-                    <!-- Delete Confirmation Dialog -->
-                    <div x-show="deleteModal.show"
-                         x-transition:enter="transition ease-out duration-200"
-                         x-transition:enter-start="opacity-0"
-                         x-transition:enter-end="opacity-100"
-                         x-transition:leave="transition ease-in duration-150"
-                         x-transition:leave-start="opacity-100"
-                         x-transition:leave-end="opacity-0"
-                         class="fixed inset-0 z-50 flex items-center justify-center p-4"
-                         role="dialog"
-                         aria-modal="true"
-                         aria-labelledby="deleteNoteTitle"
-                         @keydown.escape.window="deleteModal.show = false"
-                         x-cloak>
-                        <div class="fixed inset-0 bg-gray-900/50 transition-opacity" @click="deleteModal.show = false"></div>
-                        <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full">
-                            <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-red-50 to-red-100 rounded-t-2xl flex items-center gap-3">
-                                <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-                                    <i class="fas fa-trash-alt text-red-600"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <h3 id="deleteNoteTitle" class="text-lg font-bold text-gray-900">Delete Progress Note</h3>
-                                </div>
-                            </div>
-                            <div class="px-6 py-4" aria-live="polite">
-                                <p class="text-gray-600 text-sm">Are you sure you want to delete this progress note? This action cannot be undone.</p>
-                                <div x-show="deleteModal.note" class="mt-3 p-3 bg-gray-50 rounded-lg text-sm">
-                                    <p class="font-medium text-gray-800" x-text="deleteModal.note?.date_display"></p>
-                                    <p class="text-gray-600 mt-1 line-clamp-2" x-text="deleteModal.note?.procedure_done"></p>
-                                </div>
-                            </div>
-                            <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex flex-wrap gap-3 justify-end">
-                                <button type="button" @click="deleteModal.show = false" class="inline-flex items-center justify-center min-w-24 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm">Cancel</button>
-                                <button type="button" @click="deleteNote()" :disabled="deleting" class="inline-flex items-center justify-center min-w-24 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all font-medium text-sm disabled:opacity-50">
-                                    <i :class="deleting ? 'fas fa-spinner fa-spin' : 'fas fa-trash-alt'" class="mr-1"></i>
-                                    <span x-text="deleting ? 'Deleting...' : 'Delete'">Delete</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {% include 'partials/field_errors.html' with errors=field.errors %}
+              </div>
+              {% endfor %}
             </div>
-        </div>
-    </div>
-</div>
+          </section>
 
-<!-- Custom Confirmation Modal -->
-<div id="confirmationModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 transition-opacity duration-300"
-     role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="fixed inset-0 bg-gray-900/50 transition-opacity" onclick="closeConfirmModal()"></div>
-    <div class="relative bg-white rounded-2xl shadow-2xl max-w-sm w-full transform transition-all duration-300 scale-95">
-        <!-- Modal Header -->
-        <div class="px-6 py-5 border-b border-gray-200">
-            <div class="flex items-center gap-3">
-                <div class="flex-shrink-0">
-                    <div id="modalIcon" class="w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300">
-                        <!-- Icon will be inserted by JS -->
-                    </div>
-                </div>
-                <div class="flex-1">
-                    <h3 id="modalTitle" class="text-xl font-bold text-gray-900">
-                        <!-- Title will be inserted by JS -->
-                    </h3>
-                </div>
+          <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
+            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+              <i class="fas fa-save"></i> Save Health Questionnaire
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {# ════════════════════════════════════ #}
+      {# ── Systems Review Tab             ── #}
+      {# ════════════════════════════════════ #}
+      <div x-show="tab==='systems'" x-cloak>
+        <form method="post" class="space-y-6"
+              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              hx-swap="none"
+              hx-on::after-request="handleFormResponse(event, 'Systems Review')">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="systems_review">
+
+          {% if systems_review_form.non_field_errors %}
+          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
+              {% for error in systems_review_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-heartbeat text-danger-500 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Systems Review</h3>
             </div>
-        </div>
-        
-        <!-- Modal Body -->
-        <div class="px-6 py-5" aria-live="polite">
-            <p id="modalMessage" class="text-gray-600 leading-relaxed">
-                <!-- Message will be inserted by JS -->
-            </p>
-        </div>
-        
-        <!-- Modal Footer -->
-        <div class="px-6 py-4 bg-gray-50 rounded-b-2xl flex gap-3 justify-end">
-            <button onclick="closeConfirmModal()" 
-                    class="px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium shadow-sm hover:shadow">
-                <i class="fas fa-times mr-2"></i> Cancel
-            </button>
-            <button id="modalConfirmBtn" 
-                    class="px-5 py-2.5 rounded-lg transition-all font-medium shadow-sm hover:shadow-lg">
-                <!-- Button will be styled by JS -->
-            </button>
-        </div>
-    </div>
-</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {% for field in systems_review_form %}
+              {% if field.field.widget.input_type == 'checkbox' %}
+              <div class="flex items-center">{{ field }}<label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label></div>
+              {% endif %}
+              {% endfor %}
+            </div>
+          </section>
 
-<!-- Floating Toast Message for Dental Chart Actions -->
-<div id="tooth-message" class="hidden fixed top-20 right-4 z-50 max-w-md animate-slide-in-right"></div>
+          <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
+            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+              <i class="fas fa-save"></i> Save Systems Review
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {# ════════════════════════════════════ #}
+      {# ── Dental History Tab             ── #}
+      {# ════════════════════════════════════ #}
+      <div x-show="tab==='history'" x-cloak>
+        <form method="post" class="space-y-6"
+              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              hx-swap="none"
+              hx-on::after-request="handleFormResponse(event, 'Dental History')">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="dental_history">
+
+          {% if dental_history_form.non_field_errors %}
+          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
+              {% for error in dental_history_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          {# Previous Dental Visits #}
+          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-calendar-check text-primary-600 text-sm"></i>
+              <h4 class="text-sm font-semibold text-gray-800">Previous Dental Visits</h4>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div class="md:col-span-2">
+                <div class="flex items-start">{{ dental_history_form.first_dental_visit }}<label for="{{ dental_history_form.first_dental_visit.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.first_dental_visit.label }}</label></div>
+                {% include 'partials/field_errors.html' with errors=dental_history_form.first_dental_visit.errors %}
+              </div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.last_dental_visit.label }}</label>{{ dental_history_form.last_dental_visit }}{% include 'partials/field_errors.html' with errors=dental_history_form.last_dental_visit.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.last_visit_reason.label }}</label>{{ dental_history_form.last_visit_reason }}{% include 'partials/field_errors.html' with errors=dental_history_form.last_visit_reason.errors %}</div>
+            </div>
+          </section>
+
+          {# Teeth Extraction #}
+          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-tooth text-primary-600 text-sm"></i>
+              <h4 class="text-sm font-semibold text-gray-800">Teeth Extraction History</h4>
+            </div>
+            <div class="space-y-4">
+              <div><div class="flex items-start">{{ dental_history_form.teeth_extracted }}<label for="{{ dental_history_form.teeth_extracted.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.teeth_extracted.label }}</label></div>{% include 'partials/field_errors.html' with errors=dental_history_form.teeth_extracted.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.extraction_when.label }}</label>{{ dental_history_form.extraction_when }}{% include 'partials/field_errors.html' with errors=dental_history_form.extraction_when.errors %}</div>
+            </div>
+          </section>
+
+          {# Anesthesia Allergy #}
+          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-syringe text-danger-500 text-sm"></i>
+              <h4 class="text-sm font-semibold text-gray-800">Anesthesia Allergy</h4>
+            </div>
+            <div class="space-y-4">
+              <div><div class="flex items-start">{{ dental_history_form.anesthesia_allergy }}<label for="{{ dental_history_form.anesthesia_allergy.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.anesthesia_allergy.label }}</label></div>{% include 'partials/field_errors.html' with errors=dental_history_form.anesthesia_allergy.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.anesthesia_allergy_when.label }}</label>{{ dental_history_form.anesthesia_allergy_when }}{% include 'partials/field_errors.html' with errors=dental_history_form.anesthesia_allergy_when.errors %}</div>
+            </div>
+          </section>
+
+          {# Dental Appliances #}
+          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-prescription text-primary-600 text-sm"></i>
+              <h4 class="text-sm font-semibold text-gray-800">Dental Appliances</h4>
+            </div>
+            <div class="space-y-4">
+              <div><div class="flex items-start">{{ dental_history_form.dental_appliance }}<label for="{{ dental_history_form.dental_appliance.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.dental_appliance.label }}</label></div>{% include 'partials/field_errors.html' with errors=dental_history_form.dental_appliance.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.appliance_type.label }}</label>{{ dental_history_form.appliance_type }}{% include 'partials/field_errors.html' with errors=dental_history_form.appliance_type.errors %}</div>
+            </div>
+          </section>
+
+          {# Pain & Discomfort #}
+          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-triangle-exclamation text-warning-500 text-sm"></i>
+              <h4 class="text-sm font-semibold text-gray-800">Pain and Discomfort</h4>
+            </div>
+            <div class="space-y-4">
+              <div><div class="flex items-start">{{ dental_history_form.pain_discomfort }}<label for="{{ dental_history_form.pain_discomfort.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.pain_discomfort.label }}</label></div>{% include 'partials/field_errors.html' with errors=dental_history_form.pain_discomfort.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.pain_location.label }}</label>{{ dental_history_form.pain_location }}{% include 'partials/field_errors.html' with errors=dental_history_form.pain_location.errors %}</div>
+            </div>
+          </section>
+
+          <div class="flex justify-end pt-5 border-t border-gray-200">
+            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+              <i class="fas fa-save"></i> Save Dental History
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {# ════════════════════════════════════ #}
+      {# ── Pediatric Tab                  ── #}
+      {# ════════════════════════════════════ #}
+      {% if is_pediatric %}
+      <div x-show="tab==='pediatric'" x-cloak>
+        <form method="post" class="space-y-6"
+              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              hx-swap="none"
+              hx-on::after-request="handleFormResponse(event, 'Pediatric History')">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="pediatric_history">
+
+          {% if pediatric_history_form.non_field_errors %}
+          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
+              {% for error in pediatric_history_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-child text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Pediatric Dental History</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {% for field in pediatric_history_form %}
+              <div>
+                {% if field.field.widget.input_type == 'checkbox' %}
+                <div class="flex items-center">{{ field }}<label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label></div>
+                {% else %}
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ field.label }}</label>{{ field }}
+                {% endif %}
+                {% include 'partials/field_errors.html' with errors=field.errors %}
+              </div>
+              {% endfor %}
+            </div>
+          </section>
+
+          <div class="flex justify-end pt-5 border-t border-gray-200">
+            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+              <i class="fas fa-save"></i> Save Pediatric History
+            </button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+
+      {# ════════════════════════════════════ #}
+      {# ── Examination Tab                ── #}
+      {# ════════════════════════════════════ #}
+      <div x-show="tab==='exam'" x-cloak>
+        <form method="post" class="space-y-6"
+              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              hx-swap="none"
+              hx-on::after-request="handleFormResponse(event, 'Examination')">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="examination">
+
+          {% if examination_form.non_field_errors %}
+          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
+              {% for error in examination_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-stethoscope text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Dental Examination</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {% for field in examination_form %}
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ field.label }}</label>{{ field }}{% include 'partials/field_errors.html' with errors=field.errors %}</div>
+              {% endfor %}
+            </div>
+          </section>
+
+          <div class="flex justify-end pt-5 border-t border-gray-200">
+            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+              <i class="fas fa-save"></i> Save Examination
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {# ════════════════════════════════════ #}
+      {# ── Vital Signs Tab                ── #}
+      {# ════════════════════════════════════ #}
+      <div x-show="tab==='vitals'" x-cloak>
+        <form method="post" class="space-y-6"
+              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              hx-swap="none"
+              hx-on::after-request="handleFormResponse(event, 'Vital Signs')">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="vital_signs">
+
+          {% if vital_signs_form.non_field_errors %}
+          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
+              {% for error in vital_signs_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          <section>
+            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+              <i class="fas fa-thermometer text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Vital Signs</h3>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {% for field in vital_signs_form %}
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ field.label }}</label>{{ field }}{% include 'partials/field_errors.html' with errors=field.errors %}</div>
+              {% endfor %}
+            </div>
+          </section>
+
+          <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
+            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+              <i class="fas fa-save"></i> Save Vital Signs
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {# ════════════════════════════════════ #}
+      {# ── Dental Chart Tab               ── #}
+      {# ════════════════════════════════════ #}
+      <div x-show="tab==='chart'" x-cloak>
+        {% include 'dental_records/partials/interactive_dental_chart.html' %}
+      </div>
+
+      {# ════════════════════════════════════ #}
+      {# ── Progress Notes Tab             ── #}
+      {# ════════════════════════════════════ #}
+      <div x-show="tab==='notes'" x-cloak
+           x-data="progressNotes()"
+           x-init="init()">
+
+        <section>
+          <div class="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+            <div class="flex items-center gap-2">
+              <i class="fas fa-notes-medical text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Progress Notes</h3>
+            </div>
+            <span x-show="notes.length" class="inline-flex items-center px-2.5 py-0.5 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full" x-text="`${notes.length} note${notes.length !== 1 ? 's' : ''}`"></span>
+          </div>
+        </section>
+
+        {# Add Note Form #}
+        <form id="progress-notes-form" @submit.prevent="addNote()" class="mt-4 mb-8 p-5 bg-gray-50 rounded-lg border border-gray-200">
+          {% csrf_token %}
+          <div class="flex items-center gap-2 mb-4">
+            <i class="fas fa-plus-circle text-primary-600 text-sm"></i>
+            <h4 class="text-sm font-semibold text-gray-800">Add Progress Note</h4>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
+              <input type="date" x-model="form.date" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Dentist</label>
+              <input type="text" value="{{ request.user.get_full_name }}" readonly class="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 font-medium text-sm">
+            </div>
+          </div>
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Procedure Done <span class="text-danger-500">*</span></label>
+            <textarea x-model="form.procedure_done" rows="3" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" placeholder="Describe the procedure performed..." :class="errors.procedure_done ? 'border-danger-400 ring-1 ring-danger-400' : ''"></textarea>
+            <p x-show="errors.procedure_done" class="mt-1 text-xs text-danger-600 flex items-center gap-1"><i class="fas fa-circle-exclamation"></i> <span x-text="errors.procedure_done"></span></p>
+          </div>
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Remarks</label>
+            <textarea x-model="form.remarks" rows="2" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all" placeholder="Additional remarks..."></textarea>
+          </div>
+          <div class="flex justify-end pt-4 border-t border-gray-200">
+            <button type="submit" :disabled="submitting" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+              <i :class="submitting ? 'fas fa-spinner fa-spin' : 'fas fa-plus'"></i>
+              <span x-text="submitting ? 'Saving...' : 'Add Note'"></span>
+            </button>
+          </div>
+        </form>
+
+        {# Notes Table #}
+        <div x-show="notes.length > 0">
+          <div class="overflow-x-auto rounded-lg border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Date</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Procedure</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Dentist</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Remarks</th>
+                  <th class="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-16"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100 bg-white">
+                <template x-for="note in notes" :key="note.id">
+                  <tr class="hover:bg-gray-50/50 transition-colors">
+                    <td class="px-4 py-3 text-sm text-gray-700 font-medium whitespace-nowrap" x-text="note.date_display"></td>
+                    <td class="px-4 py-3 text-sm text-gray-700" x-text="note.procedure_done"></td>
+                    <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap" x-text="note.dentist"></td>
+                    <td class="px-4 py-3 text-sm text-gray-500" x-text="note.remarks || '—'"></td>
+                    <td class="px-4 py-3 text-center">
+                      <button @click="confirmDelete(note)" type="button" class="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors" title="Delete note">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div x-show="notes.length === 0" x-cloak>
+          {% include "components/empty_state.html" with icon="fa-clipboard" title="No progress notes yet" description="Add the first progress note using the form above." %}
+        </div>
+
+        {# Delete Confirmation #}
+        <div x-show="deleteModal.show"
+             x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             @keydown.escape.window="deleteModal.show = false" x-cloak>
+          <div class="fixed inset-0 bg-gray-900/50" @click="deleteModal.show = false"></div>
+          <div class="relative bg-white rounded-xl shadow-xl max-w-sm w-full">
+            <div class="px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+              <div class="w-9 h-9 bg-danger-50 rounded-full flex items-center justify-center flex-shrink-0"><i class="fas fa-trash-alt text-danger-600 text-sm"></i></div>
+              <h3 class="text-base font-semibold text-gray-900">Delete Progress Note</h3>
+            </div>
+            <div class="px-6 py-4">
+              <p class="text-sm text-gray-600">Are you sure? This action cannot be undone.</p>
+              <div x-show="deleteModal.note" class="mt-3 p-3 bg-gray-50 rounded-lg text-sm">
+                <p class="font-medium text-gray-800" x-text="deleteModal.note?.date_display"></p>
+                <p class="text-gray-500 mt-0.5 line-clamp-2" x-text="deleteModal.note?.procedure_done"></p>
+              </div>
+            </div>
+            <div class="px-6 py-3 bg-gray-50 rounded-b-xl flex gap-3 justify-end">
+              <button type="button" @click="deleteModal.show = false" class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">Cancel</button>
+              <button type="button" @click="deleteNote()" :disabled="deleting" class="px-4 py-2 bg-danger-600 text-white rounded-lg hover:bg-danger-700 text-sm font-medium transition-colors disabled:opacity-50">
+                <i :class="deleting ? 'fas fa-spinner fa-spin' : 'fas fa-trash-alt'" class="mr-1"></i>
+                <span x-text="deleting ? 'Deleting...' : 'Delete'"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>{# end panels #}
+  </div>{# end card #}
+</div>
 
 <script>
-// Alpine.js handles tab switching via the shared x-data wrapper above.
-// Toast messages use the global Alpine toast system from base.html.
-// Modal confirmation uses the Alpine modal component from base.html.
-
 function confirmDeleteTooth(recordId, toothId, toothNumber) {
-    window.dispatchEvent(new CustomEvent('open-modal', {
-        detail: {
-            type: 'danger',
-            title: 'Delete Tooth Record',
-            message: `Are you sure you want to remove tooth #${toothNumber} from the dental chart? This action cannot be undone.`,
-            actionLabel: 'Delete',
-            onConfirm: function() {
-                htmx.ajax('POST', `/dental-records/${recordId}/chart/${toothId}/delete/`, {
-                    target: '#dental-chart-container',
-                    swap: 'outerHTML',
-                    headers: {
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    }
-                });
-            }
-        }
-    }));
+  window.dispatchEvent(new CustomEvent('open-modal', {
+    detail: {
+      type: 'danger',
+      title: 'Delete Tooth Record',
+      message: `Are you sure you want to remove tooth #${toothNumber} from the dental chart? This action cannot be undone.`,
+      actionLabel: 'Delete',
+      onConfirm: function() {
+        htmx.ajax('POST', `/dental-records/${recordId}/chart/${toothId}/delete/`, {
+          target: '#dental-chart-container',
+          swap: 'outerHTML',
+          headers: { 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value }
+        });
+      }
+    }
+  }));
 }
 
 function editTooth(toothNumber, toothType, condition, notes) {
-    document.querySelector('input[name="tooth_number"]').value = toothNumber;
-    document.querySelector('select[name="tooth_type"]').value = toothType;
-    document.querySelector('select[name="condition"]').value = condition;
-    document.querySelector('textarea[name="notes"]').value = notes;
-    const formHeading = document.querySelector('#tooth-form-heading');
-    formHeading.innerHTML = '<i class="fas fa-edit text-primary-600"></i> Update Tooth #' + toothNumber;
-    const submitBtn = document.querySelector('#panel-dental-chart button[type="submit"]');
-    submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Update Tooth';
-    document.querySelector('#panel-dental-chart form').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    document.querySelector('input[name="tooth_number"]').setAttribute('readonly', true);
-    document.querySelector('input[name="tooth_number"]').classList.add('bg-gray-100');
+  document.querySelector('input[name="tooth_number"]').value = toothNumber;
+  document.querySelector('select[name="tooth_type"]').value = toothType;
+  document.querySelector('select[name="condition"]').value = condition;
+  document.querySelector('textarea[name="notes"]').value = notes;
+  const heading = document.querySelector('#tooth-form-heading');
+  heading.innerHTML = '<i class="fas fa-edit text-primary-600"></i> Update Tooth #' + toothNumber;
+  const btn = document.querySelector('#panel-dental-chart button[type="submit"]');
+  btn.innerHTML = '<i class="fas fa-save mr-2"></i> Update Tooth';
+  document.querySelector('#panel-dental-chart form').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  document.querySelector('input[name="tooth_number"]').setAttribute('readonly', true);
+  document.querySelector('input[name="tooth_number"]').classList.add('bg-gray-100');
 }
 
 function resetToothForm() {
-    document.querySelector('input[name="tooth_number"]').value = '';
-    document.querySelector('select[name="tooth_type"]').value = 'permanent';
-    document.querySelector('select[name="condition"]').value = 'healthy';
-    document.querySelector('textarea[name="notes"]').value = '';
-    const formHeading = document.querySelector('#tooth-form-heading');
-    formHeading.innerHTML = '<i class="fas fa-plus-circle text-primary-600"></i> Add Tooth to Chart';
-    const submitBtn = document.querySelector('#panel-dental-chart button[type="submit"]');
-    submitBtn.innerHTML = '<i class="fas fa-plus mr-2"></i> Add Tooth';
-    document.querySelector('input[name="tooth_number"]').removeAttribute('readonly');
-    document.querySelector('input[name="tooth_number"]').classList.remove('bg-gray-100');
+  document.querySelector('input[name="tooth_number"]').value = '';
+  document.querySelector('select[name="tooth_type"]').value = 'permanent';
+  document.querySelector('select[name="condition"]').value = 'healthy';
+  document.querySelector('textarea[name="notes"]').value = '';
+  const heading = document.querySelector('#tooth-form-heading');
+  heading.innerHTML = '<i class="fas fa-plus-circle text-primary-600"></i> Add Tooth to Chart';
+  const btn = document.querySelector('#panel-dental-chart button[type="submit"]');
+  btn.innerHTML = '<i class="fas fa-plus mr-2"></i> Add Tooth';
+  document.querySelector('input[name="tooth_number"]').removeAttribute('readonly');
+  document.querySelector('input[name="tooth_number"]').classList.remove('bg-gray-100');
 }
 
 function handleToothFormResponse(event) {
-    if (event.detail.successful) {
-        resetToothForm();
-        window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Tooth successfully added/updated!', type: 'success' } }));
-    } else {
-        window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Error updating tooth. Please try again.', type: 'error' } }));
-    }
+  if (event.detail.successful) {
+    resetToothForm();
+    window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Tooth successfully added/updated!', type: 'success' } }));
+  } else {
+    window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Error updating tooth. Please try again.', type: 'error' } }));
+  }
 }
 
 function handleFormResponse(event, formName) {
-    if (event.detail.successful) {
-        window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: `${formName} updated successfully!`, type: 'success' } }));
-    } else {
-        window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: `Error updating ${formName}. Please check the form and try again.`, type: 'error' } }));
-    }
+  if (event.detail.successful) {
+    window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: `${formName} updated successfully!`, type: 'success' } }));
+  } else {
+    window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: `Error updating ${formName}. Please check the form and try again.`, type: 'error' } }));
+  }
 }
 
-// Dismiss message with animation (for base template messages)
-function dismissMessage(btn) {
-    if (btn && btn.parentElement) {
-        const messageEl = btn.parentElement;
-        messageEl.style.opacity = '0';
-        messageEl.style.transform = 'translateY(-20px)';
-        messageEl.style.transition = 'all 0.3s ease-out';
-        setTimeout(() => {
-            messageEl.remove();
-        }, 300);
-    }
-}
-
-// ============================================
-// Alpine.js: Progress Notes Component
-// ============================================
 function progressNotes() {
-    const csrfToken = document.querySelector('#progress-notes-form [name=csrfmiddlewaretoken]')?.value || '';
-    const recordId = {{ dental_record.id }};
-    const baseUrl = `/dental-records/${recordId}/progress-notes`;
-    const addUrl = `${baseUrl}/add/`;
-    const today = new Date().toISOString().slice(0, 10);
+  const csrfToken = document.querySelector('#progress-notes-form [name=csrfmiddlewaretoken]')?.value || '';
+  const recordId = {{ dental_record.id }};
+  const baseUrl = `/dental-records/${recordId}/progress-notes`;
+  const addUrl = `${baseUrl}/add/`;
+  const today = new Date().toISOString().slice(0, 10);
 
-    return {
-        notes: [],
-        form: { date: today, procedure_done: '', remarks: '' },
-        errors: {},
-        submitting: false,
-        deleting: false,
-        toast: { show: false, message: '', type: 'success' },
-        deleteModal: { show: false, note: null },
+  return {
+    notes: [],
+    form: { date: today, procedure_done: '', remarks: '' },
+    errors: {},
+    submitting: false,
+    deleting: false,
+    deleteModal: { show: false, note: null },
 
-        init() {
-            // Load initial data from server-rendered JSON
-            try {
-                this.notes = JSON.parse('{{ progress_notes_json|escapejs }}');
-            } catch (e) {
-                this.notes = [];
-                console.error('Failed to parse progress notes JSON', e);
-            }
-        },
+    init() {
+      try { this.notes = JSON.parse('{{ progress_notes_json|escapejs }}'); }
+      catch { this.notes = []; }
+    },
 
-        showToast(message, type = 'success') {
-            this.toast = { show: true, message, type };
-            setTimeout(() => { this.toast.show = false; }, 3000);
-        },
+    async addNote() {
+      if (this.submitting) return;
+      this.errors = {};
+      if (!this.form.procedure_done.trim()) { this.errors.procedure_done = 'Please enter the procedure done.'; return; }
+      if (!csrfToken) { window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Security token missing. Please refresh.', type: 'error' } })); return; }
+      this.submitting = true;
+      try {
+        const res = await fetch(addUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ date: this.form.date || today, procedure_done: this.form.procedure_done.trim(), remarks: this.form.remarks.trim() }),
+        });
+        const ct = res.headers.get('content-type') || '';
+        const data = ct.includes('application/json') ? await res.json() : {};
+        if (res.ok && data.success) {
+          this.notes.unshift(data.note);
+          this.form = { date: today, procedure_done: '', remarks: '' };
+          window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Progress note added successfully.', type: 'success' } }));
+        } else {
+          window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: data.error || 'Failed to add note.', type: 'error' } }));
+        }
+      } catch { window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Network error. Please try again.', type: 'error' } })); }
+      finally { this.submitting = false; }
+    },
 
-        async addNote() {
-            if (this.submitting) return;
-            this.errors = {};
-            if (!this.form.procedure_done.trim()) {
-                this.errors.procedure_done = 'Please enter the procedure done.';
-                return;
-            }
-            if (!csrfToken) {
-                this.showToast('Security token missing. Please refresh the page and try again.', 'error');
-                return;
-            }
+    confirmDelete(note) { this.deleteModal = { show: true, note }; },
 
-            this.submitting = true;
-            try {
-                const res = await fetch(addUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    credentials: 'same-origin',
-                    body: JSON.stringify({
-                        date: this.form.date || today,
-                        procedure_done: this.form.procedure_done.trim(),
-                        remarks: this.form.remarks.trim(),
-                    }),
-                });
-
-                const contentType = res.headers.get('content-type') || '';
-                const data = contentType.includes('application/json') ? await res.json() : {};
-
-                if (res.ok && data.success) {
-                    // Insert at correct sorted position (newest first)
-                    this.notes.unshift(data.note);
-                    this.form = { date: today, procedure_done: '', remarks: '' };
-                    this.showToast('Progress note added successfully.');
-                } else {
-                    this.showToast(data.error || 'Failed to add note.', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.showToast('Network error. Please try again.', 'error');
-            } finally {
-                this.submitting = false;
-            }
-        },
-
-        confirmDelete(note) {
-            this.deleteModal = { show: true, note };
-        },
-
-        async deleteNote() {
-            const note = this.deleteModal.note;
-            if (!note) return;
-            this.deleting = true;
-            try {
-                const res = await fetch(`${baseUrl}/${note.id}/delete/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    credentials: 'same-origin',
-                });
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    this.notes = this.notes.filter(n => n.id !== note.id);
-                    this.showToast('Progress note deleted.');
-                } else {
-                    this.showToast(data.error || 'Failed to delete note.', 'error');
-                }
-            } catch (err) {
-                console.error(err);
-                this.showToast('Network error. Please try again.', 'error');
-            } finally {
-                this.deleting = false;
-                this.deleteModal = { show: false, note: null };
-            }
-        },
-    };
+    async deleteNote() {
+      const note = this.deleteModal.note;
+      if (!note) return;
+      this.deleting = true;
+      try {
+        const res = await fetch(`${baseUrl}/${note.id}/delete/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest' },
+          credentials: 'same-origin',
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          this.notes = this.notes.filter(n => n.id !== note.id);
+          window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Progress note deleted.', type: 'success' } }));
+        } else {
+          window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: data.error || 'Failed to delete note.', type: 'error' } }));
+        }
+      } catch { window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Network error. Please try again.', type: 'error' } })); }
+      finally { this.deleting = false; this.deleteModal = { show: false, note: null }; }
+    },
+  };
 }
 </script>
-
-<style>
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .animate-slide-down {
-        animation: slideDown 0.3s ease-out;
-    }
-    
-    @keyframes slideUp {
-        from {
-            opacity: 1;
-            transform: translateY(0);
-        }
-        to {
-            opacity: 0;
-            transform: translateY(-20px);
-        }
-    }
-    
-    .animate-slide-up {
-        animation: slideUp 0.3s ease-out;
-    }
-    
-    /* Toast notification styles */
-    #tooth-message {
-        transform: translateX(100%);
-        opacity: 0;
-        transition: all 0.3s ease-out;
-    }
-    
-</style>
 <script src="{% static 'js/phone-input.js' %}"></script>
 {% endblock %}

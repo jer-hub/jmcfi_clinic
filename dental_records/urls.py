@@ -10,6 +10,7 @@ urlpatterns = [
     path('<int:record_id>/', views.dental_record_detail, name='dental_record_detail'),
     path('<int:record_id>/edit/', views.dental_record_edit, name='dental_record_edit'),
     path('<int:record_id>/complete-appointment/', views.complete_appointment, name='complete_appointment'),
+    path('<int:record_id>/status-modal/', views.dental_record_status_modal, name='dental_record_status_modal'),
     path('<int:record_id>/mark-completed/', views.mark_record_completed, name='mark_record_completed'),
     path('<int:record_id>/delete/', views.dental_record_delete, name='dental_record_delete'),
     path('<int:record_id>/export/', views.dental_record_export_json, name='dental_record_export_json'),

@@ -1,0 +1,10 @@
+<span id="jmcfi-mr-header-total-count" hx-swap-oob="true" class="text-sm text-gray-600 inline-flex items-center gap-1.5">
+  <span class="w-2 h-2 bg-primary-500 rounded-full"></span>
+  {{ total_count }} record{{ total_count|pluralize }}
+</span>
+<div id="jmcfi-mr-list-stats" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6" hx-swap-oob="true">
+  {% include "medical_records/_mr_list_stat_cards_inner.html" %}
+</div>
+<div id="jmcfi-mr-list-table-fragment" hx-swap-oob="true">
+  {% include "medical_records/_mr_list_table_fragment.html" %}
+</div>

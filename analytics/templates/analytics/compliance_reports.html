@@ -2,42 +2,38 @@
 {% block title %}Compliance Reports{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     {% include 'analytics/_subnav.html' %}
 
-    <!-- Header -->
-    <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
-          <svg class="inline-block w-8 h-8 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-          Compliance & Accreditation Reports
-        </h1>
-        <p class="mt-1 text-sm text-gray-500">CHED, DOH, and university accreditation reporting</p>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+      <div class="flex-1">
+        {% include "components/page_header.html" with title="Compliance & Accreditation Reports" subtitle="CHED, DOH, and university accreditation reporting" icon="fa-shield-halved" %}
       </div>
-      <div class="flex gap-3">
-        <a href="{% url 'analytics:dashboard' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">&larr; Back to Analytics</a>
-        <a href="{% url 'analytics:generate_compliance_report' %}" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors">
-          <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-          Generate Report
+      <div class="flex gap-2">
+        <a href="{% url 'analytics:dashboard' %}" class="inline-flex items-center gap-2 px-3 py-2 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+          <i class="fas fa-arrow-left"></i>Back
+        </a>
+        <a href="{% url 'analytics:generate_compliance_report' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+          <i class="fas fa-plus"></i>Generate Report
         </a>
       </div>
     </div>
 
-    <!-- Filter Tabs -->
-    <div class="flex flex-wrap items-center gap-2 mb-6">
-      <a href="{% url 'analytics:compliance_reports' %}" class="px-3 py-1 text-xs font-medium rounded-full {% if not selected_type %}bg-primary-100 text-primary-700{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %} transition">All</a>
-      {% for value, label in report_types %}
-      <a href="?type={{ value }}" class="px-3 py-1 text-xs font-medium rounded-full {% if selected_type == value %}bg-primary-100 text-primary-700{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %} transition">{{ label }}</a>
-      {% endfor %}
+    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-3 mb-6">
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-sm font-medium text-gray-700"><i class="fas fa-filter mr-1"></i>Filter:</span>
+        <a href="{% url 'analytics:compliance_reports' %}" class="px-3 py-1 text-xs font-medium rounded-full {% if not selected_type %}bg-primary-100 text-primary-700{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %} transition-colors">All</a>
+        {% for value, label in report_types %}
+        <a href="?type={{ value }}" class="px-3 py-1 text-xs font-medium rounded-full {% if selected_type == value %}bg-primary-100 text-primary-700{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %} transition-colors">{{ label }}</a>
+        {% endfor %}
+      </div>
     </div>
 
-    <!-- Reports List -->
     {% if reports %}
-    <div class="space-y-4">
+    <div class="space-y-3">
       {% for report in reports %}
-      <a href="{% url 'analytics:compliance_report_detail' report.pk %}" class="block bg-white rounded-lg shadow p-4 sm:p-5 hover:shadow-md transition group">
-        <div class="flex items-start justify-between">
+      <a href="{% url 'analytics:compliance_report_detail' report.pk %}" class="block bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 hover:shadow-md hover:border-primary-200 transition group">
+        <div class="flex items-start justify-between gap-3">
           <div>
             <h4 class="text-base font-semibold text-gray-900 group-hover:text-primary-700">{{ report.title }}</h4>
             <p class="text-sm text-gray-500 mt-1">{{ report.get_report_type_display }} · {{ report.period_start|date:"M d, Y" }} – {{ report.period_end|date:"M d, Y" }}</p>
@@ -45,12 +41,9 @@
             <p class="text-sm text-gray-600 mt-2">{{ report.description|truncatewords:30 }}</p>
             {% endif %}
           </div>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-            {% if report.status == 'submitted' %}bg-green-100 text-green-800
-            {% elif report.status == 'final' %}bg-blue-100 text-blue-800
-            {% else %}bg-gray-100 text-gray-800{% endif %}">
-            {{ report.get_status_display }}
-          </span>
+          {% if report.status == 'submitted' %}{% include "components/status_badge.html" with label=report.get_status_display variant="success" icon="fa-paper-plane" %}
+          {% elif report.status == 'final' %}{% include "components/status_badge.html" with label=report.get_status_display variant="info" icon="fa-circle-check" %}
+          {% else %}{% include "components/status_badge.html" with label=report.get_status_display variant="muted" icon="fa-pen" %}{% endif %}
         </div>
         <p class="text-xs text-gray-400 mt-2">Generated {{ report.created_at|timesince }} ago{% if report.generated_by %} by {{ report.generated_by.get_full_name }}{% endif %}</p>
       </a>
@@ -111,13 +104,8 @@
     </div>
     {% endif %}
     {% else %}
-    <div class="bg-white rounded-lg shadow p-8 text-center">
-      <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900">No compliance reports yet</h3>
-      <p class="mt-1 text-sm text-gray-500">Generate your first compliance report for CHED, DOH, or accreditation.</p>
-    </div>
+    {% url 'analytics:generate_compliance_report' as generate_url %}
+    {% include "components/empty_state.html" with icon="fa-shield-halved" title="No compliance reports yet" description="Generate your first compliance report for CHED, DOH, or accreditation." action_label="Generate Report" action_url=generate_url %}
     {% endif %}
-
-  </div>
 </div>
 {% endblock %}

@@ -1,0 +1,99 @@
+---
+description: Frontend standards — HTMX for server communication, Alpine.js for local state, zero vanilla JavaScript
+globs: "**/*.html,**/*.js"
+alwaysApply: false
+---
+
+# Frontend: HTMX + Alpine.js
+
+## Core Rule
+
+**HTMX for server communication. Alpine.js for local state. Zero vanilla JavaScript.**
+
+The only exception is `staticfiles/js/dental_chart.js` (canvas-based charting).
+
+## HTMX Patterns
+
+### Server Communication
+
+```html
+<!-- Fetch content -->
+<button hx-get="/api/data" hx-target="#result" hx-swap="innerHTML">Load</button>
+
+<!-- Form submission -->
+<form hx-post="/submit" hx-target="#response">
+  {% csrf_token %}
+  <input name="field" required>
+  <button type="submit">Submit</button>
+</form>
+
+<!-- Search with debounce -->
+<input type="text" name="q"
+  hx-get="/search" hx-target="#results"
+  hx-trigger="input changed delay:300ms">
+
+<!-- Delete with confirmation swap -->
+<button hx-delete="/items/{{ item.pk }}"
+  hx-target="closest .item-row" hx-swap="outerHTML swap:300ms"
+  hx-confirm="Are you sure?">Delete</button>
+```
+
+### Pagination
+
+```html
+<button hx-get="?page={{ page_obj.next_page_number }}"
+  hx-target="#item-list" hx-swap="innerHTML"
+  hx-push-url="true">Next</button>
+```
+
+## Alpine.js Patterns
+
+### Toggles & Modals
+
+```html
+<div x-data="{ open: false }">
+  <button @click="open = !open">Toggle</button>
+  <div x-show="open" x-transition x-cloak>Content</div>
+</div>
+```
+
+### Form Validation (client-side)
+
+```html
+<form x-data="{ email: '' }" @submit.prevent="$el.submit()">
+  <input x-model="email" type="email" required>
+  <span x-show="email && !email.includes('@')" class="text-red-500 text-sm">Invalid email</span>
+</form>
+```
+
+## HTMX + Alpine Integration
+
+```html
+<div x-data="{ loading: false }">
+  <button hx-post="/action" hx-target="#result"
+    @htmx:before-request="loading = true"
+    @htmx:after-settle="loading = false">
+    <span x-show="!loading">Submit</span>
+    <span x-show="loading"><i class="fas fa-spinner fa-spin"></i></span>
+  </button>
+</div>
+```
+
+## Forbidden Patterns
+
+| Never use | Replace with |
+|-----------|-------------|
+| `addEventListener()` | `@click`, `@change`, `hx-trigger` |
+| `document.querySelector()` / `getElementById()` | `x-ref`, `hx-target` |
+| `innerHTML` / `textContent` assignment | `x-text`, `x-html`, `hx-swap` |
+| `fetch()` / `XMLHttpRequest` | `hx-get`, `hx-post`, `hx-put`, `hx-delete` |
+| `setTimeout` / `setInterval` | `hx-trigger="every 2s"`, Alpine `$watch` |
+| `onclick="..."` attribute | `@click="..."` (Alpine) |
+| Global `<script>` functions | `x-data` components or server endpoints |
+
+## Decision Guide
+
+- Server communication needed? → **HTMX**
+- Local UI state (toggle, dropdown, tab)? → **Alpine.js**
+- Both? → Alpine for state, HTMX for server calls
+- Canvas / WebGL / complex graphics? → Vanilla JS is acceptable (isolate in `staticfiles/js/`)

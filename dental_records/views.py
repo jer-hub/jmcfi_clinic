@@ -7,11 +7,15 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction, models
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden, QueryDict
+from django.template.loader import render_to_string
+from django.urls import reverse
 from django.core.paginator import Paginator
 from django.utils import timezone
 from django.contrib.auth import get_user_model
+from django.test import RequestFactory
 from datetime import datetime
+from urllib.parse import urlparse
 
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
@@ -26,6 +30,7 @@ from .forms import (
 )
 import json
 from core.decorators import role_required
+from core.htmx_utils import htmx_add_toast, htmx_add_trigger, is_htmx_request
 from appointments.models import Appointment
 from medical_records.models import MedicalRecord
 
@@ -36,54 +41,126 @@ def _is_json_request(request):
 
 User = get_user_model()
 
-@login_required
-@role_required('student', 'staff', 'doctor')
-def dental_record_list(request):
-    """List all dental records with search and filtering"""
-    # Students can only see their own records
-    if request.user.role == 'student':
+
+def _is_missed_pending_appointment(appointment) -> bool:
+    """True if appointment is still pending and its scheduled local date/time has passed."""
+    if not appointment or appointment.status != 'pending':
+        return False
+    now = timezone.localtime()
+    if appointment.date < now.date():
+        return True
+    if appointment.date == now.date() and appointment.time < now.time():
+        return True
+    return False
+
+
+def _effective_dental_list_get_params(request):
+    for header_name in ('HX-Current-URL', 'Referer'):
+        raw = (request.headers.get(header_name) or '').strip()
+        if raw:
+            q = urlparse(raw).query
+            if q:
+                return QueryDict(q)
+    return request.GET
+
+
+def _dental_list_request_for_params(original_request, get_params: QueryDict):
+    rf = RequestFactory()
+    path = reverse('dental_records:dental_record_list')
+    list_req = rf.get(
+        path,
+        data=get_params.dict(),
+        HTTP_HOST=original_request.get_host(),
+        secure=original_request.is_secure(),
+    )
+    list_req.user = original_request.user
+    return list_req
+
+
+_DENTAL_LIST_STATUS_KEYS = ('pending', 'missed', 'completed')
+_DENTAL_LIST_PAGE_SIZE = 20
+
+
+def _dental_patient_search_q(field_prefix: str, search_query: str) -> models.Q:
+    return (
+        models.Q(**{f'{field_prefix}__first_name__icontains': search_query})
+        | models.Q(**{f'{field_prefix}__last_name__icontains': search_query})
+        | models.Q(**{f'{field_prefix}__email__icontains': search_query})
+        | models.Q(**{f'{field_prefix}__student_profile__student_id__icontains': search_query})
+    )
+
+
+def _effective_dental_row_status(row) -> str:
+    if row.get('missed_slot'):
+        return 'missed'
+    if row['row_type'] == 'record':
+        return row['record'].status
+    appointment = row['appointment']
+    if appointment.status == 'cancelled':
+        return 'cancelled'
+    return 'pending'
+
+
+def _dental_list_stat_filter_url(get_params: QueryDict, status_key: str) -> str:
+    q = get_params.copy()
+    current = (q.get('status') or '').strip()
+    if current == status_key:
+        q.pop('status', None)
+    else:
+        q['status'] = status_key
+    q.pop('page', None)
+    base = reverse('dental_records:dental_record_list')
+    encoded = q.urlencode()
+    return f'{base}?{encoded}' if encoded else base
+
+
+def _dental_list_stat_filter_urls(get_params: QueryDict) -> dict[str, str]:
+    return {key: _dental_list_stat_filter_url(get_params, key) for key in _DENTAL_LIST_STATUS_KEYS}
+
+
+def _dental_list_querystring(get_params: QueryDict) -> str:
+    q = get_params.copy()
+    q.pop('page', None)
+    encoded = q.urlencode()
+    return f'&{encoded}' if encoded else ''
+
+
+def _build_unpaginated_dental_table_data(request_user, get_params: QueryDict):
+    """
+    Same filtered timeline as dental_record_list, unpaginated.
+    Returns dict with table_rows, status_totals, search_query, date_from, date_to.
+    """
+    if request_user.role == 'student':
         dental_records = DentalRecord.objects.filter(
-            patient=request.user
+            patient=request_user
         ).select_related('patient', 'examined_by', 'appointment')
     else:
-        # Staff, doctors, and admins can see all records
         dental_records = DentalRecord.objects.select_related('patient', 'examined_by', 'appointment').all()
-    
-    # Search functionality
-    search_query = request.GET.get('search', '')
+
+    search_query = (get_params.get('search') or '').strip()
     if search_query:
-        dental_records = dental_records.filter(
-            patient__first_name__icontains=search_query
-        ) | dental_records.filter(
-            patient__last_name__icontains=search_query
-        ) | dental_records.filter(
-            patient__email__icontains=search_query
-        )
-    
-    # Filter by date
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
+        dental_records = dental_records.filter(_dental_patient_search_q('patient', search_query))
+
+    date_from = get_params.get('date_from')
+    date_to = get_params.get('date_to')
     if date_from:
         dental_records = dental_records.filter(date_of_examination__gte=date_from)
     if date_to:
         dental_records = dental_records.filter(date_of_examination__lte=date_to)
 
-    # Include dental appointments still waiting doctor confirmation and not yet converted to records
     pending_dental_appointments = Appointment.objects.filter(
         appointment_type='dental',
-        status__in=['pending', 'cancelled']
+        status__in=['pending', 'cancelled'],
     ).exclude(
-        dental_records__isnull=False
+        dental_records__isnull=False,
     ).select_related('student', 'doctor').distinct()
 
-    if request.user.role == 'student':
-        pending_dental_appointments = pending_dental_appointments.filter(student=request.user)
+    if request_user.role == 'student':
+        pending_dental_appointments = pending_dental_appointments.filter(student=request_user)
 
     if search_query:
         pending_dental_appointments = pending_dental_appointments.filter(
-            models.Q(student__first_name__icontains=search_query)
-            | models.Q(student__last_name__icontains=search_query)
-            | models.Q(student__email__icontains=search_query)
+            _dental_patient_search_q('student', search_query)
         )
 
     if date_from:
@@ -91,13 +168,8 @@ def dental_record_list(request):
     if date_to:
         pending_dental_appointments = pending_dental_appointments.filter(date__lte=date_to)
 
-    # Status totals for the currently filtered result set
-    status_totals = {
-        'pending': dental_records.filter(status='pending').count(),
-        'completed': dental_records.filter(status='completed').count(),
-    }
-    
-    # Merge records + appointment-only rows, then sort by latest date/time
+    status_filter = (get_params.get('status') or '').strip()
+    status_totals = {key: 0 for key in _DENTAL_LIST_STATUS_KEYS}
     table_rows = []
 
     for record in dental_records:
@@ -106,34 +178,78 @@ def dental_record_list(request):
         else:
             row_time = record.created_at.time()
 
+        missed_slot = bool(record.appointment_id) and _is_missed_pending_appointment(record.appointment)
+
         table_rows.append({
             'row_type': 'record',
             'record': record,
             'sort_datetime': datetime.combine(record.date_of_examination, row_time),
+            'missed_slot': missed_slot,
         })
 
     for appointment in pending_dental_appointments:
+        missed_slot = appointment.status == 'pending' and _is_missed_pending_appointment(appointment)
+
         table_rows.append({
             'row_type': 'appointment',
             'appointment': appointment,
             'sort_datetime': datetime.combine(appointment.date, appointment.time),
+            'missed_slot': missed_slot,
         })
 
     table_rows.sort(key=lambda row: row['sort_datetime'], reverse=True)
 
-    # Pagination
-    paginator = Paginator(table_rows, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    context = {
-        'page_obj': page_obj,
+    for row in table_rows:
+        row_status = _effective_dental_row_status(row)
+        if row_status in status_totals:
+            status_totals[row_status] += 1
+
+    if status_filter in _DENTAL_LIST_STATUS_KEYS:
+        table_rows = [
+            row for row in table_rows
+            if _effective_dental_row_status(row) == status_filter
+        ]
+
+    return {
+        'table_rows': table_rows,
         'status_totals': status_totals,
         'search_query': search_query,
-        'date_from': date_from,
-        'date_to': date_to,
+        'date_from': date_from or '',
+        'date_to': date_to or '',
+        'status': status_filter,
     }
-    
+
+
+def _build_dental_list_page_context(request, *, get_params=None):
+    if get_params is None:
+        get_params = request.GET
+    data = _build_unpaginated_dental_table_data(request.user, get_params)
+    list_req = _dental_list_request_for_params(request, get_params)
+    page_obj = Paginator(data['table_rows'], _DENTAL_LIST_PAGE_SIZE).get_page(
+        list_req.GET.get('page')
+    )
+    list_status = (get_params.get('status') or '').strip()
+    return {
+        'page_obj': page_obj,
+        'total_count': page_obj.paginator.count,
+        'status_totals': data['status_totals'],
+        'search_query': data['search_query'],
+        'date_from': data['date_from'] or None,
+        'date_to': data['date_to'] or None,
+        'list_status': list_status,
+        'dr_filter_urls': _dental_list_stat_filter_urls(get_params),
+        'dr_stat_active': {key: list_status == key for key in _DENTAL_LIST_STATUS_KEYS},
+        'dr_list_querystring': _dental_list_querystring(get_params),
+    }
+
+
+@login_required
+@role_required('student', 'staff', 'doctor')
+def dental_record_list(request):
+    """List all dental records with search and filtering"""
+    context = _build_dental_list_page_context(request)
+    if is_htmx_request(request):
+        return render(request, 'dental_records/_dr_list_filter_oob.html', context)
     return render(request, 'dental_records/dental_record_list.html', context)
 
 
@@ -209,6 +325,11 @@ def dental_record_detail(request, record_id):
             'surfaces': surfaces_data,
         })
     
+    exam_date = dental_record.date_of_examination
+    breadcrumb_label = dental_record.patient.get_full_name()
+    if exam_date:
+        breadcrumb_label += f' — {exam_date.strftime("%b %d, %Y")}'
+
     context = {
         'dental_record': dental_record,
         'examination': examination,
@@ -220,6 +341,10 @@ def dental_record_detail(request, record_id):
         'dental_chart': dental_chart,
         'dental_chart_json': json.dumps(dental_chart_json),
         'is_pediatric': dental_record.age and dental_record.age < 18,
+        'breadcrumbs': [
+            {'label': 'Dental Records', 'url': reverse('dental_records:dental_record_list')},
+            {'label': breadcrumb_label},
+        ],
     }
     
     return render(request, 'dental_records/dental_record_detail.html', context)
@@ -459,6 +584,11 @@ def dental_record_edit(request, record_id):
         for n in progress_notes_qs
     ])
     
+    exam_date = dental_record.date_of_examination
+    bc_label = dental_record.patient.get_full_name()
+    if exam_date:
+        bc_label += f' — {exam_date.strftime("%b %d, %Y")}'
+
     context = {
         'dental_record': dental_record,
         'appointment': dental_record.appointment,
@@ -473,6 +603,11 @@ def dental_record_edit(request, record_id):
         'dental_chart': dental_chart,
         'is_pediatric': is_pediatric,
         'title': f'Edit Dental Record - {dental_record.patient.get_full_name()}',
+        'breadcrumbs': [
+            {'label': 'Dental Records', 'url': reverse('dental_records:dental_record_list')},
+            {'label': bc_label, 'url': reverse('dental_records:dental_record_detail', args=[dental_record.id])},
+            {'label': 'Edit'},
+        ],
     }
     
     return render(request, 'dental_records/dental_record_edit.html', context)
@@ -499,37 +634,98 @@ def complete_appointment(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
-def mark_record_completed(request, record_id):
-    """Toggle dental record status between pending and completed"""
+@role_required('staff', 'doctor', 'admin')
+def dental_record_status_modal(request, record_id):
+    """HTMX GET: confirmation copy + hidden hx-post form for edit-page status actions."""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
-    
-    if request.method == 'POST':
-        new_status = request.POST.get('status', 'completed')
-        if new_status in ('pending', 'completed'):
-            with transaction.atomic():
-                dental_record.status = new_status
-                dental_record.save(update_fields=['status', 'updated_at'])
+    to = (request.GET.get('to') or '').strip().lower()
+    unavailable = (
+        to not in ('pending', 'completed')
+        or (to == 'completed' and dental_record.status != 'pending')
+        or to == 'pending'
+    )
+    context = {
+        'dental_record': dental_record,
+        'unavailable': unavailable,
+        'target_status': to,
+        'post_url': reverse('dental_records:mark_record_completed', kwargs={'record_id': dental_record.id}),
+    }
+    return render(request, 'dental_records/_mark_status_modal_body.html', context)
 
-                appointment_marked_completed = False
-                if (
-                    new_status == 'completed'
-                    and dental_record.appointment
-                    and dental_record.appointment.status != 'completed'
-                ):
-                    dental_record.appointment.status = 'completed'
-                    dental_record.appointment.save(update_fields=['status'])
-                    appointment_marked_completed = True
 
-            if new_status == 'completed':
-                if appointment_marked_completed:
-                    messages.success(request, 'Dental record and associated appointment marked as completed.')
-                else:
-                    messages.success(request, 'Dental record marked as completed. The patient can now view their record.')
-            else:
-                messages.info(request, 'Dental record reverted to pending. The patient will not be able to view details.')
-    
-    return redirect('dental_records:dental_record_edit', record_id=record_id)
+@login_required
+@role_required('staff', 'doctor', 'admin')
+def mark_record_completed(request, record_id):
+    """Mark a dental record as completed; completed status is permanent (cannot revert to pending)."""
+    edit_url = reverse('dental_records:dental_record_edit', kwargs={'record_id': record_id})
+    is_htmx = request.headers.get('HX-Request') == 'true'
+
+    if request.method != 'POST':
+        return redirect(edit_url)
+
+    dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    new_status = request.POST.get('status', 'completed')
+    if new_status not in ('pending', 'completed'):
+        if is_htmx:
+            response = HttpResponse('', status=400)
+            return htmx_add_toast(response, 'Invalid status.', 'error')
+        messages.error(request, 'Invalid status.')
+        return redirect(edit_url)
+
+    if new_status == 'pending':
+        err = 'Completed dental records cannot be reverted.'
+        if is_htmx:
+            response = HttpResponse('', status=409)
+            return htmx_add_toast(response, err, 'error')
+        messages.error(request, err)
+        return redirect(edit_url)
+
+    appointment_marked_completed = False
+    with transaction.atomic():
+        locked = DentalRecord.objects.select_for_update().get(pk=dental_record.pk)
+        if locked.status == 'completed':
+            err = 'This dental record is already completed.'
+            if is_htmx:
+                response = HttpResponse('', status=409)
+                return htmx_add_toast(response, err, 'error')
+            messages.info(request, err)
+            return redirect(edit_url)
+        locked.status = new_status
+        locked.save(update_fields=['status', 'updated_at'])
+
+        if new_status == 'completed' and locked.appointment_id:
+            apt = Appointment.objects.select_for_update().get(pk=locked.appointment_id)
+            if apt.status != 'completed':
+                apt.status = 'completed'
+                apt.save(update_fields=['status'])
+                appointment_marked_completed = True
+
+    if new_status == 'completed':
+        if appointment_marked_completed:
+            msg = 'Dental record and associated appointment marked as completed.'
+        else:
+            msg = 'Dental record marked as completed. The patient can now view their record.'
+
+    if is_htmx:
+        dr = DentalRecord.objects.select_related('appointment', 'patient').get(pk=record_id)
+        get_params = _effective_dental_list_get_params(request)
+        list_ctx = _build_dental_list_page_context(request, get_params=get_params)
+        oob_html = render_to_string(
+            'dental_records/_dr_post_status_oob.html',
+            {
+                'dental_record': dr,
+                'user': request.user,
+                **list_ctx,
+            },
+            request=request,
+        )
+        response = HttpResponse(oob_html, status=200)
+        response = htmx_add_trigger(response, 'close-modal')
+        return htmx_add_toast(response, msg, 'success')
+
+    messages.success(request, msg)
+
+    return redirect(edit_url)
 
 
 @login_required

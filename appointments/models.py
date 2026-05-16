@@ -3,6 +3,14 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+APPOINTMENT_TYPE_CHOICES = [
+    ('consultation', 'General Consultation'),
+    ('checkup', 'Health Checkup'),
+    ('vaccination', 'Vaccination'),
+    ('emergency', 'Emergency'),
+    ('dental', 'Dental'),
+]
+
 
 class Appointment(models.Model):
     """Appointment model for scheduling student appointments with doctors."""
@@ -14,14 +22,7 @@ class Appointment(models.Model):
         ('cancelled', 'Cancelled'),
     ]
     
-    APPOINTMENT_TYPE_CHOICES = [
-        ('consultation', 'General Consultation'),
-        ('checkup', 'Health Checkup'),
-        ('vaccination', 'Vaccination'),
-        ('emergency', 'Emergency'),
-        ('followup', 'Follow-up'),
-        ('dental', 'Dental'),
-    ]
+    APPOINTMENT_TYPE_CHOICES = APPOINTMENT_TYPE_CHOICES
 
     student = models.ForeignKey(
         User, 
@@ -65,7 +66,6 @@ class Appointment(models.Model):
             self.date, 
             self.time, 
             appointment_id=self.id,
-            exclude_statuses=['cancelled']
         )
         return not is_available
 
@@ -75,14 +75,6 @@ class AppointmentTypeDefault(models.Model):
     Stores assigned doctors for each appointment type.
     Admin users can configure which doctors are available per type.
     """
-    APPOINTMENT_TYPE_CHOICES = [
-        ('consultation', 'General Consultation'),
-        ('checkup', 'Health Checkup'),
-        ('vaccination', 'Vaccination'),
-        ('emergency', 'Emergency'),
-        ('followup', 'Follow-up'),
-        ('dental', 'Dental'),
-    ]
 
     appointment_type = models.CharField(
         max_length=20, 

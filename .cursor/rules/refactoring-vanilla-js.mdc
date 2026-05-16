@@ -1,0 +1,47 @@
+---
+description: Refactoring guide for converting vanilla JavaScript to HTMX + Alpine.js patterns
+globs: "**/*.html,**/*.js"
+alwaysApply: false
+---
+
+# Vanilla JS → HTMX + Alpine.js Refactoring
+
+## Priority Order
+
+1. **Form submissions** (high ROI, low effort) — replace `fetch()` + `addEventListener('submit')` with `hx-post`
+2. **Toggles & visibility** — replace `getElementById().style.display` with `x-show`
+3. **Modals & dropdowns** — replace manual event listeners with `x-data` + `x-show`
+4. **Search & filtering** — replace debounce + fetch with `hx-get` + `hx-trigger="input changed delay:300ms"`
+5. **Inline editing** — replace DOM manipulation with Alpine state + HTMX swap
+6. **Canvas / SVG** — keep as-is (acceptable exception)
+
+## Conversion Checklist
+
+For each feature being refactored:
+
+1. Identify all vanilla JS for the feature
+2. Design the HTMX + Alpine replacement
+3. Update the Django view to handle `is_htmx_request()`
+4. Create partial template for HTMX responses
+5. Update the full page template
+6. Test both HTMX and direct navigation paths
+7. Test validation errors (must return `status=400`)
+8. Remove old `<script>` blocks and JS files
+
+## Key Files with Remaining Violations
+
+- `staticfiles/js/dental_chart.js` (canvas — keep as-is)
+- `dental_records/templates/dental_records/dental_record_edit.html`
+- `core/templates/core/dental/dental_record_edit.html`
+
+## Quick Reference: Before → After
+
+| Vanilla JS | HTMX/Alpine Replacement |
+|-----------|------------------------|
+| `fetch('/url', {method: 'POST', body: ...})` | `<form hx-post="/url">` |
+| `document.getElementById('x').innerHTML = y` | `hx-target="#x" hx-swap="innerHTML"` |
+| `el.style.display = 'block'/'none'` | `x-show="condition"` |
+| `el.addEventListener('click', fn)` | `@click="fn"` or `hx-trigger="click"` |
+| `el.classList.add/remove/toggle()` | `:class="{ 'active': condition }"` |
+| `clearTimeout(t); t = setTimeout(fn, 300)` | `hx-trigger="input changed delay:300ms"` |
+| `JSON.parse(response)` then DOM update | Return HTML fragment from Django view |

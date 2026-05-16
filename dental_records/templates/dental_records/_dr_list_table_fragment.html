@@ -1,0 +1,143 @@
+{% load role_tags %}
+{% if page_obj.object_list %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+          {% if user.role != 'student' %}<th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Patient</th>{% endif %}
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Department</th>
+          {% if user.role != 'doctor' %}
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Examined By</th>
+          {% endif %}
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Consent</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        {% for row in page_obj %}
+          {% if row.row_type == 'record' %}
+            {% with record=row.record %}
+              <tr class="hover:bg-primary-50/30 transition-colors">
+                <td class="px-4 py-3 whitespace-nowrap text-sm">
+                  <div class="font-medium text-gray-900">{{ record.created_at|date:"M d, Y" }}</div>
+                  <div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><i class="far fa-clock"></i>{{ record.created_at|time:"g:i A" }}</div>
+                  {% if record.appointment %}<div class="text-xs text-gray-500 mt-0.5">Appt: {{ record.appointment.date|date:"M d, Y" }}</div>{% endif %}
+                </td>
+                {% if user.role != 'student' %}
+                  <td class="px-4 py-3 text-sm">
+                    <div class="flex items-center gap-2 min-w-0">
+                      {% include "components/avatar.html" with user=record.patient size="sm" %}
+                      <div class="min-w-0">
+                        <div class="text-gray-900 font-medium truncate">{{ record.patient.last_name }}, {{ record.patient.first_name }}</div>
+                        {% if record.middle_name %}<div class="text-xs text-gray-500 truncate">{{ record.middle_name }}</div>{% endif %}
+                      </div>
+                    </div>
+                  </td>
+                {% endif %}
+                <td class="px-4 py-3 text-sm text-gray-700 max-w-xs"><p class="line-clamp-2" title="{{ record.department_college_office }}">{{ record.department_college_office }}</p></td>
+                {% if user.role != 'doctor' %}
+                <td class="px-4 py-3 text-sm">
+                  {% if record.examined_by %}<div class="text-gray-900">Dr. {{ record.examined_by.get_full_name }}</div>{% else %}<span class="text-gray-400 italic">Not assigned</span>{% endif %}
+                </td>
+                {% endif %}
+                <td class="px-4 py-3 whitespace-nowrap">
+                  {% if record.consent_signed %}
+                    {% include "components/status_badge.html" with label="Signed" variant="success" icon="fa-circle-check" size="sm" %}
+                  {% else %}
+                    {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" size="sm" %}
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  {% if row.missed_slot %}
+                    {% include "components/status_badge.html" with label="Missed" variant="danger" icon="fa-calendar-xmark" size="sm" %}
+                  {% elif record.status == 'completed' %}
+                    {% include "components/status_badge.html" with label="Done" variant="success" icon="fa-check-double" size="sm" %}
+                  {% else %}
+                    {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" size="sm" %}
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
+                  <div class="inline-flex items-center gap-1">
+                    {% if user.role == 'student' and record.status != 'completed' %}
+                      <span class="p-1.5 rounded text-gray-400 cursor-not-allowed" title="Still being processed"><i class="fas fa-lock"></i></span>
+                    {% else %}
+                      <a href="{% url 'dental_records:dental_record_detail' record.id %}" class="p-1.5 rounded text-primary-600 hover:bg-primary-50 transition-colors" title="View"><i class="fas fa-eye"></i></a>
+                    {% endif %}
+                    {% if user|has_role:"doctor" or user|has_role:"staff" or user|has_role:"admin" %}
+                      <a href="{% url 'dental_records:dental_record_edit' record.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="Edit"><i class="fas fa-pen-to-square"></i></a>
+                    {% endif %}
+                    {% if user.role == 'staff' or user.role == 'doctor' or user.role == 'admin' %}
+                      {% if record.status == 'pending' %}
+                        <button type="button"
+                                data-record-id="{{ record.id }}"
+                                data-subtitle="{{ record.patient.get_full_name|escape }}"
+                                onclick="window.__jmcfiDentalStatusModal(this); return false;"
+                                class="p-1.5 rounded text-success-700 hover:bg-success-50 transition-colors"
+                                title="Mark record completed"><i class="fas fa-check-double"></i></button>
+                      {% endif %}
+                    {% endif %}
+                    {% if user|has_role:"admin" %}
+                      <button type="button"
+                              @click="$dispatch('open-modal', {type:'danger', title:'Delete Dental Record', subtitle:'{{ record.patient.get_full_name|escapejs }}', actionLabel:'Delete Permanently', size:'sm', formAction:'/dental-records/{{ record.id }}/delete/', hasForm:true})"
+                              class="p-1.5 rounded text-danger-700 hover:bg-danger-50 transition-colors" title="Delete"><i class="fas fa-trash-can"></i></button>
+                    {% endif %}
+                  </div>
+                </td>
+              </tr>
+            {% endwith %}
+          {% else %}
+            {% with appointment=row.appointment %}
+              <tr class="hover:bg-warning-50/30 transition-colors">
+                <td class="px-4 py-3 whitespace-nowrap text-sm">
+                  <div class="font-medium text-gray-900">{{ appointment.date|date:"M d, Y" }}</div>
+                  <div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5"><i class="far fa-clock"></i>{{ appointment.time|time:"g:i A" }}</div>
+                  <div class="text-xs text-warning-700 font-medium mt-0.5"><i class="fas fa-calendar mr-1"></i>Appointment</div>
+                </td>
+                {% if user.role != 'student' %}
+                  <td class="px-4 py-3 text-sm">
+                    <div class="flex items-center gap-2 min-w-0">
+                      {% include "components/avatar.html" with user=appointment.student size="sm" %}
+                      <div class="min-w-0">
+                        <div class="text-gray-900 font-medium truncate">{{ appointment.student.last_name }}, {{ appointment.student.first_name }}</div>
+                      </div>
+                    </div>
+                  </td>
+                {% endif %}
+                <td class="px-4 py-3 text-sm text-gray-700">Dental Appointment Request</td>
+                {% if user.role != 'doctor' %}
+                <td class="px-4 py-3 text-sm text-gray-900">Dr. {{ appointment.doctor.get_full_name }}</td>
+                {% endif %}
+                <td class="px-4 py-3 whitespace-nowrap">
+                  {% include "components/status_badge.html" with label="Not Yet Available" variant="muted" size="sm" %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  {% if appointment.status == 'cancelled' %}
+                    {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" size="sm" %}
+                  {% elif row.missed_slot %}
+                    {% include "components/status_badge.html" with label="Missed" variant="danger" icon="fa-calendar-xmark" size="sm" %}
+                  {% else %}
+                    {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" size="sm" %}
+                  {% endif %}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
+                  <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="p-1.5 rounded text-warning-700 hover:bg-warning-50 transition-colors" title="View Appointment"><i class="fas fa-calendar"></i></a>
+                </td>
+              </tr>
+            {% endwith %}
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" with page_obj=page_obj hx_target="body" hx_swap="none" querystring=dr_list_querystring %}
+{% else %}
+  {% if user|has_role:"doctor" or user|has_role:"staff" or user|has_role:"admin" %}
+    {% include "components/empty_state.html" with icon="fa-tooth" title="No Dental Records Found" description="Create your first dental record to begin tracking patient care." action_label="Create First Record" action_url='/dental-records/create/' %}
+  {% elif user.role == 'student' %}
+    {% include "components/empty_state.html" with icon="fa-tooth" title="No Dental Records Found" description="Schedule a dental check-up to start your dental health history." action_label="Schedule Appointment" action_url='/appointments/schedule/' %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="fa-tooth" title="No Dental Records Found" description="No records match your search criteria." %}
+  {% endif %}
+{% endif %}

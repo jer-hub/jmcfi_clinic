@@ -1,0 +1,195 @@
+---
+description: Standard process flow for CRUD operations, notifications, error handling, and user feedback patterns
+globs: "**/views.py,**/views/*.py,**/*.html"
+alwaysApply: false
+---
+
+# Process Flow & Operations
+
+## Standard CRUD Flow
+
+Every resource follows this URL + view pattern:
+
+| Operation | URL Pattern | View Name | HTTP Method |
+|-----------|-------------|-----------|-------------|
+| List | `/<resource>/` | `<resource>_list` | GET |
+| Create | `/<resource>/new/` | `create_<resource>` | GET/POST |
+| Detail | `/<resource>/<pk>/` | `<resource>_detail` | GET |
+| Edit | `/<resource>/<pk>/edit/` | `edit_<resource>` | GET/POST |
+| Delete | `/<resource>/<pk>/delete/` | `delete_<resource>` | POST |
+| Export | `/<resource>/<pk>/export/<format>/` | `export_<resource>` | GET |
+
+### URL Naming Convention
+
+```python
+app_name = 'myapp'
+urlpatterns = [
+    path('', views.resource_list, name='resource_list'),
+    path('new/', views.create_resource, name='create_resource'),
+    path('<int:pk>/', views.resource_detail, name='resource_detail'),
+    path('<int:pk>/edit/', views.edit_resource, name='edit_resource'),
+    path('<int:pk>/delete/', views.delete_resource, name='delete_resource'),
+]
+```
+
+## Success Feedback Flow
+
+After successful operations, provide clear feedback:
+
+```python
+from django.contrib import messages
+
+def create_resource(request):
+    if request.method == 'POST':
+        form = ResourceForm(request.POST)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.created_by = request.user
+            obj.save()
+            messages.success(request, f'{obj} created successfully.')
+
+            if is_htmx_request(request):
+                response = HttpResponse(status=200)
+                response['HX-Redirect'] = reverse('app:resource_detail', args=[obj.pk])
+                return response
+            return redirect('app:resource_detail', pk=obj.pk)
+```
+
+## Error Handling Flow
+
+### Validation Errors (forms)
+
+Always return `status=400` so HTMX can handle the error state:
+
+```python
+if not form.is_valid():
+    if is_htmx_request(request):
+        return render(request, 'app/partials/_form.html', {'form': form}, status=400)
+    return render(request, 'app/create.html', {'form': form})
+```
+
+### Permission Errors
+
+Use decorators first, then explicit checks:
+
+```python
+@login_required
+@role_required('admin', 'doctor')
+def sensitive_view(request):
+    obj = get_object_or_404(MyModel, pk=pk)
+    if request.user.role == 'doctor' and obj.doctor != request.user:
+        raise PermissionDenied
+```
+
+### Not Found
+
+Use `get_object_or_404()` — never catch `DoesNotExist` and return a custom 404.
+
+## Delete Confirmation Flow
+
+Always confirm before delete. Use HTMX + Alpine modal:
+
+```html
+<div x-data="{ confirmDelete: false }">
+  <button @click="confirmDelete = true" class="text-red-600 hover:text-red-800">
+    <i class="fas fa-trash"></i> Delete
+  </button>
+  <div x-show="confirmDelete" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="bg-white rounded-xl p-6 max-w-sm mx-4">
+      <h3 class="text-lg font-semibold text-gray-900">Confirm Delete</h3>
+      <p class="mt-2 text-sm text-gray-500">This action cannot be undone.</p>
+      <div class="mt-4 flex justify-end gap-3">
+        <button @click="confirmDelete = false"
+          class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+        <button hx-post="{% url 'app:delete_resource' obj.pk %}"
+          hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+          @click="confirmDelete = false"
+          class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+## Notification Pattern
+
+Create notifications after important operations:
+
+```python
+from core.models import Notification
+
+Notification.objects.create(
+    user=target_user,
+    title='Appointment Confirmed',
+    message=f'Your appointment on {appointment.date} has been confirmed.',
+    notification_type='appointment',
+)
+```
+
+## Status Transitions
+
+When resources have statuses, enforce valid transitions:
+
+```
+pending → approved / rejected
+approved → completed / cancelled
+draft → submitted → reviewed → approved / rejected
+```
+
+Always validate transitions server-side. Never trust client-sent status values.
+
+## Search & Filter Pattern
+
+Consistent across all list views:
+
+```python
+def resource_list(request):
+    qs = MyModel.objects.all()
+
+    # Role filtering
+    if request.user.role == 'student':
+        qs = qs.filter(user=request.user)
+
+    # Search
+    search = request.GET.get('search', '').strip()
+    if search:
+        qs = qs.filter(
+            Q(field1__icontains=search) | Q(field2__icontains=search)
+        )
+
+    # Status filter
+    status = request.GET.get('status', '')
+    if status:
+        qs = qs.filter(status=status)
+
+    # Status totals for badges
+    status_totals = {
+        'all': qs.count(),
+        'pending': qs.filter(status='pending').count(),
+        'completed': qs.filter(status='completed').count(),
+    }
+
+    # Pagination
+    paginator = Paginator(qs, 15)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    ctx = {
+        'page_obj': page_obj,
+        'status_totals': status_totals,
+        'search': search,
+        'current_status': status,
+    }
+
+    if is_htmx_request(request):
+        return render(request, 'app/partials/_list.html', ctx)
+    return render(request, 'app/list.html', ctx)
+```
+
+## Form Submission Redirects
+
+| Context | Redirect Method |
+|---------|----------------|
+| Standard POST | `return redirect('app:detail', pk=obj.pk)` |
+| HTMX POST | `response['HX-Redirect'] = reverse('app:detail', args=[obj.pk])` |
+| HTMX inline update | Return partial HTML fragment with `status=200` |
+| HTMX delete | Return empty with `status=200` + `HX-Trigger` for list refresh |

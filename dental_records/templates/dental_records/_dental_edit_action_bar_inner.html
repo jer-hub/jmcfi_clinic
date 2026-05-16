@@ -1,0 +1,21 @@
+    <div class="flex flex-wrap gap-2">
+      {% if dental_record.status == 'completed' %}
+        {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" %}
+      {% else %}
+        {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" %}
+      {% endif %}
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      {% if dental_record.status == 'pending' %}
+      <button type="button"
+              data-record-id="{{ dental_record.id }}"
+              data-subtitle="{{ dental_record.patient.get_full_name|escape }}"
+              onclick="window.__jmcfiDentalStatusModal(this); return false;"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-success-600 text-white text-sm font-medium rounded-lg hover:bg-success-700 shadow-sm transition-colors">
+        <i class="fas fa-check-double"></i> <span class="hidden sm:inline">{% if dental_record.appointment and dental_record.appointment.status != 'completed' %}Mark &amp; Complete{% else %}Mark Completed{% endif %}</span>
+      </button>
+      {% endif %}
+      <a href="{% url 'dental_records:dental_record_list' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 shadow-sm transition-colors">
+        <i class="fas fa-arrow-left"></i> <span class="hidden sm:inline">Back</span>
+      </a>
+    </div>

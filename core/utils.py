@@ -262,6 +262,106 @@ def apply_date_filters(queryset, request, date_field='created_at'):
     return queryset
 
 
+APPOINTMENT_NOTIFICATION_TRANSACTION_TYPES = frozenset({
+    'appointment_reminder',
+    'appointment_confirmed',
+    'appointment_cancelled',
+    'appointment_completed',
+    'appointment_scheduled',
+})
+
+CERTIFICATE_NOTIFICATION_TRANSACTION_TYPES = frozenset({
+    'certificate_requested',
+    'certificate_processing',
+    'certificate_approved',
+    'certificate_ready',
+    'certificate_rejected',
+})
+
+
+def resolve_notification_url(notification):
+    """Return the detail/list URL for a notification, or None if unknown."""
+    from django.urls import reverse
+
+    transaction_type = notification.transaction_type
+    related_id = notification.related_id
+
+    if transaction_type in APPOINTMENT_NOTIFICATION_TRANSACTION_TYPES:
+        if related_id:
+            return reverse(
+                'appointments:appointment_detail',
+                kwargs={'appointment_id': related_id},
+            )
+        return reverse('appointments:appointment_list')
+
+    if transaction_type in CERTIFICATE_NOTIFICATION_TRANSACTION_TYPES:
+        return reverse('document_request:document_requests')
+
+    if transaction_type in ('health_tip_new', 'health_tip_updated'):
+        return reverse('health_tips:health_tips_list')
+
+    if transaction_type in ('medical_record_created', 'medical_record_updated'):
+        if related_id:
+            return reverse(
+                'medical_records:medical_record_detail_page',
+                kwargs={'record_id': related_id},
+            )
+        return reverse('medical_records:medical_records')
+
+    if transaction_type == 'feedback_request':
+        return reverse('feedback:submit_feedback')
+
+    if notification.notification_type == 'appointment' and related_id:
+        return reverse(
+            'appointments:appointment_detail',
+            kwargs={'appointment_id': related_id},
+        )
+
+    if notification.notification_type == 'health_tip':
+        return reverse('health_tips:health_tips_list')
+
+    return None
+
+
+def title_case_name(value):
+    """Format a person name for display (each word title-cased, supports hyphens/apostrophes)."""
+    if value is None:
+        return ''
+    text = str(value).strip()
+    if not text:
+        return text
+
+    def _cap_token(token):
+        if not token:
+            return token
+        return '-'.join(piece.capitalize() for piece in token.split('-'))
+
+    words = []
+    for word in text.split():
+        if "'" in word:
+            words.append("'".join(_cap_token(part) for part in word.split("'")))
+        else:
+            words.append(_cap_token(word))
+    return ' '.join(words)
+
+
+def student_display_name(student):
+    """Full student display name (first, middle, last) in title case."""
+    profile = getattr(student, 'student_profile', None)
+    parts = []
+    if student.first_name:
+        parts.append(title_case_name(student.first_name))
+    if profile and profile.middle_name:
+        parts.append(title_case_name(profile.middle_name))
+    if student.last_name:
+        parts.append(title_case_name(student.last_name))
+    name = ' '.join(parts).strip()
+    if name:
+        return name
+    fallback = student.get_full_name()
+    return title_case_name(fallback) if fallback else student.email
+
+
 def create_notification(user, title, message, notification_type='general', related_id=None, transaction_type=None):
     """
     Helper function to create notifications
@@ -468,3 +568,11 @@ def get_weekly_stats():
             count=Count('id')
         ).order_by('-count'),
     }
+
+
+def get_client_ip(request):
+    """Extract the client IP address from a Django request."""
+    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    if forwarded_for:
+        return forwarded_for.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', 'unknown')

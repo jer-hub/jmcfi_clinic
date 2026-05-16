@@ -1,0 +1,12 @@
+{% comment %}Lab results. Requires: form_state, lab_errors (optional dict, e.g. lab_errors.lab_results){% endcomment %}
+<section>
+  <div class="flex items-center gap-2 mb-4">
+    <span class="w-1 h-6 bg-info-500 rounded-full"></span>
+    <h3 class="text-sm font-semibold text-gray-700 uppercase tracking-wider">Lab results</h3>
+  </div>
+  <label for="lab_results" class="sr-only">Lab results (optional)</label>
+  <textarea id="lab_results" name="lab_results" rows="3"
+            class="form-textarea min-h-[80px]{% if lab_errors.lab_results %} border-danger-400 ring-1 ring-danger-200{% endif %}"
+            placeholder="Optional lab test results…">{{ form_state.lab_results|escape }}</textarea>
+  {% include "components/forms/inline_errors.html" with message=lab_errors.lab_results %}
+</section>

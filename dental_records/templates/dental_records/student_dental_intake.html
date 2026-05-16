@@ -4,26 +4,10 @@
 {% block title %}{{ title }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto">
-        {% include 'dental_records/_subnav.html' %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    {% include 'dental_records/_subnav.html' %}
 
-        <!-- Header -->
-        <div class="mb-8">
-            <div class="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                        <span class="text-primary-600"><i class="fas fa-tooth"></i></span>
-                        {{ title }}
-                    </h1>
-                    <p class="mt-2 text-gray-600">Complete the form below before your dental appointment</p>
-                </div>
-                <a href="{% url 'appointments:appointment_detail' appointment.id %}"
-                   class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium text-sm">
-                    <i class="fas fa-arrow-left"></i> Back to Appointment
-                </a>
-            </div>
-        </div>
+    {% include "components/page_header.html" with title=title subtitle="Complete the form below before your dental appointment" icon="fa-tooth" %}
 
         <!-- Appointment Info Banner -->
         <div class="mb-6 rounded-xl border border-gray-200 overflow-hidden shadow-sm">
@@ -298,7 +282,6 @@
             </div>
         </div>
     </div>
-</div>
 
 <style>
     input[type="text"],

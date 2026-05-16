@@ -1,18 +1,25 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from django.template.loader import render_to_string
+from django.test import RequestFactory
+from urllib.parse import urlencode, urlparse
+from django.http import QueryDict
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib.auth import get_user_model
-from django.db.models import Q, Case, When, Value, IntegerField
+from django.db.models import Q
 import json
 
 from .models import Appointment, AppointmentTypeDefault
 from .forms import AppointmentTypeDefaultForm
-from .appointment_utils import check_appointment_availability, get_available_time_slots, format_conflict_message
+from .appointment_utils import check_appointment_availability, format_conflict_message
 from core.models import Notification
 from core.decorators import role_required, admin_required
+from core.htmx_utils import is_htmx_request, htmx_add_toast, htmx_add_trigger
 
 
 def _is_json_request(request):
@@ -39,82 +46,188 @@ def paginate_queryset(queryset, request, per_page=10):
     return paginated_items
 
 
+def _effective_appointment_list_get_params(request):
+    """List filters for HTMX OOB: prefer HX-Current-URL query, then Referer query, then GET."""
+    for header_name in ('HX-Current-URL', 'Referer'):
+        raw = (request.headers.get(header_name) or '').strip()
+        if raw:
+            q = urlparse(raw).query
+            if q:
+                return QueryDict(q)
+    return request.GET
+
+
+def _appointment_list_request_path_matches(url: str) -> bool:
+    if not (url or '').strip():
+        return False
+    list_path = reverse('appointments:appointment_list').rstrip('/')
+    path = urlparse(url).path.rstrip('/')
+    return path == list_path
+
+
+def _is_appointment_list_htmx_context(request):
+    if _appointment_list_request_path_matches(request.headers.get('HX-Current-URL') or ''):
+        return True
+    return _appointment_list_request_path_matches(request.headers.get('Referer') or '')
+
+
+def _appointment_list_request_for_params(original_request, get_params: QueryDict):
+    """Build a GET request carrying list filters (pagination + table partial)."""
+    rf = RequestFactory()
+    path = reverse('appointments:appointment_list')
+    list_req = rf.get(
+        path,
+        data=get_params.dict(),
+        HTTP_HOST=original_request.get_host(),
+        secure=original_request.is_secure(),
+    )
+    list_req.user = original_request.user
+    return list_req
+
+
+def _appointment_list_querystring(get_params: QueryDict) -> str:
+    q = get_params.copy()
+    q.pop('page', None)
+    encoded = q.urlencode()
+    return f'&{encoded}' if encoded else ''
+
+
+_APPOINTMENT_LIST_STATUS_KEYS = ('pending', 'confirmed', 'completed', 'cancelled')
+
+
+def _appointment_list_stat_filter_url(get_params: QueryDict, status_key: str) -> str:
+    """Toggle *status_key* in list query string; preserve other filters."""
+    q = get_params.copy()
+    current = (q.get('status') or '').strip()
+    if current == status_key:
+        q.pop('status', None)
+    else:
+        q['status'] = status_key
+    q.pop('page', None)
+    base = reverse('appointments:appointment_list')
+    encoded = q.urlencode()
+    return f'{base}?{encoded}' if encoded else base
+
+
+def _appointment_list_stat_filter_urls(get_params: QueryDict) -> dict[str, str]:
+    return {key: _appointment_list_stat_filter_url(get_params, key) for key in _APPOINTMENT_LIST_STATUS_KEYS}
+
+
+def _appointment_list_base_queryset(user):
+    if user.role == 'student':
+        return Appointment.objects.filter(student=user)
+    if user.role in ['staff', 'doctor']:
+        return Appointment.objects.filter(doctor=user)
+    if user.role == 'admin':
+        return Appointment.objects.all()
+    return Appointment.objects.none()
+
+
+def _apply_appointment_list_filters(queryset, get_params, user, *, apply_status_filter=True):
+    status = get_params.get('status')
+    date_from_str = get_params.get('date_from')
+    date_to_str = get_params.get('date_to')
+    doctor_id = get_params.get('doctor')
+    appointment_type = get_params.get('appointment_type')
+    student_search = get_params.get('student_search')
+
+    if apply_status_filter and status:
+        queryset = queryset.filter(status=status)
+    if date_from_str:
+        date_from = parse_date(date_from_str)
+        if date_from:
+            queryset = queryset.filter(date__gte=date_from)
+    if date_to_str:
+        date_to = parse_date(date_to_str)
+        if date_to:
+            queryset = queryset.filter(date__lte=date_to)
+    if doctor_id:
+        queryset = queryset.filter(doctor_id=doctor_id)
+    if appointment_type:
+        queryset = queryset.filter(appointment_type=appointment_type)
+    if student_search and user.role in ['doctor', 'staff']:
+        queryset = queryset.filter(
+            Q(student__first_name__icontains=student_search)
+            | Q(student__last_name__icontains=student_search)
+            | Q(student__student_profile__student_id__icontains=student_search)
+        )
+
+    current_filters = {
+        'status': status,
+        'date_from': date_from_str,
+        'date_to': date_to_str,
+        'doctor': int(doctor_id) if doctor_id else None,
+        'appointment_type': appointment_type,
+        'student_search': student_search,
+    }
+    return queryset, current_filters
+
+
+def _appointment_list_status_totals(queryset):
+    return {
+        'pending': queryset.filter(status='pending').count(),
+        'confirmed': queryset.filter(status='confirmed').count(),
+        'completed': queryset.filter(status='completed').count(),
+        'cancelled': queryset.filter(status='cancelled').count(),
+    }
+
+
+def _build_appointment_list_context(user, get_params, list_request):
+    base_qs = _appointment_list_base_queryset(user)
+    qs_for_totals, _ = _apply_appointment_list_filters(
+        base_qs, get_params, user, apply_status_filter=False
+    )
+    status_totals = _appointment_list_status_totals(qs_for_totals)
+    appointments_qs, current_filters = _apply_appointment_list_filters(
+        base_qs, get_params, user, apply_status_filter=True
+    )
+    appointments_qs = (
+        appointments_qs.select_related('student', 'doctor', 'student__student_profile')
+        .prefetch_related('dental_records', 'medicalrecord_set')
+        .order_by('-created_at')
+    )
+    list_status = (get_params.get('status') or '').strip()
+    return {
+        'appointments': paginate_queryset(appointments_qs, list_request),
+        'status_totals': status_totals,
+        'doctors': User.objects.filter(role='doctor').order_by('first_name', 'last_name'),
+        'appointment_types': Appointment.APPOINTMENT_TYPE_CHOICES,
+        'current_filters': current_filters,
+        'appt_list_querystring': _appointment_list_querystring(get_params),
+        'appt_filter_urls': _appointment_list_stat_filter_urls(get_params),
+        'appt_stat_active': {key: list_status == key for key in _APPOINTMENT_LIST_STATUS_KEYS},
+    }
+
+
+def _appointment_list_htmx_oob_response(request, message, toast_type='success'):
+    get_params = _effective_appointment_list_get_params(request)
+    list_req = _appointment_list_request_for_params(request, get_params)
+    ctx = _build_appointment_list_context(request.user, get_params, list_req)
+    oob_html = render_to_string(
+        'appointments/_appt_post_status_oob.html',
+        {
+            'status_totals': ctx['status_totals'],
+            'appt_filter_urls': ctx['appt_filter_urls'],
+            'appt_stat_active': ctx['appt_stat_active'],
+            'list_table_appointments': ctx['appointments'],
+            'list_table_request': list_req,
+            'appt_list_querystring': ctx['appt_list_querystring'],
+            'user': request.user,
+        },
+        request=request,
+    )
+    response = HttpResponse(oob_html, status=200)
+    response = htmx_add_trigger(response, 'close-modal')
+    return htmx_add_toast(response, message, toast_type)
+
+
 @login_required
 @role_required('student', 'staff', 'doctor', 'admin')
 def appointment_list(request):
     """Display list of appointments based on user role"""
-    # Get appointments based on user role
-    if request.user.role == 'student':
-        appointments = Appointment.objects.filter(student=request.user)
-    elif request.user.role in ['staff', 'doctor']:
-        appointments = Appointment.objects.filter(doctor=request.user)
-    elif request.user.role == 'admin':
-        appointments = Appointment.objects.all()
-    else:
-        appointments = Appointment.objects.none()
-
-    # Get filter parameters
-    status = request.GET.get('status')
-    date_from_str = request.GET.get('date_from')
-    date_to_str = request.GET.get('date_to')
-    doctor_id = request.GET.get('doctor')
-    appointment_type = request.GET.get('appointment_type')
-    student_search = request.GET.get('student_search')
-
-    # Apply filters
-    if status:
-        appointments = appointments.filter(status=status)
-    if date_from_str:
-        date_from = parse_date(date_from_str)
-        if date_from:
-            appointments = appointments.filter(date__gte=date_from)
-    if date_to_str:
-        date_to = parse_date(date_to_str)
-        if date_to:
-            appointments = appointments.filter(date__lte=date_to)
-    if doctor_id:
-        appointments = appointments.filter(doctor_id=doctor_id)
-    if appointment_type:
-        appointments = appointments.filter(appointment_type=appointment_type)
-    if student_search and request.user.role in ['doctor', 'staff']:
-        appointments = appointments.filter(
-            Q(student__first_name__icontains=student_search) |
-            Q(student__last_name__icontains=student_search) |
-            Q(student__student_profile__student_id__icontains=student_search)
-        )
-
-    # Status totals for the currently filtered result set
-    status_totals = {
-        'pending': appointments.filter(status='pending').count(),
-        'confirmed': appointments.filter(status='confirmed').count(),
-        'completed': appointments.filter(status='completed').count(),
-        'cancelled': appointments.filter(status='cancelled').count(),
-    }
-
-    # Order by requested date (most recent first)
-    appointments = appointments.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set').order_by('-created_at')
-    
-    paginated_appointments = paginate_queryset(appointments, request)
-
-    # Get data for filter dropdowns
-    doctors = User.objects.filter(role='doctor').order_by('first_name', 'last_name')
-    appointment_types = Appointment.APPOINTMENT_TYPE_CHOICES
-
-    context = {
-        'appointments': paginated_appointments,
-        'status_totals': status_totals,
-        'doctors': doctors,
-        'appointment_types': appointment_types,
-        'current_filters': {
-            'status': status,
-            'date_from': date_from_str,
-            'date_to': date_to_str,
-            'doctor': int(doctor_id) if doctor_id else None,
-            'appointment_type': appointment_type,
-            'student_search': student_search,
-        }
-    }
-    
+    context = _build_appointment_list_context(request.user, request.GET, request)
+    if is_htmx_request(request):
+        return render(request, 'appointments/_appt_list_filter_oob.html', context)
     return render(request, 'appointments/appointment_list.html', context)
 
 
@@ -123,37 +236,46 @@ def schedule_appointment(request):
     if request.user.role != 'student':
         messages.error(request, 'Only students can schedule appointments')
         return redirect('core:dashboard')
-    
+
+    form_data = {}
+
     if request.method == 'POST':
         doctor_id = request.POST.get('doctor')
         appointment_type = request.POST.get('appointment_type')
         date = request.POST.get('date')
         time = request.POST.get('time')
         reason = request.POST.get('reason', '').strip()
-        
-        # Validation
+
+        form_data = {
+            'doctor': doctor_id or '',
+            'appointment_type': appointment_type or '',
+            'date': date or '',
+            'time': time or '',
+            'reason': reason,
+        }
+
         if not all([doctor_id, appointment_type, date, time, reason]):
             messages.error(request, 'All fields are required.')
-            return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
-        
+            return render(request, 'appointments/schedule_appointment.html',
+                          _get_schedule_context(form_data=form_data))
+
         try:
             from datetime import datetime
             appointment_date = datetime.strptime(date, '%Y-%m-%d').date()
             appointment_time = datetime.strptime(time, '%H:%M').time()
-            
-            # Check if date is not in the past
+
             if appointment_date < timezone.now().date():
                 messages.error(request, 'Cannot schedule appointments for past dates.')
-                return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
-            
-            # Check if it's a weekend
-            if appointment_date.weekday() >= 5:  # Saturday = 5, Sunday = 6
+                return render(request, 'appointments/schedule_appointment.html',
+                              _get_schedule_context(form_data=form_data))
+
+            if appointment_date.weekday() >= 5:
                 messages.error(request, 'Appointments are not available on weekends.')
-                return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
-            
+                return render(request, 'appointments/schedule_appointment.html',
+                              _get_schedule_context(form_data=form_data))
+
             doctor = User.objects.get(id=doctor_id, role='doctor', is_active=True)
-            
-            # Validate that the selected doctor is allowed for this appointment type
+
             type_default = AppointmentTypeDefault.objects.filter(
                 appointment_type=appointment_type, is_active=True
             ).prefetch_related('assigned_doctors').first()
@@ -161,16 +283,17 @@ def schedule_appointment(request):
                 allowed_ids = list(type_default.assigned_doctors.values_list('id', flat=True))
                 if doctor.id not in allowed_ids:
                     messages.error(request, 'The selected doctor is not available for this appointment type.')
-                    return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
+                    return render(request, 'appointments/schedule_appointment.html',
+                                  _get_schedule_context(form_data=form_data))
 
-            # Check for conflicts using interval-based validation (30 min buffer)
             is_available, conflicts = check_appointment_availability(doctor, appointment_date, appointment_time)
-            
+
             if not is_available:
                 conflict_msg = format_conflict_message(doctor, conflicts)
                 messages.error(request, conflict_msg)
-                return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
-            
+                return render(request, 'appointments/schedule_appointment.html',
+                              _get_schedule_context(form_data=form_data))
+
             appointment = Appointment.objects.create(
                 student=request.user,
                 doctor=doctor,
@@ -179,8 +302,7 @@ def schedule_appointment(request):
                 time=appointment_time,
                 reason=reason
             )
-            
-            # Create notification for doctor
+
             Notification.objects.create(
                 user=doctor,
                 title='New Appointment Request',
@@ -189,77 +311,24 @@ def schedule_appointment(request):
                 transaction_type='appointment_scheduled',
                 related_id=appointment.id
             )
-            
+
             messages.success(request, 'Appointment scheduled successfully!')
             return redirect('appointments:appointment_list')
-            
+
         except User.DoesNotExist:
-            messages.error(request, 'Invalid doctor selected')
+            messages.error(request, 'Invalid doctor selected.')
         except ValueError:
-            messages.error(request, 'Invalid date or time format')
-        except Exception as e:
+            messages.error(request, 'Invalid date or time format.')
+        except Exception:
             messages.error(request, 'An error occurred while scheduling the appointment. Please try again.')
-    
+
+        return render(request, 'appointments/schedule_appointment.html',
+                      _get_schedule_context(form_data=form_data))
+
     return render(request, 'appointments/schedule_appointment.html', _get_schedule_context())
 
 
-def _get_appointment_context(doctors):
-    """Helper function to prepare context for appointment scheduling"""
-    # Define mapping between appointment types and specializations/departments
-    appointment_type_mapping = {
-        'consultation': ['General Medicine', 'Internal Medicine', 'Family Medicine'],
-        'checkup': ['General Medicine', 'Internal Medicine', 'Family Medicine'],
-        'vaccination': ['Immunology', 'Pediatrics', 'General Medicine'],
-        'emergency': ['Emergency Medicine', 'General Medicine'],
-        'followup': ['General Medicine', 'Internal Medicine', 'Family Medicine'],
-        'dental': ['Dent', 'Dental', 'Dentistry', 'Dental Medicine', 'Oral Medicine', 'Dental Clinic']
-    }
-    
-    # Create a dictionary to store default doctor IDs for each appointment type
-    default_doctors = {}
-    
-    for apt_type, specializations in appointment_type_mapping.items():
-        # Try to find a doctor with matching specialization
-        for specialization in specializations:
-            matching_doctor = doctors.filter(
-                staff_profile__specialization__icontains=specialization
-            ).first()
-            if matching_doctor:
-                default_doctors[apt_type] = matching_doctor.id
-                break
-        
-        # If no match found by specialization, try department
-        if apt_type not in default_doctors:
-            for specialization in specializations:
-                matching_doctor = doctors.filter(
-                    staff_profile__department__icontains=specialization
-                ).first()
-                if matching_doctor:
-                    default_doctors[apt_type] = matching_doctor.id
-                    break
-        
-        # If still no match, use the first available doctor
-        if apt_type not in default_doctors and doctors.exists():
-            default_doctors[apt_type] = doctors.first().id
-    
-    # Prepare doctors data with their specializations for JavaScript
-    doctors_data = []
-    for doctor in doctors:
-        doctors_data.append({
-            'id': doctor.id,
-            'name': doctor.get_full_name(),
-            'specialization': doctor.staff_profile.specialization if hasattr(doctor, 'staff_profile') and doctor.staff_profile.specialization else '',
-            'department': doctor.staff_profile.department if hasattr(doctor, 'staff_profile') and doctor.staff_profile.department else ''
-        })
-    
-    return {
-        'doctors': doctors,
-        'default_doctors': json.dumps(default_doctors),
-        'doctors_data': doctors_data
-    }
-
-
-def _get_schedule_context():
+def _get_schedule_context(form_data=None):
     """
     Build the full context for the schedule-appointment page.
     Only includes active AppointmentTypeDefault records,
@@ -273,7 +342,7 @@ def _get_schedule_context():
         .order_by('appointment_type')
     )
 
-    type_doctor_map = {}  # { appointment_type: [doctor_id, ...] }
+    type_doctor_map = {}
     all_assigned_ids = set()
     has_unrestricted_type = False
 
@@ -285,10 +354,8 @@ def _get_schedule_context():
         if assigned:
             all_assigned_ids.update(assigned)
         else:
-            has_unrestricted_type = True  # this type allows all doctors
+            has_unrestricted_type = True
 
-    # If any type is unrestricted (no assigned doctors), show all active doctors.
-    # Otherwise show only those who appear in at least one type.
     if has_unrestricted_type or not active_defaults.exists():
         doctors = User.objects.filter(
             role__in=['staff', 'doctor'], is_active=True
@@ -298,22 +365,43 @@ def _get_schedule_context():
             id__in=all_assigned_ids, role__in=['staff', 'doctor'], is_active=True
         ).select_related('staff_profile').order_by('first_name', 'last_name')
 
+    doctors_payload = []
+    for doctor in doctors:
+        name = doctor.get_full_name() or doctor.email or ''
+        spec = ''
+        dept = ''
+        if getattr(doctor, 'staff_profile', None):
+            if doctor.staff_profile.specialization:
+                spec = f' - {doctor.staff_profile.specialization}'
+            if doctor.staff_profile.department:
+                dept = f' ({doctor.staff_profile.department})'
+        doctors_payload.append(
+            {
+                'id': str(doctor.id),
+                'name': f'Dr. {name}{spec}{dept}',
+            }
+        )
+
+    fd = form_data or {}
     return {
         'doctors': doctors,
+        'doctors_json': json.dumps(doctors_payload),
         'active_defaults': active_defaults,
         'type_doctor_map': json.dumps(type_doctor_map),
+        'form_data': fd,
+        'form_data_json': json.dumps(fd),
     }
 
 
 @login_required
-@role_required('student', 'staff', 'doctor')
+@role_required('student', 'staff', 'doctor', 'admin')
 def appointment_detail(request, appointment_id):
     appointment = get_object_or_404(
         Appointment.objects.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set'),
         id=appointment_id,
     )
     
-    # Check permissions
+    # Check permissions (admin can view all)
     if request.user.role == 'student' and appointment.student != request.user:
         messages.error(request, 'Access denied')
         return redirect('appointments:appointment_list')
@@ -323,68 +411,121 @@ def appointment_detail(request, appointment_id):
     
     if request.method == 'POST':
         next_url = request.POST.get('next')
+        is_htmx = is_htmx_request(request)
+        list_htmx = is_htmx and (
+            request.POST.get('htmx_from_appt_list') == '1' or _is_appointment_list_htmx_context(request)
+        )
 
-        if request.user.role in ['staff', 'doctor']:
+        def htmx_error(message, status_code=400):
+            if list_htmx:
+                response = HttpResponse('', status=status_code)
+                return htmx_add_toast(response, message, 'error')
+            if is_htmx:
+                response = HttpResponse('', status=status_code)
+                return htmx_add_toast(response, message, 'error')
+            messages.error(request, message)
+            return None
+
+        success_message = None
+
+        if request.user.role in ['staff', 'doctor', 'admin']:
             status = request.POST.get('status')
             notes = request.POST.get('notes')
-            
-            if status:
-                appointment.status = status
-            if notes is not None:  # Allow empty notes
-                appointment.notes = notes
-            appointment.save()
-            
-            # Create notification for student
-            # Map status to transaction_type
-            status_to_transaction = {
-                'pending': 'appointment_reminder',
-                'confirmed': 'appointment_confirmed',
-                'completed': 'appointment_completed',
-                'cancelled': 'appointment_cancelled',
-            }
-            Notification.objects.create(
-                user=appointment.student,
-                title='Appointment Update',
-                message=f'Your appointment status has been updated to {appointment.get_status_display()}',
-                notification_type='appointment',
-                transaction_type=status_to_transaction.get(appointment.status, 'appointment_reminder'),
-                related_id=appointment.id
-            )
-            
-            doctor = User.objects.get(id=doctor_id, role__in=['staff', 'doctor'], is_active=True)
-            
+            previous_status = appointment.status
+
+            if previous_status == 'cancelled':
+                if status and status != 'cancelled':
+                    err = htmx_error('Cancelled appointments cannot be changed.')
+                    if err:
+                        return err
+                if notes is not None:
+                    appointment.notes = notes
+                    appointment.save(update_fields=['notes', 'updated_at'])
+                    success_message = 'Notes updated.'
+            else:
+                if status:
+                    appointment.status = status
+                if notes is not None:
+                    appointment.notes = notes
+                appointment.save()
+
+                if status and appointment.status != previous_status:
+                    status_to_transaction = {
+                        'pending': 'appointment_reminder',
+                        'confirmed': 'appointment_confirmed',
+                        'completed': 'appointment_completed',
+                        'cancelled': 'appointment_cancelled',
+                    }
+                    Notification.objects.create(
+                        user=appointment.student,
+                        title='Appointment Update',
+                        message=f'Your appointment status has been updated to {appointment.get_status_display()}',
+                        notification_type='appointment',
+                        transaction_type=status_to_transaction.get(appointment.status, 'appointment_reminder'),
+                        related_id=appointment.id,
+                    )
+
+                success_message = f'Appointment updated to {appointment.get_status_display()}.'
+
         elif request.user.role == 'student' and appointment.student == request.user:
-            # Allow students to cancel their own appointments
             status = request.POST.get('status')
             if status == 'cancelled' and appointment.status in ['pending']:
                 appointment.status = 'cancelled'
                 appointment.save()
-                
-                # Create notification for doctor
+
                 Notification.objects.create(
                     user=appointment.doctor,
                     title='Appointment Cancelled',
                     message=f'Appointment with {request.user.get_full_name()} has been cancelled',
                     notification_type='appointment',
                     transaction_type='appointment_cancelled',
-                    related_id=appointment.id
+                    related_id=appointment.id,
                 )
-                
-                messages.success(request, 'Appointment cancelled successfully!')
+
+                success_message = 'Appointment cancelled successfully!'
             else:
-                messages.error(request, 'Cannot cancel this appointment')
-        
-        if next_url and next_url.startswith('/'):
+                err = htmx_error('Cannot cancel this appointment')
+                if err:
+                    return err
+        else:
+            err = htmx_error('Access denied', status_code=403)
+            if err:
+                return err
+
+        if list_htmx and success_message:
+            return _appointment_list_htmx_oob_response(request, success_message)
+
+        if success_message:
+            messages.success(request, success_message)
+
+        if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
             return redirect(next_url)
 
         return redirect('appointments:appointment_detail', appointment_id=appointment.id)
     
-    return render(request, 'appointments/appointment_detail.html', {'appointment': appointment})
+    from django.urls import reverse
+    breadcrumbs = [
+        {'label': 'Appointments', 'url': reverse('appointments:appointment_list')},
+        {'label': f'{appointment.student.get_full_name()} — {appointment.date.strftime("%b %d, %Y")}'},
+    ]
+    return render(request, 'appointments/appointment_detail.html', {
+        'appointment': appointment,
+        'breadcrumbs': breadcrumbs,
+    })
 
 
 # ============================================================================
 # Appointment Settings Views (Admin Only)
 # ============================================================================
+
+def _get_doctors_queryset():
+    """Shared queryset for all appointment-type forms — evaluated once per request."""
+    return (
+        User.objects.filter(role__in=['doctor', 'staff'], is_active=True)
+        .select_related('staff_profile')
+        .order_by('first_name', 'last_name')
+    )
+
 
 @login_required
 @admin_required
@@ -398,11 +539,16 @@ def appointment_type_settings(request):
         for d in AppointmentTypeDefault.objects.prefetch_related('assigned_doctors').all()
     }
 
+    doctors_qs = _get_doctors_queryset()
+
     settings_data = []
     for type_key, type_label in appointment_types.items():
         instance = existing_defaults.get(type_key)
         initial = {'appointment_type': type_key, 'is_active': True} if not instance else {}
-        form = AppointmentTypeDefaultForm(instance=instance, initial=initial, auto_id=f'id_{type_key}_%s')
+        form = AppointmentTypeDefaultForm(
+            instance=instance, initial=initial,
+            auto_id=f'id_{type_key}_%s', doctors_qs=doctors_qs,
+        )
         settings_data.append({
             'type_key': type_key,
             'type_label': type_label,
@@ -440,49 +586,39 @@ def edit_appointment_type_default(request, type_key=None):
             default = form.save(commit=False)
             default.updated_by = request.user
             default.save()
-            form.save_m2m()  # persist assigned_doctors M2M after commit=False save
+            form.save_m2m()
             
             type_display = default.get_appointment_type_display()
             
-            # Check for HTMX request
-            if request.headers.get('HX-Request'):
+            if is_htmx_request(request):
                 from django.template.loader import render_to_string
-                
-                # Rebuild form context with updated data
-                form = AppointmentTypeDefaultForm(instance=default, auto_id=f'id_{type_key}_%s')
-                appointment_types = dict(Appointment.APPOINTMENT_TYPE_CHOICES)
-                
-                # Build item dict matching what template expects
-                item = {
-                    'type_key': type_key,
-                    'type_label': appointment_types.get(type_key, type_key),
-                    'form': form,
-                    'instance': default,
-                }
-                
-                # Render the updated row HTML
-                row_html = render_to_string(
-                    'appointments/appointment_settings/_settings_row.html',
-                    {'item': item}
+
+                default = (
+                    AppointmentTypeDefault.objects
+                    .prefetch_related('assigned_doctors')
+                    .select_related('updated_by')
+                    .get(pk=default.pk)
+                )
+                badge_html = render_to_string(
+                    'appointments/appointment_settings/_status_badge.html',
+                    {'instance': default},
+                    request=request,
                 )
                 
-                response = HttpResponse(row_html)
-                response['HX-Trigger'] = 'form-success'
-                return response
+                response = HttpResponse(badge_html)
+                return htmx_add_toast(response, f'Doctor assignments saved for {type_display}.')
             
             messages.success(
                 request,
                 f'Successfully updated doctor assignments for {type_display}.'
             )
         else:
-            # Check for HTMX request
-            if request.headers.get('HX-Request'):
+            if is_htmx_request(request):
                 response = JsonResponse({
                     'success': False,
                     'errors': form.errors,
                 }, status=400)
-                response['HX-Trigger'] = 'form-error'
-                return response
+                return htmx_add_toast(response, 'Please correct the errors in the form.', 'error')
             
             messages.error(request, 'Please correct the errors below.')
     
@@ -503,26 +639,29 @@ def toggle_appointment_type_default(request, default_id):
         default.save()
         
         status = "activated" if default.is_active else "deactivated"
-        message_text = f'Default for {default.get_appointment_type_display()} has been {status}.'
+        message_text = f'{default.get_appointment_type_display()} has been {status}.'
 
-        # Detect HTMX request via HX-Request header
-        if request.headers.get('HX-Request'):
-            # Re-render the single settings row with updated state so HTMX can swap it in-place
+        if is_htmx_request(request):
             from django.template.loader import render_to_string
 
-            form = AppointmentTypeDefaultForm(instance=default, auto_id=f'id_{default.appointment_type}_%s')
+            doctors_qs = _get_doctors_queryset()
+            form = AppointmentTypeDefaultForm(
+                instance=default, auto_id=f'id_{default.appointment_type}_%s',
+                doctors_qs=doctors_qs,
+            )
             item = {
                 'type_key': default.appointment_type,
                 'type_label': default.get_appointment_type_display(),
                 'form': form,
                 'instance': default,
             }
-            html = render_to_string('appointments/appointment_settings/_settings_row.html', {'item': item}, request=request)
+            html = render_to_string(
+                'appointments/appointment_settings/_settings_row.html',
+                {'item': item}, request=request,
+            )
             response = HttpResponse(html)
-            response['HX-Trigger'] = 'toggle-success'
-            return response
+            return htmx_add_toast(response, message_text)
         
-        # If request came from legacy JS (fetch / AJAX), return JSON
         if request.headers.get('x-requested-with') == 'XMLHttpRequest' or _is_json_request(request):
             return JsonResponse({
                 'success': True,
@@ -535,34 +674,62 @@ def toggle_appointment_type_default(request, default_id):
     return redirect('appointments:appointment_type_settings')
 
 
-@login_required
-@admin_required
-@login_required
-def completed_appointments_api(request, student_id):
-    """API endpoint to get completed appointments with medical records for a student."""
-    if request.user.role not in ['admin', 'staff', 'doctor']:
-        return JsonResponse({'error': 'Access denied'}, status=403)
-    
-    student = get_object_or_404(User, id=student_id, role='student')
-    appointments = Appointment.objects.filter(
-        student=student,
-        status='completed',
-        medicalrecord__isnull=False
-    ).prefetch_related('medicalrecord_set').order_by('-date', '-time')[:10]
-    
-    data = []
-    for apt in appointments:
-        mr = apt.medicalrecord_set.first()
-        if mr:
-            data.append({
-                'id': apt.id,
-                'date': apt.date.strftime('%B %d, %Y'),
-                'time': apt.time.strftime('%I:%M %p'),
-                'reason': apt.reason[:60],
-                'medical_record_id': mr.id,
-            })
-    
-    return JsonResponse({'appointments': data})
+def _student_prefill_payload(student):
+    """JSON-serializable student row for schedule-for-student Alpine prefill."""
+    from core.utils import student_display_name
+
+    profile = getattr(student, 'student_profile', None)
+    return {
+        'id': student.id,
+        'name': student_display_name(student),
+        'email': student.email or '',
+        'student_id': getattr(profile, 'student_id', '') or '',
+        'course': getattr(profile, 'course', '') or '',
+        'year_level': str(getattr(profile, 'year_level', '') or ''),
+    }
+
+
+def _schedule_for_student_redirect(student_id=None):
+    base = reverse('appointments:schedule_for_student')
+    if student_id:
+        return redirect(f'{base}?{urlencode({"student": student_id})}')
+    return redirect(base)
+
+
+def _schedule_for_student_get_context(request, student_id_hint=None):
+    active_type_keys = set(
+        AppointmentTypeDefault.objects
+        .filter(is_active=True)
+        .values_list('appointment_type', flat=True)
+    )
+    if active_type_keys:
+        appointment_types = [
+            (key, label)
+            for key, label in Appointment.APPOINTMENT_TYPE_CHOICES
+            if key in active_type_keys
+        ]
+    else:
+        appointment_types = Appointment.APPOINTMENT_TYPE_CHOICES
+
+    prefill_student = None
+    prefill_invalid = False
+    param = student_id_hint if student_id_hint is not None else request.GET.get('student')
+    if param:
+        try:
+            student = User.objects.select_related('student_profile').get(
+                pk=int(param),
+                role='student',
+            )
+            prefill_student = _student_prefill_payload(student)
+        except (User.DoesNotExist, ValueError, TypeError):
+            prefill_invalid = True
+
+    return {
+        'appointment_types': appointment_types,
+        'prefill_student': prefill_student,
+        'prefill_invalid': prefill_invalid,
+        'student_locked': prefill_student is not None,
+    }
 
 
 @login_required
@@ -578,10 +745,9 @@ def schedule_for_student(request):
         time_str = request.POST.get('time')
         reason = request.POST.get('reason')
 
-        # --- Validation ---
         if not all([student_id, appointment_type, date_str, time_str, reason]):
             messages.error(request, 'All fields are required.')
-            return redirect('appointments:schedule_for_student')
+            return _schedule_for_student_redirect(student_id)
 
         try:
             student = User.objects.get(id=student_id, role='student')
@@ -590,12 +756,30 @@ def schedule_for_student(request):
             appointment_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             appointment_time = datetime.strptime(time_str, '%H:%M').time()
 
-            # 1. Check if date is in the past
             if appointment_date < timezone.now().date():
                 messages.error(request, 'Cannot schedule appointments for past dates.')
-                return redirect('appointments:schedule_for_student')
+                return _schedule_for_student_redirect(student_id)
 
-            # 2. Check for student conflict
+            if appointment_date.weekday() >= 5:
+                messages.error(request, 'Appointments are not available on weekends.')
+                return _schedule_for_student_redirect(student_id)
+
+            # Validate appointment type is active
+            type_default = AppointmentTypeDefault.objects.filter(
+                appointment_type=appointment_type, is_active=True
+            ).first()
+            if not type_default and AppointmentTypeDefault.objects.filter(appointment_type=appointment_type).exists():
+                messages.error(request, 'This appointment type is currently inactive.')
+                return _schedule_for_student_redirect(student_id)
+
+            # Interval-based conflict check for doctor (30-min buffer)
+            is_available, conflicts = check_appointment_availability(doctor, appointment_date, appointment_time)
+            if not is_available:
+                conflict_msg = format_conflict_message(doctor, conflicts)
+                messages.error(request, conflict_msg)
+                return _schedule_for_student_redirect(student_id)
+
+            # Check for student conflict at same time
             student_conflict = Appointment.objects.filter(
                 student=student,
                 date=appointment_date,
@@ -604,20 +788,8 @@ def schedule_for_student(request):
             ).exists()
             if student_conflict:
                 messages.error(request, f'{student.get_full_name()} already has a pending or confirmed appointment at this time.')
-                return redirect('appointments:schedule_for_student')
+                return _schedule_for_student_redirect(student_id)
 
-            # 3. Check for doctor conflict
-            doctor_conflict = Appointment.objects.filter(
-                doctor=doctor,
-                date=appointment_date,
-                time=appointment_time,
-                status__in=['pending', 'confirmed']
-            ).exists()
-            if doctor_conflict:
-                messages.error(request, 'You already have an appointment scheduled at this time.')
-                return redirect('appointments:schedule_for_student')
-
-            # --- Create Appointment ---
             appointment = Appointment.objects.create(
                 student=student,
                 doctor=doctor,
@@ -634,8 +806,8 @@ def schedule_for_student(request):
                 title='Appointment Scheduled for You',
                 message=f'Dr. {doctor.get_full_name()} has scheduled a new appointment for you on {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}.',
                 notification_type='appointment',
-                transaction_type='appointment_confirmed',
-                related_id=appointment.id
+                transaction_type='appointment_scheduled',
+                related_id=appointment.id,
             )
 
             messages.success(request, f'Appointment successfully scheduled for {student.get_full_name()}.')
@@ -648,25 +820,7 @@ def schedule_for_student(request):
         except Exception as e:
             messages.error(request, f'An error occurred: {e}')
         
-        return redirect('appointments:schedule_for_student')
+        return _schedule_for_student_redirect(request.POST.get('student'))
 
-    # Only show appointment types that have an active AppointmentTypeDefault
-    active_type_keys = set(
-        AppointmentTypeDefault.objects
-        .filter(is_active=True)
-        .values_list('appointment_type', flat=True)
-    )
-    # If no active defaults exist, fall back to showing all types
-    if active_type_keys:
-        appointment_types = [
-            (key, label)
-            for key, label in Appointment.APPOINTMENT_TYPE_CHOICES
-            if key in active_type_keys
-        ]
-    else:
-        appointment_types = Appointment.APPOINTMENT_TYPE_CHOICES
-
-    context = {
-        'appointment_types': appointment_types,
-    }
+    context = _schedule_for_student_get_context(request)
     return render(request, 'appointments/schedule_for_student.html', context)

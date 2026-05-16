@@ -1,0 +1,18 @@
+---
+description: Dev login credentials for local testing
+alwaysApply: true
+---
+
+# Dev Login
+
+Admin login: `http://localhost:8000/auth/admin-login/`
+
+| Email | Password | Role |
+|-------|----------|------|
+| `admin@email.com` | `123` | admin |
+
+Reset admin password if needed:
+
+```bash
+python -c "import django,os;os.environ['DJANGO_SETTINGS_MODULE']='backend.settings';django.setup();from core.models import User;u=User.objects.filter(role='admin').first();u.set_password('123');u.save();print('done')"
+```

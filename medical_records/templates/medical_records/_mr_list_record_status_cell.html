@@ -1,0 +1,17 @@
+{% if missed_slot %}
+  {% include "components/status_badge.html" with label="Missed" variant="danger" icon="fa-calendar-xmark" size="sm" %}
+{% elif record.appointment %}
+  {% if record.appointment.status == 'pending' %}
+    {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" size="sm" %}
+  {% elif record.is_documentation_complete %}
+    {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-check-double" size="sm" %}
+  {% elif record.appointment.status == 'cancelled' %}
+    {% include "components/status_badge.html" with label="Cancelled" variant="danger" icon="fa-ban" size="sm" %}
+  {% else %}
+    {% include "components/status_badge.html" with label="Incomplete" variant="warning" icon="fa-file-circle-exclamation" size="sm" %}
+  {% endif %}
+{% elif record.is_documentation_complete %}
+  {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-check-double" size="sm" %}
+{% else %}
+  {% include "components/status_badge.html" with label="Incomplete" variant="warning" icon="fa-file-circle-exclamation" size="sm" %}
+{% endif %}

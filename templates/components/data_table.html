@@ -1,0 +1,33 @@
+{% comment %}
+  Generic data-table shell.
+
+  Most callers will compose tables inline because column layouts vary. This
+  partial provides the consistent outer chrome (rounded card, scroll, header
+  styling) so apps don't reinvent it.
+
+  Context:
+    columns    – list of strings (column headers) (required)
+    rows       – pre-rendered HTML string for <tr> rows (required, mark safe)
+    empty      – optional empty state HTML when rows is falsy
+    container_id – optional id on the outer wrapper (for HTMX swap targets)
+{% endcomment %}
+<div {% if container_id %}id="{{ container_id }}"{% endif %} class="bg-white border border-gray-200 rounded-card shadow-sm overflow-hidden">
+  {% if rows %}
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            {% for col in columns %}
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {{ rows }}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    {{ empty }}
+  {% endif %}
+</div>

@@ -3,41 +3,40 @@
 {% block title %}Profile Setup Required - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 flex justify-center py-1 px-4 sm:px-6">
-    <div class="max-w-xl w-full">
-        <div class="bg-white border border-gray-200 shadow-sm rounded-2xl overflow-hidden">
-            <div class="px-4 py-3 border-b border-gray-100 bg-gray-50">
-                <div class="flex items-start gap-3">
-                    <div class="h-10 w-10 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-900">Complete Profile Required</h2>
-                        <p class="mt-1 text-sm text-gray-600">Access locked until required profile fields completed.</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="px-4 py-3">
-                {% if missing_fields %}
-                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                    <p class="text-sm font-semibold text-amber-900">Missing required fields</p>
-                    <ul class="mt-2 text-sm text-amber-800 list-disc list-inside space-y-1">
-                        {% for label in missing_fields %}
-                        <li>{{ label }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-
-                <a href="{% url 'core:edit_profile' %}"
-                   class="mt-5 w-full inline-flex justify-center items-center px-6 py-3 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                    Update Profile Now
-                </a>
-            </div>
+<div class="min-h-screen bg-gray-50 flex justify-center py-8 px-4 sm:px-6">
+  <div class="max-w-xl w-full">
+    <div class="bg-white border border-gray-200 rounded-card shadow-sm overflow-hidden">
+      <div class="px-5 py-4 border-b border-gray-100 bg-gray-50">
+        <div class="flex items-start gap-3">
+          <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-warning-100 text-warning-700 flex-shrink-0">
+            <i class="fas fa-triangle-exclamation"></i>
+          </span>
+          <div>
+            <h2 class="text-lg font-bold text-gray-900">Complete Profile Required</h2>
+            <p class="mt-1 text-sm text-gray-500">Access is locked until the required profile fields are completed.</p>
+          </div>
         </div>
+      </div>
+
+      <div class="px-5 py-5 space-y-4">
+        {% if missing_fields %}
+        <div class="rounded-lg border border-warning-200 bg-warning-50 px-4 py-3">
+          <p class="text-sm font-semibold text-warning-900 mb-2">Missing required fields</p>
+          <ul class="text-sm text-warning-800 space-y-1">
+            {% for label in missing_fields %}
+              <li class="flex items-center gap-2"><i class="fas fa-circle text-[0.4rem]"></i>{{ label }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        <a href="{% url 'core:edit_profile' %}"
+           class="w-full inline-flex justify-center items-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors">
+          <i class="fas fa-user-pen"></i>
+          <span>Update Profile Now</span>
+        </a>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock content %}

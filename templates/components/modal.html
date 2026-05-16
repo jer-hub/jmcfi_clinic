@@ -23,7 +23,7 @@
      @open-modal.window="openModal($event.detail)"
      @close-modal.window="closeModal()"
      @refresh-list.window="refreshList()"
-     @keydown.escape.window="closeModal()">
+     @keydown.escape.window="if (isOpen) closeModal()">
     <template x-teleport="body">
         <div x-show="isOpen"
              x-transition:enter="transition ease-out duration-300"
@@ -39,7 +39,7 @@
             <div class="flex items-center justify-center min-h-screen p-4">
                 <!-- Backdrop -->
                 <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-[2px] transition-opacity"
-                     @click="closeModal()"
+                     @click="if (!isSaving) closeModal()"
                      aria-hidden="true"></div>
 
                 <!-- Panel -->
@@ -50,7 +50,7 @@
                      x-transition:leave="transition ease-in duration-200"
                      x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                      x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                     @click.outside="closeModal()"
+                     @click.outside="if (!isSaving) closeModal()"
                      class="relative bg-white rounded-2xl shadow-2xl w-full mx-auto transform transition-all"
                      :class="sizeClass">
 
@@ -91,7 +91,7 @@
                                    x-text="subtitle"></p>
                             </div>
                         </div>
-                        <button type="button" @click="closeModal()"
+                        <button type="button" @click="if (!isSaving) closeModal()"
                                 class="flex-shrink-0 flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 aria-label="Close modal"
                                 tabindex="0">
@@ -101,36 +101,36 @@
                         </button>
                     </div>
 
-                    <!-- ═══ Body ═══ -->
+                    <!-- ═══ Body ═══
+                         Swap target is a dedicated inner div so HTMX innerHTML swaps do not wipe Alpine
+                         x-if siblings (which previously caused the loader to re-render and remove loaded forms).
+                    -->
                     <div class="px-6 py-5 overflow-y-auto"
                          :class="isConfirmation ? '' : 'max-h-[65vh]'"
-                         :id="bodyContentId"
                          aria-live="polite">
-                        <!-- Confirmation (inline) -->
                         <template x-if="isConfirmation">
                             <p class="text-sm text-gray-600 leading-relaxed" x-text="message"></p>
                         </template>
-                        <!-- HTMX Content (dynamic) -->
-                        <template x-if="!isConfirmation">
-                               <div x-show="hxUrl"
-                                   data-modal-hx-loader
-                                   :hx-get="hxUrl"
-                                   :hx-target="'#' + bodyContentId"
-                                   hx-swap="innerHTML">
-                                <div class="flex flex-col items-center justify-center py-12 space-y-4">
+                        <div class="max-w-none" x-ref="modalEmbedSlot" x-show="Boolean(bodyHtml && bodyHtml.length)" x-html="bodyHtml"></div>
+                        <div class="relative max-w-none"
+                             :class="(!isConfirmation && hxUrl && showHxLoader && !bodyHtml && !hxBodyLoaded) ? 'min-h-[10rem]' : ''">
+                            <div :id="bodyContentId" class="max-w-none"></div>
+                            <template x-if="showHxLoader && !isConfirmation && hxUrl && !bodyHtml && !hxBodyLoaded">
+                                <div class="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-white/90">
                                     <div class="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-                                    <p class="text-sm text-gray-500">Loading...</p>
+                                    <p class="text-sm text-gray-500 mt-4">Loading...</p>
                                 </div>
-                            </div>
-                        </template>
+                            </template>
+                        </div>
                     </div>
 
                     <!-- ═══ Footer ═══ -->
                     <div x-show="actionLabel || validationError"
                          class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3">
                         <p x-show="validationError" x-text="validationError" class="flex-1 text-sm text-red-600"></p>
-                        <button type="button" @click="closeModal()"
-                                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <button type="button" @click="if (!isSaving) closeModal()"
+                                :disabled="isSaving"
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
                             Cancel
                         </button>
                         <template x-if="actionLabel">

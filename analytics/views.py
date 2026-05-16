@@ -667,23 +667,9 @@ def academic_correlation(request):
         .order_by('-count')
     )
 
-    # Monthly trend of follow-ups (proxy for chronic conditions affecting attendance)
-    follow_up_trend = list(
-        MedicalRecord.objects.filter(
-            created_at__date__gte=date_from,
-            created_at__date__lte=date_to,
-            follow_up_required=True,
-        )
-        .annotate(month=TruncMonth('created_at'))
-        .values('month')
-        .annotate(count=Count('id'))
-        .order_by('month')
-    )
-
     context = {
         'frequent_visitors': frequent_visitors,
         'emergency_visits': emergency_visits,
-        'follow_up_trend': follow_up_trend,
         'date_from': date_from,
         'date_to': date_to,
         'filter_form': DateRangeFilterForm(initial={'date_from': date_from, 'date_to': date_to}),
@@ -720,14 +706,13 @@ def export_report(request):
 
     elif report_type == 'medical_records':
         from medical_records.models import MedicalRecord
-        writer.writerow(['Date', 'Student', 'Doctor', 'Diagnosis', 'Treatment', 'Follow-up'])
+        writer.writerow(['Date', 'Student', 'Doctor', 'Diagnosis', 'Treatment'])
         for r in MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to).select_related('student', 'doctor').order_by('-created_at'):
             writer.writerow([
                 r.created_at.strftime('%Y-%m-%d'),
                 r.student.get_full_name() if r.student else '',
                 r.doctor.get_full_name() if r.doctor else '',
                 r.diagnosis, r.treatment,
-                'Yes' if r.follow_up_required else 'No',
             ])
 
     elif report_type == 'financial':

@@ -9,7 +9,7 @@
       {% block title %}
       {% endblock %}
     </title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -19,17 +19,38 @@
           extend: {
             colors: {
               primary: {
-                50: '#faf5ff',
-                100: '#f3e8ff',
-                200: '#e9d5ff',
-                300: '#d8b4fe',
-                400: '#c084fc',
-                500: '#a855f7',
-                600: '#9333ea',
-                700: '#7c3aed',
-                800: '#6b21a8',
-                900: '#581c87'
+                50: '#faf5ff', 100: '#f3e8ff', 200: '#e9d5ff', 300: '#d8b4fe',
+                400: '#c084fc', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed',
+                800: '#6b21a8', 900: '#581c87'
+              },
+              success: {
+                50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7',
+                400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857',
+                800: '#065f46', 900: '#064e3b'
+              },
+              warning: {
+                50: '#fffbeb', 100: '#fef3c7', 200: '#fde68a', 300: '#fcd34d',
+                400: '#fbbf24', 500: '#f59e0b', 600: '#d97706', 700: '#b45309',
+                800: '#92400e', 900: '#78350f'
+              },
+              danger: {
+                50: '#fff1f2', 100: '#ffe4e6', 200: '#fecdd3', 300: '#fda4af',
+                400: '#fb7185', 500: '#f43f5e', 600: '#e11d48', 700: '#be123c',
+                800: '#9f1239', 900: '#881337'
+              },
+              info: {
+                50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc',
+                400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1',
+                800: '#075985', 900: '#0c4a6e'
+              },
+              muted: {
+                50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1',
+                400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155',
+                800: '#1e293b', 900: '#0f172a'
               }
+            },
+            borderRadius: {
+              card: '0.75rem'
             }
           }
         }
@@ -145,24 +166,7 @@
                     </div>
                   </div>
 
-                  {% if not hide_removed_app_links %}
-                  <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-                    <button type="button" @click="open = !open" :class="open ? 'nav-link active' : 'nav-link'" class="{% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" :aria-expanded="open">
-                      Health Forms
-                      <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </button>
-                    <div x-show="open" x-cloak class="absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
-                      <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
-                      <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
-                      <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
-                      <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item">Dental Services</a>
-                      <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
-                      <a href="{% url 'document_request:document_requests' %}" class="dropdown-item">Document Requests</a>
-                    </div>
-                  </div>
-                  {% endif %}
+                  {% include 'core/partials/_nav_health_forms_desktop.html' with include_document_request_link=True %}
 
                   <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
@@ -182,29 +186,7 @@
                     </div>
                   </div>
 
-                  {% if not hide_removed_app_links %}
-                  {% if not hide_removed_app_links %}
-                  {% if not hide_removed_app_links %}
-                  {% if not hide_removed_app_links %}
-                  <div class="relative" x-data="{ open: false }" @click.outside="open = false">
-                    <button type="button" @click="open = !open" :class="open ? 'nav-link active' : 'nav-link'" class="{% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" :aria-expanded="open">
-                      Health Forms
-                      <svg class="w-4 h-4 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                      </svg>
-                    </button>
-                    <div x-show="open" x-cloak class="absolute left-0 top-full mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2">
-                      <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
-                      <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
-                      <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
-                      <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item">Dental Services</a>
-                      <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
-                    </div>
-                  </div>
-                  {% endif %}
-                  {% endif %}
-                  {% endif %}
-                  {% endif %}
+                  {% include 'core/partials/_nav_health_forms_desktop.html' with include_document_request_link=False %}
 
                   <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 {% elif user.role == 'admin' %}
@@ -347,22 +329,7 @@
                   <a href="{% url 'document_request:document_requests' %}" class="mobile-link text-sm">Document Requests</a>
                 </div>
 
-                {% if not hide_removed_app_links %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'health-forms' ? '' : 'health-forms'" :class="mobilePanel === 'health-forms' ? 'active' : ''">
-                  <span>Health Forms</span>
-                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'health-forms' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <div x-show="mobilePanel === 'health-forms'" x-cloak class="px-2 pb-2">
-                  <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
-                  <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
-                  <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
-                  <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
-                  <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
-                  <a href="{% url 'document_request:document_requests' %}" class="mobile-link text-sm">Document Requests</a>
-                </div>
-                {% endif %}
+                {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=True %}
 
                 <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if 'health_tips' in request.resolver_match.view_name %}active{% endif %}">Health Tips</a>
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
@@ -381,21 +348,7 @@
                   <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>
                 </div>
 
-                {% if not hide_removed_app_links %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'health-forms' ? '' : 'health-forms'" :class="mobilePanel === 'health-forms' ? 'active' : ''">
-                  <span>Health Forms</span>
-                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'health-forms' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <div x-show="mobilePanel === 'health-forms'" x-cloak class="px-2 pb-2">
-                  <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
-                  <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
-                  <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
-                  <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
-                  <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
-                </div>
-                {% endif %}
+                {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}
 
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
                 <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if 'messaging:' in request.resolver_match.view_name %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
@@ -410,21 +363,7 @@
                   <a href="{% url 'appointments:appointment_type_settings' %}" class="mobile-link text-sm">Appointment Settings</a>
                 </div>
 
-                {% if not hide_removed_app_links %}
-                <button type="button" class="mobile-link w-full text-left flex items-center justify-between {% if 'health_forms_services' in request.resolver_match.view_name %}active{% endif %}" @click="mobilePanel = mobilePanel === 'health-forms' ? '' : 'health-forms'" :class="mobilePanel === 'health-forms' ? 'active' : ''">
-                  <span>Health Forms</span>
-                  <svg class="h-4 w-4 transition-transform" :class="mobilePanel === 'health-forms' ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                  </svg>
-                </button>
-                <div x-show="mobilePanel === 'health-forms'" x-cloak class="px-2 pb-2">
-                  <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
-                  <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
-                  <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
-                  <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
-                  <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
-                </div>
-                {% endif %}
+                {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}
 
                 
                 <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if 'analytics' in request.resolver_match.view_name %}active{% endif %}">Analytics</a>
@@ -506,6 +445,159 @@
       // Non-reactive callback storage for the modal (avoids Alpine reactivity issues with functions)
       var _modalConfirmCb = null;
 
+      /** Dispatch the same payload Alpine's $dispatch('open-modal', detail) would send (bubbles to window). */
+      window.__jmcfiDispatchOpenModal = function (detail) {
+        if (!detail || typeof detail !== 'object') return;
+        window.dispatchEvent(new CustomEvent('open-modal', { bubbles: true, cancelable: true, detail: detail }));
+      };
+
+      /** Appointments: confirm before cancelling (list icon, detail card, status update). */
+      window.__jmcfiCancelAppointmentModal = function (btn) {
+        if (!btn) return;
+        var formId = btn.getAttribute('data-form-id');
+        if (!formId) return;
+        var subtitle = (btn.getAttribute('data-subtitle') || '').trim();
+        var message = (btn.getAttribute('data-message') || '').trim();
+        window.__jmcfiDispatchOpenModal({
+          type: 'danger',
+          title: 'Cancel Appointment?',
+          subtitle: subtitle,
+          message: message,
+          actionLabel: 'Cancel Appointment',
+          size: 'sm',
+          onConfirm: function () {
+            var form = document.getElementById(formId);
+            if (!form) return;
+            if (form.hasAttribute('hx-post') && typeof htmx !== 'undefined') {
+              htmx.trigger(form, 'submit');
+            } else {
+              form.submit();
+            }
+          },
+        });
+      };
+
+      /** Appointments: confirm before marking pending appointment as confirmed (list icon, quick action). */
+      window.__jmcfiConfirmAppointmentModal = function (btn) {
+        if (!btn) return;
+        var formId = btn.getAttribute('data-form-id');
+        if (!formId) return;
+        var subtitle = (btn.getAttribute('data-subtitle') || '').trim();
+        var message = (btn.getAttribute('data-message') || '').trim();
+        window.__jmcfiDispatchOpenModal({
+          type: 'success',
+          title: 'Confirm appointment?',
+          subtitle: subtitle,
+          message: message || 'The student will be notified that this visit is confirmed.',
+          actionLabel: 'Confirm appointment',
+          size: 'sm',
+          onConfirm: function () {
+            var form = document.getElementById(formId);
+            if (!form) return;
+            if (form.hasAttribute('hx-post') && typeof htmx !== 'undefined') {
+              htmx.trigger(form, 'submit');
+            } else {
+              form.submit();
+            }
+          },
+        });
+      };
+
+      /** Appointment detail: confirm when Update form sets status to cancelled. */
+      window.__jmcfiAppointmentUpdateSubmit = function (e, currentStatus) {
+        var form = e.target;
+        if (!form || form.tagName !== 'FORM') return true;
+        if (form.dataset.cancelConfirmed === '1') {
+          delete form.dataset.cancelConfirmed;
+          return true;
+        }
+        if (form.dataset.confirmConfirmed === '1') {
+          delete form.dataset.confirmConfirmed;
+          return true;
+        }
+        var statusEl = form.querySelector('[name=status]');
+        if (!statusEl) {
+          return true;
+        }
+
+        if (statusEl.value === 'cancelled' && currentStatus !== 'cancelled') {
+          e.preventDefault();
+          var subtitle = (form.getAttribute('data-cancel-subtitle') || '').trim();
+          var message = (form.getAttribute('data-cancel-message') || '').trim();
+          window.__jmcfiDispatchOpenModal({
+            type: 'danger',
+            title: 'Cancel Appointment?',
+            subtitle: subtitle,
+            message: message,
+            actionLabel: 'Cancel Appointment',
+            size: 'sm',
+            onConfirm: function () {
+              form.dataset.cancelConfirmed = '1';
+              if (form.requestSubmit) {
+                form.requestSubmit();
+              } else {
+                form.submit();
+              }
+            },
+          });
+          return false;
+        }
+
+        if (statusEl.value === 'confirmed' && currentStatus === 'pending') {
+          e.preventDefault();
+          var csub = (form.getAttribute('data-confirm-subtitle') || '').trim();
+          var cmsg = (form.getAttribute('data-confirm-message') || '').trim();
+          window.__jmcfiDispatchOpenModal({
+            type: 'success',
+            title: 'Confirm appointment?',
+            subtitle: csub,
+            message: cmsg || 'The student will be notified this slot is reserved.',
+            actionLabel: 'Confirm appointment',
+            size: 'sm',
+            onConfirm: function () {
+              form.dataset.confirmConfirmed = '1';
+              if (form.requestSubmit) {
+                form.requestSubmit();
+              } else {
+                form.submit();
+              }
+            },
+          });
+          return false;
+        }
+
+        return true;
+      };
+
+      /** Notifications list: confirm before clearing all notifications. */
+      window.__jmcfiClearAllNotificationsModal = function () {
+        window.__jmcfiDispatchOpenModal({
+          type: 'danger',
+          title: 'Clear All Notifications',
+          size: 'sm',
+          embedFrom: '#notifications-clear-all-embed',
+          hasForm: true,
+          actionLabel: 'Clear All',
+        });
+      };
+
+      /** Dental record edit/list: open mark-completed confirm modal (completed status cannot be reverted). */
+      window.__jmcfiDentalStatusModal = function (btn) {
+        var rid = btn && btn.getAttribute('data-record-id');
+        if (!rid) return;
+        var sub = (btn.getAttribute('data-subtitle') || '').trim();
+        window.__jmcfiDispatchOpenModal({
+          type: 'success',
+          title: 'Mark dental record completed',
+          subtitle: sub,
+          size: 'sm',
+          hxUrl: '/dental-records/' + rid + '/status-modal/?to=completed',
+          hasForm: true,
+          actionLabel: 'Mark completed',
+          showHxLoader: false,
+        });
+      };
+
       function modalComponent(config = {}) {
         return {
           isOpen: false,
@@ -518,9 +610,14 @@
           actionLabel: config.actionLabel || 'Confirm',
           hxUrl: config.hxUrl || '',
           hasForm: config.hasForm || false,
+          bodyHtml: '',
+          hxBodyLoaded: false,
           validationError: '',
           modalTitleId: '',
           bodyContentId: '',
+          showHxLoader: true,
+          _closeTimer: null,
+          _modalLeaveMs: 220,
 
           get headerClasses() {
             const m = {info:'from-primary-50 to-primary-100',danger:'from-red-50 to-red-100',warning:'from-amber-50 to-orange-50',success:'from-emerald-50 to-emerald-100'};
@@ -535,9 +632,13 @@
             const m = {sm:'max-w-sm',lg:'max-w-lg',xl:'max-w-2xl','4xl':'max-w-4xl'};
             return m[this.size] || m.lg;
           },
-          get isConfirmation() { return !this.hxUrl && !this.hasForm; },
+          get isConfirmation() { return !this.hxUrl && !this.hasForm && !this.bodyHtml; },
 
           openModal(opts = {}) {
+            if (this._closeTimer) {
+              window.clearTimeout(this._closeTimer);
+              this._closeTimer = null;
+            }
             if (opts.title) this.title = opts.title;
             if (opts.subtitle) this.subtitle = opts.subtitle;
             if (opts.message) this.message = opts.message;
@@ -546,57 +647,178 @@
             this.hxUrl = opts.hxUrl || '';
             this.hasForm = Boolean(opts.hasForm);
             this.actionLabel = opts.actionLabel || 'Confirm';
-            // Store callback outside Alpine reactivity
-            if (opts.onConfirm) _modalConfirmCb = opts.onConfirm;
+            this.bodyHtml = '';
+            this.hxBodyLoaded = false;
+            const embedSel = opts.embedFrom || '';
+            _modalConfirmCb = typeof opts.onConfirm === 'function' ? opts.onConfirm : null;
             this.validationError = '';
             this.isSaving = false;
             const uid = Date.now();
             this.modalTitleId = 'modal-title-'+uid;
             this.bodyContentId = 'modal-body-'+uid;
+            this.showHxLoader = opts.showHxLoader !== false;
             this.isOpen = true;
             this.$nextTick(() => {
+              const self = this;
+              if (embedSel) {
+                const el = document.querySelector(embedSel);
+                if (el) this.bodyHtml = el.innerHTML;
+              }
+              if (!self.hxUrl && self.hasForm && opts.formAction) {
+                const m = document.cookie.match(/csrftoken=([^;]+)/);
+                const csrf = m ? decodeURIComponent(m[1]) : '';
+                function escAttr(s) {
+                  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+                }
+                self.bodyHtml =
+                  '<form method="post" action="' + escAttr(opts.formAction) + '">' +
+                  (csrf ? '<input type="hidden" name="csrfmiddlewaretoken" value="' + escAttr(csrf) + '">' : '') +
+                  '</form>';
+              }
               const cb = this.$el.querySelector('[aria-label="Close modal"]');
               if (cb) cb.focus();
-              // Load HTMX modal body immediately after open.
               try {
                 if (this.hxUrl && this.bodyContentId && typeof htmx !== 'undefined') {
-                  htmx.ajax('GET', this.hxUrl, {
-                    target: '#' + this.bodyContentId,
-                    swap: 'innerHTML'
+                  const openedBodyId = this.bodyContentId;
+                  const swapSelector = '#' + openedBodyId;
+                  if (!this.showHxLoader) {
+                    self.hxBodyLoaded = true;
+                  }
+                  const req = htmx.ajax('GET', this.hxUrl, {
+                    target: swapSelector,
+                    swap: 'innerHTML',
                   });
+                  if (req && typeof req.then === 'function') {
+                    req.then(function () {
+                      if (!self.isOpen || self.bodyContentId !== openedBodyId) return;
+                      self.hxBodyLoaded = true;
+                      const swapRoot = document.getElementById(openedBodyId);
+                      if (swapRoot) {
+                        try {
+                          htmx.process(swapRoot);
+                        } catch (e) {
+                          console.warn('htmx.process after modal load failed', e);
+                        }
+                      }
+                    }).catch(function () {
+                      if (!self.isOpen || self.bodyContentId !== openedBodyId) return;
+                      self.hxBodyLoaded = true;
+                      self.validationError = 'Could not load this dialog. Please try again.';
+                    });
+                  } else {
+                    self.hxBodyLoaded = true;
+                    self.validationError = 'Could not load this dialog. Please refresh the page.';
+                  }
                 }
               } catch (e) {
-                // no-op on any error to avoid breaking modal
                 console.warn('Modal HTMX trigger failed', e);
               }
             });
           },
-          closeModal() { this.isOpen = false; this.validationError = ''; _modalConfirmCb = null; },
+          findModalForm() {
+            const bodyEl = this.bodyContentId ? document.getElementById(this.bodyContentId) : null;
+            let modalForm = bodyEl ? bodyEl.querySelector('form') : null;
+            if (!modalForm && this.bodyHtml && this.$refs.modalEmbedSlot) {
+              modalForm = this.$refs.modalEmbedSlot.querySelector('form');
+            }
+            return modalForm;
+          },
+          resetModalContent(bodyIdAtClose) {
+            if (this.isOpen) return;
+            if (bodyIdAtClose && this.bodyContentId !== bodyIdAtClose) return;
+            this.bodyHtml = '';
+            this.hxBodyLoaded = false;
+            this.hasForm = false;
+            this.hxUrl = '';
+            _modalConfirmCb = null;
+            const bodyEl = bodyIdAtClose ? document.getElementById(bodyIdAtClose) : null;
+            if (bodyEl) bodyEl.innerHTML = '';
+          },
+          closeModal() {
+            if (!this.isOpen) return;
+            this.isOpen = false;
+            this.isSaving = false;
+            this.validationError = '';
+            if (this._closeTimer) window.clearTimeout(this._closeTimer);
+            const bodyIdAtClose = this.bodyContentId;
+            const self = this;
+            this._closeTimer = window.setTimeout(function () {
+              self._closeTimer = null;
+              self.resetModalContent(bodyIdAtClose);
+            }, this._modalLeaveMs);
+          },
           refreshList() { window.location.reload(); },
           confirmAction() {
             if (this.hasForm) {
-              const bodyEl = document.getElementById(this.bodyContentId);
-              const modalForm = bodyEl ? bodyEl.querySelector('form') : null;
-              if (modalForm) {
-                this.isSaving = true;
-
-                // Re-enable action button after each HTMX request so validation errors can be retried.
-                const resetSavingState = () => {
-                  this.isSaving = false;
-                };
-                modalForm.addEventListener('htmx:afterRequest', resetSavingState, { once: true });
-                modalForm.addEventListener('htmx:sendError', resetSavingState, { once: true });
-
-                htmx.trigger(modalForm, 'submit');
+              const modalForm = this.findModalForm();
+              if (!modalForm) {
+                this.validationError = 'Unable to submit action form. Please reopen the dialog.';
                 return;
               }
-              this.validationError = 'Unable to submit action form. Please reopen the dialog.';
+              const usesHtmx = !!(modalForm.getAttribute('hx-post') || modalForm.getAttribute('hx-get'));
+              if (usesHtmx && typeof htmx !== 'undefined') {
+                this.isSaving = true;
+                const self = this;
+                const finish = () => { self.isSaving = false; };
+                modalForm.addEventListener('htmx:afterRequest', function (evt) {
+                  if (evt.detail && evt.detail.successful) {
+                    self.closeModal();
+                  }
+                  finish();
+                }, { once: true });
+                modalForm.addEventListener('htmx:sendError', finish, { once: true });
+                htmx.trigger(modalForm, 'submit');
+              } else {
+                this.closeModal();
+                if (modalForm.requestSubmit) {
+                  modalForm.requestSubmit();
+                } else {
+                  modalForm.submit();
+                }
+              }
               return;
             }
-            if (typeof _modalConfirmCb === 'function') { this.isSaving = true; _modalConfirmCb(); }
+            if (typeof _modalConfirmCb === 'function') {
+              this.isSaving = true;
+              _modalConfirmCb();
+              this.closeModal();
+            }
           }
         };
       }
+
+      function jmcfiInitAlpineAfterHtmxSwap(target) {
+        if (!target || !target.id || typeof Alpine === 'undefined') return;
+        if (
+          target.id === 'jmcfi-mr-detail-header' ||
+          target.id === 'jmcfi-mr-list-table-fragment' ||
+          target.id === 'jmcfi-dental-edit-action-bar' ||
+          target.id === 'jmcfi-dr-list-table-fragment' ||
+          target.id === 'jmcfi-appt-list-table-fragment' ||
+          (typeof target.id === 'string' && target.id.indexOf('jmcfi-mr-list-status-') === 0) ||
+          (typeof target.id === 'string' && target.id.indexOf('jmcfi-mr-list-actions-') === 0)
+        ) {
+          try {
+            Alpine.initTree(target);
+          } catch (e) {
+            console.warn('Alpine.initTree after HTMX swap failed', e);
+          }
+          if (typeof htmx !== 'undefined' && (target.id === 'jmcfi-mr-list-table-fragment' || target.id === 'jmcfi-dr-list-table-fragment' || target.id === 'jmcfi-appt-list-table-fragment')) {
+            try {
+              htmx.process(target);
+            } catch (e2) {
+              console.warn('htmx.process after list refresh failed', e2);
+            }
+          }
+        }
+      }
+
+      document.body.addEventListener('htmx:afterSwap', function (evt) {
+        jmcfiInitAlpineAfterHtmxSwap(evt.detail && evt.detail.target);
+      });
+      document.body.addEventListener('htmx:oobAfterSwap', function (evt) {
+        jmcfiInitAlpineAfterHtmxSwap(evt.detail && evt.detail.target);
+      });
 
       // Alpine.js handles all dropdown and mobile menu state.
       // Only the WebSocket badge updater and form error highlighter remain.

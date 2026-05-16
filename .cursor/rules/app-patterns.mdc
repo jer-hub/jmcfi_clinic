@@ -1,0 +1,111 @@
+---
+description: Per-app architecture reference — CBV base classes, detail sections, URL patterns, and app-specific conventions
+globs: "**/views.py,**/views/*.py,**/urls.py"
+alwaysApply: false
+---
+
+# App Architecture Patterns
+
+## health_forms_services — CBV Architecture
+
+The only app using a `views/` package. Views split across modules:
+
+| File | Purpose |
+|------|---------|
+| `views/base.py` | `BaseFormListView`, `BaseFormDetailView`, `BaseFormEditView` |
+| `views/forms_cbvs.py` | HealthProfileForm CBVs |
+| `views/_cbvs.py` | Dental, PatientChart, Prescription, DentalServices CBVs |
+| `views/_fbvs.py` | Legacy FBVs (create, review, delete, export) |
+| `views/bulk.py` | `HealthProfileBulkReviewView` |
+| `views/__init__.py` | Re-exports all views |
+
+### CBV Base Classes
+
+When adding a new form type, extend these:
+
+```python
+class BaseFormListView(View):
+    model = None
+    template_name = None
+    list_columns = None
+    search_fields = None
+    create_url_name = None
+    detail_url_name = None
+    per_page = 15
+
+class BaseFormDetailView(View):
+    model = None
+    template_name = None
+    list_url_name = None
+    edit_url_name = None
+    # Subclasses define @property detail_sections
+
+class BaseFormEditView(View):
+    model = None
+    template_name = None
+    detail_url_name = None
+    form_class_map = {}
+```
+
+### Detail Sections Pattern
+
+```python
+@property
+def detail_sections(self):
+    return [
+        {
+            'key': 'personal',
+            'label': 'Personal Information',
+            'icon': 'fa-user',
+            'fields': [
+                {'label': 'Full Name', 'value': obj.get_full_name(), 'span': 'half'},
+                {'label': 'Date of Birth', 'value': '...', 'type': 'date', 'span': 'half'},
+            ]
+        },
+    ]
+```
+
+## All Other Apps — FBV Pattern
+
+All other apps use pure FBVs. Follow these conventions:
+
+### Common Helpers (per-app)
+
+- `paginate_queryset(qs, request, per_page=15)` — pagination helper
+- `_is_json_request(request)` — JSON content type detection
+- `_build_<operation>_context()` — context builder for complex views
+
+### appointments/
+
+- `appointment_utils.py` — `check_appointment_availability()`, `get_conflicting_appointments()`, `get_available_time_slots()`
+- Notifications created manually after appointment creation
+
+### medical_records/
+
+- Timeline merge pattern: combines `MedicalRecord` + `Appointment` into sorted `timeline_rows`
+- Dynamic medication form parsing: `med_item_N_name`, `med_item_N_dosage` via regex
+
+### dental_records/
+
+- OneToOne sub-models: `DentalExamination`, `DentalVitalSigns`, `DentalHealthQuestionnaire`, `DentalSystemsReview`, `DentalHistory`, `PediatricDentalHistory`
+- `DentalChart` + `ToothSurface` — chart data serialized to JSON for canvas
+
+### pharmacy/
+
+- `_log()` helper creates `AuditLog` entries for all inventory actions
+- Uses `formset_factory` for `PurchaseOrderItemFormSet`
+- `Medicine.is_low_stock` / `Medicine.is_overstocked` properties
+
+### messaging/
+
+- Service layer in `messaging/services.py` — always use services, never raw queries in views
+- Conversation types: `direct_message`, `announcement`
+- `can_send_announcements()` check for staff/doctor/admin
+
+## Cross-App Patterns to Follow
+
+1. **Role-based queryset filtering** — in every list view
+2. **Status totals dict** — for badge counts in list views
+3. **Context builder functions** — `_build_*_context()` for complex view contexts
+4. **Paginate with 15 per page** default
+5. **JSON request detection** — for views that might receive API-style calls

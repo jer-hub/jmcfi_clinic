@@ -1,27 +1,25 @@
 {% extends 'core/base.html' %}
+{% load user_filters %}
 
 {% block title %}{{ viewed_user.get_full_name }} - Audit Log{% endblock title %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 pt-0 pb-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="mb-4">
-            <a href="{% url 'core:user_detail' viewed_user.id %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                Back to User Details
-            </a>
-        </div>
+        <nav class="mb-4 flex items-center gap-2 text-sm text-gray-500">
+            <a href="{% url 'core:user_management' %}" class="hover:text-primary-600 transition-colors">Users</a>
+            <i class="fas fa-chevron-right text-xs text-gray-400"></i>
+            <a href="{% url 'core:user_detail' viewed_user.id %}" class="hover:text-primary-600 transition-colors">{{ viewed_user.get_full_name }}</a>
+            <i class="fas fa-chevron-right text-xs text-gray-400"></i>
+            <span class="font-medium text-gray-900">Audit Log</span>
+        </nav>
 
         <div class="bg-white rounded-lg shadow-lg">
             <div class="px-6 sm:px-8 py-6 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
                 <div class="flex items-center space-x-4">
                     <div class="flex-shrink-0">
                         <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-700 rounded-xl flex items-center justify-center shadow-lg">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
+                            <i class="fas fa-clipboard-list text-2xl text-white"></i>
                         </div>
                     </div>
                     <div>
@@ -81,13 +79,15 @@
                                 {{ audit.created_at|date:"M d, Y - g:i A" }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    {% if audit.action == 'activated' or audit.action == 'created_active' or audit.action == 'restored' or audit.action == 'bulk_activated' %}bg-green-100 text-green-800
-                                    {% elif audit.action == 'suspended' or audit.action == 'soft_deleted' or audit.action == 'bulk_suspended' %}bg-red-100 text-red-800
-                                    {% elif audit.action == 'created_pending' %}bg-amber-100 text-amber-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ audit.get_action_display }}
-                                </span>
+                                {% if audit.action == 'activated' or audit.action == 'created_active' or audit.action == 'restored' or audit.action == 'bulk_activated' %}
+                                  {% include "components/status_badge.html" with label=audit.get_action_display variant="success" size="sm" %}
+                                {% elif audit.action == 'suspended' or audit.action == 'soft_deleted' or audit.action == 'bulk_suspended' %}
+                                  {% include "components/status_badge.html" with label=audit.get_action_display variant="danger" size="sm" %}
+                                {% elif audit.action == 'created_pending' %}
+                                  {% include "components/status_badge.html" with label=audit.get_action_display variant="warning" size="sm" %}
+                                {% else %}
+                                  {% include "components/status_badge.html" with label=audit.get_action_display variant="muted" size="sm" %}
+                                {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {% if audit.actor %}
@@ -99,9 +99,9 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
                                 {{ audit.ip_address|default:"—" }}
                             </td>
-                            <td class="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                            <td class="px-6 py-4 text-sm text-gray-500 max-w-sm">
                                 {% if audit.metadata %}
-                                    {{ audit.metadata|pprint|truncatechars:60 }}
+                                    {{ audit.metadata|format_audit_meta }}
                                 {% else %}
                                     —
                                 {% endif %}
@@ -110,9 +110,7 @@
                         {% empty %}
                         <tr>
                             <td colspan="5" class="px-6 py-12 text-center text-gray-500">
-                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
+                                <i class="fas fa-file-lines text-4xl text-gray-400 mb-4"></i>
                                 <p class="text-sm font-medium">No audit entries found.</p>
                             </td>
                         </tr>
@@ -121,33 +119,7 @@
                 </table>
             </div>
 
-            <!-- Pagination -->
-            {% if audits.has_other_pages %}
-            <div class="px-6 py-4 bg-white border-t border-gray-200">
-                <div class="flex items-center justify-between">
-                    <div class="text-sm text-gray-700">
-                        Page {{ audits.number }} of {{ audits.paginator.num_pages }}
-                    </div>
-                    <nav class="inline-flex rounded-md shadow-sm -space-x-px">
-                        {% if audits.has_previous %}
-                        <a href="?page={{ audits.previous_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}"
-                           class="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                            Previous
-                        </a>
-                        {% endif %}
-                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
-                            {{ audits.number }}
-                        </span>
-                        {% if audits.has_next %}
-                        <a href="?page={{ audits.next_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}"
-                           class="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                            Next
-                        </a>
-                        {% endif %}
-                    </nav>
-                </div>
-            </div>
-            {% endif %}
+            {% include "components/pagination.html" with page_obj=audits %}
         </div>
     </div>
 </div>

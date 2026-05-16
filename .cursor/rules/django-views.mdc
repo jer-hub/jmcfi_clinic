@@ -1,0 +1,105 @@
+---
+description: Django view conventions — FBV/CBV patterns, HTMX handling, role filtering, pagination, error responses
+globs: "**/views.py,**/views/*.py,**/user_mgmt_views.py"
+alwaysApply: false
+---
+
+# Django View Standards
+
+## HTMX-Aware Views
+
+Every view must detect HTMX requests and return partial HTML fragments:
+
+```python
+from core.htmx_utils import is_htmx_request
+
+def my_view(request):
+    if is_htmx_request(request):
+        return render(request, 'app/partials/_content.html', ctx)
+    return render(request, 'app/full_page.html', ctx)
+```
+
+Never use `request.headers.get('HX-Request')` directly — always use `is_htmx_request()` from `core/htmx_utils.py`.
+
+## FBV vs CBV Decision
+
+- **Simple CRUD / single-purpose views** → FBV with `@login_required` + `@role_required()`
+- **Complex multi-form workflows with shared logic** → CBV inheriting from base classes in `health_forms_services/views/base.py`
+- **Never mix**: don't create CBVs for simple one-off views
+
+## Role-Based Queryset Filtering
+
+Always filter by role. Use this pattern consistently:
+
+```python
+@login_required
+@role_required('student', 'staff', 'doctor', 'admin')
+def record_list(request):
+    qs = MyModel.objects.all()
+    if request.user.role == 'student':
+        qs = qs.filter(user=request.user)
+    elif request.user.role in ('staff', 'doctor'):
+        qs = qs.filter(doctor=request.user)
+    # admin sees all
+```
+
+## Form Handling Pattern
+
+```python
+def create_view(request):
+    if request.method == 'POST':
+        form = MyForm(request.POST)
+        if form.is_valid():
+            obj = form.save()
+            if is_htmx_request(request):
+                response = HttpResponse(status=200)
+                response['HX-Redirect'] = reverse('app:detail', args=[obj.pk])
+                return response
+            return redirect('app:detail', pk=obj.pk)
+        # Return form with errors — status 400 is critical for HTMX
+        if is_htmx_request(request):
+            return render(request, 'app/partials/_form.html', {'form': form}, status=400)
+        return render(request, 'app/create.html', {'form': form})
+    form = MyForm()
+    template = 'app/partials/_form.html' if is_htmx_request(request) else 'app/create.html'
+    return render(request, template, {'form': form})
+```
+
+## HTMX Response Headers
+
+| Header | Use |
+|--------|-----|
+| `HX-Redirect` | Full page redirect after successful create/update |
+| `HX-Trigger` | Trigger client-side events (e.g., refresh stats, close modal) |
+| `HX-Reswap` | Override swap strategy from server |
+| `HX-Push-Url` | Update browser URL without reload |
+
+Use `htmx_add_trigger()` and `htmx_add_toast()` from `core/htmx_utils.py` for triggers and toasts.
+
+## HTTP Status Codes
+
+| Code | When |
+|------|------|
+| `200` | Successful operation with content |
+| `204` | Success, no content (e.g., delete) |
+| `400` | Validation errors — form re-rendered with errors |
+| `403` | Permission denied |
+| `404` | Not found |
+| `409` | Conflict (concurrent edit) |
+
+**Never return 200 for validation errors** — HTMX relies on status codes.
+
+## Pagination
+
+Use `core/htmx_utils.py` or the app's paginate helper. Default: 15 per page. Always pass `page_obj` and `paginator` to template context.
+
+## Decorators
+
+Stack decorators in this order: `@login_required` → `@role_required()` → `@profile_required`
+
+```python
+@login_required
+@role_required('admin', 'doctor')
+def admin_view(request):
+    ...
+```

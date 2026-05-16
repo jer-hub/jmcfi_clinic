@@ -2,82 +2,23 @@
 {# Context: form_obj, forms (dict keyed by section), tabs, active_section, doctors, detail_url #}
 
 {% extends 'core/base.html' %}
-{% load static %}
 {% load form_tags %}
 
 {% block title %}Edit - {{ form_obj.get_full_name|default:form_obj.user.get_full_name }} - JMCFI Clinic{% endblock %}
 
-{% block head %}
-<style>
-  /* ── Tailwind-compatible form widget styling ── */
-  .form-input, input[type="text"].form-input, input[type="email"].form-input,
-  input[type="tel"].form-input, input[type="number"].form-input,
-  input[type="date"].form-input, input[type="url"].form-input {
-    display: block; width: 100%;
-    border: 1px solid #d1d5db; border-radius: 0.5rem;
-    padding: 0.5rem 0.75rem; font-size: 0.875rem; line-height: 1.25rem;
-    color: #111827; background-color: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-  }
-  .form-input:focus, .form-select:focus, .form-textarea:focus {
-    outline: none; border-color: #a855f7;
-    box-shadow: 0 0 0 3px rgba(168,85,247,0.15);
-  }
-  .form-input::placeholder { color: #9ca3af; }
-  .form-select {
-    display: block; width: 100%;
-    border: 1px solid #d1d5db; border-radius: 0.5rem;
-    padding: 0.5rem 2rem 0.5rem 0.75rem; font-size: 0.875rem;
-    color: #111827; background-color: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center; background-repeat: no-repeat;
-    background-size: 1.5em 1.5em; -webkit-appearance: none; -moz-appearance: none;
-    appearance: none;
-  }
-  .form-textarea {
-    display: block; width: 100%;
-    border: 1px solid #d1d5db; border-radius: 0.5rem;
-    padding: 0.5rem 0.75rem; font-size: 0.875rem; line-height: 1.5;
-    color: #111827; background-color: #fff;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-    resize: vertical;
-  }
-  /* Checkbox / radio */
-  input[type="checkbox"].form-input, input[type="radio"].form-input {
-    width: 1rem; height: 1rem; display: inline;
-    border-radius: 0.25rem; padding: 0;
-    color: #a855f7; accent-color: #a855f7;
-  }
-  /* ── Error state styling ── */
-  .has-error .form-input,
-  .has-error .form-select,
-  .has-error .form-textarea {
-    border-color: #f87171 !important;
-    background-color: #fef2f2 !important;
-    box-shadow: 0 0 0 1px #f87171 !important;
-  }
-</style>
-{% endblock head %}
-
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-4 sm:py-8">
-  <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     {% include 'health_forms_services/_subnav.html' %}
 
     <div class="mb-4">
-      <a href="{{ detail_url }}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
-        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-        </svg>
-        Back to Details
+      <a href="{{ detail_url }}" class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+        <i class="fas fa-arrow-left"></i>Back to Details
       </a>
     </div>
 
-    <h1 class="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Edit Form</h1>
+    {% include "components/page_header.html" with title="Edit Form" subtitle=form_obj.get_full_name|default:form_obj.user.get_full_name|default:"" icon="fa-pen-to-square" %}
 
-    {# ── Tab Navigation (scrollable on mobile) ── #}
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-6">
+    <div class="bg-white rounded-card border border-gray-200 shadow-sm mb-6">
       <div class="overflow-x-auto scrollbar-thin -mx-1 sm:mx-0">
         <nav class="flex border-b border-gray-200 min-w-max sm:min-w-0 px-1" id="form-tabs" role="tablist">
           {% for tab in tabs %}
@@ -118,7 +59,7 @@
     {# ── Tab Panels ── #}
     {% for tab_key, form in forms.items %}
     <div data-tab-panel="{{ tab_key }}"
-         class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 sm:p-6 {% if tab_key != active_section %}hidden{% endif %}">
+         class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 {% if tab_key != active_section %}hidden{% endif %}">
       <form method="post"
             data-section="{{ tab_key }}"
             data-auto-save="true"
@@ -174,19 +115,18 @@
         {% block extra_tab_content %}
         {% endblock extra_tab_content %}
 
-        <div class="flex justify-end gap-3 pt-4 border-t border-gray-100">
-          <span data-save-indicator="{{ tab_key }}" class="hidden text-xs text-emerald-600 font-medium self-center">
+        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <span data-save-indicator="{{ tab_key }}" class="hidden text-xs text-success-600 font-medium self-center">
             <i class="fas fa-check mr-1"></i>Saved
           </span>
           <button type="submit"
-                  class="px-4 py-2.5 sm:py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm">
-            Save {{ tab.label }}
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors">
+            <i class="fas fa-floppy-disk"></i>Save {{ tab.label }}
           </button>
         </div>
       </form>
     </div>
     {% endfor %}
-  </div>
 </div>
 
 <script>

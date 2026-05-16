@@ -3,368 +3,370 @@
 {% block title %}Appointment Details - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {% include 'appointments/_subnav.html' %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  {% include "components/page_header.html" with title="Appointment Details" subtitle="View and manage appointment information" icon="fa-calendar-check" breadcrumbs=breadcrumbs %}
 
-        <!-- Page Header -->
-        <div class="mb-6 sm:mb-8">
-            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Appointment Details</h1>
-                    <p class="text-sm text-gray-600">View and manage appointment information</p>
-                </div>
-                <a href="{% url 'appointments:appointment_list' %}" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                    </svg>
-                    Back to Appointments
-                </a>
-            </div>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-6">
+      <div class="bg-white rounded-card shadow-sm border border-gray-200">
+        <div class="px-5 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-circle-info text-primary-500"></i>Appointment Information
+          </h2>
+          {% if appointment.status == 'pending' %}
+            {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" icon="fa-clock" %}
+          {% elif appointment.status == 'confirmed' %}
+            {% include "components/status_badge.html" with label=appointment.get_status_display variant="info" icon="fa-circle-check" %}
+          {% elif appointment.status == 'completed' %}
+            {% include "components/status_badge.html" with label=appointment.get_status_display variant="success" icon="fa-check-double" %}
+          {% elif appointment.status == 'cancelled' %}
+            {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" icon="fa-ban" %}
+          {% endif %}
         </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            <!-- Main Appointment Information -->
-            <div class="lg:col-span-2 order-2 lg:order-1">
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-                        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
-                            <h2 class="text-lg font-semibold text-gray-900">Appointment Information</h2>
-                            <span class="px-3 py-1 text-sm font-medium rounded-full inline-flex items-center justify-center
-                                {% if appointment.status == 'pending' %}
-                                    bg-yellow-100 text-yellow-800
-                                {% elif appointment.status == 'confirmed' %}
-                                    bg-green-100 text-green-800
-                                {% elif appointment.status == 'completed' %}
-                                    bg-blue-100 text-blue-800
-                                {% elif appointment.status == 'cancelled' %}
-                                    bg-red-100 text-red-800
-                                {% endif %}">
-                                {{ appointment.get_status_display }}
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <div class="p-4 sm:p-6">
-                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Patient</dt>
-                                <dd class="mt-1 text-sm text-gray-900 break-words">{{ appointment.student.get_full_name }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Doctor</dt>
-                                <dd class="mt-1 text-sm text-gray-900 break-words">Dr. {{ appointment.doctor.get_full_name }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Date</dt>
-                                <dd class="mt-1 text-sm text-gray-900">{{ appointment.date|date:"F d, Y" }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Time</dt>
-                                <dd class="mt-1 text-sm text-gray-900">{{ appointment.time|time:"g:i A" }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Type</dt>
-                                <dd class="mt-1 text-sm text-gray-900">{{ appointment.get_appointment_type_display }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Created</dt>
-                                <dd class="mt-1 text-sm text-gray-900">{{ appointment.created_at|date:"M d, Y g:i A" }}</dd>
-                            </div>
-                        </dl>
-                        
-                        <div class="mt-6">
-                            <dt class="text-sm font-medium text-gray-500">Reason for Visit</dt>
-                            <dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap break-words">{{ appointment.reason }}</dd>
-                        </div>
-                        
-                        {% if appointment.notes %}
-                        <div class="mt-6">
-                            <dt class="text-sm font-medium text-gray-500">Doctor's Notes</dt>
-                            <dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap break-words">{{ appointment.notes }}</dd>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Staff Actions -->
-                {% if user.role == 'staff' or user.role == 'doctor' or user.role == 'admin' %}
-                    {% if appointment.doctor == user or user.role == 'admin' %}
-                <div class="mt-4 sm:mt-6 bg-white rounded-lg shadow">
-                    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Update Appointment</h3>
-                    </div>
-                    
-                    <form method="POST" class="p-4 sm:p-6">
-                        {% csrf_token %}
-                        <div class="grid grid-cols-1 gap-6">
-                            <div>
-                                <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-                                <select name="status" id="status" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm">
-                                    <option value="pending" {% if appointment.status == 'pending' %}selected{% endif %}>Pending</option>
-                                    <option value="confirmed" {% if appointment.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
-                                    <option value="completed" {% if appointment.status == 'completed' %}selected{% endif %}>Completed</option>
-                                    <option value="cancelled" {% if appointment.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                                </select>
-                            </div>
-                            
-                            <div>
-                                <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
-                                <textarea name="notes" id="notes" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-sm" placeholder="Add any notes about the appointment...">{{ appointment.notes }}</textarea>
-                            </div>
-                            
-                            <div class="flex justify-end">
-                                <button type="submit" class="w-full sm:w-auto px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                    Update Appointment
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                {% endif %}
-                {% endif %}
+        <div class="p-5">
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Patient</dt><dd class="mt-1 text-sm text-gray-900">{{ appointment.student.get_full_name }}</dd></div>
+            <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Doctor</dt><dd class="mt-1 text-sm text-gray-900">Dr. {{ appointment.doctor.get_full_name }}</dd></div>
+            <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Date</dt><dd class="mt-1 text-sm text-gray-900">{{ appointment.date|date:"F d, Y" }}</dd></div>
+            <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Time</dt><dd class="mt-1 text-sm text-gray-900">{{ appointment.time|time:"g:i A" }}</dd></div>
+            <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Type</dt><dd class="mt-1 text-sm text-gray-900">{{ appointment.get_appointment_type_display }}</dd></div>
+            <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Created</dt><dd class="mt-1 text-sm text-gray-900">{{ appointment.created_at|date:"M d, Y g:i A" }}</dd></div>
+          </dl>
+          <div class="mt-5 pt-5 border-t border-gray-100">
+            <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Reason for Visit</dt>
+            <dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{{ appointment.reason }}</dd>
+          </div>
+          {% if appointment.notes %}
+            <div class="mt-5 pt-5 border-t border-gray-100">
+              <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Doctor's Notes</dt>
+              <dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{{ appointment.notes }}</dd>
             </div>
-
-            <!-- Sidebar -->
-            <div class="order-1 lg:order-2 space-y-4 sm:space-y-6">
-                <!-- Quick Actions -->
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Quick Actions</h3>
-                    </div>
-                    <div class="p-4 sm:p-6 space-y-3">
-                        {% if user.role == 'staff' or user.role == 'doctor' %}
-                            {% if appointment.doctor == user %}
-                                {% if appointment.status == 'pending' %}
-                                    <button onclick="confirmAppointment()" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700">
-                                        Confirm Appointment
-                                    </button>
-                                {% elif appointment.status == 'confirmed' %}
-                                    {% if appointment.appointment_type == 'dental' %}
-                                        {% if appointment.dental_records.exists %}
-                            <a href="{% url 'dental_records:dental_record_edit' appointment.dental_records.first.id %}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-                                Complete Dental Record
-                            </a>
-                            <div class="block w-full text-center px-4 py-2 rounded-md text-xs text-green-700 bg-green-50 border border-green-200">
-                                <svg class="inline-block w-3.5 h-3.5 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                Student intake submitted
-                            </div>
-                                        {% else %}
-                            <a href="{% url 'dental_records:dental_record_create' %}?patient={{ appointment.student.id }}&appointment={{ appointment.id }}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-                                Create Dental Record
-                            </a>
-                            <a href="{% url 'dental_records:dental_record_list' %}" class="block w-full text-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md shadow-sm text-sm font-medium hover:bg-blue-50">
-                                Dental Records
-                            </a>
-                                        {% endif %}
-                                    {% else %}
-                            <a href="{% url 'medical_records:create_medical_record' appointment.id %}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-                                Create Medical Record
-                            </a>
-                                    {% endif %}
-                                {% elif appointment.status == 'completed' %}
-                                    {% if appointment.appointment_type == 'dental' and appointment.dental_records.exists %}
-                            <a href="{% url 'dental_records:dental_record_detail' appointment.dental_records.first.id %}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                                <svg class="inline-block w-4 h-4 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                View Dental Record
-                            </a>
-                                    {% endif %}
-                                    {% if appointment.medicalrecord_set.exists %}
-                            <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="block w-full text-center px-4 py-2 border border-emerald-600 text-emerald-700 rounded-md shadow-sm text-sm font-medium hover:bg-emerald-50">
-                                View Medical Record
-                            </a>
-                                    {% endif %}
-                                {% endif %}
-                            {% endif %}
-                        {% endif %}
-                        
-                        {% if user.role == 'doctor' and appointment.status == 'completed' %}
-                            {% with medical_record=appointment.medicalrecord_set.first %}
-                                {% if medical_record %}
-                            <button type="button"
-                                    onclick="scheduleFollowUp({{ medical_record.id }}, '{{ appointment.student.get_full_name|escapejs }}')"
-                                    class="block w-full text-center px-4 py-2 border border-amber-500 text-amber-700 rounded-md shadow-sm text-sm font-medium hover:bg-amber-50">
-                                <svg class="inline-block w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                Schedule Follow-up
-                            </button>
-                                {% endif %}
-                            {% endwith %}
-                        {% endif %}
-                        
-                        {% if user.role == 'student' and appointment.status == 'confirmed' %}
-                            {% if appointment.appointment_type == 'dental' %}
-                                {% if not appointment.dental_records.exists %}
-                            <a href="{% url 'dental_records:student_dental_intake' appointment_id=appointment.id %}"
-                               class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                                Fill Dental Intake Form
-                            </a>
-                                {% else %}
-                            <div class="block w-full text-center px-4 py-2 rounded-md text-sm font-medium bg-green-50 text-green-700 border border-green-200">
-                                <svg class="inline-block w-4 h-4 mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                Intake Form Submitted
-                            </div>
-                                {% endif %}
-                            {% endif %}
-                        {% endif %}
-
-                        {% if user.role == 'student' and appointment.status == 'completed' %}
-                            {% if appointment.appointment_type == 'dental' and appointment.dental_records.exists %}
-                            <a href="{% url 'dental_records:dental_record_detail' appointment.dental_records.first.id %}" class="block w-full text-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md shadow-sm text-sm font-medium hover:bg-blue-50">
-                                View Dental Record
-                            </a>
-                            {% endif %}
-                            {% if appointment.medicalrecord_set.exists %}
-                            <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="block w-full text-center px-4 py-2 border border-emerald-600 text-emerald-700 rounded-md shadow-sm text-sm font-medium hover:bg-emerald-50">
-                                View Medical Record
-                            </a>
-                            {% endif %}
-                            <a href="{% url 'feedback:submit_feedback_appointment' appointment.id %}" class="block w-full text-center px-4 py-2 border border-primary-600 text-primary-600 rounded-md shadow-sm text-sm font-medium hover:bg-primary-50">
-                                Submit Feedback
-                            </a>
-                        {% endif %}
-                        
-                        {% if appointment.status == 'pending' and user.role == 'student' %}
-                            <button onclick="cancelAppointment()" class="block w-full text-center px-4 py-2 border border-red-600 text-red-600 rounded-md shadow-sm text-sm font-medium hover:bg-red-50">
-                                Cancel Appointment
-                            </button>
-                        {% endif %}
-                        
-                        {% if appointment.status == 'cancelled' and user.role == 'student' %}
-                            <a href="{% url 'appointments:schedule_appointment' %}" class="block w-full text-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                                <svg class="inline-block w-4 h-4 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                                </svg>
-                                Book Again
-                            </a>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Patient Information (for staff) -->
-                {% if user.role == 'staff' or user.role == 'doctor' %}
-                    {% if appointment.student.student_profile %}
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Patient Information</h3>
-                    </div>
-                    <div class="p-4 sm:p-6">
-                        <dl class="space-y-4">
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Student ID</dt>
-                                <dd class="mt-1 text-sm text-gray-900 break-all">{{ appointment.student.student_profile.student_id }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Blood Type</dt>
-                                <dd class="mt-1 text-sm text-gray-900">{{ appointment.student.student_profile.blood_type|default:"Not specified" }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Emergency Contact</dt>
-                                <dd class="mt-1 text-sm text-gray-900 break-words">{{ appointment.student.student_profile.emergency_contact }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Emergency Phone</dt>
-                                <dd class="mt-1 text-sm text-gray-900 break-all">{{ appointment.student.student_profile.emergency_phone }}</dd>
-                            </div>
-                            {% if appointment.student.student_profile.allergies %}
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Allergies</dt>
-                                <dd class="mt-1 text-sm text-red-600 break-words">{{ appointment.student.student_profile.allergies }}</dd>
-                            </div>
-                            {% endif %}
-                            {% if appointment.student.student_profile.medical_conditions %}
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Medical Conditions</dt>
-                                <dd class="mt-1 text-sm text-orange-600 break-words">{{ appointment.student.student_profile.medical_conditions }}</dd>
-                            </div>
-                            {% endif %}
-                        </dl>
-                    </div>
-                </div>
-                {% endif %}
-                {% endif %}
-
-                <!-- Doctor Information (for students) -->
-                {% if user.role == 'student' and appointment.doctor.staff_profile %}
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Doctor Information</h3>
-                    </div>
-                    <div class="p-4 sm:p-6">
-                        <dl class="space-y-4">
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Department</dt>
-                                <dd class="mt-1 text-sm text-gray-900 break-words">{{ appointment.doctor.staff_profile.department }}</dd>
-                            </div>
-                            {% if appointment.doctor.staff_profile.specialization %}
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Specialization</dt>
-                                <dd class="mt-1 text-sm text-gray-900 break-words">{{ appointment.doctor.staff_profile.specialization }}</dd>
-                            </div>
-                            {% endif %}
-                            <div>
-                                <dt class="text-sm font-medium text-gray-500">Contact</dt>
-                                <dd class="mt-1 text-sm text-gray-900 break-all">{{ appointment.doctor.staff_profile.phone }}</dd>
-                            </div>
-                        </dl>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+          {% endif %}
         </div>
+      </div>
+
+      {% if user.role == 'staff' or user.role == 'doctor' or user.role == 'admin' %}
+        {% if appointment.doctor == user or user.role == 'admin' %}
+          <div class="bg-white rounded-card shadow-sm border border-gray-200">
+            <div class="px-5 py-4 border-b border-gray-100">
+              <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-pen-to-square text-primary-500"></i>Update Appointment
+              </h3>
+            </div>
+            <form method="POST"
+                  class="p-5 space-y-4"
+                  id="appointment-update-form-{{ appointment.id }}"
+                  data-cancel-subtitle="{{ appointment.student.get_full_name }}"
+                  data-cancel-message="Cancel the appointment on {{ appointment.date|date:'M d, Y' }} at {{ appointment.time|time:'g:i A' }}? This cannot be undone."
+                  data-confirm-subtitle="{{ appointment.student.get_full_name }}"
+                  data-confirm-message="Confirm the appointment on {{ appointment.date|date:'M d, Y' }} at {{ appointment.time|time:'g:i A' }}? The student will be notified this slot is reserved."
+                  onsubmit="return __jmcfiAppointmentUpdateSubmit(event, '{{ appointment.status }}')">
+              {% csrf_token %}
+              <div>
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                {% if appointment.status == 'cancelled' %}
+                  <input type="hidden" name="status" value="cancelled">
+                  <select id="status" disabled
+                          class="block w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 text-sm cursor-not-allowed">
+                    <option selected>Cancelled</option>
+                  </select>
+                  <p class="mt-1.5 text-xs text-gray-500">Cancelled appointments cannot be changed.</p>
+                {% else %}
+                  <select name="status" id="status" class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm">
+                    <option value="pending" {% if appointment.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="confirmed" {% if appointment.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                    <option value="completed" {% if appointment.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="cancelled" {% if appointment.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                  </select>
+                {% endif %}
+              </div>
+              <div>
+                <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                <textarea name="notes" id="notes" rows="4" class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm" placeholder="Add notes about the appointment...">{{ appointment.notes }}</textarea>
+              </div>
+              <div class="flex justify-end">
+                <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm transition-colors">
+                  <i class="fas fa-check"></i>Update
+                </button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
+      {% endif %}
     </div>
+
+    <div class="space-y-6">
+      {% if appointment.status != 'cancelled' %}
+      {# ── Quick Actions ── #}
+      <div class="bg-white rounded-card shadow-sm border border-gray-200">
+        <div class="px-5 py-4 border-b border-gray-100">
+          <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-bolt text-warning-500"></i>Quick Actions
+          </h3>
+        </div>
+        <div class="p-4 space-y-3">
+
+          {# ═══════════════════════════════════ #}
+          {# ── Doctor / Staff Actions ── #}
+          {# ═══════════════════════════════════ #}
+          {% if user.role in 'staff,doctor' and appointment.doctor == user %}
+
+            {# ── PENDING: Confirm ── #}
+            {% if appointment.status == 'pending' %}
+              {% include "appointments/partials/_confirm_appointment_action.html" with confirm_variant="card" %}
+            {% endif %}
+
+            {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
+              {% include "appointments/partials/_cancel_appointment_action.html" with cancel_variant="card" %}
+            {% endif %}
+
+            {# ── CONFIRMED: Create/Complete Record ── #}
+            {% if appointment.status == 'confirmed' %}
+              {% if appointment.appointment_type == 'dental' %}
+                {% if appointment.dental_records.exists %}
+                  <a href="{% url 'dental_records:dental_record_edit' appointment.dental_records.first.id %}"
+                     class="group w-full flex items-center gap-3 p-3 rounded-xl border border-success-200 bg-success-50/50 hover:bg-success-100 transition-all">
+                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-success-100 text-success-600 group-hover:bg-success-200 transition-colors flex-shrink-0">
+                      <i class="fas fa-tooth text-sm"></i>
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-gray-900">Complete Dental Record</p>
+                      <p class="text-xs text-gray-500 mt-0.5">Intake form submitted — fill clinical findings</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                  </a>
+                {% else %}
+                  <a href="{% url 'dental_records:dental_record_create' %}?patient={{ appointment.student.id }}&appointment={{ appointment.id }}"
+                     class="group w-full flex items-center gap-3 p-3 rounded-xl border border-success-200 bg-success-50/50 hover:bg-success-100 transition-all">
+                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-success-100 text-success-600 group-hover:bg-success-200 transition-colors flex-shrink-0">
+                      <i class="fas fa-plus text-sm"></i>
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-gray-900">Create Dental Record</p>
+                      <p class="text-xs text-gray-500 mt-0.5">Start clinical documentation for this visit</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                  </a>
+                {% endif %}
+              {% else %}
+                <a href="{% url 'medical_records:create_medical_record' appointment.id %}"
+                   class="group w-full flex items-center gap-3 p-3 rounded-xl border border-success-200 bg-success-50/50 hover:bg-success-100 transition-all">
+                  <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-success-100 text-success-600 group-hover:bg-success-200 transition-colors flex-shrink-0">
+                    <i class="fas fa-file-medical text-sm"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">Create Medical Record</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Document diagnosis, treatment, and prescriptions</p>
+                  </div>
+                  <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                </a>
+              {% endif %}
+            {% endif %}
+
+            {# ── COMPLETED: View Records + Book again ── #}
+            {% if appointment.status == 'completed' %}
+              {% if appointment.appointment_type == 'dental' and appointment.dental_records.exists %}
+                <a href="{% url 'dental_records:dental_record_detail' appointment.dental_records.first.id %}"
+                   class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-primary-200 hover:bg-primary-50/50 transition-all">
+                  <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50 text-primary-600 group-hover:bg-primary-100 transition-colors flex-shrink-0">
+                    <i class="fas fa-tooth text-sm"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">View Dental Record</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Review clinical findings and chart</p>
+                  </div>
+                  <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                </a>
+              {% endif %}
+              {% if appointment.medicalrecord_set.exists %}
+                <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}"
+                   class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-success-200 hover:bg-success-50/50 transition-all">
+                  <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-success-50 text-success-600 group-hover:bg-success-100 transition-colors flex-shrink-0">
+                    <i class="fas fa-file-medical text-sm"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">View Medical Record</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Diagnosis, treatment, and prescriptions</p>
+                  </div>
+                  <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                </a>
+              {% endif %}
+              {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
+                <a href="{% url 'appointments:schedule_for_student' %}?student={{ appointment.student.id }}"
+                   class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-primary-200 hover:bg-primary-50/50 transition-all">
+                  <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50 text-primary-600 group-hover:bg-primary-100 transition-colors flex-shrink-0">
+                    <i class="fas fa-calendar-plus text-sm"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">Book an Appointment Again</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Schedule a new visit for {{ appointment.student.get_full_name }}</p>
+                  </div>
+                  <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                </a>
+              {% endif %}
+            {% endif %}
+
+          {% endif %}
+
+          {% if user.role == 'admin' %}
+            {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
+              {% include "appointments/partials/_cancel_appointment_action.html" with cancel_variant="card" %}
+            {% endif %}
+          {% endif %}
+
+          {# ═══════════════════════════════════ #}
+          {# ── Student Actions ── #}
+          {# ═══════════════════════════════════ #}
+          {% if user.role == 'student' %}
+
+            {# ── PENDING: Cancel ── #}
+            {% if appointment.status == 'pending' %}
+              <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-warning-50 border border-warning-200 text-xs text-warning-700">
+                <i class="fas fa-clock"></i>
+                <span>Waiting for your doctor to confirm this appointment.</span>
+              </div>
+              {% include "appointments/partials/_cancel_appointment_action.html" with cancel_variant="card" %}
+            {% endif %}
+
+            {# ── CONFIRMED: Dental Intake ── #}
+            {% if appointment.status == 'confirmed' %}
+              <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-info-50 border border-info-200 text-xs text-info-700">
+                <i class="fas fa-circle-check"></i>
+                <span>Your appointment is confirmed. See you on {{ appointment.date|date:"M d" }}!</span>
+              </div>
+              {% if appointment.appointment_type == 'dental' %}
+                {% if not appointment.dental_records.exists %}
+                  <a href="{% url 'dental_records:student_dental_intake' appointment_id=appointment.id %}"
+                     class="group w-full flex items-center gap-3 p-3 rounded-xl border border-primary-200 bg-primary-50/50 hover:bg-primary-100 transition-all">
+                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-100 text-primary-600 group-hover:bg-primary-200 transition-colors flex-shrink-0">
+                      <i class="fas fa-file-pen text-sm"></i>
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-gray-900">Fill Dental Intake Form</p>
+                      <p class="text-xs text-gray-500 mt-0.5">Required before your dental appointment</p>
+                    </div>
+                    <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                  </a>
+                {% else %}
+                  <div class="flex items-center gap-3 p-3 rounded-xl bg-success-50 border border-success-200">
+                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-success-100 text-success-600 flex-shrink-0">
+                      <i class="fas fa-circle-check text-sm"></i>
+                    </span>
+                    <div class="min-w-0">
+                      <p class="text-sm font-semibold text-success-800">Intake Form Submitted</p>
+                      <p class="text-xs text-success-600 mt-0.5">You're all set for your appointment</p>
+                    </div>
+                  </div>
+                {% endif %}
+              {% endif %}
+            {% endif %}
+
+            {# ── COMPLETED: View Records + Feedback ── #}
+            {% if appointment.status == 'completed' %}
+              <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-success-50 border border-success-200 text-xs text-success-700">
+                <i class="fas fa-check-double"></i>
+                <span>This appointment has been completed.</span>
+              </div>
+              {% if appointment.appointment_type == 'dental' and appointment.dental_records.exists %}
+                <a href="{% url 'dental_records:dental_record_detail' appointment.dental_records.first.id %}"
+                   class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-info-200 hover:bg-info-50/50 transition-all">
+                  <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-info-50 text-info-600 group-hover:bg-info-100 transition-colors flex-shrink-0">
+                    <i class="fas fa-tooth text-sm"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">View Dental Record</p>
+                    <p class="text-xs text-gray-500 mt-0.5">See your dental exam results</p>
+                  </div>
+                  <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                </a>
+              {% endif %}
+              {% if appointment.medicalrecord_set.exists %}
+                <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}"
+                   class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-success-200 hover:bg-success-50/50 transition-all">
+                  <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-success-50 text-success-600 group-hover:bg-success-100 transition-colors flex-shrink-0">
+                    <i class="fas fa-file-medical text-sm"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">View Medical Record</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Diagnosis and treatment summary</p>
+                  </div>
+                  <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                </a>
+              {% endif %}
+              <a href="{% url 'feedback:submit_feedback_appointment' appointment.id %}"
+                 class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-primary-200 hover:bg-primary-50/50 transition-all">
+                <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50 text-primary-600 group-hover:bg-primary-100 transition-colors flex-shrink-0">
+                  <i class="fas fa-comment-dots text-sm"></i>
+                </span>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-gray-900">Submit Feedback</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Rate your experience and help us improve</p>
+                </div>
+                <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+              </a>
+              <a href="{% url 'appointments:schedule_appointment' %}"
+                 class="group w-full flex items-center gap-3 p-3 rounded-xl border border-primary-200 bg-primary-50/50 hover:bg-primary-100 transition-all">
+                <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-100 text-primary-600 group-hover:bg-primary-200 transition-colors flex-shrink-0">
+                  <i class="fas fa-calendar-plus text-sm"></i>
+                </span>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-gray-900">Book an Appointment Again</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Schedule a new visit with the clinic</p>
+                </div>
+                <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+              </a>
+            {% endif %}
+
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if user.role == 'staff' or user.role == 'doctor' %}
+        {% if appointment.student.student_profile %}
+          <div class="bg-white rounded-card shadow-sm border border-gray-200">
+            <div class="px-5 py-4 border-b border-gray-100">
+              <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+                <i class="fas fa-user text-primary-500"></i>Patient Information
+              </h3>
+            </div>
+            <div class="p-5">
+              <dl class="space-y-3 text-sm">
+                <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Student ID</dt><dd class="mt-0.5 text-gray-900">{{ appointment.student.student_profile.student_id }}</dd></div>
+                <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Blood Type</dt><dd class="mt-0.5 text-gray-900">{{ appointment.student.student_profile.blood_type|default:"Not specified" }}</dd></div>
+                <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Emergency Contact</dt><dd class="mt-0.5 text-gray-900">{{ appointment.student.student_profile.emergency_contact }}</dd></div>
+                <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Emergency Phone</dt><dd class="mt-0.5 text-gray-900">{{ appointment.student.student_profile.emergency_phone }}</dd></div>
+                {% if appointment.student.student_profile.allergies %}
+                  <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Allergies</dt><dd class="mt-0.5 text-danger-600">{{ appointment.student.student_profile.allergies }}</dd></div>
+                {% endif %}
+                {% if appointment.student.student_profile.medical_conditions %}
+                  <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Medical Conditions</dt><dd class="mt-0.5 text-warning-700">{{ appointment.student.student_profile.medical_conditions }}</dd></div>
+                {% endif %}
+              </dl>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+
+      {% if user.role == 'student' and appointment.doctor.staff_profile %}
+        <div class="bg-white rounded-card shadow-sm border border-gray-200">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-user-doctor text-primary-500"></i>Doctor Information
+            </h3>
+          </div>
+          <div class="p-5">
+            <dl class="space-y-3 text-sm">
+              <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Department</dt><dd class="mt-0.5 text-gray-900">{{ appointment.doctor.staff_profile.department }}</dd></div>
+              {% if appointment.doctor.staff_profile.specialization %}
+                <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Specialization</dt><dd class="mt-0.5 text-gray-900">{{ appointment.doctor.staff_profile.specialization }}</dd></div>
+              {% endif %}
+              <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Contact</dt><dd class="mt-0.5 text-gray-900">{{ appointment.doctor.staff_profile.phone }}</dd></div>
+            </dl>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
 </div>
-
-<script>
-function cancelAppointment() {
-    if (confirm('Are you sure you want to cancel this appointment?')) {
-        // Create a form to cancel the appointment
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `
-            {% csrf_token %}
-            <input type="hidden" name="status" value="cancelled">
-        `;
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-
-function confirmAppointment() {
-    if (confirm('Are you sure you want to confirm this appointment?')) {
-        // Create a form to confirm the appointment
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.innerHTML = `
-            {% csrf_token %}
-            <input type="hidden" name="status" value="confirmed">
-        `;
-        document.body.appendChild(form);
-        form.submit();
-    }
-}
-
-// Open follow-up scheduling modal
-function scheduleFollowUp(recordId, studentName) {
-    document.dispatchEvent(new CustomEvent('open-modal', {
-        bubbles: true,
-        detail: {
-            type: 'info',
-            title: 'Schedule Follow-up',
-            subtitle: studentName,
-            size: 'sm',
-            hxUrl: '/medical-records/' + recordId + '/schedule-follow-up/',
-            hasForm: true,
-            actionLabel: 'Schedule Follow-up'
-        }
-    }));
-}
-</script>
 {% endblock content %}

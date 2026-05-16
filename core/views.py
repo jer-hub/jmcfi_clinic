@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout, authenticate, login
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Q, F
@@ -48,7 +48,8 @@ from .profile_policy import (
 )
 from .utils import (
     get_user_profile, create_notification, paginate_queryset,
-    create_bulk_notifications, get_missing_profile_fields
+    create_bulk_notifications, get_missing_profile_fields, get_client_ip,
+    resolve_notification_url, student_display_name,
 )
 from .decorators import admin_required, role_required
 from .user_management_services import (
@@ -57,7 +58,7 @@ from .user_management_services import (
     soft_delete_user,
     toggle_user_status,
 )
-from .htmx_utils import htmx_add_trigger, htmx_add_toast, htmx_redirect
+from .htmx_utils import htmx_add_trigger, htmx_add_toast, htmx_redirect, is_htmx_request
 from appointments.models import Appointment
 from medical_records.models import MedicalRecord
 from dental_records.models import DentalRecord
@@ -73,11 +74,7 @@ auth_logger = logging.getLogger('security.auth')
 INVITE_TOKEN_TTL_HOURS = getattr(settings, 'USER_INVITE_TOKEN_TTL_HOURS', 72)
 
 
-def _get_client_ip(request):
-    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
-    if forwarded_for:
-        return forwarded_for.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR', 'unknown')
+_get_client_ip = get_client_ip
 
 
 def _admin_login_cache_key(request, email):
@@ -501,13 +498,18 @@ def notifications(request):
 
 
 @login_required
+@require_http_methods(['GET', 'POST'])
 def mark_notification_read(request, notification_id):
-    """Mark single notification as read"""
+    """Mark notification read (if needed) and redirect to its target page."""
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
-    notification.is_read = True
-    notification.save()
-    
-    return JsonResponse({'status': 'success'})
+    if not notification.is_read:
+        notification.is_read = True
+        notification.save(update_fields=['is_read'])
+
+    target = resolve_notification_url(notification) or reverse('core:notifications')
+    if is_htmx_request(request):
+        return htmx_redirect(target)
+    return redirect(target)
 
 
 @login_required
@@ -525,20 +527,18 @@ def mark_all_notifications_read(request):
 
 
 @login_required
+@require_http_methods(['POST'])
 def clear_all_notifications(request):
     """Delete all notifications for the current user"""
-    if request.method == 'POST':
-        notifications_qs = Notification.objects.filter(user=request.user).exclude(
-            transaction_type__in=MESSAGE_NOTIFICATION_TYPES
-        )
-        deleted_count = notifications_qs.count()
+    notifications_qs = Notification.objects.filter(user=request.user).exclude(
+        transaction_type__in=MESSAGE_NOTIFICATION_TYPES
+    )
+    if notifications_qs.exists():
         notifications_qs.delete()
-        return JsonResponse({
-            'status': 'success', 
-            'message': f'{deleted_count} notifications cleared',
-            'count': deleted_count
-        })
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+        messages.success(request, 'All notifications cleared.')
+    else:
+        messages.info(request, 'No notifications to clear.')
+    return redirect('core:notifications')
 
 
 @login_required
@@ -1243,7 +1243,10 @@ def user_management(request):
         'status_filter': status_filter,
         'search_query': search_query,
     }
-    
+
+    if is_htmx_request(request):
+        return render(request, 'core/user_management/_user_table_body.html', context)
+
     return render(request, 'core/user_management/user_list.html', context)
 
 
@@ -1309,13 +1312,12 @@ def user_create(request):
                     notification_type='general'
                 )
 
-            user_identifier = user.username or user.email
             if user.onboarding_status == User.ONBOARDING_STATUS.PENDING_ACTIVATION:
-                messages.success(request, f'User "{user_identifier}" created in pending activation state.')
+                messages.success(request, 'User created in pending activation state.')
                 if invite_link:
                     messages.info(request, f'Invite link: {invite_link}')
             else:
-                messages.success(request, f'User "{user_identifier}" created and activated successfully!')
+                messages.success(request, 'User created and activated successfully!')
             return redirect('core:user_detail', user_id=user.id)
         else:
             messages.error(request, 'Please correct the errors below.')
@@ -1335,39 +1337,32 @@ def user_create(request):
 def user_edit(request, user_id):
     """Edit an existing user"""
     user = get_object_or_404(User, id=user_id)
-    
-    # Prevent editing admin users
-    if user.role == 'admin':
-        messages.error(request, 'Cannot edit admin users.')
-        return redirect('core:user_detail', user_id=user.id)
-    
+    is_admin_user = user.role == 'admin'
+
     if request.method == 'POST':
         form = UserEditForm(request.POST, instance=user)
+        if is_admin_user:
+            form.fields['role'].disabled = True
+            form.fields['role'].choices = [('admin', 'Admin')]
+            form.fields['is_active'].disabled = True
         if form.is_valid():
             old_role = user.role
             user = form.save()
-            
-            # If role changed, handle profile migration
+
             if old_role != user.role:
                 if old_role == 'student' and user.role == 'staff':
-                    # Delete student profile and create staff profile
-                    try:
+                    if hasattr(user, 'student_profile'):
                         user.student_profile.delete()
-                    except:
-                        pass
                     if not hasattr(user, 'staff_profile'):
                         StaffProfile.objects.create(
                             user=user,
                             staff_id=f'TEMP_{user.id}',
                             phone='',
-                            department='Pending'
+                            department='Pending',
                         )
                 elif old_role == 'staff' and user.role == 'student':
-                    # Delete staff profile and create student profile
-                    try:
+                    if hasattr(user, 'staff_profile'):
                         user.staff_profile.delete()
-                    except:
-                        pass
                     if not hasattr(user, 'student_profile'):
                         StudentProfile.objects.create(
                             user=user,
@@ -1375,24 +1370,29 @@ def user_edit(request, user_id):
                             phone='',
                             emergency_contact='',
                             emergency_phone='',
-                            date_of_birth='2000-01-01'
+                            date_of_birth='2000-01-01',
                         )
-                
-                messages.info(request, f'User role changed from {old_role} to {user.role}. Please update their profile.')
-            
-            messages.success(request, f'User "{user.username}" updated successfully!')
+
+                messages.info(request, f'Role changed from {old_role} to {user.role}. Please update their profile.')
+
+            messages.success(request, 'User updated successfully!')
             return redirect('core:user_detail', user_id=user.id)
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
         form = UserEditForm(instance=user)
-    
+        if is_admin_user:
+            form.fields['role'].disabled = True
+            form.fields['role'].choices = [('admin', 'Admin')]
+            form.fields['is_active'].disabled = True
+
     context = {
         'form': form,
         'action': 'Edit',
         'viewed_user': user,
+        'is_admin_user': is_admin_user,
     }
-    
+
     return render(request, 'core/user_management/user_form.html', context)
 
 
@@ -1402,23 +1402,20 @@ def user_delete(request, user_id):
     """Soft-delete a user using the shared modal confirmation flow."""
     user = get_object_or_404(User, id=user_id)
     modal_template = 'core/user_management/_user_delete_modal.html'
-    
-    # Prevent deleting admin users
+
     if user.role == 'admin':
         messages.error(request, 'Cannot delete admin users.')
-        if request.headers.get('HX-Request') == 'true':
+        if is_htmx_request(request):
             return htmx_redirect(reverse('core:user_detail', kwargs={'user_id': user.id}))
         return redirect('core:user_detail', user_id=user.id)
-    
-    # Prevent deleting self
+
     if user.id == request.user.id:
         messages.error(request, 'Cannot delete your own account.')
-        if request.headers.get('HX-Request') == 'true':
+        if is_htmx_request(request):
             return htmx_redirect(reverse('core:user_detail', kwargs={'user_id': user.id}))
         return redirect('core:user_detail', user_id=user.id)
-    
+
     if request.method == 'POST':
-        username = user.username or user.email
         soft_delete_user(request=request, actor=request.user, target_user=user)
         create_notification(
             user=user,
@@ -1426,14 +1423,80 @@ def user_delete(request, user_id):
             message='Your account has been soft-deleted by an administrator. Please contact an administrator if you need to restore access.',
             notification_type='general',
         )
-        messages.success(request, f'User "{username}" has been soft-deleted.')
-        if request.headers.get('HX-Request') == 'true':
+        messages.success(request, 'User has been soft-deleted.')
+        if is_htmx_request(request):
             return htmx_redirect(reverse('core:user_management'))
         return redirect('core:user_management')
+
+    if is_htmx_request(request):
+        return render(request, modal_template, {'viewed_user': user})
+
+    return redirect('core:user_detail', user_id=user.id)
+
+
+@login_required
+@admin_required
+@require_http_methods(["POST"])
+def user_toggle_status(request, user_id):
+    """Toggle user active/inactive status"""
+    user = get_object_or_404(User, id=user_id)
+
+    if user.role == 'admin':
+        messages.error(request, 'Cannot deactivate admin users.')
+        if is_htmx_request(request):
+            response = render(request, 'partials/messages.html')
+            return htmx_add_toast(response, 'Cannot deactivate admin users.', 'error')
+        return redirect('core:user_detail', user_id=user.id)
+
+    if user.id == request.user.id:
+        messages.error(request, 'Cannot deactivate your own account.')
+        if is_htmx_request(request):
+            response = render(request, 'partials/messages.html')
+            return htmx_add_toast(response, 'Cannot deactivate your own account.', 'error')
+        return redirect('core:user_detail', user_id=user.id)
     
-    if request.headers.get('HX-Request') == 'true':
-        return render(request, modal_template, {
-            'viewed_user': user,
+    was_pending = toggle_user_status(request=request, actor=request.user, target_user=user)
+
+    from django.template.loader import render_to_string
+    status_html = render_to_string(
+        'core/user_management/_user_status_badge.html',
+        {'badge_user': user},
+        request=request,
+    )
+
+    status_message = (
+        'Account activated successfully.' if user.is_active
+        else 'Account deactivated successfully.'
+    )
+    messages.success(request, status_message)
+
+    create_notification(
+        user=user,
+        title='Account Activated' if user.is_active else 'Account Deactivated',
+        message=(
+            'Your account has been activated by an administrator.'
+            if user.is_active
+            else 'Your account has been deactivated. Please contact an administrator for more information.'
+        ),
+        notification_type='general',
+    )
+
+    if is_htmx_request(request):
+        response = render(request, 'partials/messages.html')
+        response = htmx_add_trigger(
+            response,
+            'updateStatus',
+            {'id': str(user.id), 'html': status_html},
+        )
+        response = htmx_add_trigger(response, 'refreshUserStats')
+        return htmx_add_toast(response, status_message)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        messages.get_messages(request).used = True
+        return JsonResponse({
+            'status': 'success',
+            'is_active': user.is_active,
+            'message': status_message,
         })
 
     return redirect('core:user_detail', user_id=user.id)
@@ -1441,83 +1504,7 @@ def user_delete(request, user_id):
 
 @login_required
 @admin_required
-def user_toggle_status(request, user_id):
-    """Toggle user active/inactive status"""
-    user = get_object_or_404(User, id=user_id)
-    
-    # Prevent deactivating admin users
-    if user.role == 'admin':
-        messages.error(request, 'Cannot deactivate admin users.')
-        if request.headers.get('HX-Request') == 'true':
-            response = render(request, 'partials/messages.html')
-            return htmx_add_toast(response, 'Cannot deactivate admin users.', 'error')
-        return redirect('core:user_detail', user_id=user.id)
-    
-    # Prevent deactivating self
-    if user.id == request.user.id:
-        messages.error(request, 'Cannot deactivate your own account.')
-        if request.headers.get('HX-Request') == 'true':
-            response = render(request, 'partials/messages.html')
-            return htmx_add_toast(response, 'Cannot deactivate your own account.', 'error')
-        return redirect('core:user_detail', user_id=user.id)
-    
-    was_pending = toggle_user_status(request=request, actor=request.user, target_user=user)
-
-    # Get fresh status text for HTMX updating
-    if user.onboarding_status == User.ONBOARDING_STATUS.PENDING_ACTIVATION:
-        status_html = '''<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">Pending Activation</span>'''
-    elif user.is_active:
-        status_html = '''<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>Active</span>'''
-    else:
-        status_html = '''<span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"></path></svg>Suspended</span>'''
-
-    if user.is_active:
-        status_message = 'Account activated successfully.'
-    else:
-        status_message = 'Account deactivated successfully.'
-    messages.success(request, status_message)
-    
-    # Create notification for the user
-    if user.is_active:
-        create_notification(
-            user=user,
-            title='Account Activated',
-            message='Your account has been activated by an administrator.',
-            notification_type='general'
-        )
-    else:
-        create_notification(
-            user=user,
-            title='Account Deactivated',
-            message='Your account has been deactivated. Please contact an administrator for more information.',
-            notification_type='general'
-        )
-    
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.headers.get('HX-Request') == 'true':
-        if request.headers.get('x-requested-with') == 'XMLHttpRequest' and not request.headers.get('HX-Request') == 'true':
-            messages.get_messages(request).used = True # Clear messages added in this request
-            return JsonResponse({
-                'status': 'success',
-                'is_active': user.is_active,
-                'message': status_message,
-            })
-        else:
-            response = render(request, 'partials/messages.html')
-            response = htmx_add_trigger(
-                response,
-                'updateStatus',
-                {
-                    'id': str(user.id),
-                    'html': status_html,
-                },
-            )
-            response = htmx_add_trigger(response, 'refreshUserStats')
-            return htmx_add_toast(response, status_message)
-    return redirect('core:user_detail', user_id=user.id)
-
-
-@login_required
-@admin_required
+@require_http_methods(["POST"])
 def user_resend_invite(request, user_id):
     """Generate a new invite link for a pending user account."""
     user = get_object_or_404(User, id=user_id)
@@ -1542,7 +1529,7 @@ def user_resend_invite(request, user_id):
         notification_type='general'
     )
 
-    messages.success(request, f'New invite link generated for "{user.email}".')
+    messages.success(request, 'New invite link generated.')
     messages.info(request, f'Invite link: {invite_link}')
     return redirect('core:user_detail', user_id=user.id)
 
@@ -1573,7 +1560,7 @@ def user_reset_password(request, user_id):
                 notification_type='general'
             )
             
-            messages.success(request, f'Password for "{user.username}" has been reset successfully.')
+            messages.success(request, 'Password has been reset successfully.')
             return redirect('core:user_detail', user_id=user.id)
         else:
             messages.error(request, 'Please correct the errors below.')
@@ -1592,30 +1579,63 @@ def user_reset_password(request, user_id):
 # Search Views
 # =====================
 
+
+def _student_name_field_q(term):
+    """Match a single token against student name, email, or ID fields."""
+    return (
+        Q(first_name__icontains=term)
+        | Q(last_name__icontains=term)
+        | Q(email__icontains=term)
+        | Q(student_profile__middle_name__icontains=term)
+        | Q(student_profile__student_id__icontains=term)
+    )
+
+
+def _student_search_q(query):
+    """Support single-field and multi-word full-name searches (e.g. \"Jane Doe\")."""
+    q = query.strip()
+    if not q:
+        return Q(pk__in=[])
+
+    whole_phrase = _student_name_field_q(q)
+    terms = [part for part in re.split(r'\s+', q) if part]
+    if len(terms) <= 1:
+        return whole_phrase
+
+    multi_word = Q()
+    for term in terms:
+        multi_word &= _student_name_field_q(term)
+    return whole_phrase | multi_word
+
+
 @login_required
-@role_required('doctor', 'admin')
+@role_required('staff', 'doctor', 'admin')
 def search_students(request):
     """
     AJAX endpoint to search for students by name or email.
-    Used in forms where a doctor/admin needs to select a student.
+    Used in forms where staff/doctors need to select a student.
     """
-    query = request.GET.get('q', '')
+    query = request.GET.get('q', '').strip()
     if len(query) < 2:
         return JsonResponse([], safe=False)
 
-    students = User.objects.filter(
-        Q(role='student') &
-        (Q(first_name__icontains=query) |
-         Q(last_name__icontains=query) |
-         Q(email__icontains=query))
-    )[:10]
+    students = (
+        User.objects.filter(Q(role='student') & _student_search_q(query))
+        .select_related('student_profile')
+        .distinct()[:10]
+    )
 
-    results = [
-        {
+    results = []
+    for student in students:
+        profile = getattr(student, 'student_profile', None)
+        name = student_display_name(student)
+        results.append({
             'id': student.id,
-            'name': student.get_full_name(),
-            'email': student.email
-        }
-        for student in students
-    ]
+            'name': name,
+            'text': name,
+            'email': student.email,
+            'student_id': getattr(profile, 'student_id', '') if profile else '',
+            'course': getattr(profile, 'course', '') if profile else '',
+            'year_level': getattr(profile, 'year_level', '') if profile else '',
+        })
     return JsonResponse(results, safe=False)

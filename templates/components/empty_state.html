@@ -1,0 +1,31 @@
+{% comment %}
+  Empty state.
+
+  Context:
+    icon         – FA icon (default "fa-inbox")
+    title        – heading (required)
+    description  – body text (optional)
+    action_label – CTA label (optional)
+    action_url   – CTA URL (optional)
+    action_icon  – CTA icon (default "fa-plus")
+
+  Example:
+    {% include "components/empty_state.html" with title="No appointments yet" description="Schedule one to get started" action_label="Schedule Appointment" action_url=create_url %}
+{% endcomment %}
+
+<div class="text-center py-12 px-4">
+  <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 text-gray-400 mb-4">
+    <i class="fas {{ icon|default:'fa-inbox' }} text-2xl"></i>
+  </span>
+  <h3 class="text-base font-semibold text-gray-900">{{ title }}</h3>
+  {% if description %}
+    <p class="mt-1 text-sm text-gray-500 max-w-md mx-auto">{{ description }}</p>
+  {% endif %}
+  {% if action_label and action_url %}
+    <a href="{{ action_url }}"
+       class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+      <i class="fas {{ action_icon|default:'fa-plus' }}"></i>
+      <span>{{ action_label }}</span>
+    </a>
+  {% endif %}
+</div>

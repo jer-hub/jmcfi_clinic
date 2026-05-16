@@ -1,0 +1,26 @@
+{% extends "core/base.html" %}
+{% comment %}
+  Generic create/edit form page layout.
+
+  Override blocks:
+    {% block page_title %}      – browser tab title
+    {% block subnav %}          – sub-navigation
+    {% block page_header %}     – page header
+    {% block form_open %}       – opening <form ...> tag (define your action/method/enctype here)
+    {% block form_body %}       – form sections (recommend components/forms/section.html)
+    {% block submit_bar %}      – submit/cancel bar (recommend components/forms/submit_bar.html)
+    {% block form_close %}      – closing </form>
+{% endcomment %}
+
+{% block title %}{% block page_title %}{% endblock %}{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  {% block subnav %}{% endblock %}
+  {% block page_header %}{% endblock %}
+  {% block form_open %}<form method="post" novalidate>{% csrf_token %}{% endblock %}
+    {% block form_body %}{% endblock %}
+    {% block submit_bar %}{% endblock %}
+  {% block form_close %}</form>{% endblock %}
+</div>
+{% endblock %}

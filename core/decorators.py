@@ -44,7 +44,7 @@ def role_required(*roles):
             if request.user.role not in roles:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({'success': False, 'error': f'Access denied. Required role(s): {", ".join(roles)}.'}, status=403)
-                messages.error(request, f'Access denied. This page requires one of the following roles: {", ".join(roles)}. Your current role is: {request.user.role}.')
+                messages.error(request, 'Access denied. You do not have permission to access this page.')
                 return redirect('core:dashboard')
             return view_func(request, *args, **kwargs)
         wrapped_view.required_roles = roles

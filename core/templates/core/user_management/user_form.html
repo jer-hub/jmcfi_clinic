@@ -3,23 +3,32 @@
 {% block title %}{{ action }} User - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% include 'core/_subnav.html' %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <nav class="mb-4 flex items-center gap-2 text-sm text-gray-500">
+            <a href="{% url 'core:user_management' %}" class="hover:text-primary-600 transition-colors">Users</a>
+            <i class="fas fa-chevron-right text-xs text-gray-400"></i>
+            {% if viewed_user %}
+            <a href="{% url 'core:user_detail' viewed_user.id %}" class="hover:text-primary-600 transition-colors">{{ viewed_user.get_full_name }}</a>
+            <i class="fas fa-chevron-right text-xs text-gray-400"></i>
+            {% endif %}
+            <span class="font-medium text-gray-900">{{ action }} User</span>
+        </nav>
 
-        <div class="bg-white rounded-lg shadow-lg">
-            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
-                <h2 class="text-2xl font-bold text-gray-900">{{ action }} User</h2>
-                <p class="mt-1 text-sm text-gray-600">{% if action == 'Create' %}Add a new user to the system{% else %}Update user information{% endif %}</p>
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{ action }} User</h1>
+                <p class="mt-1 text-sm text-gray-500">{% if action == 'Create' %}Add a new user to the system{% else %}Update user information{% endif %}</p>
             </div>
+        </div>
 
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
             <form method="POST" class="p-6 space-y-6">
                 {% csrf_token %}
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Username -->
                     <div>
-                        <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="{{ form.username.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             Username <span class="text-gray-400">(Optional)</span>
                         </label>
                         {{ form.username }}
@@ -30,7 +39,7 @@
 
                     <!-- Email -->
                     <div>
-                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             Email <span class="text-red-500">*</span>
                         </label>
                         {{ form.email }}
@@ -41,7 +50,7 @@
 
                     <!-- First Name -->
                     <div>
-                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="{{ form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             First Name <span class="text-red-500">*</span>
                         </label>
                         {{ form.first_name }}
@@ -52,7 +61,7 @@
 
                     <!-- Last Name -->
                     <div>
-                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="{{ form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             Last Name <span class="text-red-500">*</span>
                         </label>
                         {{ form.last_name }}
@@ -63,7 +72,7 @@
 
                     <!-- Role -->
                     <div>
-                        <label for="{{ form.role.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="{{ form.role.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             Role <span class="text-red-500">*</span>
                         </label>
                         {{ form.role }}
@@ -101,7 +110,6 @@
                         {% if form.is_active.errors %}
                             <p class="mt-1 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
                         {% endif %}
-                        <div class="hidden">{{ form.is_active }}</div>
                     </div>
                     {% endif %}
                 </div>
@@ -110,7 +118,7 @@
                 {% if action == 'Create' %}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-200">
                     <div>
-                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             Password <span class="text-red-500">*</span>
                         </label>
                         {{ form.password1 }}
@@ -121,7 +129,7 @@
                     </div>
 
                     <div>
-                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <label for="{{ form.password2.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
                             Confirm Password <span class="text-red-500">*</span>
                         </label>
                         {{ form.password2 }}
@@ -133,28 +141,30 @@
                 {% endif %}
 
                 <!-- Form Actions -->
-                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                    <a href="{% if viewed_user %}{% url 'core:user_detail' viewed_user.id %}{% else %}{% url 'core:user_management' %}{% endif %}" class="px-6 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
+                    <a href="{% if viewed_user %}{% url 'core:user_detail' viewed_user.id %}{% else %}{% url 'core:user_management' %}{% endif %}"
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium rounded-lg transition-colors">
                         Cancel
                     </a>
-                    <button type="submit" class="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors">
-                        {{ action }} User
+                    <button type="submit"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        {% if action == 'Edit' %}<i class="fas fa-check"></i> Save Changes{% else %}<i class="fas fa-plus"></i> {{ action }} User{% endif %}
                     </button>
                 </div>
             </form>
         </div>
 
         {% if action == 'Create' %}
-        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 class="text-sm font-medium text-blue-800 mb-2">📝 Note:</h3>
-            <ul class="text-sm text-blue-700 space-y-1">
-                <li>• A temporary profile will be created for the user</li>
-                <li>• Unchecked activation creates the user in pending activation state</li>
-                <li>• The user should complete their profile after first login</li>
-                <li>• A welcome notification will be sent to the user</li>
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <h3 class="text-sm font-medium text-blue-800 mb-2">
+                <i class="fas fa-circle-info mr-1"></i> Note
+            </h3>
+            <ul class="text-sm text-blue-700 space-y-1 ml-5 list-disc">
+                <li>A temporary profile will be created for the user</li>
+                <li>Unchecked activation creates the user in pending activation state</li>
+                <li>The user should complete their profile after first login</li>
+                <li>A welcome notification will be sent to the user</li>
             </ul>
         </div>
         {% endif %}
-    </div>
-</div>
 {% endblock content %}

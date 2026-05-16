@@ -1,0 +1,54 @@
+{% comment %}
+  Parameterized section sub-navigation.
+
+  When the active page is a sub-page (not the first/main item), this component
+  automatically renders breadcrumbs instead of the nav strip to avoid redundant
+  active links. Peer-level apps (pharmacy, analytics, health_forms_services)
+  opt out via `always_show_nav` and always show the full strip.
+
+  Context:
+    items – list of dicts:
+      {
+        label:  str (required),
+        url:    str (required),
+        icon:   str (e.g. "fa-list", optional),
+        active: bool (optional),
+        badge:  number/str (optional)
+      }
+    show_breadcrumbs – bool (auto-set by _enrich_context)
+    bc_parent        – the first/home item dict
+    bc_current       – the active sub-page item dict
+{% endcomment %}
+
+{% if show_breadcrumbs %}
+{# ── Breadcrumb mode ── #}
+{% include "components/breadcrumbs.html" with crumbs=bc_crumbs %}
+{% else %}
+{# ── Full nav strip ── #}
+<nav class="{{ nav_mb|default:'mb-6' }} bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
+  <ul class="flex items-center gap-1 px-2 py-2 min-w-max">
+    {% for item in items %}
+      {% with is_active=item.active %}
+      <li>
+        <a href="{{ item.url }}"
+           class="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap
+                  {% if is_active %}
+                  bg-primary-100 text-primary-700
+                  {% else %}
+                  text-gray-600 hover:bg-gray-50 hover:text-gray-900
+                  {% endif %}">
+          {% if item.icon %}<i class="fas {{ item.icon }} text-sm"></i>{% endif %}
+          <span>{{ item.label }}</span>
+          {% if item.badge or item.badge == 0 %}
+            <span class="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold
+                         {% if is_active %}bg-primary-200 text-primary-800{% else %}bg-gray-100 text-gray-600{% endif %}">
+              {{ item.badge }}
+            </span>
+          {% endif %}
+        </a>
+      </li>
+      {% endwith %}
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}

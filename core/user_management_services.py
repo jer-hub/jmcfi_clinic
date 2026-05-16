@@ -5,16 +5,12 @@ from document_request.models import DocumentRequest as CertificateRequest
 from medical_records.models import MedicalRecord
 
 from .models import AccountProvisioningAudit
-from .utils import get_user_profile
+from .utils import get_user_profile, get_client_ip
 
 User = get_user_model()
 
 
-def _get_client_ip(request):
-    forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
-    if forwarded_for:
-        return forwarded_for.split(',')[0].strip()
-    return request.META.get('REMOTE_ADDR', 'unknown')
+_get_client_ip = get_client_ip
 
 
 def get_user_management_stats():

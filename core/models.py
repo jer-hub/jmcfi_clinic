@@ -395,6 +395,13 @@ class Notification(models.Model):
             name = self.user.email or self.user.username
         return f"{name} - {self.title}"
 
+    def get_target_url(self):
+        from django.urls import reverse
+
+        from .utils import resolve_notification_url
+
+        return resolve_notification_url(self) or reverse('core:notifications')
+
 
 class UserInvite(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='invites')

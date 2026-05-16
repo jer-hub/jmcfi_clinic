@@ -872,6 +872,25 @@ class Prescription(models.Model):
     def get_full_name(self):
         return self.patient_name
 
+    def resolve_prescription_date(self):
+        """Best date for display/export when `date` was not stored."""
+        if self.date:
+            return self.date
+        if self.medical_record_id and getattr(self, 'medical_record', None):
+            return timezone.localtime(self.medical_record.created_at).date()
+        if self.created_at:
+            return timezone.localtime(self.created_at).date()
+        return timezone.localdate()
+
+    @property
+    def display_date(self):
+        return self.resolve_prescription_date()
+
+    def save(self, *args, **kwargs):
+        if not self.date:
+            self.date = self.resolve_prescription_date()
+        super().save(*args, **kwargs)
+
 
 class PrescriptionItem(models.Model):
     """Individual medication entry for a Prescription."""

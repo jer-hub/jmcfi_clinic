@@ -270,7 +270,7 @@
             <span class="field-label">GENDER:</span>
             <span class="field-value gender-field">{{ prescription.get_gender_display|default:"" }}</span>
             <span class="field-label">DATE:</span>
-            <span class="field-value date-field">{{ prescription.date|date:"m/d/Y"|default:"" }}</span>
+            <span class="field-value date-field">{{ prescription.display_date|date:"m/d/Y" }}</span>
             <br>
             <span class="field-label">ADDRESS:</span>
             <span class="field-value address-field">{{ prescription.address|default_if_none:"" }}</span>

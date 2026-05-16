@@ -1,322 +1,365 @@
-{% extends 'core/base.html' %}
-
-{% block title %}Prescription - {{ prescription.patient_name }} - JMCFI Clinic{% endblock %}
+{% extends 'health_forms_services/_base_detail.html' %}
+{% load form_tags %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8" x-data="prescriptionItems()">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% include 'health_forms_services/_subnav.html' %}
+<div class="min-h-screen bg-gray-50 py-4 sm:py-8" x-data="prescriptionItems()">
+  <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+    {% include 'health_forms_services/_subnav.html' %}
 
-        <!-- Header -->
-        <div class="mb-6">
-            <a href="{% url 'health_forms_services:prescription_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-                Back to Prescriptions
-            </a>
-        </div>
-
-        <!-- Status & Actions Bar -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6 flex flex-wrap items-center justify-between gap-4">
-            <div class="flex items-center space-x-4">
-                <span class="px-3 py-1 text-sm font-medium rounded-full
-                    {% if prescription.status == 'completed' %}bg-green-100 text-green-700
-                    {% elif prescription.status == 'rejected' %}bg-red-100 text-red-700
-                    {% else %}bg-yellow-100 text-yellow-700{% endif %}">
-                    {{ prescription.get_status_display }}
-                </span>
-                <span class="text-sm text-gray-500">
-                    Created {{ prescription.created_at|date:"M d, Y" }}
-                </span>
-                <span class="text-xs text-gray-400 font-mono">F-HSS-20-0004</span>
-            </div>
-            
-            <div class="flex items-center space-x-3">
-                {% if can_edit %}
-                <a href="{% url 'health_forms_services:edit_prescription' prescription.pk %}"
-                   class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm">
-                    Edit
-                </a>
-                {% endif %}
-
-                <a href="{% url 'health_forms_services:export_prescription_docx' prescription.pk %}" target="_blank" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm inline-flex items-center space-x-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                    <span>Print Prescription</span>
-                </a>
-            </div>
-        </div>
-
-        <div class="space-y-6">
-            <!-- Patient Information -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Patient Information</h2>
-                </div>
-                <div class="p-6">
-                    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                        <div>
-                            <dt class="text-gray-500">Patient Name</dt>
-                            <dd class="font-medium text-gray-900">{{ prescription.patient_name|default:"-" }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Age / Gender</dt>
-                            <dd class="font-medium text-gray-900">{{ prescription.age|default:"-" }} / {{ prescription.get_gender_display|default:"-" }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Date</dt>
-                            <dd class="font-medium text-gray-900">{{ prescription.date|date:"F d, Y"|default:"-" }}</dd>
-                        </div>
-                        <div class="sm:col-span-2 lg:col-span-3">
-                            <dt class="text-gray-500">Address</dt>
-                            <dd class="font-medium text-gray-900">{{ prescription.address|default:"-" }}</dd>
-                        </div>
-                    </dl>
-                </div>
-            </div>
-
-            <!-- Prescription Body -->
-            {% if prescription.prescription_body %}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Prescription Notes</h2>
-                </div>
-                <div class="p-6">
-                    <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ prescription.prescription_body }}</div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Medication Items -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
-                    <h2 class="text-lg font-semibold text-gray-900">Prescribed Medications</h2>
-                    {% if can_edit %}
-                    <button @click="showAddForm = !showAddForm"
-                            class="no-print px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 font-medium">
-                        <span x-text="showAddForm ? 'Cancel' : 'Add Medication'"></span>
-                    </button>
-                    {% endif %}
-                </div>
-
-                <!-- Add Item Form -->
-                {% if can_edit %}
-                <div x-show="showAddForm" x-transition class="p-6 border-b border-gray-200 bg-blue-50 no-print">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-4">New Medication</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Medication Name *</label>
-                            <input type="text" x-model="newItem.medication_name"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                   placeholder="Drug name / brand">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Dosage</label>
-                            <input type="text" x-model="newItem.dosage"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                   placeholder="e.g. 500mg">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
-                            <input type="text" x-model="newItem.frequency"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                   placeholder="e.g. 3x a day">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                            <input type="text" x-model="newItem.duration"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                   placeholder="e.g. 7 days">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                            <input type="text" x-model="newItem.quantity"
-                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                   placeholder="e.g. #21">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Instructions</label>
-                            <textarea x-model="newItem.instructions" rows="2"
-                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                                      placeholder="Special instructions..."></textarea>
-                        </div>
-                        <div class="md:col-span-2 flex justify-end">
-                            <button @click="addItem()" :disabled="saving"
-                                    class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm disabled:opacity-50">
-                                <span x-show="!saving">Save Medication</span>
-                                <span x-show="saving">Saving...</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Grouped Medication Cards -->
-                <div class="p-6">
-                    <template x-if="groupedItems.length === 0">
-                        <div class="text-center py-8 text-gray-500 text-sm">
-                            No medications prescribed yet. Click "Add Medication" to add one.
-                        </div>
-                    </template>
-
-                    <template x-for="(group, medName) in groupedItems" :key="medName">
-                        <div class="mb-4 last:mb-0 border border-gray-200 rounded-lg overflow-hidden">
-                            <!-- Medication Header -->
-                            <div class="flex items-center justify-between px-5 py-3 bg-gray-50 border-b border-gray-200">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-bold">
-                                        <span x-text="medName.charAt(0).toUpperCase()"></span>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-sm font-semibold text-gray-900" x-text="medName"></h3>
-                                        <p class="text-xs text-gray-500" x-text="group.length + ' item' + (group.length > 1 ? 's' : '')"></p>
-                                    </div>
-                                </div>
-                                {% if can_edit %}
-                                <button @click="deleteGroup(medName)"
-                                        class="text-red-500 hover:text-red-700 text-xs font-medium px-2 py-1 rounded hover:bg-red-50 transition-colors"
-                                        title="Delete all items with this medication">
-                                    Remove All
-                                </button>
-                                {% endif %}
-                            </div>
-
-                            <!-- Medication Details -->
-                            <div class="divide-y divide-gray-100">
-                                <template x-for="(item, idx) in group" :key="item.id">
-                                    <div class="px-5 py-3 hover:bg-gray-50 transition-colors">
-                                        <div class="flex items-start justify-between gap-4">
-                                            <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm">
-                                                <div>
-                                                    <span class="text-xs text-gray-400 block">Dosage</span>
-                                                    <span class="text-gray-800 font-medium" x-text="item.dosage || '—'"></span>
-                                                </div>
-                                                <div>
-                                                    <span class="text-xs text-gray-400 block">Frequency</span>
-                                                    <span class="text-gray-800" x-text="item.frequency || '—'"></span>
-                                                </div>
-                                                <div>
-                                                    <span class="text-xs text-gray-400 block">Duration</span>
-                                                    <span class="text-gray-800" x-text="item.duration || '—'"></span>
-                                                </div>
-                                                <div>
-                                                    <span class="text-xs text-gray-400 block">Quantity</span>
-                                                    <span class="text-gray-800" x-text="item.quantity || '—'"></span>
-                                                </div>
-                                            </div>
-                                            {% if can_edit %}
-                                            <button @click="deleteItem(item.id)"
-                                                    class="text-gray-400 hover:text-red-600 transition-colors flex-shrink-0 mt-1"
-                                                    title="Remove this item">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                                                </svg>
-                                            </button>
-                                            {% endif %}
-                                        </div>
-                                        <template x-if="item.instructions">
-                                            <div class="mt-2 text-sm text-gray-600 bg-gray-50 rounded px-3 py-2">
-                                                <span class="text-xs text-gray-400 block mb-0.5">Instructions</span>
-                                                <span x-text="item.instructions"></span>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </template>
-                            </div>
-                        </div>
-                    </template>
-                </div>
-            </div>
-
-            <!-- Physician Information -->
-            {% if prescription.physician_name or prescription.license_no %}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Physician Information</h2>
-                </div>
-                <div class="p-6">
-                    <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                        <div>
-                            <dt class="text-gray-500">Physician Name</dt>
-                            <dd class="font-medium text-gray-900">{{ prescription.physician_name|default:"-" }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">License No.</dt>
-                            <dd class="font-medium text-gray-900">{{ prescription.license_no|default:"-" }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">PTR No.</dt>
-                            <dd class="font-medium text-gray-900">{{ prescription.ptr_no|default:"-" }}</dd>
-                        </div>
-                    </dl>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Review Section -->
-            {% if can_review %}
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden no-print">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Review & Approve</h2>
-                </div>
-                <div class="p-6">
-                    {% if prescription.reviewed_by %}
-                    <div class="mb-4 p-3 bg-gray-50 rounded-lg text-sm">
-                        <p class="text-gray-600">
-                            Reviewed by <span class="font-medium text-gray-900">{{ prescription.reviewed_by.get_full_name }}</span>
-                            on {{ prescription.reviewed_at|date:"M d, Y h:i A" }}
-                        </p>
-                        {% if prescription.review_notes %}
-                            <p class="mt-2 text-gray-700">{{ prescription.review_notes }}</p>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-
-                    <form method="post" action="{% url 'health_forms_services:review_prescription' prescription.pk %}">
-                        {% csrf_token %}
-                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                                <select name="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
-                                    {% for value, label in prescription.Status.choices %}
-                                        <option value="{{ value }}" {% if prescription.status == value %}selected{% endif %}>{{ label }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="sm:col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
-                                <input type="text" name="review_notes" value="{{ prescription.review_notes }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
-                                       placeholder="Optional notes...">
-                            </div>
-                            <div class="flex items-end">
-                                <button type="submit"
-                                        class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm">
-                                    Update Status
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Delete Button -->
-            {% if can_edit and prescription.status == 'pending' or prescription.status == 'rejected' %}
-            <div class="flex justify-end no-print">
-                <form method="post" action="{% url 'health_forms_services:delete_prescription' prescription.pk %}"
-                      onsubmit="return confirm('Are you sure you want to delete this prescription?');">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 font-medium text-sm border border-red-200">
-                        Delete Prescription
-                    </button>
-                </form>
-            </div>
-            {% endif %}
-        </div>
+    {# ── Back link ── #}
+    <div class="mb-4">
+      <a href="{% url 'health_forms_services:prescription_list' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Back to Prescriptions
+      </a>
     </div>
+
+    {# ── Status & Actions Bar ── #}
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <span class="px-3 py-1 text-sm font-medium rounded-full
+          {% if form_obj.status == 'completed' %}bg-emerald-100 text-emerald-700
+          {% elif form_obj.status == 'rejected' %}bg-red-100 text-red-700
+          {% elif form_obj.status == 'incomplete' %}bg-amber-100 text-amber-700
+          {% else %}bg-amber-100 text-amber-700{% endif %}">
+          {{ form_obj.get_status_display }}
+        </span>
+        <span class="text-sm text-gray-500">
+          Created {{ form_obj.created_at|date:"M d, Y" }}
+        </span>
+        <span class="text-xs text-gray-400 font-mono">F-HSS-20-0004</span>
+        {% if form_obj.reviewed_at %}
+        <span class="text-sm text-gray-400 hidden xs:inline"> &middot; Reviewed {{ form_obj.reviewed_at|date:"M d, Y" }}</span>
+        {% endif %}
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        {% if can_edit and edit_url %}
+        <a href="{{ edit_url }}" class="flex-1 sm:flex-none text-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm">Edit</a>
+        {% endif %}
+        <a href="{% url 'health_forms_services:export_prescription_docx' form_obj.pk %}" target="_blank" class="flex-1 sm:flex-none text-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm inline-flex items-center justify-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+          Download .docx
+        </a>
+      </div>
+    </div>
+
+    {# ── Two-column layout ── #}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+      {# ── Main content ── #}
+      <div class="lg:col-span-2 space-y-4 sm:space-y-5">
+        {# ── Prescription Details ── #}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-900">Prescription Details</h2>
+          </div>
+          <div class="px-4 sm:px-6 py-3 sm:py-4">
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wider">Patient</dt>
+                <dd class="mt-1 text-gray-900 font-medium">{{ form_obj.patient_name|default:"—" }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wider">Physician</dt>
+                <dd class="mt-1 text-gray-900">{{ form_obj.physician_name|default:"—" }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wider">Date</dt>
+                <dd class="mt-1 text-gray-900">{{ form_obj.display_date|date:"F d, Y" }}</dd>
+              </div>
+              <div>
+                <dt class="text-xs font-medium text-gray-400 uppercase tracking-wider">Age / Gender</dt>
+                <dd class="mt-1 text-gray-900">{{ form_obj.age|default:"—" }} / {{ form_obj.get_gender_display|default:"—" }}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        {# ── Prescription Notes ── #}
+        {% if form_obj.prescription_body %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+            <h2 class="text-sm font-semibold text-gray-900">Prescription Notes</h2>
+          </div>
+          <div class="px-4 sm:px-6 py-3 sm:py-4">
+            <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ form_obj.prescription_body|strip_diagnosis_medications }}</div>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ═══════════════════════════════════════════════════════════════ #}
+        {# ── PRESCRIBED MEDICATIONS SECTION ── #}
+        {# ═══════════════════════════════════════════════════════════════ #}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          {# Medications Header #}
+          <div class="relative overflow-hidden">
+            <div class="absolute inset-0 bg-gradient-to-r from-primary-500/10 via-primary-400/5 to-transparent"></div>
+            <div class="relative px-4 sm:px-6 py-4 sm:py-5 flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-primary-600 text-white flex items-center justify-center shadow-sm flex-shrink-0">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                </div>
+                <div>
+                  <h2 class="text-base sm:text-lg font-bold text-gray-900">Prescribed Medications</h2>
+                  <p class="text-xs text-gray-500 mt-0.5">
+                    <span x-text="items.length"></span> item<span x-show="items.length !== 1">s</span> prescribed
+                  </p>
+                </div>
+              </div>
+              {% if can_edit %}
+              <button @click="showAddForm = !showAddForm"
+                      class="no-print inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 font-medium transition-colors shadow-sm">
+                <svg class="w-4 h-4" :class="{'rotate-45': showAddForm}" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="transition: transform 0.2s">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span x-text="showAddForm ? 'Cancel' : 'Add Medication'"></span>
+              </button>
+              {% endif %}
+            </div>
+          </div>
+
+          {# ── Add Item Form ── #}
+          {% if can_edit %}
+          <div x-show="showAddForm" x-transition class="p-4 sm:p-5 border-b border-gray-100 bg-blue-50/50 no-print">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              New Medication Entry
+            </h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div class="sm:col-span-2 lg:col-span-4">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Medication Name <span class="text-red-500">*</span></label>
+                <input type="text" x-model="newItem.medication_name"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none text-sm"
+                       placeholder="Drug name / brand">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Dosage</label>
+                <input type="text" x-model="newItem.dosage"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none text-sm"
+                       placeholder="e.g. 500mg">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
+                <input type="text" x-model="newItem.frequency"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none text-sm"
+                       placeholder="e.g. 3x a day">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Duration</label>
+                <input type="text" x-model="newItem.duration"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none text-sm"
+                       placeholder="e.g. 7 days">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Quantity</label>
+                <input type="text" x-model="newItem.quantity"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none text-sm"
+                       placeholder="e.g. #21">
+              </div>
+              <div class="sm:col-span-2 lg:col-span-4">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Instructions</label>
+                <textarea x-model="newItem.instructions" rows="2"
+                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none text-sm resize-none"
+                          placeholder="Special instructions..."></textarea>
+              </div>
+              <div class="sm:col-span-2 lg:col-span-4 flex justify-end">
+                <button @click="addItem()" :disabled="saving"
+                        class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm disabled:opacity-50 transition-colors">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                  </svg>
+                  <span x-show="!saving">Add to List</span>
+                  <span x-show="saving">Saving...</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {# ── Grouped Medication Cards ── #}
+          <div class="p-4 sm:p-5">
+            <template x-if="items.length === 0">
+              <div class="text-center py-10">
+                <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <p class="text-sm font-medium text-gray-500">No medications prescribed</p>
+                <p class="text-xs text-gray-400 mt-1">Click "Add" to prescribe a medication.</p>
+              </div>
+            </template>
+
+            <div class="space-y-3">
+              <template x-for="(group, medName) in groupedItems" :key="medName">
+                <div class="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                  {# Medication Group Header #}
+                  <div class="flex items-center gap-2.5 px-4 py-2.5 bg-gradient-to-r from-gray-50 to-white border-b border-gray-200">
+                    <div class="w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                      <span x-text="medName.charAt(0).toUpperCase()"></span>
+                    </div>
+                    <div>
+                      <h3 class="text-sm font-semibold text-gray-900 truncate" x-text="medName"></h3>
+                      <p class="text-xs text-gray-400" x-text="group.length + ' variant' + (group.length > 1 ? 's' : '')"></p>
+                    </div>
+                  </div>
+
+                  {# Medication Variants #}
+                  <div class="divide-y divide-gray-100">
+                    <template x-for="(item, idx) in group" :key="item.id">
+                      <div class="px-4 py-3 hover:bg-gray-50/50 transition-colors">
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-2 text-sm">
+                            <div>
+                              <span class="text-[10px] uppercase tracking-wider text-gray-400 font-medium block">Dosage</span>
+                              <span class="text-gray-800 font-medium" x-text="item.dosage || '—'"></span>
+                            </div>
+                            <div>
+                              <span class="text-[10px] uppercase tracking-wider text-gray-400 font-medium block">Frequency</span>
+                              <span class="text-gray-800" x-text="item.frequency || '—'"></span>
+                            </div>
+                            <div>
+                              <span class="text-[10px] uppercase tracking-wider text-gray-400 font-medium block">Duration</span>
+                              <span class="text-gray-800" x-text="item.duration || '—'"></span>
+                            </div>
+                            <div>
+                              <span class="text-[10px] uppercase tracking-wider text-gray-400 font-medium block">Quantity</span>
+                              <span class="text-gray-800 font-medium text-primary-700" x-text="item.quantity || '—'"></span>
+                            </div>
+                          </div>
+                          {% if can_edit %}
+                          <button @click="deleteItem(item.id)"
+                                  class="flex-shrink-0 p-1 text-gray-300 hover:text-red-500 transition-colors rounded hover:bg-red-50"
+                                  title="Remove this variant">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                          </button>
+                          {% endif %}
+                        </div>
+                        <template x-if="item.instructions">
+                          <div class="mt-2 flex gap-2 text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2 border border-gray-100">
+                            <svg class="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                            </svg>
+                            <span x-text="item.instructions"></span>
+                          </div>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# ── Sidebar ── #}
+      <div class="space-y-4 sm:space-y-5">
+        {% if can_review or form_obj.medical_record_id %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h3 class="text-sm font-semibold text-gray-700">Actions</h3>
+          </div>
+          <div class="p-5 space-y-2">
+            {% if form_obj.medical_record_id %}
+            <a href="{% url 'medical_records:medical_record_detail_page' form_obj.medical_record_id %}"
+               class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors">
+              <i class="fas fa-file-medical"></i>
+              View medical record
+            </a>
+            {% endif %}
+            {% if can_review %}
+            <button type="button"
+                    @click="$dispatch('open-modal', { type: 'success', title: 'Review Form', subtitle: 'Update status and optional notes', size: 'lg', embedFrom: '#hf-review-embed-{{ form_obj.pk }}', hasForm: true, actionLabel: 'Submit Review' })"
+                    class="w-full px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium text-sm transition-colors">
+              <i class="fas fa-check-circle mr-2"></i>Review Form
+            </button>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        {# ── Timeline ── #}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h3 class="text-sm font-semibold text-gray-700">Timeline</h3>
+          </div>
+          <div class="p-5 space-y-4">
+            <div class="flex gap-3">
+              <div class="flex flex-col items-center">
+                <div class="w-2 h-2 rounded-full bg-primary-500 mt-1.5"></div>
+                <div class="w-0.5 h-full bg-gray-200"></div>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">Created</p>
+                <p class="text-xs text-gray-500">{{ form_obj.created_at|date:"M d, Y H:i" }}</p>
+              </div>
+            </div>
+            {% if form_obj.reviewed_at %}
+            <div class="flex gap-3">
+              <div class="flex flex-col items-center">
+                <div class="w-2 h-2 rounded-full bg-emerald-500 mt-1.5"></div>
+                <div class="w-0.5 h-full bg-gray-200"></div>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">Reviewed</p>
+                <p class="text-xs text-gray-500">{{ form_obj.reviewed_at|date:"M d, Y H:i" }}</p>
+                {% if form_obj.reviewed_by %}
+                <p class="text-xs text-gray-400">by {{ form_obj.reviewed_by.get_full_name }}</p>
+                {% endif %}
+              </div>
+            </div>
+            {% endif %}
+            <div class="flex gap-3">
+              <div class="w-2 h-2 rounded-full bg-gray-400 mt-1.5"></div>
+              <div>
+                <p class="text-sm font-medium text-gray-900">Last Updated</p>
+                <p class="text-xs text-gray-500">{{ form_obj.updated_at|date:"M d, Y H:i" }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# ── Danger Zone — Delete ── #}
+        {% if can_delete and delete_url and form_obj.status in 'pending,rejected,incomplete' %}
+        <div class="bg-white rounded-xl border border-red-100 shadow-sm">
+          <div class="px-5 py-4 border-b border-red-100">
+            <h3 class="text-sm font-semibold text-red-600">Danger Zone</h3>
+          </div>
+          <div class="p-5">
+            <button type="button"
+                    @click="$dispatch('open-modal', { type: 'danger', title: 'Delete Form', size: 'sm', embedFrom: '#hf-delete-embed-{{ form_obj.pk }}', hasForm: true, actionLabel: 'Delete' })"
+                    class="w-full px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium text-sm transition-colors">
+              <i class="fas fa-trash-can mr-2"></i>Delete Form
+            </button>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 </div>
+
+{% if can_review and review_url_name %}
+<div id="hf-review-embed-{{ form_obj.pk }}" class="hidden" aria-hidden="true">
+  {% include 'health_forms_services/partials/_review_form_embed.html' %}
+</div>
+{% endif %}
+
+{% if can_delete and delete_url and form_obj.status in 'pending,rejected,incomplete' %}
+<div id="hf-delete-embed-{{ form_obj.pk }}" class="hidden" aria-hidden="true">
+  <form method="post" action="{{ delete_url }}" class="space-y-4">
+    {% csrf_token %}
+    <p class="text-sm text-gray-600 text-center sm:text-left">Are you sure you want to delete this prescription? This action cannot be undone.</p>
+  </form>
+</div>
+{% endif %}
 
 <script>
 function prescriptionItems() {
@@ -332,7 +375,7 @@ function prescriptionItems() {
             instructions: ''
         },
         items: [
-            {% for item in items %}
+            {% for item in form_obj.items.all %}
             {
                 id: {{ item.id }},
                 medication_name: '{{ item.medication_name|escapejs }}',
@@ -354,7 +397,6 @@ function prescriptionItems() {
                 }
                 groups[name].push(item);
             }
-            // Sort groups alphabetically by medication name
             const sorted = {};
             Object.keys(groups).sort().forEach(key => {
                 sorted[key] = groups[key];
@@ -378,7 +420,7 @@ function prescriptionItems() {
                 formData.append('instructions', this.newItem.instructions);
                 formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-                const response = await fetch('{% url "health_forms_services:add_prescription_item" prescription.pk %}', {
+                const response = await fetch('{% url "health_forms_services:add_prescription_item" form_obj.pk %}', {
                     method: 'POST',
                     body: formData
                 });
@@ -406,12 +448,12 @@ function prescriptionItems() {
         },
 
         async deleteItem(itemId) {
-            if (!confirm('Remove this medication item?')) return;
+            if (!confirm('Remove this medication variant?')) return;
             try {
                 const formData = new FormData();
                 formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
-                const deleteUrl = '{% url "health_forms_services:delete_prescription_item" prescription.pk 0 %}'.replace('/0/delete/', '/' + itemId + '/delete/');
+                const deleteUrl = '{% url "health_forms_services:delete_prescription_item" form_obj.pk 0 %}'.replace('/0/delete/', '/' + itemId + '/delete/');
                 const resp = await fetch(deleteUrl, {
                     method: 'POST',
                     body: formData
@@ -431,14 +473,13 @@ function prescriptionItems() {
             const groupItems = this.groupedItems[medicationName];
             if (!groupItems || groupItems.length === 0) return;
             const count = groupItems.length;
-            if (!confirm(`Remove all ${count} item${count > 1 ? 's' : ''} for "${medicationName}"?`)) return;
+            if (!confirm(`Remove all ${count} variant${count > 1 ? 's' : ''} of "${medicationName}"?`)) return;
 
-            // Delete items one by one
             for (const item of groupItems) {
                 try {
                     const formData = new FormData();
                     formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-                    const deleteUrl = '{% url "health_forms_services:delete_prescription_item" prescription.pk 0 %}'.replace('/0/delete/', '/' + item.id + '/delete/');
+                    const deleteUrl = '{% url "health_forms_services:delete_prescription_item" form_obj.pk 0 %}'.replace('/0/delete/', '/' + item.id + '/delete/');
                     await fetch(deleteUrl, {
                         method: 'POST',
                         body: formData
@@ -452,5 +493,4 @@ function prescriptionItems() {
     };
 }
 </script>
-
-{% endblock %}
+{% endblock content %}

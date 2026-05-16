@@ -2,7 +2,7 @@
 CBVs for Dental, Patient Chart, Prescription, Dental Services.
 """
 
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from .base import BaseFormListView, BaseFormDetailView, BaseFormEditView
@@ -23,7 +23,7 @@ from ..forms import (
 
 class DentalListView(BaseFormListView):
     model = DentalHealthForm
-    template_name = 'health_forms_services/dental_forms_list_new.html'
+    template_name = 'health_forms_services/dental_forms_list.html'
     detail_url_name = 'health_forms_services:dental_form_detail'
     edit_url_name = 'health_forms_services:edit_dental_form'
     create_url_name = 'health_forms_services:create_dental_form'
@@ -34,7 +34,7 @@ class DentalListView(BaseFormListView):
 
 class DentalDetailView(BaseFormDetailView):
     model = DentalHealthForm
-    template_name = 'health_forms_services/dental_form_detail_new.html'
+    template_name = 'health_forms_services/dental_form_detail.html'
     list_url_name = 'health_forms_services:dental_forms_list'
     edit_url_name = 'health_forms_services:edit_dental_form'
     export_url_name = 'health_forms_services:export_dental_form_docx'
@@ -95,7 +95,7 @@ class DentalDetailView(BaseFormDetailView):
 
 class DentalEditView(BaseFormEditView):
     model = DentalHealthForm
-    template_name = 'health_forms_services/edit_dental_form_new.html'
+    template_name = 'health_forms_services/edit_dental_form.html'
     detail_url_name = 'health_forms_services:dental_form_detail'
     form_class_map = {
         'personal': DentalHealthPersonalInfoForm,
@@ -125,7 +125,7 @@ class DentalEditView(BaseFormEditView):
 
 class PatientChartListView(BaseFormListView):
     model = PatientChart
-    template_name = 'health_forms_services/patient_chart_list_new.html'
+    template_name = 'health_forms_services/patient_chart_list.html'
     detail_url_name = 'health_forms_services:patient_chart_detail'
     edit_url_name = 'health_forms_services:edit_patient_chart'
     create_url_name = 'health_forms_services:create_patient_chart'
@@ -136,7 +136,7 @@ class PatientChartListView(BaseFormListView):
 
 class PatientChartDetailView(BaseFormDetailView):
     model = PatientChart
-    template_name = 'health_forms_services/patient_chart_detail_new.html'
+    template_name = 'health_forms_services/patient_chart_detail.html'
     list_url_name = 'health_forms_services:patient_chart_list'
     edit_url_name = 'health_forms_services:edit_patient_chart'
     review_url_name = 'health_forms_services:review_patient_chart'
@@ -180,7 +180,7 @@ class PatientChartDetailView(BaseFormDetailView):
 
 class PatientChartEditView(BaseFormEditView):
     model = PatientChart
-    template_name = 'health_forms_services/edit_patient_chart_new.html'
+    template_name = 'health_forms_services/edit_patient_chart.html'
     detail_url_name = 'health_forms_services:patient_chart_detail'
     form_class_map = {
         'personal': PatientChartPersonalInfoForm,
@@ -196,7 +196,7 @@ class PatientChartEditView(BaseFormEditView):
 
 class PrescriptionListView(BaseFormListView):
     model = Prescription
-    template_name = 'health_forms_services/prescription_list_new.html'
+    template_name = 'health_forms_services/prescription_list.html'
     detail_url_name = 'health_forms_services:prescription_detail'
     edit_url_name = 'health_forms_services:edit_prescription'
     create_url_name = 'health_forms_services:create_prescription'
@@ -207,7 +207,7 @@ class PrescriptionListView(BaseFormListView):
 
 class PrescriptionDetailView(BaseFormDetailView):
     model = Prescription
-    template_name = 'health_forms_services/prescription_detail_new.html'
+    template_name = 'health_forms_services/prescription_detail.html'
     list_url_name = 'health_forms_services:prescription_list'
     edit_url_name = 'health_forms_services:edit_prescription'
     review_url_name = 'health_forms_services:review_prescription'
@@ -218,14 +218,20 @@ class PrescriptionDetailView(BaseFormDetailView):
         return []
 
     def get_object(self):
-        obj = super().get_object()
+        qs = Prescription.objects.select_related('medical_record')
+        pk = self.kwargs.get('pk')
+        user = self.request.user
+        if user.role == 'student':
+            obj = get_object_or_404(qs, pk=pk, user=user)
+        else:
+            obj = get_object_or_404(qs, pk=pk)
         self._cached_obj = obj
         return obj
 
 
 class PrescriptionEditView(BaseFormEditView):
     model = Prescription
-    template_name = 'health_forms_services/edit_prescription_new.html'
+    template_name = 'health_forms_services/edit_prescription.html'
     detail_url_name = 'health_forms_services:prescription_detail'
     form_class_map = {
         'details': PrescriptionPatientForm,
@@ -271,7 +277,7 @@ class PrescriptionEditView(BaseFormEditView):
 
 class DentalServicesListView(BaseFormListView):
     model = DentalServicesRequest
-    template_name = 'health_forms_services/dental_services_list_new.html'
+    template_name = 'health_forms_services/dental_services_list.html'
     detail_url_name = 'health_forms_services:dental_services_detail'
     edit_url_name = 'health_forms_services:edit_dental_services'
     create_url_name = 'health_forms_services:create_dental_services'
@@ -282,7 +288,7 @@ class DentalServicesListView(BaseFormListView):
 
 class DentalServicesDetailView(BaseFormDetailView):
     model = DentalServicesRequest
-    template_name = 'health_forms_services/dental_services_detail_new.html'
+    template_name = 'health_forms_services/dental_services_detail.html'
     list_url_name = 'health_forms_services:dental_services_list'
     edit_url_name = 'health_forms_services:edit_dental_services'
     review_url_name = 'health_forms_services:review_dental_services'
@@ -327,7 +333,7 @@ class DentalServicesDetailView(BaseFormDetailView):
 
 class DentalServicesEditView(BaseFormEditView):
     model = DentalServicesRequest
-    template_name = 'health_forms_services/edit_dental_services_new.html'
+    template_name = 'health_forms_services/edit_dental_services.html'
     detail_url_name = 'health_forms_services:dental_services_detail'
     form_class_map = {
         'details': DentalServicesPersonalInfoForm,

@@ -1,0 +1,96 @@
+---
+description: UI consistency standards — Tailwind classes, color system, component patterns, spacing, icons, and layout conventions
+globs: "**/*.html"
+alwaysApply: false
+---
+
+# UI Consistency Standards
+
+## Color System
+
+Semantic ramps are configured in [`core/templates/core/base.html`](core/templates/core/base.html) (`tailwind.config`): `primary-*`, `success-*`, `warning-*`, `danger-*`, `info-*`, `muted-*`.
+
+| Use | Class |
+|-----|-------|
+| Primary buttons | `bg-primary-600 hover:bg-primary-700 text-white` |
+| Secondary buttons | `bg-white border border-gray-300 text-gray-700 hover:bg-gray-50` |
+| Danger buttons | `bg-danger-600 hover:bg-danger-700 text-white` (or legacy `bg-red-*`) |
+| Success indicators | `text-success-600`, `bg-success-50`, borders `border-success-*` |
+| Warning indicators | `text-warning-600`, `bg-warning-50` |
+| Error indicators | `text-danger-600`, `bg-danger-50` |
+| Active nav link | `text-primary-700 bg-primary-100` (`.nav-link.active`) |
+
+Prefer these tokens over literal hex classes in templates.
+
+## Reusable Components (`templates/components/`)
+
+All are included with context variables; primitives live under `templates/components/` except `modal.html`.
+
+| Include | Purpose |
+|---------|---------|
+| `{% include "components/page_header.html" with title="..." subtitle="..." icon="fa-..." %}` | Title row; optional `back_url`, `breadcrumbs`, `actions` |
+| `{% load app_subnav %}{% appointments_subnav %}` (per app tag) | App section nav — tags live in [`core/templatetags/app_subnav.py`](core/templatetags/app_subnav.py); each app `_subnav.html` loads the tag |
+| `{% include "components/sub_nav.html" with items=items %}` | Built-in primitive (used internally by inclusion tags) |
+| `{% include "components/empty_state.html" with icon="..." title="..." ... %}` | Empty lists |
+| `{% include "components/status_badge.html" with label="..." variant="success\|warning\|danger\|info\|primary\|muted" %}` | Status pills |
+| `{% include "components/stat_card.html" with ... %}` | Dashboard counters |
+| `{% include "components/card.html" with title="..." %}` | Wrapped content |
+| `{% include "components/data_table.html" with ... %}` | Table shells |
+| `{% include "components/pagination.html" with ... %}` | Paginator controls |
+| `{% include "components/breadcrumbs.html" with crumbs=breadcrumbs %}` | Trail |
+| `{% include "components/avatar.html" with ... %}` | Initials avatar |
+| `{% include "components/tab_bar.html" with items=... %}` | Tab strip |
+| `{% include "components/button.html" with ... %}` | Styled button/link |
+| `{% include "components/forms/field.html" with ... %}` | Unified field renderer |
+| `{% include "components/forms/section.html" with ... %}` | Section header + grid |
+| `{% include "components/forms/submit_bar.html" with ... %}` | Sticky actions |
+| `{% include "components/layouts/page_list.html" %}` (+ blocks) | List layout |
+| `{% include "components/layouts/page_detail.html" %}` (+ blocks) | Detail layout |
+| `{% include "components/layouts/page_form.html" %}` (+ blocks) | Form layout |
+
+Layouts extend `core/base.html` and expose blocks (`page_header`, `list`, …).
+
+## Alpine Modal (`components/modal.html`)
+
+Include once via `core/base.html`. Open from anywhere:
+
+```html
+<button type="button" @click="$dispatch('open-modal', {
+  type: 'danger',
+  title: 'Delete',
+  message: 'This cannot be undone.',
+  actionLabel: 'Delete',
+})">Delete</button>
+```
+
+- **Embedded form body**: put markup in a hidden container, then dispatch with `embedFrom: '#hidden-id'` and `hasForm: true` (used for health-form review/delete). The global `modalComponent` copies inner HTML server-side markup into the modal (`core/base.html`).
+- **Confirm callback**: optional `onConfirm` in `$dispatch('open-modal', { ... })`.
+
+Never use inline `display:none` + `onclick` pattern modals for new UI.
+
+## Toasts & Messages
+
+- Server: Django `messages` + [`templates/partials/messages.html`](templates/partials/messages.html) bridges to Alpine `user-toast` (`$dispatch('user-toast', …)` on init).
+- HTMX: [`core/htmx_utils.htmx_add_toast`](core/htmx_utils.py).
+- Avoid ad-hoc `showToast()` JavaScript in templates.
+
+## Icons
+
+Font Awesome **6** `<i class="fas fa-*">` for UI icons.
+
+## Forms
+
+Shared widget classes (`.form-input`, `.form-select`, `.form-textarea`, `.has-error`, …) are defined in [`static/css/form-elements.css`](static/css/form-elements.css); health form bases no longer duplicate inline `<style>` blocks.
+
+## Sub-navigation Convention
+
+Every app exposes `…/_subnav.html` that does `{% load app_subnav %}` and calls one inclusion tag (`appointments_subnav`, `analytics_subnav`, …). Messaging adds a short “Communication” label above its nav strip.
+
+### Phase 0 cleanup manifest (completed)
+
+Legacy duplicate templates removed from [`core/templates/core/`](core/templates/core/), duplicate `appointment_settings/edit_appointment_type_default`, unused document_request / dental / health_forms partials, merged `*_new.html` canonical health form pages, dropped legacy `health_forms_services/partials/interactive_dental_chart.html`, removed `health_forms_services/partials/_review_modal.html` in favor of the shared Alpine modal plus [`health_forms_services/partials/_review_form_embed.html`](health_forms_services/templates/health_forms_services/partials/_review_form_embed.html).
+
+## Known follow-ups
+
+- Tailwind CDN in `base.html` is acceptable for development; replace with a build pipeline before production traffic at scale.
+

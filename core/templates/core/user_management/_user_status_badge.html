@@ -1,0 +1,9 @@
+{% if badge_user.is_deleted %}
+  {% include "components/status_badge.html" with label="Deleted" variant="muted" icon="fa-ban" %}
+{% elif badge_user.onboarding_status == 'pending_activation' %}
+  {% include "components/status_badge.html" with label="Pending Activation" variant="warning" icon="fa-clock" %}
+{% elif badge_user.is_active %}
+  {% include "components/status_badge.html" with label="Active" variant="success" icon="fa-circle-check" %}
+{% else %}
+  {% include "components/status_badge.html" with label="Suspended" variant="danger" icon="fa-ban" %}
+{% endif %}

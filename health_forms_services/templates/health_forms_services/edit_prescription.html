@@ -1,87 +1,274 @@
-{% extends 'core/base.html' %}
-
-{% block title %}Edit Prescription - JMCFI Clinic{% endblock %}
+{# ── Prescription edit — extends shared _base_edit.html ── #}
+{% extends 'health_forms_services/_base_edit.html' %}
+{% load static %}
 
 {% block head %}
+{{ block.super }}
 <style>
-    .form-input, .form-textarea, .form-select {
-        width: 100%;
-        padding: 0.5rem 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-    }
-    .form-input:focus, .form-textarea:focus, .form-select:focus {
-        outline: none;
-        border-color: #a855f7;
-        box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
-    }
+  .prescription-item-row {
+    transition: all 0.2s;
+  }
+  .prescription-item-row:hover {
+    background-color: #f9fafb;
+  }
+  .prescription-item-row.removing {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  .prescription-item-row.adding {
+    animation: slideIn 0.25s ease-out;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .add-item-input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    width: 100%;
+    transition: border-color 0.15s;
+  }
+  .add-item-input:focus {
+    outline: none;
+    border-color: #a855f7;
+    box-shadow: 0 0 0 3px rgba(168,85,247,0.15);
+  }
+  .add-item-input::placeholder { color: #9ca3af; }
 </style>
-{% endblock %}
+{% endblock head %}
 
-{% block content %}
-<div class="min-h-screen bg-gray-50 py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% include 'health_forms_services/_subnav.html' %}
+{% block extra_tab_content %}
+{% if prescription_items is not None %}
+<div class="mt-6 bg-white rounded-xl border border-gray-100 shadow-sm">
+  <div class="px-4 sm:px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+      <svg class="w-4 h-4 text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      Prescription Items
+      {% if prescription_items %}
+      <span class="text-xs font-normal text-gray-400">({{ prescription_items|length }})</span>
+      {% endif %}
+    </h3>
+  </div>
 
-        <!-- Header -->
-        <div class="mb-6">
-            <a href="{% url 'health_forms_services:prescription_detail' prescription.pk %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium inline-flex items-center">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-                Back to Prescription Details
-            </a>
-            <h1 class="text-2xl font-bold text-gray-900 mt-2">Edit Prescription</h1>
-            <p class="text-gray-600 mt-1">{{ prescription.patient_name }} — F-HSS-20-0004</p>
+  <div class="p-4 sm:p-5">
+    {% if prescription_items %}
+    <div id="prescription-items-list" class="space-y-2 mb-4">
+      {% for item in prescription_items %}
+      <div id="item-{{ item.id }}" class="prescription-item-row flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-sm font-semibold text-gray-900">{{ item.medication_name }}</span>
+            {% if item.dosage %}<span class="text-xs bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-600">{{ item.dosage }}</span>{% endif %}
+            {% if item.frequency %}<span class="text-xs text-gray-500">{{ item.frequency }}</span>{% endif %}
+            {% if item.duration %}<span class="text-xs text-gray-500">{{ item.duration }}</span>{% endif %}
+            {% if item.quantity %}<span class="text-xs bg-primary-50 px-2 py-0.5 rounded text-primary-700 font-medium">{{ item.quantity }}</span>{% endif %}
+          </div>
+          {% if item.instructions %}
+          <p class="text-xs text-gray-500 mt-1">{{ item.instructions }}</p>
+          {% endif %}
         </div>
-
-        <form method="post">
-            {% csrf_token %}
-
-            <!-- Prescription Fields -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-                <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                    <h2 class="text-lg font-semibold text-gray-900">Prescription Details</h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {% for field in form %}
-                            {% if field.name == 'prescription_body' or field.name == 'address' %}
-                                <div class="md:col-span-3">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        {{ field.label }}{% if field.field.required %} *{% endif %}
-                                    </label>
-                                    {{ field }}
-                                    {% if field.help_text %}<p class="text-gray-500 text-xs mt-1">{{ field.help_text }}</p>{% endif %}
-                                    {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
-                                </div>
-                            {% else %}
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">
-                                        {{ field.label }}{% if field.field.required %} *{% endif %}
-                                    </label>
-                                    {{ field }}
-                                    {% if field.errors %}<p class="text-red-600 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
-                                </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Submit -->
-            <div class="flex justify-end gap-4">
-                <a href="{% url 'health_forms_services:prescription_detail' prescription.pk %}"
-                   class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
-                    Cancel
-                </a>
-                <button type="submit"
-                        class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium">
-                    Save Changes
-                </button>
-            </div>
-        </form>
+        <button type="button" onclick="deleteItem({{ item.id }})"
+                class="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Remove">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      {% endfor %}
     </div>
+    {% else %}
+    <div id="prescription-items-list" class="mb-4">
+      <div class="text-center py-6 text-sm text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+        <svg class="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        No prescription items yet. Add medications below.
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="border-t border-gray-100 pt-4">
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Add Medication</p>
+      <div id="add-item-form" class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-6 gap-2">
+          <div class="sm:col-span-2">
+            <input type="text" id="new-medication-name" placeholder="Medication name *" class="add-item-input" required>
+          </div>
+          <div><input type="text" id="new-dosage" placeholder="Dosage" class="add-item-input"></div>
+          <div><input type="text" id="new-frequency" placeholder="Frequency" class="add-item-input"></div>
+          <div><input type="text" id="new-duration" placeholder="Duration" class="add-item-input"></div>
+          <div><input type="text" id="new-quantity" placeholder="Qty" class="add-item-input"></div>
+        </div>
+        <div>
+          <textarea id="new-instructions" rows="1" placeholder="Special instructions (optional)" class="add-item-input resize-none"></textarea>
+        </div>
+        <div class="flex justify-end">
+          <button type="button" onclick="addItem()"
+                  class="inline-flex items-center gap-1.5 px-3 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Add Item
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-{% endblock %}
+
+<script>
+function getCookie(name) {
+  var cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    var cookies = document.cookie.split(';');
+    for (var i = 0; i < cookies.length; i++) {
+      var cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+function addItem() {
+  var name = document.getElementById('new-medication-name').value.trim();
+  if (!name) {
+    document.getElementById('new-medication-name').focus();
+    document.getElementById('new-medication-name').classList.add('border-red-400', 'bg-red-50');
+    setTimeout(function(){ document.getElementById('new-medication-name').classList.remove('border-red-400', 'bg-red-50'); }, 2000);
+    return;
+  }
+
+  var data = new URLSearchParams();
+  data.append('medication_name', name);
+  data.append('dosage', document.getElementById('new-dosage').value.trim());
+  data.append('frequency', document.getElementById('new-frequency').value.trim());
+  data.append('duration', document.getElementById('new-duration').value.trim());
+  data.append('quantity', document.getElementById('new-quantity').value.trim());
+  data.append('instructions', document.getElementById('new-instructions').value.trim());
+  data.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+  fetch('{% url "health_forms_services:add_prescription_item" form_obj.pk %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' },
+    body: data,
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if (data.success) {
+      var item = data.item;
+      var list = document.getElementById('prescription-items-list');
+      var empty = list.querySelector('.text-center.py-6');
+      if (empty) empty.remove();
+
+      var html = '<div id="item-' + item.id + '" class="prescription-item-row adding flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">';
+      html += '<div class="flex-1 min-w-0"><div class="flex items-center gap-2 flex-wrap">';
+      html += '<span class="text-sm font-semibold text-gray-900">' + escapeHtml(item.medication_name) + '</span>';
+      if (item.dosage) html += '<span class="text-xs bg-white px-2 py-0.5 rounded border border-gray-200 text-gray-600">' + escapeHtml(item.dosage) + '</span>';
+      if (item.frequency) html += '<span class="text-xs text-gray-500">' + escapeHtml(item.frequency) + '</span>';
+      if (item.duration) html += '<span class="text-xs text-gray-500">' + escapeHtml(item.duration) + '</span>';
+      if (item.quantity) html += '<span class="text-xs bg-primary-50 px-2 py-0.5 rounded text-primary-700 font-medium">' + escapeHtml(item.quantity) + '</span>';
+      html += '</div>';
+      if (item.instructions) html += '<p class="text-xs text-gray-500 mt-1">' + escapeHtml(item.instructions) + '</p>';
+      html += '</div>';
+      html += '<button type="button" onclick="deleteItem(' + item.id + ')" class="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Remove">';
+      html += '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+      html += '</button></div>';
+
+      list.insertAdjacentHTML('beforeend', html);
+      document.getElementById('new-medication-name').value = '';
+      document.getElementById('new-dosage').value = '';
+      document.getElementById('new-frequency').value = '';
+      document.getElementById('new-duration').value = '';
+      document.getElementById('new-quantity').value = '';
+      document.getElementById('new-instructions').value = '';
+      document.getElementById('new-medication-name').focus();
+    }
+  });
+}
+
+function deleteItem(itemId) {
+  var row = document.getElementById('item-' + itemId);
+  if (!row) return;
+  row.classList.add('removing');
+  setTimeout(function() {
+    fetch('{% url "health_forms_services:delete_prescription_item" pk=form_obj.pk item_id=0 %}'.replace('0', itemId), {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCookie('csrftoken'), 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.success) {
+        row.remove();
+        var list = document.getElementById('prescription-items-list');
+        if (list && list.children.length === 0) {
+          list.innerHTML = '<div class="text-center py-6 text-sm text-gray-400 bg-gray-50 rounded-lg border border-dashed border-gray-300">' +
+            '<svg class="w-8 h-8 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>' +
+            'No prescription items yet. Add medications below.</div>';
+        }
+      }
+    });
+  }, 200);
+}
+
+function escapeHtml(text) {
+  var div = document.createElement('div');
+  div.appendChild(document.createTextNode(text));
+  return div.innerHTML;
+}
+</script>
+{% endif %}
+{% endblock extra_tab_content %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const physicianSelect = document.querySelector('[data-physician-select]');
+  const nameInput = document.querySelector('[data-physician-name]');
+  const licenseInput = document.querySelector('[data-physician-license]');
+  const ptrInput = document.querySelector('[data-physician-ptr]');
+
+  if (physicianSelect) {
+    const doctorData = {};
+    physicianSelect.querySelectorAll('option').forEach(function(opt) {
+      if (opt.value) {
+        doctorData[opt.value] = {
+          name: opt.textContent.trim().replace(/^Dr\.\s*/, '').trim(),
+          license: opt.getAttribute('data-license') || '',
+          ptr: opt.getAttribute('data-ptr') || '',
+        };
+      }
+    });
+
+    function fillPhysician(userId) {
+      const data = doctorData[userId];
+      if (data) {
+        if (nameInput) nameInput.value = data.name;
+        if (licenseInput) licenseInput.value = data.license;
+        if (ptrInput) ptrInput.value = data.ptr;
+      } else {
+        if (nameInput) nameInput.value = '';
+        if (licenseInput) licenseInput.value = '';
+        if (ptrInput) ptrInput.value = '';
+      }
+    }
+
+    physicianSelect.addEventListener('change', function() {
+      fillPhysician(this.value);
+    });
+
+    if (physicianSelect.value) {
+      fillPhysician(physicianSelect.value);
+    }
+  }
+});
+</script>
+{% endblock scripts %}

@@ -1,16 +1,20 @@
 import json
 import re
-from datetime import datetime, time
-from zoneinfo import ZoneInfo
 
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, QueryDict
 from django.utils import timezone
+from urllib.parse import urlparse
+
+from core.htmx_utils import is_htmx_request
+from core.utils import student_display_name
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
+from django.db.models import Q
 
 from .models import MedicalRecord
 from core.models import Notification
@@ -20,32 +24,95 @@ from dental_records.models import DentalRecord
 from health_forms_services.models import Prescription
 from health_forms_services.forms import PrescriptionPatientForm
 from django.contrib.auth import get_user_model
+from django.test import RequestFactory
 
 
 User = get_user_model()
 
 
-def _build_prescription_initial(student, doctor=None):
-    initial = {
-        'date': timezone.now().date(),
-    }
+def _is_missed_pending_appointment(appointment) -> bool:
+    """True if appointment is still pending and its scheduled local date/time is in the past."""
+    if not appointment or appointment.status != 'pending':
+        return False
+    now = timezone.localtime()
+    if appointment.date < now.date():
+        return True
+    if appointment.date == now.date() and appointment.time < now.time():
+        return True
+    return False
+
+
+def _pending_missed_q():
+    """Q() on Appointment: pending and slot start has passed (local wall clock)."""
+    now = timezone.localtime()
+    return Q(status='pending') & (
+        Q(date__lt=now.date()) | Q(date=now.date(), time__lt=now.time())
+    )
+
+
+def _record_linked_pending_missed_q():
+    """Q() on MedicalRecord: linked appointment pending and slot start has passed."""
+    now = timezone.localtime()
+    return Q(appointment__status='pending') & (
+        Q(appointment__date__lt=now.date()) | Q(appointment__date=now.date(), appointment__time__lt=now.time())
+    )
+
+
+def _apply_physician_user_to_initial(initial, physician_user):
+    """Set prescription physician fields from a doctor user."""
+    if not physician_user or getattr(physician_user, 'role', None) != 'doctor':
+        return
+    initial['physician'] = physician_user.id
+    initial['physician_name'] = physician_user.get_full_name()
+    staff_profile = getattr(physician_user, 'staff_profile', None)
+    if staff_profile:
+        initial['license_no'] = staff_profile.license_number or ''
+        initial['ptr_no'] = staff_profile.ptr_no or ''
+
+
+def _build_prescription_initial(
+    student,
+    doctor=None,
+    acting_user=None,
+    appointment=None,
+):
+    """Build PrescriptionPatientForm initial data.
+
+    Prescription date defaults to the appointment date when present, else today.
+    Physician comes from the authenticated doctor or the assigned appointment doctor.
+    """
+    today = timezone.localdate()
+    prescription_date = appointment.date if appointment and appointment.date else today
+    initial = {'date': prescription_date}
 
     if not student:
+        prescribing = None
+        if acting_user and acting_user.role == 'doctor':
+            prescribing = acting_user
+        elif doctor and getattr(doctor, 'role', None) == 'doctor':
+            prescribing = doctor
+        if prescribing:
+            _apply_physician_user_to_initial(initial, prescribing)
         return initial
 
-    initial['patient_name'] = student.get_full_name()
+    initial.setdefault('patient_name', student_display_name(student))
 
     profile = getattr(student, 'student_profile', None)
     if profile and getattr(profile, 'date_of_birth', None):
-        today = timezone.localdate()
-        initial['age'] = today.year - profile.date_of_birth.year - ((today.month, today.day) < (profile.date_of_birth.month, profile.date_of_birth.day))
+        initial['age'] = today.year - profile.date_of_birth.year - (
+            (today.month, today.day) < (profile.date_of_birth.month, profile.date_of_birth.day)
+        )
 
     if profile and getattr(profile, 'gender', None):
         initial['gender'] = profile.gender
 
-    # Auto-select the physician if a doctor is provided
-    if doctor:
-        initial['physician'] = doctor.id
+    prescribing = None
+    if acting_user and acting_user.role == 'doctor':
+        prescribing = acting_user
+    elif doctor and getattr(doctor, 'role', None) == 'doctor':
+        prescribing = doctor
+    if prescribing:
+        _apply_physician_user_to_initial(initial, prescribing)
 
     return initial
 
@@ -73,28 +140,265 @@ def _collect_medication_entries(post_data):
     return entries or [{'name': '', 'dosage': '', 'frequency': '', 'duration': '', 'quantity': '', 'instructions': ''}]
 
 
-def _build_create_medical_record_context(request, *, appointment=None, student=None, prescription_form=None, is_direct_student_flow=False):
+def _form_state_from_request(request):
+    if request.method != 'POST':
+        return {}
+    return {
+        'blood_pressure': request.POST.get('blood_pressure', ''),
+        'temperature': request.POST.get('temperature', ''),
+        'heart_rate': request.POST.get('heart_rate', ''),
+        'weight': request.POST.get('weight', ''),
+        'treatment': request.POST.get('treatment', ''),
+        'lab_results': request.POST.get('lab_results', ''),
+    }
+
+
+def _parse_vital_signs_from_post(post):
+    """Return (vital_signs dict, None) on success, or (None, (field_key, message)) on failure.
+
+    field_key is 'heart_rate' or 'weight' for inline display.
+    """
+    vital_signs = {}
+
+    blood_pressure = post.get('blood_pressure', '').strip()
+    if blood_pressure:
+        vital_signs['blood_pressure'] = blood_pressure
+
+    temperature = post.get('temperature', '').strip()
+    if temperature:
+        vital_signs['temperature'] = temperature
+
+    heart_rate = post.get('heart_rate', '').strip()
+    if heart_rate:
+        try:
+            hr_value = int(heart_rate)
+            if 40 <= hr_value <= 200:
+                vital_signs['heart_rate'] = heart_rate
+            else:
+                return None, ('heart_rate', 'Heart rate must be between 40 and 200 bpm.')
+        except ValueError:
+            return None, ('heart_rate', 'Heart rate must be a valid number.')
+
+    weight = post.get('weight', '').strip()
+    if weight:
+        try:
+            weight_value = float(weight)
+            if 20.0 <= weight_value <= 300.0:
+                vital_signs['weight'] = weight
+            else:
+                return None, ('weight', 'Weight must be between 20 and 300 kg.')
+        except ValueError:
+            return None, ('weight', 'Weight must be a valid number.')
+
+    return vital_signs, None
+
+
+def _student_age_years(student):
+    profile = getattr(student, 'student_profile', None) if student else None
+    if not profile or not getattr(profile, 'date_of_birth', None):
+        return None
+    today = timezone.localdate()
+    dob = profile.date_of_birth
+    return today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+
+
+def _prescription_form_for_request(
+    request,
+    *,
+    student=None,
+    doctor=None,
+    acting_user=None,
+    appointment=None,
+):
+    """Build PrescriptionPatientForm; enrich POST so a new prescription can always be saved."""
+    initial = _build_prescription_initial(
+        student,
+        doctor=doctor,
+        acting_user=acting_user,
+        appointment=appointment,
+    )
+    if request.method != 'POST':
+        return PrescriptionPatientForm(initial=initial)
+
+    data = request.POST.copy()
+    if not data.get('date', '').strip():
+        fallback = initial.get('date') or timezone.localdate()
+        data['date'] = fallback.isoformat() if hasattr(fallback, 'isoformat') else str(fallback)
+    if student:
+        if not data.get('patient_name', '').strip():
+            data['patient_name'] = student_display_name(student)
+        profile = getattr(student, 'student_profile', None)
+        if profile:
+            if not data.get('gender'):
+                data['gender'] = profile.gender or ''
+            if not data.get('address', '').strip() and profile.address:
+                data['address'] = profile.address
+            if not data.get('age'):
+                age = _student_age_years(student)
+                if age is not None:
+                    data['age'] = str(age)
+    return PrescriptionPatientForm(data, initial=initial)
+
+
+def _build_create_medical_record_context(
+    request,
+    *,
+    appointment=None,
+    student=None,
+    prescription_form=None,
+    is_direct_student_flow=False,
+    vitals_errors=None,
+    lab_errors=None,
+):
+    if appointment and not student:
+        student = appointment.student
+
     if prescription_form is None:
-        doctor = appointment.doctor if appointment else None
-        prescription_form = PrescriptionPatientForm(initial=_build_prescription_initial(student or (appointment.student if appointment else None), doctor=doctor))
+        prescription_form = _prescription_form_for_request(
+            request,
+            student=student,
+            doctor=appointment.doctor if appointment else None,
+            acting_user=request.user,
+            appointment=appointment,
+        )
+
+    medication_entries = (
+        _collect_medication_entries(request.POST)
+        if request.method == 'POST'
+        else _collect_medication_entries({})
+    )
 
     context = {
         'appointment': appointment,
         'student': student,
+        'student_age': _student_age_years(student),
         'is_direct_student_flow': is_direct_student_flow,
         'prescription_form': prescription_form,
-        'form_state': {
-            'blood_pressure': request.POST.get('blood_pressure', '') if request.method == 'POST' else '',
-            'temperature': request.POST.get('temperature', '') if request.method == 'POST' else '',
-            'heart_rate': request.POST.get('heart_rate', '') if request.method == 'POST' else '',
-            'weight': request.POST.get('weight', '') if request.method == 'POST' else '',
-            'treatment': request.POST.get('treatment', '') if request.method == 'POST' else '',
-            'lab_results': request.POST.get('lab_results', '') if request.method == 'POST' else '',
-        },
-        'medication_entries_json': json.dumps(_collect_medication_entries(request.POST) if request.method == 'POST' else _collect_medication_entries({})),
+        'form_state': _form_state_from_request(request),
+        'medication_entries_json': json.dumps(medication_entries),
+        'vitals_errors': vitals_errors or {},
+        'lab_errors': lab_errors or {},
     }
 
     return context
+
+
+def _render_create_for_student(request, student, *, prescription_form=None, vitals_errors=None):
+    return render(
+        request,
+        'medical_records/create_medical_record_for_student.html',
+        _direct_student_create_context(
+            request, student, prescription_form=prescription_form, vitals_errors=vitals_errors
+        ),
+    )
+
+
+def _direct_student_create_context(request, student, *, prescription_form=None, vitals_errors=None):
+    """Context for create-for-student: always a fresh prescription (no linked rx reuse)."""
+    if prescription_form is None:
+        prescription_form = _prescription_form_for_request(
+            request,
+            student=student,
+            acting_user=request.user,
+        )
+    return _build_create_medical_record_context(
+        request,
+        student=student,
+        prescription_form=prescription_form,
+        is_direct_student_flow=True,
+        vitals_errors=vitals_errors,
+    )
+
+
+def _appointment_create_context(request, appointment, *, prescription_form=None, vitals_errors=None):
+    """Context for create-from-appointment."""
+    if prescription_form is None:
+        prescription_form = _prescription_form_for_request(
+            request,
+            student=appointment.student,
+            doctor=appointment.doctor,
+            acting_user=request.user,
+            appointment=appointment,
+        )
+    return _build_create_medical_record_context(
+        request,
+        appointment=appointment,
+        prescription_form=prescription_form,
+        vitals_errors=vitals_errors,
+    )
+
+
+def _render_create_from_appointment(request, appointment, *, prescription_form=None, vitals_errors=None):
+    return render(
+        request,
+        'medical_records/create_medical_record_from_appointment.html',
+        _appointment_create_context(
+            request, appointment, prescription_form=prescription_form, vitals_errors=vitals_errors
+        ),
+    )
+
+
+def _save_prescription_for_medical_record(request, prescription_form, medical_record):
+    """Create a new prescription linked to a new medical record.
+
+    Raises ValueError if the prescription cannot be created (rolls back the
+    surrounding atomic block).
+    """
+    from health_forms_services.models import PrescriptionItem
+
+    diagnosis_val = (
+        (prescription_form.data.get('diagnosis') or '').strip()
+        or medical_record.diagnosis
+        or ''
+    )
+    if not diagnosis_val:
+        raise ValueError('Diagnosis is required to create a prescription.')
+
+    if not prescription_form.is_valid():
+        raise ValueError(f'Invalid prescription data: {prescription_form.errors.as_json()}')
+
+    diagnosis_val = prescription_form.cleaned_data.get('diagnosis', '') or diagnosis_val
+    instructions_val = prescription_form.cleaned_data.get('instructions', '')
+    medications_val = request.POST.get('medications', '').strip()
+    body_parts = []
+    if diagnosis_val:
+        body_parts.append(f"Diagnosis:\n{diagnosis_val}")
+    if medications_val:
+        body_parts.append(f"Medications:\n{medications_val}")
+    if instructions_val:
+        body_parts.append(f"Instructions:\n{instructions_val}")
+    prescription_body = '\n\n'.join(body_parts)
+
+    prescription_obj = prescription_form.save(commit=False)
+    prescription_obj.user = request.user
+    prescription_obj.medical_record = medical_record
+    prescription_obj.status = Prescription.Status.COMPLETED
+    prescription_obj.prescription_body = prescription_body
+    if not prescription_obj.date:
+        prescription_obj.date = timezone.localdate()
+    prescription_obj.save()
+
+    med_item_pattern = re.compile(r'^med_item_(\d+)_name$')
+    med_indices = set()
+    for key in request.POST:
+        match = med_item_pattern.match(key)
+        if match:
+            med_indices.add(int(match.group(1)))
+
+    for idx in sorted(med_indices):
+        name = request.POST.get(f'med_item_{idx}_name', '').strip()
+        if name:
+            PrescriptionItem.objects.create(
+                prescription=prescription_obj,
+                medication_name=name,
+                dosage=request.POST.get(f'med_item_{idx}_dosage', '').strip(),
+                frequency=request.POST.get(f'med_item_{idx}_frequency', '').strip(),
+                duration=request.POST.get(f'med_item_{idx}_duration', '').strip(),
+                quantity=request.POST.get(f'med_item_{idx}_quantity', '').strip(),
+                instructions=request.POST.get(f'med_item_{idx}_instructions', '').strip(),
+            )
+
+    return prescription_obj
 
 
 def paginate_queryset(queryset, request, per_page=10):
@@ -112,37 +416,97 @@ def paginate_queryset(queryset, request, per_page=10):
     return paginated_items
 
 
-@login_required
-@role_required('student', 'staff', 'doctor')
-def medical_records(request):
-    """Display medical records based on user role"""
-    # Get records based on user role
-    if request.user.role == 'student':
-        records = MedicalRecord.objects.filter(student=request.user)
-        appointments = Appointment.objects.filter(student=request.user)
-    elif request.user.role in ['staff', 'doctor']:
-        records = MedicalRecord.objects.filter(doctor=request.user)
-        appointments = Appointment.objects.filter(doctor=request.user)
+def _effective_medical_list_get_params(request):
+    """Filters for list stat OOB: prefer HX-Current-URL query when HTMX POST comes from the list."""
+    raw = (request.headers.get('HX-Current-URL') or '').strip()
+    if raw:
+        q = urlparse(raw).query
+        if q:
+            return QueryDict(q)
+    return request.GET
+
+
+def _medical_list_request_for_params(original_request, get_params: QueryDict):
+    """Build a GET request carrying list filters (for pagination + table partial HTML)."""
+    rf = RequestFactory()
+    path = reverse('medical_records:medical_records')
+    list_req = rf.get(
+        path,
+        data=get_params.dict(),
+        HTTP_HOST=original_request.get_host(),
+        secure=original_request.is_secure(),
+    )
+    list_req.user = original_request.user
+    return list_req
+
+
+_MEDICAL_LIST_STATUS_KEYS = ('pending', 'missed', 'confirmed', 'completed', 'cancelled')
+
+
+def _effective_timeline_row_status(row) -> str:
+    """Display/filter status for a medical list timeline row."""
+    if row.get('missed_slot'):
+        return 'missed'
+    if row['row_type'] == 'record':
+        record = row['record']
+        return record.timeline_filter_status(missed_slot=bool(row.get('missed_slot')))
+    return row['appointment'].status
+
+
+def _medical_list_stat_filter_url(get_params: QueryDict, status_key: str) -> str:
+    """Toggle *status_key* in list query string; preserve other filters."""
+    q = get_params.copy()
+    current = (q.get('status') or '').strip()
+    if current == status_key:
+        q.pop('status', None)
+    else:
+        q['status'] = status_key
+    q.pop('page', None)
+    base = reverse('medical_records:medical_records')
+    encoded = q.urlencode()
+    return f'{base}?{encoded}' if encoded else base
+
+
+def _medical_list_stat_filter_urls(get_params: QueryDict) -> dict[str, str]:
+    return {key: _medical_list_stat_filter_url(get_params, key) for key in _MEDICAL_LIST_STATUS_KEYS}
+
+
+def _medical_list_querystring(get_params: QueryDict) -> str:
+    """Preserve active filters in HTMX pagination links (exclude page)."""
+    q = get_params.copy()
+    q.pop('page', None)
+    encoded = q.urlencode()
+    return f'&{encoded}' if encoded else ''
+
+
+def _build_unpaginated_medical_timeline(request_user, get_params):
+    """
+    Build timeline row dicts and status_totals (same rules as medical_records list), unpaginated.
+    get_params: QueryDict-like (.get).
+    """
+    if request_user.role == 'student':
+        records = MedicalRecord.objects.filter(student=request_user)
+        appointments = Appointment.objects.filter(student=request_user)
+    elif request_user.role in ['staff', 'doctor']:
+        records = MedicalRecord.objects.filter(doctor=request_user)
+        appointments = Appointment.objects.filter(doctor=request_user)
     else:
         records = MedicalRecord.objects.none()
         appointments = Appointment.objects.none()
-    
-    # Apply filters
-    status_filter = request.GET.get('status')
-    student_id = request.GET.get('student_id')
-    date_from = parse_date(request.GET.get('date_from')) if request.GET.get('date_from') else None
-    date_to = parse_date(request.GET.get('date_to')) if request.GET.get('date_to') else None
 
-    if status_filter == 'completed':
-        records = records.filter(appointment__status='completed')
-    elif status_filter == 'follow_up_required':
-        records = records.filter(follow_up_required=True).exclude(appointment__status='completed')
-    elif status_filter == 'monitoring':
-        records = records.exclude(appointment__status='completed').exclude(follow_up_required=True)
-    
-    if student_id and request.user.role in ['staff', 'doctor']:
-        records = records.filter(student__student_profile__student_id__icontains=student_id)
-        appointments = appointments.filter(student__student_profile__student_id__icontains=student_id)
+    status_filter = (get_params.get('status') or '').strip()
+    student_search = (get_params.get('student_id') or '').strip()
+    date_from = parse_date(get_params.get('date_from')) if get_params.get('date_from') else None
+    date_to = parse_date(get_params.get('date_to')) if get_params.get('date_to') else None
+
+    if student_search and request_user.role in ['staff', 'doctor']:
+        student_q = (
+            Q(student__first_name__icontains=student_search)
+            | Q(student__last_name__icontains=student_search)
+            | Q(student__student_profile__student_id__icontains=student_search)
+        )
+        records = records.filter(student_q)
+        appointments = appointments.filter(student_q)
     if date_from:
         records = records.filter(created_at__date__gte=date_from)
         appointments = appointments.filter(date__gte=date_from)
@@ -155,9 +519,14 @@ def medical_records(request):
         'confirmed': 0,
         'cancelled': 0,
         'pending': 0,
+        'missed': 0,
     }
-    
-    records = records.select_related('student', 'doctor', 'appointment').order_by('-created_at')
+
+    records = (
+        records.select_related('student', 'doctor', 'appointment')
+        .prefetch_related('prescription_record__items')
+        .order_by('-created_at')
+    )
     appointments = appointments.exclude(appointment_type='dental').exclude(
         medicalrecord__isnull=False
     ).select_related('student', 'doctor').order_by('-date', '-time')
@@ -165,7 +534,8 @@ def medical_records(request):
     timeline_rows = []
 
     for record in records:
-        record_status = record.appointment.status if record.appointment else 'pending'
+        missed_slot = _is_missed_pending_appointment(record.appointment) if record.appointment_id else False
+        record_status = record.timeline_filter_status(missed_slot=missed_slot)
         if record_status in status_totals:
             status_totals[record_status] += 1
 
@@ -174,10 +544,14 @@ def medical_records(request):
             'row_type': 'record',
             'record': record,
             'sort_datetime': local_created_at,
+            'missed_slot': missed_slot,
         })
 
     for appointment in appointments:
-        if appointment.status in status_totals:
+        missed_slot = _is_missed_pending_appointment(appointment)
+        if missed_slot:
+            status_totals['missed'] += 1
+        elif appointment.status in status_totals:
             status_totals[appointment.status] += 1
 
         local_created_at = timezone.localtime(appointment.created_at) if timezone.is_aware(appointment.created_at) else appointment.created_at
@@ -185,17 +559,43 @@ def medical_records(request):
             'row_type': 'appointment',
             'appointment': appointment,
             'sort_datetime': local_created_at,
+            'missed_slot': missed_slot,
         })
 
     timeline_rows.sort(key=lambda row: row['sort_datetime'], reverse=True)
+
+    if status_filter in _MEDICAL_LIST_STATUS_KEYS:
+        timeline_rows = [
+            row for row in timeline_rows
+            if _effective_timeline_row_status(row) == status_filter
+        ]
+
+    return timeline_rows, status_totals
+
+
+def _build_medical_list_page_context(request):
+    get_params = request.GET
+    timeline_rows, status_totals = _build_unpaginated_medical_timeline(request.user, get_params)
     records = paginate_queryset(timeline_rows, request)
-    
-    context = {
+    list_status = (get_params.get('status') or '').strip()
+    return {
         'records': records,
         'total_count': records.paginator.count if records else 0,
         'status_totals': status_totals,
+        'list_status': list_status,
+        'mr_filter_urls': _medical_list_stat_filter_urls(get_params),
+        'mr_stat_active': {key: list_status == key for key in _MEDICAL_LIST_STATUS_KEYS},
+        'mr_list_querystring': _medical_list_querystring(get_params),
     }
-    
+
+
+@login_required
+@role_required('student', 'staff', 'doctor')
+def medical_records(request):
+    """Display medical records based on user role"""
+    context = _build_medical_list_page_context(request)
+    if is_htmx_request(request):
+        return render(request, 'medical_records/_mr_list_filter_oob.html', context)
     return render(request, 'medical_records/medical_records.html', context)
 
 
@@ -203,8 +603,18 @@ def medical_records(request):
 @role_required('student', 'staff', 'doctor')
 def medical_record_detail_page(request, record_id):
     """View detailed medical record page - similar to dental record detail"""
-    record = get_object_or_404(MedicalRecord, id=record_id)
-    
+    record = get_object_or_404(
+        MedicalRecord.objects.select_related(
+            'student',
+            'student__student_profile',
+            'doctor',
+            'doctor__staff_profile',
+            'appointment',
+            'prescription_record',
+        ).prefetch_related('prescription_record__items'),
+        id=record_id,
+    )
+
     # Check permissions
     if request.user.role == 'student' and record.student != request.user:
         messages.error(request, 'Access denied')
@@ -212,11 +622,19 @@ def medical_record_detail_page(request, record_id):
     elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user:
         messages.error(request, 'Access denied')
         return redirect('medical_records:medical_records')
-    
+
+    bc_label = record.student.get_full_name()
+    bc_label += f' — {record.created_at.strftime("%b %d, %Y")}'
+
     context = {
         'record': record,
+        'title': f'Medical Record — {record.student.get_full_name()}',
+        'breadcrumbs': [
+            {'label': 'Medical Records', 'url': reverse('medical_records:medical_records')},
+            {'label': bc_label},
+        ],
     }
-    
+
     return render(request, 'medical_records/medical_record_detail.html', context)
 
 
@@ -308,16 +726,6 @@ def medical_record_detail(request, record_id):
             </div>
         </div>
         ''' if record.lab_results else ''}
-        
-        <div>
-            <h4 class="font-medium text-gray-900 mb-2">Follow-up</h4>
-            <div class="bg-gray-50 p-3 rounded-md">
-                {f'<p class="text-gray-800">Follow-up required on: {record.follow_up_date.strftime("%B %d, %Y")}</p>' if record.follow_up_required and record.follow_up_date else 
-                 '<p class="text-gray-800">Follow-up required: Yes</p>' if record.follow_up_required else 
-                 '<p class="text-gray-800">No follow-up required</p>'}
-            </div>
-        </div>
-        
         {f'''
         <div>
             <h4 class="font-medium text-gray-900 mb-2">Related Appointment</h4>
@@ -358,55 +766,35 @@ def create_medical_record(request, appointment_id):
         messages.warning(request, 'A dental record already exists for this appointment. Only one record per appointment is allowed.')
         return redirect('appointments:appointment_detail', appointment_id=appointment.id)
     
-    prescription_form = PrescriptionPatientForm(request.POST or None, initial=_build_prescription_initial(appointment.student, doctor=appointment.doctor))
+    prescription_form = _prescription_form_for_request(
+        request,
+        student=appointment.student,
+        doctor=appointment.doctor,
+        acting_user=request.user,
+    )
     
     if request.method == 'POST':
         diagnosis = request.POST.get('diagnosis', '').strip()
         treatment = request.POST.get('treatment', '').strip()
         lab_results = request.POST.get('lab_results', '').strip()
 
-        # Collect vital signs
-        vital_signs = {}
-        
-        blood_pressure = request.POST.get('blood_pressure', '').strip()
-        if blood_pressure:
-            vital_signs['blood_pressure'] = blood_pressure
-        
-        temperature = request.POST.get('temperature', '').strip()
-        if temperature:
-            vital_signs['temperature'] = temperature
-        
-        heart_rate = request.POST.get('heart_rate', '').strip()
-        if heart_rate:
-            try:
-                hr_value = int(heart_rate)
-                if 40 <= hr_value <= 200:
-                    vital_signs['heart_rate'] = heart_rate
-                else:
-                    messages.error(request, 'Heart rate must be between 40 and 200 bpm.')
-                    return render(request, 'medical_records/create_medical_record.html', _build_create_medical_record_context(request, appointment=appointment, prescription_form=prescription_form))
-            except ValueError:
-                messages.error(request, 'Heart rate must be a valid number.')
-                return render(request, 'medical_records/create_medical_record.html', _build_create_medical_record_context(request, appointment=appointment, prescription_form=prescription_form))
-        
-        weight = request.POST.get('weight', '').strip()
-        if weight:
-            try:
-                weight_value = float(weight)
-                if 20.0 <= weight_value <= 300.0:
-                    vital_signs['weight'] = weight
-                else:
-                    messages.error(request, 'Weight must be between 20 and 300 kg.')
-                    return render(request, 'medical_records/create_medical_record.html', _build_create_medical_record_context(request, appointment=appointment, prescription_form=prescription_form))
-            except ValueError:
-                messages.error(request, 'Weight must be a valid number.')
-                return render(request, 'medical_records/create_medical_record.html', _build_create_medical_record_context(request, appointment=appointment, prescription_form=prescription_form))
-        
-        # Validate required fields
-        if not diagnosis or not treatment:
-            messages.error(request, 'Diagnosis and treatment are required.')
-            return render(request, 'medical_records/create_medical_record.html', _build_create_medical_record_context(request, appointment=appointment, prescription_form=prescription_form))
-        
+        vital_signs, vital_err = _parse_vital_signs_from_post(request.POST)
+        if vital_err:
+            fk, msg = vital_err
+            return _render_create_from_appointment(
+                request,
+                appointment,
+                prescription_form=prescription_form,
+                vitals_errors={fk: msg},
+            )
+
+        if not diagnosis:
+            prescription_form.add_error('diagnosis', 'This field is required.')
+        if not treatment:
+            prescription_form.add_error(None, 'Treatment rendered is required.')
+        if prescription_form.errors:
+            return _render_create_from_appointment(request, appointment, prescription_form=prescription_form)
+
         try:
             with transaction.atomic():
                 locked_appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
@@ -430,51 +818,14 @@ def create_medical_record(request, appointment_id):
                     vital_signs=vital_signs,
                 )
 
-                # Create linked Prescription with structured medication data
-                if prescription_form.is_valid() and request.POST.get('diagnosis', '').strip():
-                    prescription_obj = prescription_form.save(commit=False)
-                    prescription_obj.user = request.user
-                    prescription_obj.medical_record = medical_record
-                    prescription_obj.status = Prescription.Status.COMPLETED
+                if request.POST.get('diagnosis', '').strip():
+                    _save_prescription_for_medical_record(
+                        request,
+                        prescription_form,
+                        medical_record,
+                    )
 
-                    # Build prescription_body from the structured medications
-                    diagnosis_val = prescription_form.cleaned_data.get('diagnosis', '')
-                    instructions_val = prescription_form.cleaned_data.get('instructions', '')
-                    medications_val = request.POST.get('medications', '').strip()
-                    body_parts = []
-                    if diagnosis_val:
-                        body_parts.append(f"Diagnosis:\n{diagnosis_val}")
-                    if medications_val:
-                        body_parts.append(f"Medications:\n{medications_val}")
-                    if instructions_val:
-                        body_parts.append(f"Instructions:\n{instructions_val}")
-                    prescription_obj.prescription_body = '\n\n'.join(body_parts)
-                    prescription_obj.save()
-
-                    # Create PrescriptionItem records from structured medication cards
-                    import re
-                    med_item_pattern = re.compile(r'^med_item_(\d+)_name$')
-                    med_indices = set()
-                    for key in request.POST:
-                        match = med_item_pattern.match(key)
-                        if match:
-                            med_indices.add(int(match.group(1)))
-
-                    from health_forms_services.models import PrescriptionItem
-                    for idx in sorted(med_indices):
-                        name = request.POST.get(f'med_item_{idx}_name', '').strip()
-                        if name:
-                            PrescriptionItem.objects.create(
-                                prescription=prescription_obj,
-                                medication_name=name,
-                                dosage=request.POST.get(f'med_item_{idx}_dosage', '').strip(),
-                                frequency=request.POST.get(f'med_item_{idx}_frequency', '').strip(),
-                                duration=request.POST.get(f'med_item_{idx}_duration', '').strip(),
-                                quantity=request.POST.get(f'med_item_{idx}_quantity', '').strip(),
-                                instructions=request.POST.get(f'med_item_{idx}_instructions', '').strip(),
-                            )
-
-                # Update appointment status
+                # Visit filed: appointment and record completed together
                 locked_appointment.status = 'completed'
                 locked_appointment.save(update_fields=['status', 'updated_at'])
             
@@ -493,9 +844,9 @@ def create_medical_record(request, appointment_id):
             
         except Exception:
             messages.error(request, 'An error occurred while creating the medical record. Please try again.')
-            return render(request, 'medical_records/create_medical_record.html', _build_create_medical_record_context(request, appointment=appointment, prescription_form=prescription_form))
-    
-    return render(request, 'medical_records/create_medical_record.html', _build_create_medical_record_context(request, appointment=appointment, prescription_form=prescription_form))
+            return _render_create_from_appointment(request, appointment, prescription_form=prescription_form)
+
+    return _render_create_from_appointment(request, appointment)
 
 
 @login_required
@@ -507,98 +858,33 @@ def create_medical_record_for_student(request):
         diagnosis = request.POST.get('diagnosis', '').strip()
         treatment = request.POST.get('treatment', '').strip()
         lab_results = request.POST.get('lab_results', '').strip()
-        follow_up = request.POST.get('follow_up_required') == 'on'
-        follow_up_date_str = request.POST.get('follow_up_date') if follow_up else None
-
         if not student_id:
             messages.error(request, 'Please select a student first.')
-            return render(
-                request,
-                'medical_records/create_medical_record.html',
-                _build_create_medical_record_context(request, student=None, is_direct_student_flow=True),
-            )
+            return _render_create_for_student(request, None)
 
         student = get_object_or_404(User, id=student_id, role='student')
-        prescription_form = PrescriptionPatientForm(request.POST or None, initial=_build_prescription_initial(student))
+        prescription_form = _prescription_form_for_request(
+            request,
+            student=student,
+            acting_user=request.user,
+        )
 
-        follow_up_date = None
-        if follow_up and follow_up_date_str:
-            try:
-                follow_up_date = datetime.strptime(follow_up_date_str, '%Y-%m-%d').date()
-                if follow_up_date <= timezone.now().date():
-                    messages.error(request, 'Follow-up date must be in the future.')
-                    return render(
-                        request,
-                        'medical_records/create_medical_record.html',
-                        _build_create_medical_record_context(request, student=student, prescription_form=prescription_form, is_direct_student_flow=True),
-                    )
-            except ValueError:
-                messages.error(request, 'Invalid follow-up date format.')
-                return render(
-                    request,
-                    'medical_records/create_medical_record.html',
-                    _build_create_medical_record_context(request, student=student, prescription_form=prescription_form, is_direct_student_flow=True),
-                )
-
-        vital_signs = {}
-
-        blood_pressure = request.POST.get('blood_pressure', '').strip()
-        if blood_pressure:
-            vital_signs['blood_pressure'] = blood_pressure
-
-        temperature = request.POST.get('temperature', '').strip()
-        if temperature:
-            vital_signs['temperature'] = temperature
-
-        heart_rate = request.POST.get('heart_rate', '').strip()
-        if heart_rate:
-            try:
-                hr_value = int(heart_rate)
-                if 40 <= hr_value <= 200:
-                    vital_signs['heart_rate'] = heart_rate
-                else:
-                    messages.error(request, 'Heart rate must be between 40 and 200 bpm.')
-                    return render(
-                        request,
-                        'medical_records/create_medical_record.html',
-                        _build_create_medical_record_context(request, student=student, prescription_form=prescription_form, is_direct_student_flow=True),
-                    )
-            except ValueError:
-                messages.error(request, 'Heart rate must be a valid number.')
-                return render(
-                    request,
-                    'medical_records/create_medical_record.html',
-                    _build_create_medical_record_context(request, student=student, prescription_form=prescription_form, is_direct_student_flow=True),
-                )
-
-        weight = request.POST.get('weight', '').strip()
-        if weight:
-            try:
-                weight_value = float(weight)
-                if 20.0 <= weight_value <= 300.0:
-                    vital_signs['weight'] = weight
-                else:
-                    messages.error(request, 'Weight must be between 20 and 300 kg.')
-                    return render(
-                        request,
-                        'medical_records/create_medical_record.html',
-                        _build_create_medical_record_context(request, student=student, prescription_form=prescription_form, is_direct_student_flow=True),
-                    )
-            except ValueError:
-                messages.error(request, 'Weight must be a valid number.')
-                return render(
-                    request,
-                    'medical_records/create_medical_record.html',
-                    _build_create_medical_record_context(request, student=student, prescription_form=prescription_form, is_direct_student_flow=True),
-                )
-
-        if not diagnosis or not treatment:
-            messages.error(request, 'Diagnosis and treatment are required.')
-            return render(
+        vital_signs, vital_err = _parse_vital_signs_from_post(request.POST)
+        if vital_err:
+            fk, msg = vital_err
+            return _render_create_for_student(
                 request,
-                'medical_records/create_medical_record.html',
-                _build_create_medical_record_context(request, student=student, prescription_form=prescription_form, is_direct_student_flow=True),
+                student,
+                prescription_form=prescription_form,
+                vitals_errors={fk: msg},
             )
+
+        if not diagnosis:
+            prescription_form.add_error('diagnosis', 'This field is required.')
+        if not treatment:
+            prescription_form.add_error(None, 'Treatment rendered is required.')
+        if prescription_form.errors:
+            return _render_create_for_student(request, student, prescription_form=prescription_form)
 
         try:
             with transaction.atomic():
@@ -610,53 +896,13 @@ def create_medical_record_for_student(request):
                     treatment=treatment,
                     lab_results=lab_results,
                     vital_signs=vital_signs,
-                    follow_up_required=follow_up,
-                    follow_up_date=follow_up_date,
                 )
 
-                # Create linked Prescription with structured medication data
-                if prescription_form.is_valid() and request.POST.get('diagnosis', '').strip():
-                    prescription_obj = prescription_form.save(commit=False)
-                    prescription_obj.user = request.user
-                    prescription_obj.medical_record = medical_record
-                    prescription_obj.status = Prescription.Status.COMPLETED
-
-                    # Build prescription_body from the structured medications
-                    diagnosis_val = prescription_form.cleaned_data.get('diagnosis', '')
-                    instructions_val = prescription_form.cleaned_data.get('instructions', '')
-                    medications_val = request.POST.get('medications', '').strip()
-                    body_parts = []
-                    if diagnosis_val:
-                        body_parts.append(f"Diagnosis:\n{diagnosis_val}")
-                    if medications_val:
-                        body_parts.append(f"Medications:\n{medications_val}")
-                    if instructions_val:
-                        body_parts.append(f"Instructions:\n{instructions_val}")
-                    prescription_obj.prescription_body = '\n\n'.join(body_parts)
-                    prescription_obj.save()
-
-                    # Create PrescriptionItem records from structured medication cards
-                    import re
-                    med_item_pattern = re.compile(r'^med_item_(\d+)_name$')
-                    med_indices = set()
-                    for key in request.POST:
-                        match = med_item_pattern.match(key)
-                        if match:
-                            med_indices.add(int(match.group(1)))
-
-                    from health_forms_services.models import PrescriptionItem
-                    for idx in sorted(med_indices):
-                        name = request.POST.get(f'med_item_{idx}_name', '').strip()
-                        if name:
-                            PrescriptionItem.objects.create(
-                                prescription=prescription_obj,
-                                medication_name=name,
-                                dosage=request.POST.get(f'med_item_{idx}_dosage', '').strip(),
-                                frequency=request.POST.get(f'med_item_{idx}_frequency', '').strip(),
-                                duration=request.POST.get(f'med_item_{idx}_duration', '').strip(),
-                                quantity=request.POST.get(f'med_item_{idx}_quantity', '').strip(),
-                                instructions=request.POST.get(f'med_item_{idx}_instructions', '').strip(),
-                            )
+                _save_prescription_for_medical_record(
+                    request,
+                    prescription_form,
+                    medical_record,
+                )
 
             Notification.objects.create(
                 user=student,
@@ -671,127 +917,11 @@ def create_medical_record_for_student(request):
             return redirect('medical_records:medical_record_detail_page', record_id=medical_record.id)
         except Exception:
             messages.error(request, 'An error occurred while creating the medical record. Please try again.')
-            return render(
-                request,
-                'medical_records/create_medical_record.html',
-                _build_create_medical_record_context(request, student=student, prescription_form=prescription_form, is_direct_student_flow=True),
-            )
+            return _render_create_for_student(request, student, prescription_form=prescription_form)
 
     selected_student = None
     student_id = request.GET.get('student')
     if student_id:
         selected_student = get_object_or_404(User, id=student_id, role='student')
 
-    prescription_form = PrescriptionPatientForm(initial=_build_prescription_initial(selected_student))
-    return render(request, 'medical_records/create_medical_record.html', _build_create_medical_record_context(request, student=selected_student, prescription_form=prescription_form, is_direct_student_flow=True))
-
-
-@login_required
-@role_required('staff', 'doctor')
-def schedule_follow_up(request, record_id):
-    """
-    HTMX view: returns a follow-up scheduling form for a medical record.
-    POST: creates a follow-up appointment for the student.
-    """
-    record = get_object_or_404(MedicalRecord, id=record_id, doctor=request.user)
-
-    def _inline_error(message):
-        return HttpResponse(
-            '<div class="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2">'
-            '<svg class="mt-0.5 h-4 w-4 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">'
-            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'
-            '</svg>'
-            f'<p class="text-sm text-red-700">{message}</p>'
-            '</div>'
-        )
-
-    if request.method == 'POST':
-        follow_up_date_str = request.POST.get('follow_up_date')
-        follow_up_time_str = request.POST.get('follow_up_time')
-        follow_up_reason = request.POST.get('follow_up_reason', '').strip()
-
-        if not follow_up_date_str or not follow_up_time_str:
-            return _inline_error('Date and time are required.')
-
-        try:
-            follow_up_date = datetime.strptime(follow_up_date_str, '%Y-%m-%d').date()
-            follow_up_time = datetime.strptime(follow_up_time_str, '%H:%M').time()
-
-            if follow_up_date <= timezone.now().date():
-                return _inline_error('Follow-up date must be in the future.')
-
-            # Check for doctor schedule conflict
-            from appointments.models import Appointment
-            conflict = Appointment.objects.filter(
-                doctor=request.user,
-                date=follow_up_date,
-                time=follow_up_time,
-                status__in=['pending', 'confirmed'],
-            ).exists()
-            if conflict:
-                return _inline_error('You already have an appointment scheduled at this date and time. Please choose a different time slot.')
-
-            # Check for student schedule conflict
-            student_conflict = Appointment.objects.filter(
-                student=record.student,
-                date=follow_up_date,
-                time=follow_up_time,
-                status__in=['pending', 'confirmed'],
-            ).exists()
-            if student_conflict:
-                return _inline_error('The student already has an appointment scheduled at this date and time. Please choose a different time slot.')
-
-            if not follow_up_reason:
-                follow_up_reason = f'Follow-up for {record.diagnosis[:50]}'
-
-            # Create follow-up appointment
-            appointment_type = record.appointment.appointment_type if record.appointment else 'consultation'
-            followup_appointment = Appointment.objects.create(
-                student=record.student,
-                doctor=request.user,
-                appointment_type=appointment_type,
-                date=follow_up_date,
-                time=follow_up_time,
-                reason=follow_up_reason,
-                status='confirmed',
-            )
-
-            # Update record to mark follow-up as required
-            record.follow_up_required = True
-            record.follow_up_date = follow_up_date
-            record.save(update_fields=['follow_up_required', 'follow_up_date'])
-
-            # Notify student
-            Notification.objects.create(
-                user=record.student,
-                title='Follow-up Appointment Scheduled',
-                message=f'A follow-up appointment has been scheduled for {follow_up_date.strftime("%B %d, %Y")} at {follow_up_time.strftime("%I:%M %p")}',
-                notification_type='appointment',
-                transaction_type='appointment_created',
-                related_id=followup_appointment.id,
-            )
-
-            # Return a response that closes the modal and refreshes the page
-            response = HttpResponse(
-                '<div class="text-center py-4">'
-                '<div class="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-lg mb-4">'
-                '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">'
-                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>'
-                '</svg>'
-                '<p class="text-sm text-green-800">Follow-up appointment scheduled successfully!</p>'
-                '</div>'
-                '</div>'
-            )
-            response['HX-Trigger'] = '{"close-modal": "", "refresh-list": ""}'
-            return response
-
-        except ValueError:
-            return _inline_error('Invalid date or time format.')
-
-    # GET: return the form HTML
-    from django.template.loader import render_to_string
-    html = render_to_string('medical_records/_follow_up_form.html', {
-        'min_date': timezone.now().date().isoformat(),
-        'post_url': request.path,
-    }, request=request)
-    return HttpResponse(html)
+    return _render_create_for_student(request, selected_student)

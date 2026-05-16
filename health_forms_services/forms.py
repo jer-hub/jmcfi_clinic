@@ -805,7 +805,7 @@ class PrescriptionPatientForm(forms.ModelForm):
         required=False,
         label='Select Physician',
         widget=DoctorSelectWidget(attrs={
-            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors appearance-none',
+            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors appearance-none',
             'data-physician-select': 'true',
             'x-ref': 'physicianSelect',
             '@change': 'syncPhysician()',
@@ -816,7 +816,7 @@ class PrescriptionPatientForm(forms.ModelForm):
         required=False,
         label='Diagnosis / Impression',
         widget=forms.Textarea(attrs={
-            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[80px]',
+            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[80px]',
             'rows': 3,
             'placeholder': 'e.g., Acute tonsillitis, URI, Hypertension...',
         }),
@@ -825,7 +825,7 @@ class PrescriptionPatientForm(forms.ModelForm):
         required=False,
         label='Medications / Treatment',
         widget=forms.Textarea(attrs={
-            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[80px]',
+            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[80px]',
             'rows': 6,
             'placeholder': 'Medication name, dosage, frequency, duration...',
         }),
@@ -834,7 +834,7 @@ class PrescriptionPatientForm(forms.ModelForm):
         required=False,
         label='Special Instructions',
         widget=forms.Textarea(attrs={
-            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[80px]',
+            'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[80px]',
             'rows': 3,
             'placeholder': 'e.g., Take with food, avoid alcohol, follow-up in 1 week...',
         }),
@@ -849,21 +849,21 @@ class PrescriptionPatientForm(forms.ModelForm):
         ]
         widgets = {
             'patient_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors',
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors',
                 'placeholder': 'Full name of the patient',
             }),
             'age': forms.NumberInput(attrs={
-                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors',
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors',
             }),
             'gender': forms.Select(attrs={
-                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors appearance-none',
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors appearance-none',
             }),
             'address': forms.Textarea(attrs={
-                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[60px]',
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors resize-y min-h-[60px]',
                 'rows': 2,
             }),
             'date': forms.DateInput(attrs={
-                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors',
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors',
                 'type': 'date',
             }),
             'prescription_body': forms.HiddenInput(attrs={'id': 'id_prescription_body_hidden'}),
@@ -872,13 +872,13 @@ class PrescriptionPatientForm(forms.ModelForm):
                 'x-model': 'physicianName',
             }),
             'license_no': forms.TextInput(attrs={
-                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors bg-gray-50 cursor-default',
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors bg-gray-50 cursor-default',
                 'placeholder': 'Auto-filled from selected physician',
                 'data-physician-license': 'true', 'readonly': True,
                 'x-model': 'physicianLicense',
             }),
             'ptr_no': forms.TextInput(attrs={
-                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 focus:outline-none hover:border-gray-400 transition-colors bg-gray-50 cursor-default',
+                'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors bg-gray-50 cursor-default',
                 'placeholder': 'Auto-filled from selected physician',
                 'data-physician-ptr': 'true', 'readonly': True,
                 'x-model': 'physicianPtr',

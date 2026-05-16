@@ -3,38 +3,26 @@
 {% block title %}Appointment Type Settings{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 pt-0 pb-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% include 'appointments/_subnav.html' %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    {% include 'appointments/_subnav.html' %}
 
-        <!-- Header -->
-        <div class="mb-6">
-            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Appointment Type Settings</h1>
-            <p class="mt-2 text-sm text-gray-600">Assign doctors to each appointment type. Students will only see the assigned doctors when booking.</p>
+    {% include "components/page_header.html" with title="Appointment Type Settings" subtitle="Assign doctors to each appointment type. Students only see assigned doctors when booking." icon="fa-sliders" %}
+
+    <div class="mb-6 bg-info-50 border border-info-200 rounded-card p-4">
+        <div class="flex gap-3">
+            <i class="fas fa-circle-info text-info-500 flex-shrink-0 mt-0.5"></i>
+            <p class="text-sm text-info-800">
+                Use the dropdown to assign doctors per appointment type. Click <strong>Save</strong> to confirm your changes. Leave empty to allow all staff/doctors.
+            </p>
         </div>
+    </div>
 
-        <!-- Info Banner -->
-        <div class="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-            <div class="flex">
-                <svg class="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                </svg>
-                <p class="ml-3 text-sm text-blue-700">
-                    Use the dropdown to assign doctors per appointment type. Changes save automatically. Leave the dropdown unchanged to allow all staff/doctors.
-                </p>
-            </div>
-        </div>
-
-        <div class="space-y-4">
-            {% for item in settings_data %}
-                {% include 'appointments/appointment_settings/_settings_row.html' with item=item %}
-            {% empty %}
-                <div class="text-center py-8 text-sm text-gray-500 bg-white rounded-xl border border-gray-200">
-                    No appointment types found.
-                </div>
-            {% endfor %}
-        </div>
-
+    <div class="space-y-4">
+        {% for item in settings_data %}
+            {% include 'appointments/appointment_settings/_settings_row.html' with item=item %}
+        {% empty %}
+            {% include "components/empty_state.html" with icon="fa-sliders" title="No appointment types" description="No appointment types are configured yet." %}
+        {% endfor %}
     </div>
 </div>
 

@@ -1,0 +1,63 @@
+---
+description: Project structure reference for JMCFI Clinic Django app — app map, file locations, key models, and navigation guide
+alwaysApply: true
+---
+
+# JMCFI Clinic — Project Structure
+
+## Stack
+
+Django 5.2 · Channels 4.3 · django-allauth (Google OAuth) · HTMX 1.9 · Alpine.js 3.x · Tailwind CSS (CDN) · Font Awesome 6.4 · WhiteNoise · pdfkit · python-docx · `uv` package manager · SQLite (dev) / PostgreSQL (prod)
+
+## App Map
+
+| App | URL Prefix | Purpose |
+|-----|-----------|---------|
+| `core/` | `/` | Dashboard, auth, profiles, notifications, user management, search |
+| `appointments/` | `/appointments/` | Scheduling & management |
+| `medical_records/` | `/medical-records/` | Medical records CRUD |
+| `dental_records/` | `/dental-records/` | Dental records + charting |
+| `document_request/` | `/documents/` | Certificate/document requests + PDF generation |
+| `feedback/` | `/feedback/` | Feedback submission & stats |
+| `health_tips/` | `/health-tips/` | Health tips/articles with markdown |
+| `health_forms_services/` | `/health-forms/` | Health forms, dental forms, prescriptions, patient charts |
+| `analytics/` | `/analytics/` | Cross-app analytics & reporting |
+| `pharmacy/` | `/pharmacy/` | Inventory, dispensing, purchase orders |
+| `messaging/` | `/messages/` | Direct messages & announcements |
+
+## Roles
+
+`admin` · `doctor` · `staff` · `student` — defined in `core/models.py User.ROLE`
+
+## File Navigation
+
+| Need to... | Look in |
+|---|---|
+| Find all URL routes | `backend/urls.py` → each app's `urls.py` |
+| Add a view | App's `views.py` (or `views/` package for `health_forms_services`) |
+| Add a model | App's `models.py` |
+| Add a form | App's `forms.py` |
+| Add a template | App's `templates/<app_name>/` |
+| Change auth logic | `core/adapters.py`, `core/signals.py` |
+| Change middleware | `core/middleware.py` |
+| Change profile policy | `core/profile_policy.py` |
+| HTMX utilities | `core/htmx_utils.py` |
+| Role decorators | `core/decorators.py` |
+| Context processors | `core/context_processors.py` |
+| Add dependencies | `pyproject.toml` (never requirements.txt) |
+
+## Template Locations
+
+- `core/templates/core/base.html` — base layout with sidebar, nav, scripts
+- `core/templates/core/partials/` — staff/student profile field partials
+- `core/templates/core/user_management/` — user CRUD, audit, cleanup
+- `templates/partials/` — shared form error fragments
+- `templates/components/` — shared `modal.html`
+- `health_forms_services/` — `_new` suffixed variants for CBV templates, `_base_*.html` base templates
+
+## Key Architecture
+
+- **Auth**: Google OAuth only, no passwords. `NoPasswordAdapter` + `GoogleOnlyAdapter` in `core/adapters.py`
+- **Profiles**: `StudentProfile` / `StaffProfile` with completion enforcement via `ProfileCompleteMiddleware`
+- **Middleware chain**: `UserActivityMiddleware` → `SessionTimeoutMiddleware` → `RoleMiddleware` → `ProfileCompleteMiddleware`
+- **Frontend**: HTMX for server communication, Alpine.js for local state, Tailwind CDN for styling

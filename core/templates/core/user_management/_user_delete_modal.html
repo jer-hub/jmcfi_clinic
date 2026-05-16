@@ -10,7 +10,7 @@
             </div>
             <div class="min-w-0 flex-1">
                 <p class="text-sm font-semibold text-gray-900 truncate">{{ viewed_user.get_full_name }}</p>
-                <p class="text-xs sm:text-sm text-gray-500 truncate">@{{ viewed_user.username }}</p>
+                <p class="text-xs sm:text-sm text-gray-500 truncate">{% if viewed_user.username %}@{{ viewed_user.username }}{% else %}{{ viewed_user.email }}{% endif %}</p>
                 <p class="text-xs sm:text-sm text-gray-500 truncate">{{ viewed_user.email }}</p>
             </div>
         </div>

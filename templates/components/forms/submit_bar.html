@@ -1,0 +1,32 @@
+{% comment %}
+  Sticky form submit / cancel bar.
+
+  Context:
+    submit_label  – text for the primary submit button (default "Save")
+    submit_icon   – FA icon for the submit button (default "fa-check")
+    cancel_url    – URL for the cancel/back link (optional)
+    cancel_label  – cancel/back text (default "Cancel")
+    variant       – primary | success | danger (default "primary")
+    extra         – pre-rendered HTML rendered between cancel and submit (optional)
+{% endcomment %}
+{% with v=variant|default:'primary' %}
+<div class="sticky bottom-0 mt-6 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-white border-t border-gray-200">
+  <div class="max-w-7xl mx-auto flex items-center justify-end gap-3">
+    {{ extra }}
+    {% if cancel_url %}
+      <a href="{{ cancel_url }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium rounded-lg transition-colors">
+        <i class="fas fa-xmark"></i>
+        <span>{{ cancel_label|default:'Cancel' }}</span>
+      </a>
+    {% endif %}
+    <button type="submit"
+            class="inline-flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors
+                   {% if v == 'success' %}bg-success-600 hover:bg-success-700
+                   {% elif v == 'danger' %}bg-danger-600 hover:bg-danger-700
+                   {% else %}bg-primary-600 hover:bg-primary-700{% endif %}">
+      <i class="fas {{ submit_icon|default:'fa-check' }}"></i>
+      <span>{{ submit_label|default:'Save' }}</span>
+    </button>
+  </div>
+</div>
+{% endwith %}

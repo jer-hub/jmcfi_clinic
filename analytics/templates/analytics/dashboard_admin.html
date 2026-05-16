@@ -1,129 +1,151 @@
 {% extends "core/base.html" %}
-{% block title %}Analytics Dashboard{% endblock %}
+{% load app_subnav %}
+{% block title %}Analytics - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    {% include "components/page_header.html" with title="Analytics & Reports" subtitle="Administrative analytics overview" icon="fa-chart-line" %}
-
-    <form method="get" class="mb-6 bg-white border border-gray-200 rounded-card shadow-sm p-4 flex flex-wrap items-end gap-3">
-      <div>
-        <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
-        <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}" class="block px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
-        <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}" class="block px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-      </div>
-      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
-        <i class="fas fa-filter"></i>Filter
-      </button>
-    </form>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-      {% include "components/stat_card.html" with label="Students" value=total_students icon="fa-user-graduate" variant="primary" %}
-      {% include "components/stat_card.html" with label="Staff" value=total_staff icon="fa-user-doctor" variant="success" %}
-      {% include "components/stat_card.html" with label="Appointments" value=total_appointments icon="fa-calendar-days" variant="info" %}
-      {% include "components/stat_card.html" with label="Med Records" value=total_records icon="fa-file-medical" variant="warning" %}
-      {% include "components/stat_card.html" with label="Avg Rating" value=avg_feedback|stringformat:"s"|add:"/5" icon="fa-star" variant="danger" %}
-    </div>
-
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
-      {% for link in nav_links %}{% endfor %}
-      <a href="{% url 'analytics:health_trends' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-primary-200 transition group text-center">
-        <div class="bg-primary-50 text-primary-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center group-hover:bg-primary-100 transition"><i class="fas fa-chart-line text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700 group-hover:text-primary-700">Health Trends</p>
-      </a>
-      <a href="{% url 'analytics:predictive_analytics' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-info-200 transition group text-center">
-        <div class="bg-info-50 text-info-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center group-hover:bg-info-100 transition"><i class="fas fa-lightbulb text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700 group-hover:text-info-700">Predictive Analytics</p>
-      </a>
-      <a href="{% url 'analytics:resource_utilization' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-success-200 transition group text-center">
-        <div class="bg-success-50 text-success-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center group-hover:bg-success-100 transition"><i class="fas fa-chart-column text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700 group-hover:text-success-700">Resources</p>
-      </a>
-      <a href="{% url 'analytics:compliance_reports' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-warning-200 transition group text-center">
-        <div class="bg-warning-50 text-warning-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center group-hover:bg-warning-100 transition"><i class="fas fa-shield-halved text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700 group-hover:text-warning-700">Compliance</p>
-      </a>
-      <a href="{% url 'analytics:population_health' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-info-200 transition group text-center">
-        <div class="bg-info-50 text-info-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center group-hover:bg-info-100 transition"><i class="fas fa-people-group text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700 group-hover:text-info-700">Population Health</p>
-      </a>
-      <a href="{% url 'analytics:financial_overview' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-success-200 transition group text-center">
-        <div class="bg-success-50 text-success-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center group-hover:bg-success-100 transition"><i class="fas fa-coins text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700 group-hover:text-success-700">Financial</p>
-      </a>
-      <a href="{% url 'analytics:academic_correlation' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-primary-200 transition group text-center">
-        <div class="bg-primary-50 text-primary-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center group-hover:bg-primary-100 transition"><i class="fas fa-graduation-cap text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700 group-hover:text-primary-700">Academic Data</p>
-      </a>
-      <a href="{% url 'analytics:export_report' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-gray-300 transition group text-center">
-        <div class="bg-gray-100 text-gray-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center group-hover:bg-gray-200 transition"><i class="fas fa-file-export text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700 group-hover:text-gray-800">Export Data</p>
+    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <form method="get" class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-medium uppercase tracking-wider text-gray-500 mr-1">Period</span>
+        <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
+          class="form-input form-input--compact w-auto min-w-[9.5rem]"
+          aria-label="From date">
+        <span class="text-gray-300" aria-hidden="true">–</span>
+        <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
+          class="form-input form-input--compact w-auto min-w-[9.5rem]"
+          aria-label="To date">
+        <button type="submit" class="form-btn--compact form-btn--compact-primary shrink-0">
+          <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
+        </button>
+      </form>
+      <a href="{% url 'analytics:export_report' %}?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}"
+        class="inline-flex items-center justify-center gap-2 px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors shrink-0">
+        <i class="fas fa-file-export text-gray-400"></i>Export report
       </a>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-chart-line text-primary-500"></i>Appointment Volume</h3>
-        <canvas id="appointmentVolumeChart" height="250"></canvas>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
+      {% include "components/stat_card.html" with label="Students" value=total_students icon="fa-user-graduate" variant="primary" hint="Registered" %}
+      {% include "components/stat_card.html" with label="Staff" value=total_staff icon="fa-user-doctor" variant="success" hint="Doctors & staff" %}
+      {% include "components/stat_card.html" with label="Appointments" value=total_appointments icon="fa-calendar-days" variant="info" hint="In period" %}
+      {% include "components/stat_card.html" with label="Med records" value=total_records icon="fa-file-medical" variant="warning" hint="In period" %}
+      {% include "components/stat_card.html" with label="Avg rating" value=avg_feedback icon="fa-star" variant="danger" hint="All-time feedback" %}
+    </div>
+
+    <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 mb-6" aria-labelledby="chart-volume-heading">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <h2 id="chart-volume-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+          <i class="fas fa-chart-line text-primary-500"></i>Appointment volume
+        </h2>
+        <a href="{% url 'analytics:resource_utilization' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Resources →</a>
       </div>
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-chart-pie text-primary-500"></i>Appointment Types</h3>
-        <canvas id="appointmentTypeChart" height="250"></canvas>
+      <div class="h-56 sm:h-64">
+        <canvas id="appointmentVolumeChart" role="img" aria-label="Appointment volume over time"></canvas>
       </div>
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-clock text-primary-500"></i>Peak Hours</h3>
-        <canvas id="peakHoursChart" height="250"></canvas>
-      </div>
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5">
-        <h3 class="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-stethoscope text-primary-500"></i>Top Diagnoses</h3>
-        {% if illness_stats %}
-        <div class="space-y-1.5 max-h-64 overflow-y-auto">
-          {% for item in illness_stats %}
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-700 truncate mr-2 flex-1">{{ item.diagnosis }}</span>
-            <div class="flex items-center flex-shrink-0">
-              <div class="w-20 bg-gray-200 rounded-full h-2 mr-2">
-                <div class="bg-primary-500 h-2 rounded-full" style="width: {% widthratio item.count illness_stats.0.count 100 %}%"></div>
-              </div>
-              <span class="font-medium text-gray-600 w-8 text-right text-xs">{{ item.count }}</span>
-            </div>
-          </div>
-          {% endfor %}
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="chart-type-heading">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 id="chart-type-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-chart-pie text-primary-500"></i>Appointment types
+          </h2>
         </div>
+        <div class="h-52 sm:h-56 flex items-center justify-center">
+          <canvas id="appointmentTypeChart" role="img" aria-label="Appointment types distribution"></canvas>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="chart-hours-heading">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 id="chart-hours-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-clock text-primary-500"></i>Peak hours
+          </h2>
+          <a href="{% url 'analytics:predictive_analytics' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Predictive →</a>
+        </div>
+        <div class="h-52 sm:h-56">
+          <canvas id="peakHoursChart" role="img" aria-label="Appointments by hour"></canvas>
+        </div>
+      </section>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="diagnoses-heading">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 id="diagnoses-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-stethoscope text-primary-500"></i>Top diagnoses
+          </h2>
+          <a href="{% url 'analytics:health_trends' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Health trends →</a>
+        </div>
+        {% if illness_stats %}
+        <ul class="space-y-2 max-h-56 overflow-y-auto">
+          {% for item in illness_stats %}
+          <li class="flex items-center gap-3 text-sm">
+            <span class="text-gray-700 truncate flex-1 min-w-0" title="{{ item.diagnosis }}">{{ item.diagnosis }}</span>
+            <div class="flex items-center gap-2 flex-shrink-0 w-28">
+              <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-primary-500 h-1.5 rounded-full" style="width: {% widthratio item.count illness_stats.0.count 100 %}%"></div>
+              </div>
+              <span class="font-semibold text-gray-600 text-xs tabular-nums w-6 text-right">{{ item.count }}</span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
         {% else %}
-        <p class="text-sm text-gray-500">No diagnosis data available for this period.</p>
+        <p class="text-sm text-gray-500 py-6 text-center">No diagnosis data for this period.</p>
         {% endif %}
-      </div>
+      </section>
+
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="financial-heading">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 id="financial-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-coins text-primary-500"></i>Financial snapshot
+          </h2>
+          <a href="{% url 'analytics:financial_overview' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Financial →</a>
+        </div>
+        <div class="grid grid-cols-3 gap-3 text-center sm:text-left">
+          <div class="rounded-lg bg-gray-50 px-3 py-3">
+            <p class="text-xs font-medium text-gray-500">Expenses</p>
+            <p class="mt-1 text-lg font-bold text-danger-600 tabular-nums">₱{{ financial_summary.total_expenses|floatformat:0 }}</p>
+          </div>
+          <div class="rounded-lg bg-gray-50 px-3 py-3">
+            <p class="text-xs font-medium text-gray-500">Income</p>
+            <p class="mt-1 text-lg font-bold text-success-600 tabular-nums">₱{{ financial_summary.total_income|floatformat:0 }}</p>
+          </div>
+          <div class="rounded-lg bg-gray-50 px-3 py-3">
+            <p class="text-xs font-medium text-gray-500">Net</p>
+            <p class="mt-1 text-lg font-bold tabular-nums {% if financial_summary.net >= 0 %}text-success-600{% else %}text-danger-600{% endif %}">₱{{ financial_summary.net|floatformat:0 }}</p>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5">
-        <p class="text-sm font-medium text-gray-500">Total Expenses</p>
-        <p class="text-xl font-bold text-danger-600">₱{{ financial_summary.total_expenses|floatformat:2 }}</p>
-      </div>
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5">
-        <p class="text-sm font-medium text-gray-500">Total Income</p>
-        <p class="text-xl font-bold text-success-600">₱{{ financial_summary.total_income|floatformat:2 }}</p>
-      </div>
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5">
-        <p class="text-sm font-medium text-gray-500">Net</p>
-        <p class="text-xl font-bold {% if financial_summary.net >= 0 %}text-success-600{% else %}text-danger-600{% endif %}">₱{{ financial_summary.net|floatformat:2 }}</p>
-      </div>
-    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="chart-course-heading">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 id="chart-course-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-graduation-cap text-primary-500"></i>Students by course
+          </h2>
+          <a href="{% url 'analytics:academic_correlation' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Academic →</a>
+        </div>
+        <div class="h-52 sm:h-56">
+          <canvas id="courseChart" role="img" aria-label="Students by course"></canvas>
+        </div>
+      </section>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-graduation-cap text-primary-500"></i>Students by Course</h3>
-        <canvas id="courseChart" height="250"></canvas>
-      </div>
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-calendar-week text-primary-500"></i>Busiest Days</h3>
-        <canvas id="weekdayChart" height="250"></canvas>
-      </div>
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="chart-weekday-heading">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 id="chart-weekday-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-calendar-week text-primary-500"></i>Busiest days
+          </h2>
+          <a href="{% url 'analytics:population_health' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Population →</a>
+        </div>
+        <div class="h-52 sm:h-56">
+          <canvas id="weekdayChart" role="img" aria-label="Appointments by weekday"></canvas>
+        </div>
+      </section>
     </div>
 </div>
 {% endblock %}
@@ -131,64 +153,92 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
-// Color palette
 const COLORS = ['#a855f7','#3b82f6','#10b981','#f59e0b','#ef4444','#ec4899','#6366f1','#14b8a6','#f97316','#8b5cf6'];
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+};
 
-// Appointment Volume
+function mountChart(id, config) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  return new Chart(el, config);
+}
+
 const volLabels = [{% for item in appointment_volume %}"{{ item.day|date:'M d' }}"{% if not forloop.last %},{% endif %}{% endfor %}];
 const volData = [{% for item in appointment_volume %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
-if(volLabels.length) {
-  new Chart(document.getElementById('appointmentVolumeChart'), {
+if (volLabels.length) {
+  mountChart('appointmentVolumeChart', {
     type: 'line',
-    data: {labels: volLabels, datasets: [{label: 'Appointments', data: volData, borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)', fill: true, tension: 0.3}]},
-    options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}}}
+    data: {
+      labels: volLabels,
+      datasets: [{
+        label: 'Appointments',
+        data: volData,
+        borderColor: '#a855f7',
+        backgroundColor: 'rgba(168,85,247,0.08)',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 2,
+        pointHoverRadius: 4,
+      }],
+    },
+    options: { ...chartDefaults, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
   });
 }
 
-// Appointment Types
 const typeLabels = [{% for item in appointment_by_type %}"{{ item.appointment_type }}"{% if not forloop.last %},{% endif %}{% endfor %}];
 const typeData = [{% for item in appointment_by_type %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
-if(typeLabels.length) {
-  new Chart(document.getElementById('appointmentTypeChart'), {
+if (typeLabels.length) {
+  mountChart('appointmentTypeChart', {
     type: 'doughnut',
-    data: {labels: typeLabels, datasets: [{data: typeData, backgroundColor: COLORS}]},
-    options: {responsive: true, plugins: {legend: {position: 'bottom'}}}
+    data: { labels: typeLabels, datasets: [{ data: typeData, backgroundColor: COLORS, borderWidth: 0 }] },
+    options: {
+      ...chartDefaults,
+      plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 10, padding: 12, font: { size: 11 } } } },
+    },
   });
 }
 
-// Peak Hours
 const hourLabels = [{% for item in appointment_by_hour %}"{{ item.hour }}:00"{% if not forloop.last %},{% endif %}{% endfor %}];
 const hourData = [{% for item in appointment_by_hour %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
-if(hourLabels.length) {
-  new Chart(document.getElementById('peakHoursChart'), {
+if (hourLabels.length) {
+  mountChart('peakHoursChart', {
     type: 'bar',
-    data: {labels: hourLabels, datasets: [{label: 'Appointments', data: hourData, backgroundColor: '#a855f7'}]},
-    options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}}}
+    data: { labels: hourLabels, datasets: [{ label: 'Appointments', data: hourData, backgroundColor: '#c4b5fd', borderRadius: 4 }] },
+    options: { ...chartDefaults, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
   });
 }
 
-// Students by Course
 const courseLabels = [{% for item in demographics.course %}"{{ item.course }}"{% if not forloop.last %},{% endif %}{% endfor %}];
 const courseData = [{% for item in demographics.course %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
-if(courseLabels.length) {
-  new Chart(document.getElementById('courseChart'), {
+if (courseLabels.length) {
+  mountChart('courseChart', {
     type: 'bar',
-    data: {labels: courseLabels, datasets: [{label: 'Students', data: courseData, backgroundColor: COLORS}]},
-    options: {responsive: true, indexAxis: 'y', plugins: {legend: {display: false}}, scales: {x: {beginAtZero: true}}}
+    data: { labels: courseLabels, datasets: [{ label: 'Students', data: courseData, backgroundColor: COLORS, borderRadius: 4 }] },
+    options: {
+      ...chartDefaults,
+      indexAxis: 'y',
+      scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
   });
 }
 
-// Busiest Days
-const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const rawWeekday = {};
 {% for item in appointment_by_weekday %}rawWeekday[{{ item.weekday }}] = {{ item.count }};
 {% endfor %}
-const wdLabels = []; const wdData = [];
-for(let i=1;i<=7;i++){wdLabels.push(dayNames[i-1]); wdData.push(rawWeekday[i]||0);}
-new Chart(document.getElementById('weekdayChart'), {
+const wdLabels = [];
+const wdData = [];
+for (let i = 1; i <= 7; i++) {
+  wdLabels.push(dayNames[i - 1]);
+  wdData.push(rawWeekday[i] || 0);
+}
+mountChart('weekdayChart', {
   type: 'bar',
-  data: {labels: wdLabels, datasets: [{label: 'Appointments', data: wdData, backgroundColor: '#10b981'}]},
-  options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}}}
+  data: { labels: wdLabels, datasets: [{ label: 'Appointments', data: wdData, backgroundColor: '#34d399', borderRadius: 4 }] },
+  options: { ...chartDefaults, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
 });
 </script>
 {% endblock %}

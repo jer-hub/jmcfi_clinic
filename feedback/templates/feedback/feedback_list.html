@@ -3,79 +3,20 @@
 {% block title %}Patient Feedback - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
     {% include 'feedback/_subnav.html' %}
 
-    {% include "components/page_header.html" with title="Patient Feedback" subtitle="View patient experiences and feedback about our healthcare services" icon="fa-comments" %}
-
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-        {% if feedbacks.paginator.count %}
-            <p class="text-sm text-gray-600">{{ feedbacks.paginator.count }} review{{ feedbacks.paginator.count|pluralize }} total</p>
-        {% else %}
-            <span></span>
-        {% endif %}
-        <div class="flex gap-2">
-            {% if user.role != 'student' %}
-                <a href="{% url 'feedback:feedback_stats' %}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                    <i class="fas fa-chart-pie"></i><span class="hidden sm:inline">View Statistics</span><span class="sm:hidden">Stats</span>
-                </a>
-            {% endif %}
-            {% if user.role == 'student' %}
-                <a href="{% url 'feedback:submit_feedback' %}" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors">
-                    <i class="fas fa-pen"></i>Share Feedback
-                </a>
-            {% endif %}
-        </div>
-    </div>
+    {% if user.role != 'student' %}
+    {% include "components/page_header.html" with title="Patient Feedback" subtitle="View patient experiences and feedback about our healthcare services" icon="fa-comments" actions_include="feedback/_feedback_list_header_actions.html" header_mb="mb-4" %}
+    {% else %}
+    {% include "components/page_header.html" with title="Patient Feedback" subtitle="View patient experiences and feedback about our healthcare services" icon="fa-comments" header_mb="mb-4" %}
+    {% endif %}
 
     <div class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
         {% if feedbacks %}
             <div class="divide-y divide-gray-200">
                 {% for fb in feedbacks %}
-                    <article class="p-4 sm:p-6 hover:bg-gray-50 transition-colors">
-                        <div class="flex items-start gap-4">
-                            <div class="flex-shrink-0">
-                                {% if fb.is_anonymous %}
-                                    <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-600"><i class="fas fa-user-secret"></i></span>
-                                {% else %}
-                                    {% include "components/avatar.html" with user=fb.student size="md" %}
-                                {% endif %}
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex flex-wrap items-center gap-2 mb-2">
-                                    <h3 class="text-base font-semibold text-gray-900">
-                                        {% if fb.is_anonymous %}Anonymous Patient{% else %}{{ fb.student.get_full_name }}{% endif %}
-                                    </h3>
-                                    <div class="flex items-center gap-0.5" aria-label="Rating: {{ fb.rating }} out of 5">
-                                        {% for star in "12345" %}
-                                            {% if forloop.counter <= fb.rating %}
-                                                <i class="fas fa-star text-amber-400 text-sm"></i>
-                                            {% else %}
-                                                <i class="fas fa-star text-gray-200 text-sm"></i>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </div>
-                                    {% if fb.rating >= 4 %}
-                                        {% include "components/status_badge.html" with label=fb.rating|stringformat:"s"|add:"/5" variant="success" size="sm" %}
-                                    {% elif fb.rating >= 3 %}
-                                        {% include "components/status_badge.html" with label=fb.rating|stringformat:"s"|add:"/5" variant="warning" size="sm" %}
-                                    {% else %}
-                                        {% include "components/status_badge.html" with label=fb.rating|stringformat:"s"|add:"/5" variant="danger" size="sm" %}
-                                    {% endif %}
-                                </div>
-                                <div class="text-sm text-gray-600 space-y-1">
-                                    <p class="text-xs text-gray-500 inline-flex items-center gap-1"><i class="far fa-clock"></i>{{ fb.created_at|date:"M d, Y" }} at {{ fb.created_at|time:"h:i A" }}</p>
-                                    <p><span class="font-medium text-gray-700">Comments:</span> <span class="break-words">{{ fb.comments|truncatewords:20 }}</span></p>
-                                    {% if fb.suggestions %}
-                                        <p><span class="font-medium text-gray-700">Suggestions:</span> <span class="break-words">{{ fb.suggestions|truncatewords:15 }}</span></p>
-                                    {% endif %}
-                                    {% if fb.appointment %}
-                                        <p class="text-xs text-gray-500"><i class="far fa-calendar mr-1"></i>{{ fb.appointment.date|date:'M d, Y' }} at {{ fb.appointment.time|time:'h:i A' }}{% if fb.appointment.doctor %} • Dr. {{ fb.appointment.doctor.get_full_name }}{% endif %}</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </article>
+                    {% include "feedback/_feedback_list_item.html" with fb=fb %}
                 {% endfor %}
             </div>
             {% include "components/pagination.html" with page_obj=feedbacks %}

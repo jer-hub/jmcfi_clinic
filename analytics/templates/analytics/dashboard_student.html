@@ -5,59 +5,141 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
     {% include 'analytics/_subnav.html' %}
 
-    {% include "components/page_header.html" with title="My Health Summary" subtitle="Your personal health analytics" icon="fa-chart-line" %}
+    {% include "components/page_header.html" with title="My Health Summary" subtitle="Your personal health analytics" icon="fa-chart-line" header_mb="mb-4" %}
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      {% include "components/stat_card.html" with label="Medical Records" value=total_records icon="fa-file-medical" variant="primary" %}
-      {% include "components/stat_card.html" with label="Total Appointments" value=total_appointments icon="fa-calendar-days" variant="info" %}
-      {% include "components/stat_card.html" with label="Completed" value=completed_appointments icon="fa-circle-check" variant="success" %}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      {% include "components/stat_card.html" with label="Medical Records" value=total_records icon="fa-file-medical" variant="primary" hint="Visits documented in your chart" %}
+      {% include "components/stat_card.html" with label="Total Appointments" value=total_appointments icon="fa-calendar-days" variant="info" hint="All time clinic visits" %}
+      {% include "components/stat_card.html" with label="Completed" value=completed_appointments icon="fa-circle-check" variant="success" hint=completion_hint %}
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-calendar-check text-primary-500"></i>Visit History</h3>
-        {% if appointment_history %}
-        <canvas id="visitChart" height="250"></canvas>
-        {% else %}
-        <p class="text-sm text-gray-500">No appointment history to display.</p>
-        {% endif %}
-      </div>
-
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5">
-        <h3 class="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-stethoscope text-primary-500"></i>Diagnosis Summary</h3>
-        {% if recent_diagnoses %}
-        <div class="space-y-1.5">
-          {% for item in recent_diagnoses %}
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-700 truncate flex-1">{{ item.diagnosis }}</span>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700 ml-2 flex-shrink-0">{{ item.count }}x</span>
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <section class="lg:col-span-3 bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-calendar-check text-primary-500" aria-hidden="true"></i>Visit history
+            </h2>
+            <p class="mt-0.5 text-xs text-gray-500">Appointments per month (last 6 months)</p>
           </div>
-          {% endfor %}
+          {% if visit_chart_total %}
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary-50 text-primary-700 text-xs font-medium">
+            <i class="fas fa-chart-column text-[10px]" aria-hidden="true"></i>{{ visit_chart_total }} visit{{ visit_chart_total|pluralize }}
+          </span>
+          {% endif %}
         </div>
-        {% else %}
-        <p class="text-sm text-gray-500">No diagnoses recorded yet.</p>
-        {% endif %}
-      </div>
+        <div class="p-5">
+          {% if appointment_history %}
+          <div class="relative h-64 sm:h-72">
+            <canvas id="visitChart" role="img" aria-label="Bar chart of monthly clinic visits"></canvas>
+          </div>
+          {% else %}
+          <div class="flex flex-col items-center justify-center py-12 text-center">
+            <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 text-gray-400 mb-3">
+              <i class="fas fa-calendar-xmark text-xl" aria-hidden="true"></i>
+            </span>
+            <p class="text-sm font-medium text-gray-700">No visits yet</p>
+            <p class="mt-1 text-xs text-gray-500 max-w-xs">When you book appointments, monthly visit counts will appear here.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="lg:col-span-2 bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-gray-100">
+          <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-stethoscope text-primary-500" aria-hidden="true"></i>Top diagnoses
+          </h2>
+          <p class="mt-0.5 text-xs text-gray-500">Most common from your medical records</p>
+        </div>
+        <div class="p-5">
+          {% if recent_diagnoses %}
+          <ul class="space-y-4">
+            {% for item in recent_diagnoses %}
+            <li>
+              <div class="flex items-start justify-between gap-3 mb-1.5">
+                <p class="text-sm font-medium text-gray-900 leading-snug break-words min-w-0" title="{{ item.diagnosis }}">
+                  {{ item.diagnosis }}
+                </p>
+                <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold bg-primary-100 text-primary-800 flex-shrink-0 tabular-nums">
+                  {{ item.count }}
+                </span>
+              </div>
+              {% if max_diagnosis_count %}
+              <div class="h-1.5 rounded-full bg-gray-100 overflow-hidden" aria-hidden="true">
+                <div class="h-full rounded-full bg-primary-500 transition-all"
+                     style="width: {% widthratio item.count max_diagnosis_count 100 %}%;"></div>
+              </div>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <div class="flex flex-col items-center justify-center py-12 text-center">
+            <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 text-gray-400 mb-3">
+              <i class="fas fa-notes-medical text-xl" aria-hidden="true"></i>
+            </span>
+            <p class="text-sm font-medium text-gray-700">No diagnoses recorded</p>
+            <p class="mt-1 text-xs text-gray-500 max-w-xs">Diagnoses from completed visits will be summarized here.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 {% if appointment_history %}
+{{ visit_chart_labels|json_script:"visit-chart-labels" }}
+{{ visit_chart_data|json_script:"visit-chart-data" }}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
-new Chart(document.getElementById('visitChart'), {
-  type: 'bar',
-  data: {
-    labels: [{% for item in appointment_history %}"{{ item.month|date:'M Y' }}"{% if not forloop.last %},{% endif %}{% endfor %}],
-    datasets: [{
-      label: 'Visits',
-      data: [{% for item in appointment_history %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}],
-      backgroundColor: '#a855f7'
-    }]
-  },
-  options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true, ticks: {stepSize: 1}}}}
-});
+(function () {
+  const labels = JSON.parse(document.getElementById('visit-chart-labels').textContent);
+  const data = JSON.parse(document.getElementById('visit-chart-data').textContent);
+  const maxCount = Math.max(...data, 0);
+  const ctx = document.getElementById('visitChart');
+
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Visits',
+        data,
+        backgroundColor: 'rgba(168, 85, 247, 0.85)',
+        hoverBackgroundColor: 'rgba(126, 34, 206, 0.95)',
+        borderRadius: 6,
+        maxBarThickness: 56,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.parsed.y} visit${ctx.parsed.y === 1 ? '' : 's'}`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { maxRotation: 0, autoSkip: false, font: { size: 11 } },
+        },
+        y: {
+          beginAtZero: true,
+          suggestedMax: maxCount < 4 ? 4 : undefined,
+          ticks: { stepSize: 1, precision: 0 },
+          grid: { color: 'rgba(229, 231, 235, 0.8)' },
+        },
+      },
+    },
+  });
+})();
 </script>
 {% endif %}
 {% endblock %}

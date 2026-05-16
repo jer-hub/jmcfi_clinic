@@ -3,8 +3,8 @@
 {% block title %}Dashboard - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-  {% include "components/page_header.html" with title="Dashboard" subtitle="Welcome back, "|add:user.get_full_name icon="fa-gauge-high" %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 pt-0">
+  {% include "components/page_header.html" with title="Dashboard" subtitle="Welcome back, "|add:user.get_full_name icon="fa-gauge-high" header_mb="mb-4" %}
 
   {% if user.role == 'student' %}
     {% include 'core/dashboard_student.html' %}

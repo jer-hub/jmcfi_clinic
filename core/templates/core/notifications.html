@@ -3,46 +3,11 @@
 {% block title %}Notifications - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-  {% include "components/page_header.html" with title="Notifications" subtitle="Stay updated with your appointments and health information" icon="fa-bell" %}
+<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
+  {% include "components/page_header.html" with title="Notifications" subtitle="Stay updated with your appointments and health information" icon="fa-bell" header_mb="mb-4" %}
 
-  <div class="bg-white rounded-card shadow-sm border border-gray-200">
-    <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-2 flex-wrap">
-        <form method="GET" class="flex flex-wrap items-center gap-2">
-          <select name="status" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" onchange="this.form.submit()">
-            <option value="">All ({{ total_count }})</option>
-            <option value="unread" {% if current_status == 'unread' %}selected{% endif %}>Unread ({{ unread_count }})</option>
-            <option value="read" {% if current_status == 'read' %}selected{% endif %}>Read ({{ read_count }})</option>
-          </select>
-          <select name="type" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" onchange="this.form.submit()">
-            <option value="">All Types</option>
-            <option value="appointment" {% if current_type == 'appointment' %}selected{% endif %}>Appointments</option>
-            <option value="certificate" {% if current_type == 'certificate' %}selected{% endif %}>Certificates</option>
-            <option value="health_tip" {% if current_type == 'health_tip' %}selected{% endif %}>Health Tips</option>
-            <option value="general" {% if current_type == 'general' %}selected{% endif %}>General</option>
-          </select>
-          {% if current_status or current_type %}
-            <a href="{% url 'core:notifications' %}" class="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900">Clear</a>
-          {% endif %}
-        </form>
-      </div>
-      <div class="flex items-center gap-2">
-        {% if user.role == 'admin' %}
-          <a href="{% url 'core:create_system_notification' %}"
-             class="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
-            <i class="fas fa-plus"></i><span>Create</span>
-          </a>
-        {% endif %}
-        {% if unread_count > 0 %}
-          <a href="?mark_all_read=true"
-             class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-primary-300 text-primary-700 bg-primary-50 hover:bg-primary-100 transition-colors">
-            <i class="fas fa-check-double"></i><span>Mark all read</span>
-          </a>
-        {% endif %}
-        {% include "core/partials/_notifications_clear_all.html" %}
-      </div>
-    </div>
+  <div class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
+    {% include "core/partials/_notifications_toolbar.html" %}
 
     <ul class="divide-y divide-gray-100">
       {% for notification in notifications %}

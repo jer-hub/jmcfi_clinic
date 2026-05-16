@@ -83,7 +83,7 @@ def _admin_login_cache_key(request, email):
     return f"admin_login_failures:{digest}"
 
 
-def _safe_login_redirect(request, target_url):
+def _safe_login_redirect(request, target_url, user=None):
     require_https = bool(
         getattr(settings, 'ADMIN_LOGIN_REQUIRE_HTTPS_REDIRECT', False)
         or request.is_secure()
@@ -94,7 +94,9 @@ def _safe_login_redirect(request, target_url):
         require_https=require_https,
     ):
         return target_url
-    return reverse('core:dashboard')
+    from .utils import role_home_url
+    home_user = user if user is not None else request.user
+    return role_home_url(home_user)
 
 
 def _hash_invite_token(raw_token):
@@ -158,7 +160,8 @@ def _is_course_optional_for_department(department_name):
 def admin_login(request):
     """Dedicated password login endpoint for admin-role accounts."""
     if request.user.is_authenticated:
-        return redirect('core:dashboard')
+        from .utils import role_home_url_name
+        return redirect(role_home_url_name(request.user))
 
     requested_next = request.GET.get('next') if request.method == 'GET' else request.POST.get('next')
     redirect_to = _safe_login_redirect(request, requested_next)
@@ -223,7 +226,7 @@ def admin_login(request):
                 )
                 if not form.cleaned_data.get('remember_me'):
                     request.session.set_expiry(0)
-                return redirect(redirect_to)
+                return redirect(_safe_login_redirect(request, requested_next, user=user))
 
     return render(
         request,
@@ -331,6 +334,10 @@ def _appointment_list_url_status(status: str) -> str:
 @login_required
 def dashboard(request):
     """Main dashboard view - role-based content"""
+    if request.user.role == 'admin':
+        from analytics.views import render_analytics_dashboard
+        return render_analytics_dashboard(request)
+
     context = {}
     
     if request.user.role == 'student':
@@ -355,6 +362,7 @@ def dashboard(request):
             ).count(),
             'total_appointments': Appointment.objects.filter(student=request.user).count(),
             'total_records': MedicalRecord.objects.filter(student=request.user).count(),
+            'total_dental_records': DentalRecord.objects.filter(patient=request.user).count(),
             'approved_certificates': DocumentRequest.objects.filter(
                 student=request.user,
                 status=DocumentRequest.Status.COMPLETED,
@@ -405,63 +413,6 @@ def dashboard(request):
             'recent_records': MedicalRecord.objects.order_by('-created_at')[:5],
             'appointment_list_today_url': _appointment_list_url_for_local_date(today),
             'appointment_list_pending_url': _appointment_list_url_status('pending'),
-        })
-    
-    elif request.user.role == 'admin':
-        total_students = User.objects.filter(role='student', is_deleted=False).count()
-        total_staff = User.objects.filter(role='staff', is_deleted=False).count()
-        total_doctors = User.objects.filter(role='doctor', is_deleted=False).count()
-        total_admins = User.objects.filter(role='admin', is_deleted=False).count()
-        
-        # Pending items needing admin attention
-        pending_health_forms = HealthProfileForm.objects.filter(status='pending').count()
-        pending_dental_forms = DentalHealthForm.objects.filter(status='pending').count()
-        pending_certs = DocumentRequest.objects.filter(
-            status=DocumentRequest.Status.PENDING_REVIEW,
-        ).count()
-        pending_reviews = pending_health_forms + pending_dental_forms
-        
-        # Stale / inactive users
-        stale_pending = User.objects.filter(
-            onboarding_status='pending_activation',
-            is_deleted=False,
-        ).count()
-        inactive_users = User.objects.filter(is_active=False, is_deleted=False).count()
-        
-        # Pharmacy alerts
-        low_stock = Medicine.objects.filter(
-            is_active=True,
-        ).filter(
-            batches__quantity__lte=F('reorder_level'),
-        ).distinct().count() if hasattr(Medicine, 'reorder_level') else 0
-        
-        # Operations
-        total_appointments = Appointment.objects.count()
-        today = timezone.now().date()
-        today_appointments = Appointment.objects.filter(date=today).count()
-        
-        context.update({
-            # KPI row
-            'total_users': User.objects.filter(is_deleted=False).count(),
-            'total_students': total_students,
-            'total_staff': total_staff,
-            'total_doctors': total_doctors,
-            'total_admins': total_admins,
-            'active_users': User.objects.filter(is_active=True, is_deleted=False).count(),
-            # Operations
-            'total_appointments': total_appointments,
-            'today_appointments': today_appointments,
-            'pending_certificates': pending_certs,
-            'active_doctors': total_doctors,
-            # Attention items
-            'pending_reviews': pending_reviews,
-            'pending_health_forms': pending_health_forms,
-            'pending_dental_forms': pending_dental_forms,
-            'stale_pending_users': stale_pending,
-            'inactive_users': inactive_users,
-            'low_stock_medicines': low_stock,
-            'hide_removed_app_links': True,
-            'appointment_list_today_url': _appointment_list_url_for_local_date(today),
         })
 
     return render(request, 'core/dashboard.html', context)

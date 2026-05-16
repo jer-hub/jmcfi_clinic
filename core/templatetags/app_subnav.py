@@ -3,7 +3,14 @@
 from django import template
 from django.urls import reverse
 
+from core.utils import analytics_home_url_name
+
 register = template.Library()
+
+
+@register.simple_tag(takes_context=True)
+def analytics_home_url(context):
+    return reverse(analytics_home_url_name(context['request'].user))
 
 
 def _enrich_context(items, *, always_show_nav=False):
@@ -356,12 +363,13 @@ def analytics_subnav(context):
     request = context['request']
     user = request.user
     vn = request.resolver_match.view_name
+    home_url_name = analytics_home_url_name(user)
     items = [
         {
             'label': 'Dashboard',
-            'url': reverse('analytics:dashboard'),
+            'url': reverse(home_url_name),
             'icon': 'fa-gauge-high',
-            'active': vn == 'analytics:dashboard',
+            'active': vn == home_url_name,
         }
     ]
     if user.role in ('staff', 'doctor', 'admin'):
@@ -423,7 +431,9 @@ def analytics_subnav(context):
         )
     if user.role == 'student':
         return {'items': [], 'show_breadcrumbs': False, 'nav_mb': 'mb-4'}
-    return _enrich_context(items, always_show_nav=True)
+    ctx = _enrich_context(items, always_show_nav=True)
+    ctx['nav_mb'] = 'mb-4'
+    return ctx
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)

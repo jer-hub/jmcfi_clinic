@@ -26,6 +26,9 @@ class NoPasswordAdapter(DefaultAccountAdapter):
         """
         Redirect to dashboard after login
         """
+        from core.utils import role_home_url
+        if request.user.is_authenticated:
+            return role_home_url(request.user)
         return reverse('core:dashboard')
     
     def add_message(self, request, level, message_template, message_context=None, extra_tags=''):

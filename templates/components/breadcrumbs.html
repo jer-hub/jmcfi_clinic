@@ -7,7 +7,7 @@
              automatically if no icon is specified.
 {% endcomment %}
 {% if crumbs %}
-<nav aria-label="Breadcrumb" class="mb-4">
+<nav aria-label="Breadcrumb" class="{% if embedded %}{% else %}mb-4{% endif %}">
   <ol class="flex items-center flex-wrap gap-1.5 text-[13px]">
     {% for crumb in crumbs %}
       <li class="flex items-center gap-1.5">

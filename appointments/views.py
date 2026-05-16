@@ -186,9 +186,11 @@ def _build_appointment_list_context(user, get_params, list_request):
         .prefetch_related('dental_records', 'medicalrecord_set')
         .order_by('-created_at')
     )
+    paginated = paginate_queryset(appointments_qs, list_request)
     list_status = (get_params.get('status') or '').strip()
     return {
-        'appointments': paginate_queryset(appointments_qs, list_request),
+        'appointments': paginated,
+        'total_count': paginated.paginator.count if paginated else 0,
         'status_totals': status_totals,
         'doctors': User.objects.filter(role='doctor').order_by('first_name', 'last_name'),
         'appointment_types': Appointment.APPOINTMENT_TYPE_CHOICES,
@@ -207,6 +209,7 @@ def _appointment_list_htmx_oob_response(request, message, toast_type='success'):
         'appointments/_appt_post_status_oob.html',
         {
             'status_totals': ctx['status_totals'],
+            'total_count': ctx['total_count'],
             'appt_filter_urls': ctx['appt_filter_urls'],
             'appt_stat_active': ctx['appt_stat_active'],
             'list_table_appointments': ctx['appointments'],

@@ -1,0 +1,26 @@
+{# Request timeline — sidebar card. #}
+<div class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+      <i class="fas fa-clock text-gray-500" aria-hidden="true"></i>Timeline
+    </h3>
+  </div>
+  <div class="p-4 space-y-3">
+    <div class="flex justify-between gap-3 text-sm">
+      <span class="text-gray-600">Requested</span>
+      <span class="text-gray-900 text-right font-medium">{{ cert_request.created_at|date:"M d, Y g:i A" }}</span>
+    </div>
+    {% if cert_request.updated_at != cert_request.created_at %}
+    <div class="flex justify-between gap-3 text-sm">
+      <span class="text-gray-600">Last updated</span>
+      <span class="text-gray-900 text-right font-medium">{{ cert_request.updated_at|date:"M d, Y g:i A" }}</span>
+    </div>
+    {% endif %}
+    {% if cert_request.processed_by %}
+    <div class="flex justify-between gap-3 text-sm pt-3 border-t border-gray-100">
+      <span class="text-gray-600">Processed by</span>
+      <span class="text-gray-900 text-right font-medium">{{ cert_request.processed_by.get_full_name }}</span>
+    </div>
+    {% endif %}
+  </div>
+</div>

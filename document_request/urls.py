@@ -10,8 +10,14 @@ urlpatterns = [
     
     # Submit New Request
     path('request/', views.request_document, name='request_document'),
-    
-    # Process Request (Doctor/Admin)
+
+    # Clinician signature (doctor/staff/admin)
+    path('signature/', views.clinician_signature, name='clinician_signature'),
+
+    # Request detail hub (view + process)
+    path('<int:request_id>/', views.document_request_detail, name='document_request_detail'),
+
+    # Legacy URLs → detail hub
     path('process/<int:request_id>/', views.process_document, name='process_document'),
     
     # Edit Medical Certificate

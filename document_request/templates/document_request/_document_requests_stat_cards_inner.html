@@ -1,0 +1,5 @@
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+  {% include "components/stat_card.html" with label="Pending review" value=status_totals.pending_review icon="fa-clock" variant="warning" hint="Awaiting review" href=doc_filter_urls.pending_review hx_get=doc_filter_urls.pending_review hx_target="body" hx_swap="none" hx_push_url="true" active=doc_stat_active.pending_review %}
+  {% include "components/stat_card.html" with label="Completed" value=status_totals.completed icon="fa-check-double" variant="success" hint="Certificates issued" href=doc_filter_urls.completed hx_get=doc_filter_urls.completed hx_target="body" hx_swap="none" hx_push_url="true" active=doc_stat_active.completed %}
+  {% include "components/stat_card.html" with label="Rejected" value=status_totals.rejected icon="fa-ban" variant="danger" hint="Not approved" href=doc_filter_urls.rejected hx_get=doc_filter_urls.rejected hx_target="body" hx_swap="none" hx_push_url="true" active=doc_stat_active.rejected %}
+</div>

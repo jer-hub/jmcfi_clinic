@@ -1,0 +1,26 @@
+{% load user_filters %}
+
+<div id="jmcfi-doc-list-stats" class="mb-4">
+  {% include "document_request/_document_requests_stat_cards_inner.html" %}
+</div>
+
+<div class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden mb-4">
+  <form method="GET"
+        id="jmcfi-doc-list-filter-form"
+        class="px-4 py-3 border-b border-gray-100 bg-gray-50/40"
+        hx-get="{% url 'document_request:document_requests' %}"
+        hx-target="body"
+        hx-swap="none"
+        hx-push-url="true"
+        hx-trigger="change from:input[type=date]"
+        @submit.prevent>
+    <div id="jmcfi-doc-list-filter-fields">
+      {% include "document_request/_document_requests_filter_fields.html" %}
+    </div>
+  </form>
+
+  <div id="jmcfi-doc-list-table-fragment">
+    {% include "document_request/_document_requests_table_fragment.html" %}
+  </div>
+</div>
+

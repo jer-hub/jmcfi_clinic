@@ -136,25 +136,94 @@ def dental_records_subnav(context):
     return ctx
 
 
+def _document_requests_list_crumb():
+    return {
+        'label': 'Requests',
+        'url': reverse('document_request:document_requests'),
+        'icon': 'fa-file-medical',
+    }
+
+
+def _document_request_breadcrumb_subnav(crumbs):
+    return {
+        'show_breadcrumbs': True,
+        'bc_crumbs': crumbs,
+        'nav_mb': 'mb-4',
+        'items': [],
+    }
+
+
+def _linked_request_detail_crumb(cert_id):
+    from document_request.models import DocumentRequest
+
+    linked = (
+        DocumentRequest.objects.filter(medical_certificate_id=cert_id)
+        .only('id')
+        .first()
+    )
+    if not linked:
+        return None
+    return {
+        'label': 'Request Details',
+        'url': reverse('document_request:document_request_detail', args=[linked.id]),
+    }
+
+
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
 def document_request_subnav(context):
     request = context['request']
     vn = request.resolver_match.view_name
+
+    if vn == 'document_request:document_request_detail':
+        return _document_request_breadcrumb_subnav(
+            [
+                _document_requests_list_crumb(),
+                {'label': 'Request Details', 'icon': 'fa-file-lines'},
+            ]
+        )
+
+    if vn == 'document_request:preview_medical_certificate':
+        cert_id = request.resolver_match.kwargs.get('cert_id')
+        crumbs = [_document_requests_list_crumb()]
+        detail_crumb = _linked_request_detail_crumb(cert_id) if cert_id else None
+        if detail_crumb:
+            crumbs.append(detail_crumb)
+        crumbs.append({'label': 'Certificate Preview', 'icon': 'fa-eye'})
+        return _document_request_breadcrumb_subnav(crumbs)
+
     items = [
         {
             'label': 'Requests',
             'url': reverse('document_request:document_requests'),
             'icon': 'fa-file-medical',
-            'active': vn in ('document_request:document_requests', 'document_request:process_document', 'document_request:view_document'),
-        },
-        {
-            'label': 'New Request',
-            'url': reverse('document_request:request_document'),
-            'icon': 'fa-plus',
-            'active': vn == 'document_request:request_document',
+            'active': vn in (
+                'document_request:document_requests',
+                'document_request:process_document',
+                'document_request:view_document',
+            ),
         },
     ]
-    return _enrich_context(items)
+    if getattr(request.user, 'role', None) in ('student', 'doctor', 'staff', 'admin'):
+        items.append(
+            {
+                'label': 'New Request',
+                'url': reverse('document_request:request_document'),
+                'icon': 'fa-plus',
+                'active': vn == 'document_request:request_document',
+            }
+        )
+    if getattr(request.user, 'role', None) in ('doctor', 'staff', 'admin'):
+        items.append(
+            {
+                'label': 'My Signature',
+                'url': reverse('document_request:clinician_signature'),
+                'icon': 'fa-signature',
+                'active': vn == 'document_request:clinician_signature',
+            }
+        )
+    ctx = _enrich_context(items, always_show_nav=True)
+    ctx['nav_mb'] = 'mb-4'
+    return ctx
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
@@ -352,6 +421,8 @@ def analytics_subnav(context):
                 },
             ]
         )
+    if user.role == 'student':
+        return {'items': [], 'show_breadcrumbs': False, 'nav_mb': 'mb-4'}
     return _enrich_context(items, always_show_nav=True)
 
 

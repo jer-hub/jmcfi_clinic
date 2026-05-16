@@ -21,9 +21,13 @@
 {% endcomment %}
 
 {% if show_breadcrumbs %}
-{# ── Breadcrumb mode ── #}
-{% include "components/breadcrumbs.html" with crumbs=bc_crumbs %}
-{% else %}
+{# ── Breadcrumb mode (inside subnav chrome) ── #}
+<nav class="{{ nav_mb|default:'mb-4' }} bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto" aria-label="Section navigation">
+  <div class="px-3 py-2.5 min-w-max">
+    {% include "components/breadcrumbs.html" with crumbs=bc_crumbs embedded=True %}
+  </div>
+</nav>
+{% elif items %}
 {# ── Full nav strip ── #}
 <nav class="{{ nav_mb|default:'mb-6' }} bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
   <ul class="flex items-center gap-1 px-2 py-2 min-w-max">

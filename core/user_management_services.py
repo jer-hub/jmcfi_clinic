@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 
 from appointments.models import Appointment
-from document_request.models import DocumentRequest as CertificateRequest
+from document_request.models import DocumentRequest
 from medical_records.models import MedicalRecord
 
 from .models import AccountProvisioningAudit
@@ -22,7 +22,9 @@ def get_user_management_stats():
     return {
         'total_users': User.objects.filter(is_deleted=False).count(),
         'total_appointments': Appointment.objects.count(),
-        'pending_certificates': CertificateRequest.objects.filter(status='pending').count(),
+        'pending_certificates': DocumentRequest.objects.filter(
+            status=DocumentRequest.Status.PENDING_REVIEW,
+        ).count(),
         'active_doctors': User.objects.filter(role='doctor', is_deleted=False).count(),
         'total_students': User.objects.filter(role='student', is_deleted=False).count(),
         'total_staff': User.objects.filter(role='staff', is_deleted=False).count(),
@@ -43,7 +45,7 @@ def get_user_detail_summary(user):
             'Completed Appointments': Appointment.objects.filter(student=user, status='completed').count(),
             'Pending Appointments': Appointment.objects.filter(student=user, status='pending').count(),
             'Medical Records': MedicalRecord.objects.filter(student=user).count(),
-            'Certificate Requests': CertificateRequest.objects.filter(student=user).count(),
+            'Certificate Requests': DocumentRequest.objects.filter(student=user).count(),
         }
         recent_activity = {
             'appointments': Appointment.objects.filter(student=user).order_by('-created_at')[:5],
@@ -55,7 +57,7 @@ def get_user_detail_summary(user):
             'Completed Appointments': Appointment.objects.filter(doctor=user, status='completed').count(),
             'Pending Appointments': Appointment.objects.filter(doctor=user, status='pending').count(),
             'Medical Records': MedicalRecord.objects.filter(doctor=user).count(),
-            'Certificates Processed': CertificateRequest.objects.filter(processed_by=user).count(),
+            'Certificates Processed': DocumentRequest.objects.filter(processed_by=user).count(),
         }
         recent_activity = {
             'appointments': Appointment.objects.filter(doctor=user).order_by('-created_at')[:5],

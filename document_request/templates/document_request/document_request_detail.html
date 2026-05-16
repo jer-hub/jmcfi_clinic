@@ -1,0 +1,102 @@
+{% extends 'core/base.html' %}
+{% load user_filters %}
+
+{% block title %}Document Request - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
+    {% include 'document_request/_subnav.html' %}
+
+    {% include "components/page_header.html" with title=page_title subtitle=page_subtitle icon="fa-file-medical" %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-card shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-base font-semibold text-gray-900 inline-flex items-center gap-2"><i class="fas fa-file-lines text-primary-600"></i>Request Details</h2>
+                    </div>
+
+                    <div class="p-6 space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Student Name</label>
+                                <div class="mt-1 text-sm text-gray-900 font-medium">{{ cert_request.student|format_student_name }}</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Email</label>
+                                <div class="mt-1 text-sm text-gray-900">{{ cert_request.student.email }}</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Age</label>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.age %}{{ cert_request.student.student_profile.age }}{% else %}-{% endif %}</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Gender</label>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.gender %}{{ cert_request.student.student_profile.get_gender_display|default:cert_request.student.student_profile.gender }}{% else %}-{% endif %}</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.date_of_birth %}{{ cert_request.student.student_profile.date_of_birth|date:"M d, Y" }}{% else %}-{% endif %}</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Address</label>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.address %}{{ cert_request.student.student_profile.address }}{% else %}-{% endif %}</div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Document Type</label>
+                                <div class="mt-1 text-sm text-gray-900 font-medium">{{ cert_request.get_document_type_display }}</div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Request Status</label>
+                                <div class="mt-1">
+                                    {% if cert_request.status == 'pending_review' %}
+                                        {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" %}
+                                    {% elif cert_request.status == 'completed' %}
+                                        {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" %}
+                                    {% elif cert_request.status == 'rejected' %}
+                                        {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Purpose</label>
+                            <div class="mt-1 p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-900">{{ cert_request.purpose }}</p>
+                            </div>
+                        </div>
+
+                        {% if cert_request.additional_info %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Additional Information</label>
+                            <div class="mt-1 p-3 bg-gray-50 rounded-md">
+                                <p class="text-sm text-gray-900">{{ cert_request.additional_info }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-1 space-y-4">
+                {% if cert_request.status == 'rejected' %}
+                {% include "document_request/_document_request_rejection_card.html" %}
+                {% else %}
+                {% include "document_request/_document_request_detail_actions.html" %}
+                {% endif %}
+                {% include "document_request/_document_request_timeline_card.html" %}
+            </div>
+        </div>
+</div>
+{% endblock content %}

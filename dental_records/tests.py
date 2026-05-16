@@ -63,7 +63,8 @@ class DentalRecordsListTotalsTests(TestCase):
 
     def test_badge_totals_match_mixed_timeline_rows(self):
         completed_appt = self._create_dental_appointment('completed', date.today(), 9)
-        self._create_dental_appointment('pending', date.today(), 12)
+        future_day = date.today() + timedelta(days=7)
+        self._create_dental_appointment('pending', future_day, 12)
         self._create_dental_appointment(
             'pending',
             date.today() - timedelta(days=2),
@@ -83,12 +84,14 @@ class DentalRecordsListTotalsTests(TestCase):
                 'pending': 2,
                 'missed': 1,
                 'completed': 1,
+                'cancelled': 0,
             },
         )
         self.assertEqual(response.context['total_count'], 4)
 
     def test_status_filter_pending_updates_total_count(self):
-        self._create_dental_appointment('pending', date.today(), 10)
+        future_day = date.today() + timedelta(days=7)
+        self._create_dental_appointment('pending', future_day, 10)
         self._create_dental_record(status='completed')
 
         self.client.force_login(self.staff)
@@ -101,7 +104,8 @@ class DentalRecordsListTotalsTests(TestCase):
         self.assertEqual(response.context['total_count'], 1)
 
     def test_htmx_filter_response_includes_header_total_oob(self):
-        self._create_dental_appointment('pending', date.today(), 11)
+        future_day = date.today() + timedelta(days=7)
+        self._create_dental_appointment('pending', future_day, 11)
 
         self.client.force_login(self.staff)
         response = self.client.get(
@@ -112,3 +116,20 @@ class DentalRecordsListTotalsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'jmcfi-dr-header-total-count')
         self.assertContains(response, 'hx-swap-oob="true"')
+
+    def test_cancelled_appointment_totals_and_status_filter(self):
+        future_day = date.today() + timedelta(days=7)
+        self._create_dental_appointment('pending', future_day, 9)
+        self._create_dental_appointment('cancelled', future_day, 15)
+
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('dental_records:dental_record_list'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['status_totals']['cancelled'], 1)
+
+        filtered = self.client.get(
+            reverse('dental_records:dental_record_list'),
+            {'status': 'cancelled'},
+        )
+        self.assertEqual(filtered.context['total_count'], 1)

@@ -1,0 +1,15 @@
+{% extends 'core/base.html' %}
+
+{% block title %}My Signature - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
+  {% include 'document_request/_subnav.html' %}
+
+  {% include "components/page_header.html" with title="My Signature" subtitle="Upload and manage the signature used when completing medical certificates" icon="fa-signature" header_mb="mb-4" %}
+
+  <div class="bg-white rounded-card shadow-sm border border-gray-200 p-6 sm:p-8">
+    {% include "document_request/_clinician_signature_form.html" %}
+  </div>
+</div>
+{% endblock content %}

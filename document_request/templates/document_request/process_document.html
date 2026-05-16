@@ -1,12 +1,12 @@
 {% extends 'core/base.html' %}
+{% load user_filters %}
 
 {% block title %}Process Document Request - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
     {% include 'document_request/_subnav.html' %}
 
-    {% include "components/breadcrumbs.html" with crumbs=breadcrumbs|default_if_none:None %}
     {% include "components/page_header.html" with title="Process Document Request" subtitle="Review and process the document request" icon="fa-file-medical" %}
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -15,13 +15,12 @@
                     <div class="px-6 py-4 border-b border-gray-200">
                         <h2 class="text-base font-semibold text-gray-900 inline-flex items-center gap-2"><i class="fas fa-file-lines text-primary-600"></i>Request Details</h2>
                     </div>
-                    
+
                     <div class="p-6 space-y-6">
-                        <!-- Student Information -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Student Name</label>
-                                <div class="mt-1 text-sm text-gray-900 font-medium">{{ cert_request.student.get_full_name }}</div>
+                                <div class="mt-1 text-sm text-gray-900 font-medium">{{ cert_request.student|format_student_name }}</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Email</label>
@@ -29,7 +28,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Age</label>
                                 <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.age %}{{ cert_request.student.student_profile.age }}{% else %}-{% endif %}</div>
@@ -40,7 +39,7 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 gap-6 mt-3">
+                        <div class="grid grid-cols-1 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
                                 <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.date_of_birth %}{{ cert_request.student.student_profile.date_of_birth|date:"M d, Y" }}{% else %}-{% endif %}</div>
@@ -51,17 +50,16 @@
                             </div>
                         </div>
 
-                        <!-- Certificate Details -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Document Type</label>
                                 <div class="mt-1 text-sm text-gray-900 font-medium">{{ cert_request.get_document_type_display }}</div>
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Current Status</label>
+                                <label class="block text-sm font-medium text-gray-700">Request Status</label>
                                 <div class="mt-1">
                                     {% if cert_request.status == 'pending' %}
-                                        {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" %}
+                                        {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" %}
                                     {% elif cert_request.status == 'completed' %}
                                         {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" %}
                                     {% elif cert_request.status == 'rejected' %}
@@ -71,7 +69,6 @@
                             </div>
                         </div>
 
-                        <!-- Purpose -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Purpose</label>
                             <div class="mt-1 p-3 bg-gray-50 rounded-md">
@@ -79,7 +76,6 @@
                             </div>
                         </div>
 
-                        <!-- Additional Information -->
                         {% if cert_request.additional_info %}
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Additional Information</label>
@@ -89,17 +85,15 @@
                         </div>
                         {% endif %}
 
-                        <!-- Previous Rejection Reason -->
                         {% if cert_request.rejection_reason %}
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">Previous Rejection Reason</label>
+                            <label class="block text-sm font-medium text-gray-700">Rejection Reason</label>
                             <div class="mt-1 p-3 bg-red-50 border border-red-200 rounded-md">
                                 <p class="text-sm text-red-800">{{ cert_request.rejection_reason }}</p>
                             </div>
                         </div>
                         {% endif %}
 
-                        <!-- Request Timeline -->
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Timeline</label>
                             <div class="mt-1 space-y-2">
@@ -123,35 +117,31 @@
                         </div>
                     </div>
                 </div>
-
             </div>
 
             <div class="lg:col-span-1 space-y-4">
                 {% if cert_request.medical_certificate %}
                 <div class="bg-white rounded-card shadow-sm border border-gray-200">
                     <div class="px-4 py-3 border-b border-gray-200">
-                        <h3 class="text-sm font-semibold text-gray-900 inline-flex items-center gap-2"><i class="fas fa-link text-success-600"></i>Certificate Status</h3>
+                        <h3 class="text-sm font-semibold text-gray-900 inline-flex items-center gap-2"><i class="fas fa-link text-success-600"></i>Certificate</h3>
                     </div>
                     <div class="p-4 space-y-3">
                         <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-500">Status</span>
+                            <span class="text-xs text-gray-500">Certificate draft</span>
                             {% with mc=cert_request.medical_certificate %}
                               {% if mc.status == 'completed' %}
-                                {% include "components/status_badge.html" with label=mc.get_status_display variant="success" icon="fa-circle-check" size="sm" %}
+                                {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" size="sm" %}
                               {% elif mc.status == 'pending' %}
-                                {% include "components/status_badge.html" with label=mc.get_status_display variant="warning" icon="fa-clock" size="sm" %}
+                                {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" size="sm" %}
                               {% else %}
-                                {% include "components/status_badge.html" with label=mc.get_status_display variant="danger" icon="fa-ban" size="sm" %}
+                                {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" size="sm" %}
                               {% endif %}
                             {% endwith %}
                         </div>
-                        {% if user.role == 'doctor' or user.role == 'admin' %}
-                        <a href="{% url 'document_request:edit_medical_certificate' cert_request.medical_certificate.pk %}"
-                           class="inline-flex items-center gap-1 text-sm text-primary-600 hover:text-primary-800 font-medium">
-                            <i class="fas fa-pen-to-square"></i>Review &amp; Edit Certificate
-                        </a>
-                        {% else %}
-                        <p class="text-xs text-gray-500">Certificate details are restricted to authorized clinicians.</p>
+                        {% if cert_request.status == 'rejected' %}
+                        <p class="text-xs text-gray-500">You may edit the certificate to revise details before the student submits a new request.</p>
+                        {% elif cert_request.status == 'pending' %}
+                        <p class="text-xs text-gray-500">Fill in diagnosis and remarks, then preview before completing the request.</p>
                         {% endif %}
                     </div>
                 </div>
@@ -162,72 +152,96 @@
                         <h3 class="text-sm font-semibold text-gray-900">Actions</h3>
                     </div>
                     <div class="p-4 space-y-3">
-                        {% if cert_request.medical_certificate %}
+                        {% if missing_signature %}
+                        <div class="rounded-lg border border-warning-200 bg-warning-50 px-3 py-2 text-xs text-warning-900">
+                          <i class="fas fa-signature mr-1" aria-hidden="true"></i>
+                          <a href="{% url 'document_request:clinician_signature' %}" class="font-medium underline">Upload your signature</a>
+                          on the Document Requests page before completing.
+                        </div>
+                        {% endif %}
+
+                        {% if can_process and cert_request.status == 'pending' and cert_request.medical_certificate %}
+                        <a href="{% url 'document_request:edit_medical_certificate' cert_request.medical_certificate.pk %}"
+                           class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm font-medium transition-colors">
+                            <i class="fas fa-pen-to-square" aria-hidden="true"></i>Edit Certificate
+                        </a>
+                        <a href="{% url 'document_request:preview_medical_certificate' cert_request.medical_certificate.pk %}"
+                           class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+                            <i class="fas fa-eye" aria-hidden="true"></i>Preview Certificate
+                        </a>
+                        {% elif cert_request.medical_certificate %}
                         <a href="{% url 'document_request:preview_medical_certificate' cert_request.medical_certificate.pk %}"
                            class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 bg-info-600 text-white rounded-lg hover:bg-info-700 text-sm font-medium transition-colors">
-                            <i class="fas fa-eye"></i>View Full Preview
+                            <i class="fas fa-eye" aria-hidden="true"></i>View Full Preview
                         </a>
+                        {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
+                        <a href="{% url 'document_request:edit_medical_certificate' cert_request.medical_certificate.pk %}"
+                           class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
+                            <i class="fas fa-pen-to-square" aria-hidden="true"></i>Edit Certificate
+                        </a>
+                        {% endif %}
                         {% endif %}
 
                         {% if can_process %}
-                        <form method="POST" id="processForm" class="space-y-3">
+                        <form method="POST" id="processForm" class="space-y-3" x-data="{ showReject: false }">
                             {% csrf_token %}
+                            <input type="hidden" name="action" id="actionInput">
 
                             {% if cert_request.status == 'pending' %}
                             <button type="button"
-                                    @click="$dispatch('open-modal',{type:'info',title:'Confirm Completion',message:'Mark this request as completed? Make sure you have reviewed and filled in the certificate details in the dedicated edit page.',actionLabel:'Complete',onConfirm:function(){document.getElementById('actionInput').value='review';document.getElementById('processForm').submit();}})"
-                                    class="w-full inline-flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                                <i class="fas fa-circle-check"></i>Complete Request
+                                    {% if missing_signature %}disabled{% endif %}
+                                    @click="$dispatch('open-modal',{type:'info',title:'Confirm Completion',message:'Mark this request as completed? Ensure diagnosis and remarks are filled in on the certificate.',actionLabel:'Complete',onConfirm:function(){document.getElementById('actionInput').value='review';document.getElementById('processForm').submit();}})"
+                                    class="w-full inline-flex items-center justify-center gap-2 bg-success-600 hover:bg-success-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i class="fas fa-circle-check" aria-hidden="true"></i>Complete Request
                             </button>
 
                             <button type="button"
-                                    onclick="showRejectForm()"
+                                    @click="showReject = true; document.getElementById('actionInput').value = 'reject'"
                                     class="w-full inline-flex items-center justify-center gap-2 bg-danger-600 hover:bg-danger-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
-                                <i class="fas fa-ban"></i>Reject Request
+                                <i class="fas fa-ban" aria-hidden="true"></i>Reject Request
                             </button>
+
+                            <div x-show="showReject" x-cloak class="space-y-3 pt-3 border-t border-gray-200">
+                                <div>
+                                    <label for="rejection_reason" class="block text-xs font-medium text-gray-700">Reason <span class="text-danger-600">*</span></label>
+                                    <textarea name="rejection_reason" id="rejection_reason" rows="3"
+                                              class="mt-1 block w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-danger-500 focus:border-danger-500"
+                                              placeholder="Please provide a reason for rejection..."></textarea>
+                                </div>
+                                <div class="flex gap-2">
+                                    <button type="submit" class="flex-1 bg-danger-600 hover:bg-danger-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors">Confirm Rejection</button>
+                                    <button type="button" @click="showReject = false; document.getElementById('actionInput').value = ''; document.getElementById('rejection_reason').value = ''" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors">Cancel</button>
+                                </div>
+                            </div>
                             {% else %}
                             <div class="text-center text-gray-500 py-4">
                                 {% if cert_request.status == 'completed' %}
                                 <div class="flex flex-col items-center gap-2">
-                                    <i class="fas fa-circle-check text-success-500 text-3xl"></i>
+                                    <i class="fas fa-circle-check text-success-500 text-3xl" aria-hidden="true"></i>
                                     <p class="text-sm font-medium text-success-700">This request has been completed.</p>
                                 </div>
                                 {% elif cert_request.status == 'rejected' %}
                                 <div class="flex flex-col items-center gap-2">
-                                    <i class="fas fa-ban text-danger-500 text-3xl"></i>
+                                    <i class="fas fa-ban text-danger-500 text-3xl" aria-hidden="true"></i>
                                     <p class="text-sm font-medium text-danger-700">Request Rejected</p>
+                                    {% if cert_request.rejection_reason %}<p class="text-xs text-danger-600">See rejection reason in the details panel</p>{% endif %}
                                 </div>
                                 {% else %}
                                 <p class="text-sm">No actions available for this request.</p>
                                 {% endif %}
                             </div>
                             {% endif %}
-
-                            <input type="hidden" name="action" id="actionInput">
-
-                            <div id="rejectForm" class="hidden space-y-3 pt-3 border-t border-gray-200">
-                                <div>
-                                    <label for="rejection_reason" class="block text-xs font-medium text-gray-700">Reason *</label>
-                                    <textarea name="rejection_reason" id="rejection_reason" rows="3" required
-                                              class="mt-1 block w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-danger-500 focus:border-danger-500"
-                                              placeholder="Please provide a reason for rejection..."></textarea>
-                                </div>
-                                <div class="flex gap-2">
-                                    <button type="submit" class="flex-1 bg-danger-600 hover:bg-danger-700 text-white px-3 py-2 rounded-lg text-xs font-medium transition-colors">Confirm</button>
-                                    <button type="button" onclick="hideRejectForm()" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg text-xs font-medium transition-colors">Cancel</button>
-                                </div>
-                            </div>
                         </form>
-                        {% else %}
+                        {% elif not can_process %}
                         <div class="text-center text-gray-500 py-4">
                             {% if cert_request.status == 'completed' %}
                             <div class="flex flex-col items-center gap-2">
-                                <i class="fas fa-circle-check text-success-500 text-3xl"></i>
+                                <i class="fas fa-circle-check text-success-500 text-3xl" aria-hidden="true"></i>
                                 <p class="text-sm font-medium text-success-700">This request has been completed.</p>
                             </div>
                             {% elif cert_request.status == 'rejected' %}
                             <div class="flex flex-col items-center gap-2">
-                                <i class="fas fa-ban text-danger-500 text-3xl"></i>
+                                <i class="fas fa-ban text-danger-500 text-3xl" aria-hidden="true"></i>
                                 <p class="text-sm font-medium text-danger-700">Request Rejected</p>
                                 {% if cert_request.rejection_reason %}<p class="text-xs text-danger-600">See rejection reason above</p>{% endif %}
                             </div>
@@ -241,21 +255,4 @@
             </div>
         </div>
 </div>
-
-<script>
-{% if can_process %}
-function showRejectForm() {
-    document.getElementById('rejectForm').classList.remove('hidden');
-    document.getElementById('actionInput').value = 'reject';
-}
-
-function hideRejectForm() {
-    document.getElementById('rejectForm').classList.add('hidden');
-    document.getElementById('actionInput').value = '';
-    document.getElementById('rejection_reason').value = '';
-}
-{% endif %}
-</script>
-
-
 {% endblock content %}

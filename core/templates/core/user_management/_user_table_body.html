@@ -1,0 +1,114 @@
+{% if users %}
+<div class="md:hidden px-4 py-4 space-y-3">
+  {% for user_item in users %}
+  <div class="rounded-card border border-gray-200 bg-white shadow-sm overflow-hidden" data-user-card>
+    <div class="p-4 border-b border-gray-100 flex items-start justify-between gap-3">
+      <div class="flex items-center min-w-0 gap-3">
+        {% include "components/avatar.html" with user=user_item size="md" %}
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900 truncate">{{ user_item.get_full_name }}</p>
+          <p class="text-xs text-gray-500 truncate">{{ user_item.email }}</p>
+        </div>
+      </div>
+      {% if user_item.role == 'admin' %}
+        {% include "components/status_badge.html" with label=user_item.get_role_display variant="danger" size="sm" %}
+      {% elif user_item.role == 'staff' or user_item.role == 'doctor' %}
+        {% include "components/status_badge.html" with label=user_item.get_role_display variant="primary" size="sm" %}
+      {% else %}
+        {% include "components/status_badge.html" with label=user_item.get_role_display variant="info" size="sm" %}
+      {% endif %}
+    </div>
+    <div class="p-4 space-y-3">
+      <div class="grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Joined</p>
+          <p class="text-gray-900">{{ user_item.date_joined|date:"M d, Y" }}</p>
+        </div>
+        <div>
+          <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Status</p>
+          <div class="mt-1" data-user-status>
+            {% include 'core/user_management/_user_status_badge.html' with badge_user=user_item %}
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-2 border-t border-gray-100">
+        <form method="POST" action="{% url 'core:user_toggle_status' user_item.id %}" id="toggle-mobile-{{ user_item.id }}" hx-post="{% url 'core:user_toggle_status' user_item.id %}" hx-swap="none" hx-trigger="change" hx-on="htmx:responseError: this.querySelector('.js-account-toggle').checked = !this.querySelector('.js-account-toggle').checked">
+          {% csrf_token %}
+          <label class="relative inline-flex items-center gap-2 {% if user_item.role == 'admin' %}cursor-not-allowed opacity-50{% else %}cursor-pointer{% endif %}">
+            <input type="checkbox" class="sr-only peer js-account-toggle" {% if user_item.is_active %}checked{% endif %} data-user-id="{{ user_item.id }}" data-user-role="{{ user_item.role }}" {% if user_item.role == 'admin' %}disabled title="Cannot deactivate admin accounts"{% endif %}>
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            <span class="text-xs text-gray-500">Account</span>
+          </label>
+        </form>
+        <div class="flex items-center gap-1">
+          <a href="{% url 'core:user_detail' user_item.id %}" class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="View"><i class="fas fa-eye"></i></a>
+          <a href="{% url 'core:user_edit' user_item.id %}" class="p-2 text-info-600 hover:bg-info-50 rounded-lg transition-colors" title="Edit"><i class="fas fa-pen-to-square"></i></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="hidden md:block overflow-x-auto">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Account</th>
+        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200">
+      {% for user_item in users %}
+      <tr class="hover:bg-gray-50 transition-colors" data-user-row>
+        <td class="px-6 py-3 whitespace-nowrap">
+          <div class="flex items-center gap-3">
+            {% include "components/avatar.html" with user=user_item size="md" %}
+            <span class="text-sm font-medium text-gray-900">{{ user_item.get_full_name }}</span>
+          </div>
+        </td>
+        <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">{{ user_item.email }}</td>
+        <td class="px-6 py-3 whitespace-nowrap">
+          {% if user_item.role == 'admin' %}
+            {% include "components/status_badge.html" with label=user_item.get_role_display variant="danger" size="sm" %}
+          {% elif user_item.role == 'staff' or user_item.role == 'doctor' %}
+            {% include "components/status_badge.html" with label=user_item.get_role_display variant="primary" size="sm" %}
+          {% else %}
+            {% include "components/status_badge.html" with label=user_item.get_role_display variant="info" size="sm" %}
+          {% endif %}
+        </td>
+        <td class="px-6 py-3 whitespace-nowrap" id="status-{{ user_item.id }}" data-user-status>
+          {% include 'core/user_management/_user_status_badge.html' with badge_user=user_item %}
+        </td>
+        <td class="px-6 py-3 whitespace-nowrap">
+          <form method="POST" action="{% url 'core:user_toggle_status' user_item.id %}" class="inline-block" id="toggle-{{ user_item.id }}" hx-post="{% url 'core:user_toggle_status' user_item.id %}" hx-swap="none" hx-trigger="change" hx-on="htmx:responseError: this.querySelector('.js-account-toggle').checked = !this.querySelector('.js-account-toggle').checked">
+            {% csrf_token %}
+            <label class="relative inline-flex items-center {% if user_item.role == 'admin' %}cursor-not-allowed opacity-50{% else %}cursor-pointer{% endif %}">
+              <input type="checkbox" class="sr-only peer js-account-toggle" {% if user_item.is_active %}checked{% endif %} data-user-id="{{ user_item.id }}" data-user-role="{{ user_item.role }}" {% if user_item.role == 'admin' %}disabled title="Cannot deactivate admin accounts"{% endif %}>
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            </label>
+          </form>
+        </td>
+        <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500">{{ user_item.date_joined|date:"M d, Y" }}</td>
+        <td class="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
+          <div class="flex items-center justify-end gap-1">
+            <a href="{% url 'core:user_detail' user_item.id %}" class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors" title="View"><i class="fas fa-eye"></i></a>
+            <a href="{% url 'core:user_edit' user_item.id %}" class="p-2 text-info-600 hover:bg-info-50 rounded-lg transition-colors" title="Edit"><i class="fas fa-pen-to-square"></i></a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% include "components/pagination.html" with page_obj=users querystring=user_list_querystring|default:'' %}
+
+{% else %}
+  {% include "components/empty_state.html" with icon="fa-users-slash" title="No users found" description="Try adjusting your search or filter criteria." action_label="Clear Filters" action_url="/admin/users/" %}
+{% endif %}

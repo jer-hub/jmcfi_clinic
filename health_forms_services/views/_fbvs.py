@@ -1,44 +1,62 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from django.contrib import messages
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST, require_GET, require_http_methods
-from django.core.paginator import Paginator
-from django.urls import reverse
-from django.utils import timezone
-from django.db.models import Q
-from django.template.loader import render_to_string
+"""Function-based views that remain after the CBV migration.
+
+All list/detail/edit pages are now class-based (see ``forms_cbvs.py`` and
+``_cbvs.py``). The functions here cover the create/review/delete/export and
+HTMX/JSON API surface that the URL config still wires up.
+"""
+
 import json
 
-from core.decorators import role_required
-from ..mixins import FormAccessMixin, RoleRequiredMixin
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
-from ..models import (
-    HealthProfileForm, DentalHealthForm, DentalFormTooth, DentalFormToothSurface,
-    DentalServicesRequest, PatientChart, PatientChartEntry,
-    Prescription, PrescriptionItem,
+from core.decorators import role_required
+
+from ..exports import (
+    doc_to_response,
+    generate_dental_form,
+    generate_dental_services,
+    generate_health_profile,
+    generate_patient_chart,
 )
 from ..forms import (
-    HealthProfilePersonalInfoForm,
-    HealthProfileMedicalHistoryForm,
-    HealthProfilePhysicalExamForm,
-    HealthProfileDiagnosticTestsForm,
-    HealthProfileClinicalSummaryForm,
-    HealthFormReviewForm,
-    DentalHealthPersonalInfoForm,
-    DentalHealthExaminationForm,
     DentalHealthConditionsForm,
+    DentalHealthExaminationForm,
     DentalHealthFormReviewForm,
+    DentalHealthPersonalInfoForm,
     DentalServicesPersonalInfoForm,
-    DentalServicesChecklistForm,
     DentalServicesReviewForm,
-    PatientChartPersonalInfoForm,
+    HealthFormReviewForm,
+    HealthProfileClinicalSummaryForm,
+    HealthProfileDiagnosticTestsForm,
+    HealthProfileMedicalHistoryForm,
+    HealthProfilePersonalInfoForm,
+    HealthProfilePhysicalExamForm,
     PatientChartEntryForm,
+    PatientChartPersonalInfoForm,
     PatientChartReviewForm,
-    PrescriptionPatientForm,
     PrescriptionItemForm,
+    PrescriptionPatientForm,
     PrescriptionReviewForm,
 )
+from ..models import (
+    DentalFormTooth,
+    DentalFormToothSurface,
+    DentalHealthForm,
+    DentalServicesRequest,
+    HealthProfileForm,
+    PatientChart,
+    PatientChartEntry,
+    Prescription,
+    PrescriptionItem,
+)
+
+
+# ── Helpers ────────────────────────────────────────────────────────────────
 
 
 def _is_json_request(request):
@@ -46,245 +64,26 @@ def _is_json_request(request):
     return content_type.startswith('application/json')
 
 
-# ===== Helper Functions =====
-
 def get_form_or_404(model, pk, user, select_related_fields=None):
-    """
-    Get a form object with role-based access control.
-    Staff/doctors can see all forms; students see only their own.
-    
-    Args:
-        model: Django model class (e.g., HealthProfileForm)
-        pk: Primary key of the form
-        user: The requesting user
-        select_related_fields: List of fields to prefetch (e.g., ['user', 'reviewed_by'])
-    
-    Returns:
-        The form object or raises Http404
-    """
+    """Get a form object honouring role-based access control."""
     queryset = model.objects.all()
-    
-    # Apply select_related if provided
     if select_related_fields:
         queryset = queryset.select_related(*select_related_fields)
-    
-    # Apply role-based filtering
     if user.role == 'student':
         queryset = queryset.filter(user=user)
-    
     return get_object_or_404(queryset, pk=pk)
 
 
-@login_required
-@role_required('staff', 'doctor')
-def health_forms_list(request):
-    """List health profile forms - filtered by user role"""
-    user = request.user
-    
-    # Get base queryset with select_related
-    forms_qs = HealthProfileForm.objects.select_related('user', 'reviewed_by')
-    
-    # Apply role-based filtering
-    if user.role == 'student':
-        forms_qs = forms_qs.filter(user=user)
-    
-    # Search and filter
-    search = request.GET.get('search', '')
-    status_filter = request.GET.get('status', '')
-    
-    if search:
-        forms_qs = forms_qs.filter(
-            Q(last_name__icontains=search) |
-            Q(first_name__icontains=search) |
-            Q(user__email__icontains=search)
-        )
-    
-    if status_filter:
-        forms_qs = forms_qs.filter(status=status_filter)
-    
-    # Pagination
-    paginator = Paginator(forms_qs, 10)
-    page = request.GET.get('page', 1)
-    forms_page = paginator.get_page(page)
-    
-    context = {
-        'forms': forms_page,
-        'search': search,
-        'status_filter': status_filter,
-        'status_choices': HealthProfileForm.Status.choices,
-        'create_url': reverse('health_forms_services:manual_entry'),
-    }
-    
-    return render(request, 'health_forms_services/forms_list.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def form_detail(request, pk):
-    """View health profile form details"""
-    user = request.user
-    health_form = get_form_or_404(HealthProfileForm, pk, user, ['user', 'reviewed_by'])
-    
-    context = {
-        'health_form': health_form,
-        'can_edit': user.role in ['staff', 'doctor', 'admin'] or health_form.user == user,
-        'can_review': user.role in ['staff', 'doctor', 'admin'],
-    }
-    
-    return render(request, 'health_forms_services/form_detail.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def edit_form(request, pk):
-    """Edit health profile form data - with AJAX auto-save support"""
-    user = request.user
-    health_form = get_form_or_404(HealthProfileForm, pk, user, ['user', 'reviewed_by', 'examining_physician'])
-    
-    # Get all doctors for the examining_physician dropdown
-    from django.contrib.auth import get_user_model
-    User = get_user_model()
-    doctors = User.objects.filter(role__in=['doctor', 'staff']).order_by('first_name', 'last_name')
-    
-    if request.method == 'POST':
-        section = request.POST.get('section', 'personal')
-        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-        
-        if section == 'personal':
-            form = HealthProfilePersonalInfoForm(request.POST, instance=health_form)
-        elif section == 'medical':
-            form = HealthProfileMedicalHistoryForm(request.POST, instance=health_form)
-        elif section == 'physical':
-            form = HealthProfilePhysicalExamForm(request.POST, instance=health_form)
-            if form.is_valid():
-                # Auto-calculate BMI
-                health_form = form.save(commit=False)
-                health_form.calculate_bmi()
-        elif section == 'diagnostic':
-            form = HealthProfileDiagnosticTestsForm(request.POST, instance=health_form)
-        elif section == 'clinical':
-            form = HealthProfileClinicalSummaryForm(request.POST, instance=health_form)
-        else:
-            form = None
-        
-        if form and form.is_valid():
-            form.save()
-            if is_ajax:
-                return JsonResponse({
-                    'success': True,
-                    'message': f'{section.capitalize()} section saved successfully',
-                    'timestamp': timezone.now().isoformat()
-                })
-            messages.success(request, 'Form updated successfully.')
-            return redirect('health_forms_services:form_detail', pk=pk)
-        elif is_ajax:
-            return JsonResponse({
-                'success': False,
-                'errors': form.errors if form else {'error': 'Invalid section'},
-            }, status=400)
-    
-    context = {
-        'health_form': health_form,
-        'doctors': doctors,
-        'personal_form': HealthProfilePersonalInfoForm(instance=health_form),
-        'medical_form': HealthProfileMedicalHistoryForm(instance=health_form),
-        'physical_form': HealthProfilePhysicalExamForm(instance=health_form),
-        'diagnostic_form': HealthProfileDiagnosticTestsForm(instance=health_form),
-        'clinical_form': HealthProfileClinicalSummaryForm(instance=health_form),
-    }
-    
-    return render(request, 'health_forms_services/edit_form.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def load_form_section(request, pk):
-    """Load a specific form section via AJAX (for lazy-loading tabs)"""
-    user = request.user
-    section = request.GET.get('section', 'personal')
-    
-    health_form = get_form_or_404(HealthProfileForm, pk, user, ['user', 'reviewed_by', 'examining_physician'])
-    
-    # Get the appropriate form based on section
-    form_map = {
-        'personal': HealthProfilePersonalInfoForm,
-        'medical': HealthProfileMedicalHistoryForm,
-        'physical': HealthProfilePhysicalExamForm,
-        'diagnostic': HealthProfileDiagnosticTestsForm,
-        'clinical': HealthProfileClinicalSummaryForm,
-    }
-    
-    form_class = form_map.get(section, HealthProfilePersonalInfoForm)
-    form = form_class(instance=health_form)
-    
-    # Return form data as JSON for JavaScript to render
-    form_fields = {}
-    for field_name, field in form.fields.items():
-        value = form.initial.get(field_name, '')
-        form_fields[field_name] = {
-            'value': str(value) if value else '',
-            'label': field.label or field_name,
-            'required': field.required,
-            'widget_type': type(field.widget).__name__,
-        }
-    
-    return JsonResponse({
-        'section': section,
-        'fields': form_fields,
-    })
-
-
-@login_required
-@require_POST
-def review_form(request, pk):
-    """Staff/Doctor review and approve/reject form"""
-    if request.user.role not in ['staff', 'doctor', 'admin']:
-        messages.error(request, 'Permission denied.')
-        return redirect('health_forms_services:form_detail', pk=pk)
-    
-    health_form = get_object_or_404(HealthProfileForm, pk=pk)
-    
-    form = HealthFormReviewForm(request.POST, instance=health_form)
-    if form.is_valid():
-        health_form = form.save(commit=False)
-        health_form.reviewed_by = request.user
-        health_form.reviewed_at = timezone.now()
-        health_form.save()
-        
-        messages.success(request, f'Form status updated to {health_form.get_status_display()}.')
-    else:
-        messages.error(request, 'Invalid form data.')
-    
-    return redirect('health_forms_services:form_detail', pk=pk)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def delete_form(request, pk):
-    """Delete a health profile form"""
-    user = request.user
-    
-    if user.role in ['staff', 'doctor', 'admin']:
-        health_form = get_object_or_404(HealthProfileForm, pk=pk)
-    else:
-        health_form = get_object_or_404(HealthProfileForm, pk=pk, user=user)
-    
-    # Only allow deletion of pending or rejected forms
-    if health_form.status not in ['pending', 'rejected', 'incomplete']:
-        messages.error(request, 'Cannot delete a form that has been processed.')
-        return redirect('health_forms_services:form_detail', pk=pk)
-    
-    health_form.delete()
-    messages.success(request, 'Form deleted successfully.')
-    
-    return redirect('health_forms_services:forms_list')
+# ═══════════════════════════════════════════════════════════════════════════
+# Health Profile Form (F-HSS-20-0001) — create, section load, review, delete,
+# export
+# ═══════════════════════════════════════════════════════════════════════════
 
 
 @login_required
 @role_required('staff', 'doctor')
 def manual_entry(request):
-    """Create a new health profile form — only personal info required.
-    Clinical details are added from the edit page after creation."""
+    """Create a new health profile form using personal info only."""
     if request.method == 'POST':
         personal_form = HealthProfilePersonalInfoForm(request.POST)
         if personal_form.is_valid():
@@ -293,31 +92,94 @@ def manual_entry(request):
                 setattr(health_form, field, personal_form.cleaned_data[field])
             health_form.status = HealthProfileForm.Status.PENDING
             health_form.save()
-
             messages.success(request, 'Health profile form created. You can now fill in clinical details.')
             return redirect('health_forms_services:edit_form', pk=health_form.pk)
     else:
         personal_form = HealthProfilePersonalInfoForm()
 
-    context = {
+    return render(request, 'health_forms_services/manual_entry.html', {
         'personal_form': personal_form,
-    }
+    })
 
-    return render(request, 'health_forms_services/manual_entry.html', context)
+
+@login_required
+@role_required('staff', 'doctor')
+def load_form_section(request, pk):
+    """Return a section's serialized fields for lazy-loaded edit tabs."""
+    section = request.GET.get('section', 'personal')
+    health_form = get_form_or_404(HealthProfileForm, pk, request.user,
+                                  ['user', 'reviewed_by', 'examining_physician'])
+
+    form_map = {
+        'personal': HealthProfilePersonalInfoForm,
+        'medical': HealthProfileMedicalHistoryForm,
+        'physical': HealthProfilePhysicalExamForm,
+        'diagnostic': HealthProfileDiagnosticTestsForm,
+        'clinical': HealthProfileClinicalSummaryForm,
+    }
+    form = form_map.get(section, HealthProfilePersonalInfoForm)(instance=health_form)
+
+    form_fields = {}
+    for name, field in form.fields.items():
+        value = form.initial.get(name, '')
+        form_fields[name] = {
+            'value': str(value) if value else '',
+            'label': field.label or name,
+            'required': field.required,
+            'widget_type': type(field.widget).__name__,
+        }
+
+    return JsonResponse({'section': section, 'fields': form_fields})
+
+
+@login_required
+@require_POST
+def review_form(request, pk):
+    if request.user.role not in ['staff', 'doctor', 'admin']:
+        messages.error(request, 'Permission denied.')
+        return redirect('health_forms_services:form_detail', pk=pk)
+
+    health_form = get_object_or_404(HealthProfileForm, pk=pk)
+    form = HealthFormReviewForm(request.POST, instance=health_form)
+    if form.is_valid():
+        health_form = form.save(commit=False)
+        health_form.reviewed_by = request.user
+        health_form.reviewed_at = timezone.now()
+        health_form.save()
+        messages.success(request, f'Form status updated to {health_form.get_status_display()}.')
+    else:
+        messages.error(request, 'Invalid form data.')
+    return redirect('health_forms_services:form_detail', pk=pk)
+
+
+@login_required
+@role_required('staff', 'doctor')
+def delete_form(request, pk):
+    user = request.user
+    if user.role in ['staff', 'doctor', 'admin']:
+        health_form = get_object_or_404(HealthProfileForm, pk=pk)
+    else:
+        health_form = get_object_or_404(HealthProfileForm, pk=pk, user=user)
+
+    if health_form.status not in ['pending', 'rejected', 'incomplete']:
+        messages.error(request, 'Cannot delete a form that has been processed.')
+        return redirect('health_forms_services:form_detail', pk=pk)
+
+    health_form.delete()
+    messages.success(request, 'Form deleted successfully.')
+    return redirect('health_forms_services:forms_list')
 
 
 @login_required
 @require_GET
 @role_required('staff', 'doctor')
 def export_form_json(request, pk):
-    """Export form data as JSON"""
     user = request.user
-    
     if user.role in ['staff', 'doctor', 'admin']:
         health_form = get_object_or_404(HealthProfileForm, pk=pk)
     else:
         health_form = get_object_or_404(HealthProfileForm, pk=pk, user=user)
-    
+
     data = {
         'personal_info': {
             'name': health_form.get_full_name(),
@@ -341,7 +203,7 @@ def export_form_json(request, pk):
             'emergency_contact': {
                 'name': health_form.guardian_name,
                 'contact': health_form.guardian_contact,
-            }
+            },
         },
         'medical_history': {
             'immunizations': health_form.immunization_records,
@@ -387,122 +249,19 @@ def export_form_json(request, pk):
             'status': health_form.status,
             'created_at': health_form.created_at.isoformat(),
             'updated_at': health_form.updated_at.isoformat(),
-        }
+        },
     }
-    
     return JsonResponse(data, json_dumps_params={'indent': 2})
 
 
-# ========== DENTAL RECORDS FORM VIEWS (F-HSS-20-0003) ==========
-
-@login_required
-@role_required('staff', 'doctor')
-def dental_forms_list(request):
-    """List dental records forms"""
-    user = request.user
-    
-    if user.role in ['staff', 'doctor', 'admin']:
-        forms_qs = DentalHealthForm.objects.all()
-    else:
-        forms_qs = DentalHealthForm.objects.filter(user=user)
-    
-    # Search and filter
-    search = request.GET.get('search', '')
-    status_filter = request.GET.get('status', '')
-    
-    if search:
-        forms_qs = forms_qs.filter(
-            Q(last_name__icontains=search) |
-            Q(first_name__icontains=search) |
-            Q(user__email__icontains=search)
-        )
-    
-    if status_filter:
-        forms_qs = forms_qs.filter(status=status_filter)
-    
-    # Pagination
-    paginator = Paginator(forms_qs, 10)
-    page = request.GET.get('page', 1)
-    forms_page = paginator.get_page(page)
-    
-    context = {
-        'forms': forms_page,
-        'search': search,
-        'status_filter': status_filter,
-        'status_choices': DentalHealthForm.Status.choices,
-        'form_type': 'dental',
-        'create_url': reverse('health_forms_services:create_dental_form'),
-    }
-    
-    return render(request, 'health_forms_services/dental_forms_list.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def dental_form_detail(request, pk):
-    """View dental records form details"""
-    user = request.user
-    
-    if user.role in ['staff', 'doctor', 'admin']:
-        dental_form = get_object_or_404(DentalHealthForm, pk=pk)
-    else:
-        dental_form = get_object_or_404(DentalHealthForm, pk=pk, user=user)
-    
-    teeth = dental_form.dental_chart.all().prefetch_related('surfaces')
-    
-    context = {
-        'dental_form': dental_form,
-        'teeth': teeth,
-        'can_edit': user.role in ['staff', 'doctor', 'admin'] or dental_form.user == user,
-        'can_review': user.role in ['staff', 'doctor', 'admin'],
-    }
-    
-    return render(request, 'health_forms_services/dental_form_detail.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def edit_dental_form(request, pk):
-    """Edit dental records form - 4 tabs: Personal, Chart, Examination, Conditions"""
-    user = request.user
-    
-    if user.role in ['staff', 'doctor', 'admin']:
-        dental_form = get_object_or_404(DentalHealthForm, pk=pk)
-    else:
-        dental_form = get_object_or_404(DentalHealthForm, pk=pk, user=user)
-    
-    if request.method == 'POST':
-        section = request.POST.get('section', 'personal')
-        
-        if section == 'personal':
-            form = DentalHealthPersonalInfoForm(request.POST, instance=dental_form)
-        elif section == 'examination':
-            form = DentalHealthExaminationForm(request.POST, instance=dental_form)
-        elif section == 'conditions':
-            form = DentalHealthConditionsForm(request.POST, instance=dental_form)
-        else:
-            form = None
-        
-        if form and form.is_valid():
-            form.save()
-            messages.success(request, 'Dental records form updated successfully.')
-            return redirect('health_forms_services:dental_form_detail', pk=pk)
-    
-    context = {
-        'dental_form': dental_form,
-        'personal_form': DentalHealthPersonalInfoForm(instance=dental_form),
-        'examination_form': DentalHealthExaminationForm(instance=dental_form),
-        'conditions_form': DentalHealthConditionsForm(instance=dental_form),
-    }
-    
-    return render(request, 'health_forms_services/edit_dental_form.html', context)
+# ═══════════════════════════════════════════════════════════════════════════
+# Dental Records Form (F-HSS-20-0003) — create, review, delete, chart API
+# ═══════════════════════════════════════════════════════════════════════════
 
 
 @login_required
 @role_required('staff', 'doctor')
 def create_dental_form(request):
-    """Create a new dental records form — only personal info required.
-    Clinical details are added from the edit page after creation."""
     if request.method == 'POST':
         personal_form = DentalHealthPersonalInfoForm(request.POST)
         if personal_form.is_valid():
@@ -511,85 +270,70 @@ def create_dental_form(request):
                 setattr(dental_form, field, personal_form.cleaned_data[field])
             dental_form.status = DentalHealthForm.Status.PENDING
             dental_form.save()
-
             messages.success(request, 'Dental records form created. You can now fill in clinical details.')
             return redirect('health_forms_services:edit_dental_form', pk=dental_form.pk)
     else:
         personal_form = DentalHealthPersonalInfoForm()
 
-    context = {
+    return render(request, 'health_forms_services/create_dental_form.html', {
         'personal_form': personal_form,
-    }
-
-    return render(request, 'health_forms_services/create_dental_form.html', context)
+    })
 
 
 @login_required
 @require_POST
 def review_dental_form(request, pk):
-    """Review and approve/reject dental form"""
     if request.user.role not in ['staff', 'doctor', 'admin']:
         messages.error(request, 'Permission denied.')
         return redirect('health_forms_services:dental_form_detail', pk=pk)
-    
+
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
-    
     form = DentalHealthFormReviewForm(request.POST, instance=dental_form)
     if form.is_valid():
         dental_form = form.save(commit=False)
         dental_form.reviewed_by = request.user
         dental_form.reviewed_at = timezone.now()
         dental_form.save()
-        
         messages.success(request, f'Form status updated to {dental_form.get_status_display()}.')
     else:
         messages.error(request, 'Invalid form data.')
-    
     return redirect('health_forms_services:dental_form_detail', pk=pk)
 
 
 @login_required
 @role_required('staff', 'doctor')
 def delete_dental_form(request, pk):
-    """Delete a dental records form"""
     user = request.user
-    
     if user.role in ['staff', 'doctor', 'admin']:
         dental_form = get_object_or_404(DentalHealthForm, pk=pk)
     else:
         dental_form = get_object_or_404(DentalHealthForm, pk=pk, user=user)
-    
+
     if dental_form.status not in ['pending', 'rejected', 'incomplete']:
         messages.error(request, 'Cannot delete a form that has been processed.')
         return redirect('health_forms_services:dental_form_detail', pk=pk)
-    
+
     dental_form.delete()
     messages.success(request, 'Dental records form deleted successfully.')
-    
     return redirect('health_forms_services:dental_forms_list')
 
 
-# ========== DENTAL CHART API VIEWS ==========
+# ── Dental Chart API ───────────────────────────────────────────────────────
+
 
 @login_required
 @require_GET
 @role_required('staff', 'doctor')
 def dental_form_chart_api_get(request, pk):
-    """Get all teeth data for the dental chart as JSON"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
-
     teeth = dental_form.dental_chart.all().prefetch_related('surfaces')
 
     teeth_data = []
     for tooth in teeth:
-        surfaces_data = []
-        for surface in tooth.surfaces.all():
-            surfaces_data.append({
-                'id': surface.id,
-                'surface': surface.surface,
-                'condition': surface.condition,
-            })
-
+        surfaces_data = [
+            {'id': surface.id, 'surface': surface.surface, 'condition': surface.condition}
+            for surface in tooth.surfaces.all()
+        ]
         teeth_data.append({
             'id': tooth.id,
             'tooth_number': tooth.tooth_number,
@@ -608,11 +352,26 @@ def dental_form_chart_api_get(request, pk):
     })
 
 
+def _parse_tooth(tooth_number):
+    """Return ``(tooth_number, tooth_type)`` or raise ``ValueError``."""
+    tooth_number = int(tooth_number)
+    quadrant = tooth_number // 10
+    position = tooth_number % 10
+    if quadrant in (1, 2, 3, 4):
+        if position < 1 or position > 8:
+            raise ValueError('Invalid tooth position for permanent teeth (1-8)')
+        return tooth_number, 'permanent'
+    if quadrant in (5, 6, 7, 8):
+        if position < 1 or position > 5:
+            raise ValueError('Invalid tooth position for primary teeth (1-5)')
+        return tooth_number, 'primary'
+    raise ValueError('Invalid quadrant')
+
+
 @login_required
 @require_POST
 @role_required('staff', 'doctor')
 def dental_form_chart_api_update(request, pk):
-    """Add or update a tooth in the dental chart"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
 
     if _is_json_request(request):
@@ -624,41 +383,24 @@ def dental_form_chart_api_update(request, pk):
         data = request.POST
 
     tooth_number = data.get('tooth_number')
-    condition = data.get('condition', 'healthy')
-    notes = data.get('notes', '')
-
     if not tooth_number:
         return JsonResponse({'success': False, 'error': 'Tooth number is required'}, status=400)
 
     try:
-        tooth_number = int(tooth_number)
-        quadrant = tooth_number // 10
-        position = tooth_number % 10
-
-        if quadrant in [1, 2, 3, 4]:
-            if position < 1 or position > 8:
-                return JsonResponse({'success': False, 'error': 'Invalid tooth position for permanent teeth (1-8)'}, status=400)
-            tooth_type = 'permanent'
-        elif quadrant in [5, 6, 7, 8]:
-            if position < 1 or position > 5:
-                return JsonResponse({'success': False, 'error': 'Invalid tooth position for primary teeth (1-5)'}, status=400)
-            tooth_type = 'primary'
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid quadrant'}, status=400)
-    except (ValueError, TypeError):
-        return JsonResponse({'success': False, 'error': 'Invalid tooth number format'}, status=400)
+        tooth_number, tooth_type = _parse_tooth(tooth_number)
+    except (ValueError, TypeError) as exc:
+        return JsonResponse({'success': False, 'error': str(exc) or 'Invalid tooth number format'}, status=400)
 
     tooth, created = DentalFormTooth.objects.update_or_create(
         dental_form=dental_form,
         tooth_number=tooth_number,
         defaults={
             'tooth_type': tooth_type,
-            'condition': condition,
-            'notes': notes,
-        }
+            'condition': data.get('condition', 'healthy'),
+            'notes': data.get('notes', ''),
+        },
     )
 
-    # Handle surface conditions
     surfaces = ['mesial', 'distal', 'buccal', 'lingual', 'occlusal']
     for surface_name in surfaces:
         surface_value = data.get(f'surface_{surface_name}')
@@ -666,7 +408,7 @@ def dental_form_chart_api_update(request, pk):
             DentalFormToothSurface.objects.update_or_create(
                 tooth=tooth,
                 surface=surface_name,
-                defaults={'condition': surface_value}
+                defaults={'condition': surface_value},
             )
         else:
             DentalFormToothSurface.objects.filter(tooth=tooth, surface=surface_name).delete()
@@ -682,7 +424,7 @@ def dental_form_chart_api_update(request, pk):
             'notes': tooth.notes,
             'quadrant': tooth.fdi_quadrant,
             'quadrant_name': tooth.quadrant_name,
-        }
+        },
     })
 
 
@@ -690,7 +432,6 @@ def dental_form_chart_api_update(request, pk):
 @require_POST
 @role_required('staff', 'doctor')
 def dental_form_chart_api_bulk_update(request, pk):
-    """Bulk update multiple teeth at once"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
 
     if _is_json_request(request):
@@ -699,176 +440,58 @@ def dental_form_chart_api_bulk_update(request, pk):
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
     else:
-        data = request.POST
-        tooth_numbers_json = data.get('tooth_numbers_json', '[]')
         try:
-            data = {'tooth_numbers': json.loads(tooth_numbers_json),
-                     'condition': data.get('condition', 'healthy'),
-                     'notes': data.get('notes', '')}
+            tooth_numbers = json.loads(request.POST.get('tooth_numbers_json', '[]'))
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'error': 'Invalid tooth numbers'}, status=400)
+        data = {
+            'tooth_numbers': tooth_numbers,
+            'condition': request.POST.get('condition', 'healthy'),
+            'notes': request.POST.get('notes', ''),
+        }
 
     tooth_numbers = data.get('tooth_numbers', [])
-    condition = data.get('condition', 'healthy')
-    notes = data.get('notes', '')
-
     if not tooth_numbers:
         return JsonResponse({'success': False, 'error': 'No teeth selected'}, status=400)
+
+    condition = data.get('condition', 'healthy')
+    notes = data.get('notes', '')
 
     updated_count = 0
     for tooth_number in tooth_numbers:
         try:
-            tooth_number = int(tooth_number)
-            quadrant = tooth_number // 10
-            position = tooth_number % 10
-
-            if quadrant in [1, 2, 3, 4]:
-                if position < 1 or position > 8:
-                    continue
-                tooth_type = 'permanent'
-            elif quadrant in [5, 6, 7, 8]:
-                if position < 1 or position > 5:
-                    continue
-                tooth_type = 'primary'
-            else:
-                continue
-
-            DentalFormTooth.objects.update_or_create(
-                dental_form=dental_form,
-                tooth_number=tooth_number,
-                defaults={
-                    'tooth_type': tooth_type,
-                    'condition': condition,
-                    'notes': notes,
-                }
-            )
-            updated_count += 1
+            parsed_number, tooth_type = _parse_tooth(tooth_number)
         except (ValueError, TypeError):
             continue
+        DentalFormTooth.objects.update_or_create(
+            dental_form=dental_form,
+            tooth_number=parsed_number,
+            defaults={'tooth_type': tooth_type, 'condition': condition, 'notes': notes},
+        )
+        updated_count += 1
 
-    return JsonResponse({
-        'success': True,
-        'updated_count': updated_count,
-    })
+    return JsonResponse({'success': True, 'updated_count': updated_count})
 
 
 @login_required
 @require_http_methods(["DELETE", "POST"])
 @role_required('staff', 'doctor')
 def dental_form_chart_api_delete(request, pk, tooth_id):
-    """Delete a tooth from the dental chart"""
     dental_form = get_object_or_404(DentalHealthForm, pk=pk)
     tooth = get_object_or_404(DentalFormTooth, pk=tooth_id, dental_form=dental_form)
-
     tooth_number = tooth.tooth_number
     tooth.delete()
-
-    return JsonResponse({
-        'success': True,
-        'message': f'Tooth #{tooth_number} deleted successfully.'
-    })
+    return JsonResponse({'success': True, 'message': f'Tooth #{tooth_number} deleted successfully.'})
 
 
-# ========== PATIENT CHART VIEWS (F-HSS-20-0002) ==========
-
-@login_required
-@role_required('staff', 'doctor')
-def patient_chart_list(request):
-    """List patient charts"""
-    user = request.user
-
-    if user.role in ['staff', 'doctor', 'admin']:
-        charts_qs = PatientChart.objects.all()
-    else:
-        charts_qs = PatientChart.objects.filter(user=user)
-
-    # Search and filter
-    search = request.GET.get('search', '')
-    status_filter = request.GET.get('status', '')
-
-    if search:
-        charts_qs = charts_qs.filter(
-            Q(last_name__icontains=search) |
-            Q(first_name__icontains=search) |
-            Q(user__email__icontains=search)
-        )
-
-    if status_filter:
-        charts_qs = charts_qs.filter(status=status_filter)
-
-    # Pagination
-    paginator = Paginator(charts_qs, 10)
-    page = request.GET.get('page', 1)
-    charts_page = paginator.get_page(page)
-
-    context = {
-        'charts': charts_page,
-        'search': search,
-        'status_filter': status_filter,
-        'status_choices': PatientChart.Status.choices,
-        'create_url': reverse('health_forms_services:create_patient_chart'),
-    }
-
-    return render(request, 'health_forms_services/patient_chart_list.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def patient_chart_detail(request, pk):
-    """View patient chart details including consultation entries"""
-    user = request.user
-
-    if user.role in ['staff', 'doctor', 'admin']:
-        chart = get_object_or_404(PatientChart, pk=pk)
-    else:
-        chart = get_object_or_404(PatientChart, pk=pk, user=user)
-
-    entries = chart.entries.select_related('recorded_by').all()
-    entry_form = PatientChartEntryForm()
-
-    context = {
-        'chart': chart,
-        'entries': entries,
-        'entry_form': entry_form,
-        'can_edit': user.role in ['staff', 'doctor', 'admin'] or chart.user == user,
-        'can_review': user.role in ['staff', 'doctor', 'admin'],
-    }
-
-    return render(request, 'health_forms_services/patient_chart_detail.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def edit_patient_chart(request, pk):
-    """Edit patient chart personal information"""
-    user = request.user
-
-    if user.role in ['staff', 'doctor', 'admin']:
-        chart = get_object_or_404(PatientChart, pk=pk)
-    else:
-        chart = get_object_or_404(PatientChart, pk=pk, user=user)
-
-    if request.method == 'POST':
-        form = PatientChartPersonalInfoForm(request.POST, instance=chart)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Patient chart updated successfully.')
-            return redirect('health_forms_services:patient_chart_detail', pk=pk)
-    else:
-        form = PatientChartPersonalInfoForm(instance=chart)
-
-    context = {
-        'chart': chart,
-        'personal_form': form,
-    }
-
-    return render(request, 'health_forms_services/edit_patient_chart.html', context)
+# ═══════════════════════════════════════════════════════════════════════════
+# Patient Chart (F-HSS-20-0002) — create, review, delete, entry API
+# ═══════════════════════════════════════════════════════════════════════════
 
 
 @login_required
 @role_required('staff', 'doctor')
 def create_patient_chart(request):
-    """Create a new patient chart"""
     if request.method == 'POST':
         form = PatientChartPersonalInfoForm(request.POST)
         if form.is_valid():
@@ -877,49 +500,38 @@ def create_patient_chart(request):
                 setattr(chart, field, form.cleaned_data[field])
             chart.status = PatientChart.Status.PENDING
             chart.save()
-
             messages.success(request, 'Patient chart created successfully.')
             return redirect('health_forms_services:patient_chart_detail', pk=chart.pk)
     else:
         form = PatientChartPersonalInfoForm()
 
-    context = {
-        'personal_form': form,
-    }
-
-    return render(request, 'health_forms_services/create_patient_chart.html', context)
+    return render(request, 'health_forms_services/create_patient_chart.html', {'personal_form': form})
 
 
 @login_required
 @require_POST
 def review_patient_chart(request, pk):
-    """Review and approve/reject patient chart"""
     if request.user.role not in ['staff', 'doctor', 'admin']:
         messages.error(request, 'Permission denied.')
         return redirect('health_forms_services:patient_chart_detail', pk=pk)
 
     chart = get_object_or_404(PatientChart, pk=pk)
-
     form = PatientChartReviewForm(request.POST, instance=chart)
     if form.is_valid():
         chart = form.save(commit=False)
         chart.reviewed_by = request.user
         chart.reviewed_at = timezone.now()
         chart.save()
-
         messages.success(request, f'Chart status updated to {chart.get_status_display()}.')
     else:
         messages.error(request, 'Invalid form data.')
-
     return redirect('health_forms_services:patient_chart_detail', pk=pk)
 
 
 @login_required
 @role_required('staff', 'doctor')
 def delete_patient_chart(request, pk):
-    """Delete a patient chart"""
     user = request.user
-
     if user.role in ['staff', 'doctor', 'admin']:
         chart = get_object_or_404(PatientChart, pk=pk)
     else:
@@ -931,26 +543,20 @@ def delete_patient_chart(request, pk):
 
     chart.delete()
     messages.success(request, 'Patient chart deleted successfully.')
-
     return redirect('health_forms_services:patient_chart_list')
 
-
-# ========== PATIENT CHART ENTRY API ==========
 
 @login_required
 @require_POST
 @role_required('staff', 'doctor')
 def add_chart_entry(request, pk):
-    """Add a consultation entry to a patient chart (AJAX)"""
     chart = get_object_or_404(PatientChart, pk=pk)
-
     form = PatientChartEntryForm(request.POST)
     if form.is_valid():
         entry = form.save(commit=False)
         entry.patient_chart = chart
         entry.recorded_by = request.user
         entry.save()
-
         return JsonResponse({
             'success': True,
             'entry': {
@@ -959,9 +565,8 @@ def add_chart_entry(request, pk):
                 'findings': entry.findings,
                 'doctors_orders': entry.doctors_orders,
                 'recorded_by': entry.recorded_by.get_full_name() if entry.recorded_by else '',
-            }
+            },
         })
-
     return JsonResponse({'success': False, 'errors': form.errors}, status=400)
 
 
@@ -969,116 +574,20 @@ def add_chart_entry(request, pk):
 @require_POST
 @role_required('staff', 'doctor')
 def delete_chart_entry(request, pk, entry_id):
-    """Delete a consultation entry from a patient chart (AJAX)"""
     chart = get_object_or_404(PatientChart, pk=pk)
     entry = get_object_or_404(PatientChartEntry, pk=entry_id, patient_chart=chart)
-
     entry.delete()
     return JsonResponse({'success': True})
 
 
-# ========== DENTAL SERVICES REQUEST VIEWS (DENTAL FORM 2) ==========
-
-@login_required
-@role_required('staff', 'doctor')
-def dental_services_list(request):
-    """List dental services request forms"""
-    user = request.user
-
-    if user.role in ['staff', 'doctor', 'admin']:
-        forms_qs = DentalServicesRequest.objects.all()
-    else:
-        forms_qs = DentalServicesRequest.objects.filter(user=user)
-
-    # Search and filter
-    search = request.GET.get('search', '')
-    status_filter = request.GET.get('status', '')
-
-    if search:
-        forms_qs = forms_qs.filter(
-            Q(last_name__icontains=search) |
-            Q(first_name__icontains=search) |
-            Q(user__email__icontains=search)
-        )
-
-    if status_filter:
-        forms_qs = forms_qs.filter(status=status_filter)
-
-    # Pagination
-    paginator = Paginator(forms_qs, 10)
-    page = request.GET.get('page', 1)
-    forms_page = paginator.get_page(page)
-
-    context = {
-        'forms': forms_page,
-        'search': search,
-        'status_filter': status_filter,
-        'status_choices': DentalServicesRequest.Status.choices,
-        'create_url': reverse('health_forms_services:create_dental_services'),
-    }
-
-    return render(request, 'health_forms_services/dental_services_list.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def dental_services_detail(request, pk):
-    """View dental services request details"""
-    user = request.user
-
-    if user.role in ['staff', 'doctor', 'admin']:
-        service_form = get_object_or_404(DentalServicesRequest, pk=pk)
-    else:
-        service_form = get_object_or_404(DentalServicesRequest, pk=pk, user=user)
-
-    context = {
-        'service_form': service_form,
-        'can_edit': user.role in ['staff', 'doctor', 'admin'] or service_form.user == user,
-        'can_review': user.role in ['staff', 'doctor', 'admin'],
-    }
-
-    return render(request, 'health_forms_services/dental_services_detail.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def edit_dental_services(request, pk):
-    """Edit dental services request — 2 tabs: Personal Info, Services Checklist"""
-    user = request.user
-
-    if user.role in ['staff', 'doctor', 'admin']:
-        service_form = get_object_or_404(DentalServicesRequest, pk=pk)
-    else:
-        service_form = get_object_or_404(DentalServicesRequest, pk=pk, user=user)
-
-    if request.method == 'POST':
-        section = request.POST.get('section', 'personal')
-
-        if section == 'personal':
-            form = DentalServicesPersonalInfoForm(request.POST, instance=service_form)
-        elif section == 'services':
-            form = DentalServicesChecklistForm(request.POST, instance=service_form)
-        else:
-            form = None
-
-        if form and form.is_valid():
-            form.save()
-            messages.success(request, 'Dental services request updated successfully.')
-            return redirect('health_forms_services:dental_services_detail', pk=pk)
-
-    context = {
-        'service_form': service_form,
-        'personal_form': DentalServicesPersonalInfoForm(instance=service_form),
-        'checklist_form': DentalServicesChecklistForm(instance=service_form),
-    }
-
-    return render(request, 'health_forms_services/edit_dental_services.html', context)
+# ═══════════════════════════════════════════════════════════════════════════
+# Dental Services Request (Dental Form 2) — create, review, delete
+# ═══════════════════════════════════════════════════════════════════════════
 
 
 @login_required
 @role_required('staff', 'doctor')
 def create_dental_services(request):
-    """Create a new dental services request — personal info first"""
     if request.method == 'POST':
         personal_form = DentalServicesPersonalInfoForm(request.POST)
         if personal_form.is_valid():
@@ -1087,49 +596,40 @@ def create_dental_services(request):
                 setattr(service_form, field, personal_form.cleaned_data[field])
             service_form.status = DentalServicesRequest.Status.PENDING
             service_form.save()
-
             messages.success(request, 'Dental services request created. You can now fill in the services checklist.')
             return redirect('health_forms_services:edit_dental_services', pk=service_form.pk)
     else:
         personal_form = DentalServicesPersonalInfoForm()
 
-    context = {
+    return render(request, 'health_forms_services/create_dental_services.html', {
         'personal_form': personal_form,
-    }
-
-    return render(request, 'health_forms_services/create_dental_services.html', context)
+    })
 
 
 @login_required
 @require_POST
 def review_dental_services(request, pk):
-    """Review and approve/reject dental services request"""
     if request.user.role not in ['staff', 'doctor', 'admin']:
         messages.error(request, 'Permission denied.')
         return redirect('health_forms_services:dental_services_detail', pk=pk)
 
     service_form = get_object_or_404(DentalServicesRequest, pk=pk)
-
     form = DentalServicesReviewForm(request.POST, instance=service_form)
     if form.is_valid():
         service_form = form.save(commit=False)
         service_form.reviewed_by = request.user
         service_form.reviewed_at = timezone.now()
         service_form.save()
-
         messages.success(request, f'Form status updated to {service_form.get_status_display()}.')
     else:
         messages.error(request, 'Invalid form data.')
-
     return redirect('health_forms_services:dental_services_detail', pk=pk)
 
 
 @login_required
 @role_required('staff', 'doctor')
 def delete_dental_services(request, pk):
-    """Delete a dental services request"""
     user = request.user
-
     if user.role in ['staff', 'doctor', 'admin']:
         service_form = get_object_or_404(DentalServicesRequest, pk=pk)
     else:
@@ -1141,108 +641,17 @@ def delete_dental_services(request, pk):
 
     service_form.delete()
     messages.success(request, 'Dental services request deleted successfully.')
-
     return redirect('health_forms_services:dental_services_list')
 
 
-# ========== PRESCRIPTION VIEWS (F-HSS-20-0004) ==========
-
-@login_required
-@role_required('staff', 'doctor')
-def prescription_list(request):
-    """List prescriptions"""
-    user = request.user
-
-    if user.role in ['staff', 'doctor', 'admin']:
-        forms_qs = Prescription.objects.all()
-    else:
-        forms_qs = Prescription.objects.filter(user=user)
-
-    search = request.GET.get('search', '')
-    status_filter = request.GET.get('status', '')
-
-    if search:
-        forms_qs = forms_qs.filter(
-            Q(patient_name__icontains=search) |
-            Q(user__email__icontains=search) |
-            Q(physician_name__icontains=search)
-        )
-
-    if status_filter:
-        forms_qs = forms_qs.filter(status=status_filter)
-
-    paginator = Paginator(forms_qs, 10)
-    page = request.GET.get('page', 1)
-    forms_page = paginator.get_page(page)
-
-    context = {
-        'forms': forms_page,
-        'search': search,
-        'status_filter': status_filter,
-        'status_choices': Prescription.Status.choices,
-        'create_url': reverse('health_forms_services:create_prescription'),
-    }
-
-    return render(request, 'health_forms_services/prescription_list.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def prescription_detail(request, pk):
-    """View prescription details including medication items"""
-    user = request.user
-
-    if user.role in ['staff', 'doctor', 'admin']:
-        prescription = get_object_or_404(Prescription, pk=pk)
-    else:
-        prescription = get_object_or_404(Prescription, pk=pk, user=user)
-
-    items = prescription.items.all()
-    item_form = PrescriptionItemForm()
-
-    context = {
-        'prescription': prescription,
-        'items': items,
-        'item_form': item_form,
-        'can_edit': user.role in ['staff', 'doctor', 'admin'] or prescription.user == user,
-        'can_review': user.role in ['staff', 'doctor', 'admin'],
-    }
-
-    return render(request, 'health_forms_services/prescription_detail.html', context)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def edit_prescription(request, pk):
-    """Edit a prescription"""
-    user = request.user
-
-    if user.role in ['staff', 'doctor', 'admin']:
-        prescription = get_object_or_404(Prescription, pk=pk)
-    else:
-        prescription = get_object_or_404(Prescription, pk=pk, user=user)
-
-    if request.method == 'POST':
-        form = PrescriptionPatientForm(request.POST, instance=prescription)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Prescription updated successfully.')
-            return redirect('health_forms_services:prescription_detail', pk=pk)
-    else:
-        form = PrescriptionPatientForm(instance=prescription)
-
-    context = {
-        'prescription': prescription,
-        'form': form,
-    }
-
-    return render(request, 'health_forms_services/edit_prescription.html', context)
+# ═══════════════════════════════════════════════════════════════════════════
+# Prescriptions (F-HSS-20-0004) — create, review, delete, item API
+# ═══════════════════════════════════════════════════════════════════════════
 
 
 @login_required
 @role_required('staff', 'doctor')
 def create_prescription(request):
-    """Create a new prescription"""
     if request.method == 'POST':
         form = PrescriptionPatientForm(request.POST)
         if form.is_valid():
@@ -1250,49 +659,38 @@ def create_prescription(request):
             prescription.user = request.user
             prescription.status = Prescription.Status.INCOMPLETE
             prescription.save()
-
             messages.success(request, 'Prescription created successfully.')
             return redirect('health_forms_services:prescription_detail', pk=prescription.pk)
     else:
         form = PrescriptionPatientForm()
 
-    context = {
-        'form': form,
-    }
-
-    return render(request, 'health_forms_services/create_prescription.html', context)
+    return render(request, 'health_forms_services/create_prescription.html', {'form': form})
 
 
 @login_required
 @require_POST
 def review_prescription(request, pk):
-    """Review and approve/reject prescription"""
     if request.user.role not in ['staff', 'doctor', 'admin']:
         messages.error(request, 'Permission denied.')
         return redirect('health_forms_services:prescription_detail', pk=pk)
 
     prescription = get_object_or_404(Prescription, pk=pk)
-
     form = PrescriptionReviewForm(request.POST, instance=prescription)
     if form.is_valid():
         prescription = form.save(commit=False)
         prescription.reviewed_by = request.user
         prescription.reviewed_at = timezone.now()
         prescription.save()
-
         messages.success(request, f'Prescription status updated to {prescription.get_status_display()}.')
     else:
         messages.error(request, 'Invalid form data.')
-
     return redirect('health_forms_services:prescription_detail', pk=pk)
 
 
 @login_required
 @role_required('staff', 'doctor')
 def delete_prescription(request, pk):
-    """Delete a prescription"""
     user = request.user
-
     if user.role in ['staff', 'doctor', 'admin']:
         prescription = get_object_or_404(Prescription, pk=pk)
     else:
@@ -1304,25 +702,19 @@ def delete_prescription(request, pk):
 
     prescription.delete()
     messages.success(request, 'Prescription deleted successfully.')
-
     return redirect('health_forms_services:prescription_list')
 
-
-# ========== PRESCRIPTION ITEM API ==========
 
 @login_required
 @require_POST
 @role_required('staff', 'doctor')
 def add_prescription_item(request, pk):
-    """Add a medication item to a prescription (AJAX)"""
     prescription = get_object_or_404(Prescription, pk=pk)
-
     form = PrescriptionItemForm(request.POST)
     if form.is_valid():
         item = form.save(commit=False)
         item.prescription = prescription
         item.save()
-
         return JsonResponse({
             'success': True,
             'item': {
@@ -1333,9 +725,8 @@ def add_prescription_item(request, pk):
                 'duration': item.duration,
                 'quantity': item.quantity,
                 'instructions': item.instructions,
-            }
+            },
         })
-
     return JsonResponse({'success': False, 'errors': form.errors}, status=400)
 
 
@@ -1343,31 +734,20 @@ def add_prescription_item(request, pk):
 @require_POST
 @role_required('staff', 'doctor')
 def delete_prescription_item(request, pk, item_id):
-    """Delete a medication item from a prescription (AJAX)"""
     prescription = get_object_or_404(Prescription, pk=pk)
     item = get_object_or_404(PrescriptionItem, pk=item_id, prescription=prescription)
-
     item.delete()
     return JsonResponse({'success': True})
 
 
-# ═══════════════════════════════════════════════════════════════════
-#  Document Exports (.docx)
-# ═══════════════════════════════════════════════════════════════════
-
-from ..exports import (
-    generate_health_profile,
-    generate_patient_chart,
-    generate_dental_form,
-    generate_dental_services,
-    doc_to_response,
-)
+# ═══════════════════════════════════════════════════════════════════════════
+# Document exports (.docx / print)
+# ═══════════════════════════════════════════════════════════════════════════
 
 
 @login_required
 @role_required('staff', 'doctor')
 def export_health_profile_docx(request, pk):
-    """Export Health Profile Form as .docx"""
     form = get_object_or_404(HealthProfileForm, pk=pk)
     doc = generate_health_profile(form)
     filename = f"Health_Profile_{form.last_name}_{form.first_name}.docx"
@@ -1377,7 +757,6 @@ def export_health_profile_docx(request, pk):
 @login_required
 @role_required('staff', 'doctor')
 def export_patient_chart_docx(request, pk):
-    """Export Patient Chart as .docx"""
     chart = get_object_or_404(PatientChart, pk=pk)
     doc = generate_patient_chart(chart)
     filename = f"Patient_Chart_{chart.last_name}_{chart.first_name}.docx"
@@ -1387,7 +766,6 @@ def export_patient_chart_docx(request, pk):
 @login_required
 @role_required('staff', 'doctor')
 def export_dental_form_docx(request, pk):
-    """Export Dental Records as .docx"""
     form = get_object_or_404(DentalHealthForm, pk=pk)
     doc = generate_dental_form(form)
     filename = f"Dental_Records_{form.last_name}_{form.first_name}.docx"
@@ -1397,7 +775,6 @@ def export_dental_form_docx(request, pk):
 @login_required
 @role_required('staff', 'doctor')
 def export_dental_services_docx(request, pk):
-    """Export Dental Services Request as .docx"""
     form = get_object_or_404(DentalServicesRequest, pk=pk)
     doc = generate_dental_services(form)
     filename = f"Dental_Services_{form.last_name}_{form.first_name}.docx"
@@ -1407,13 +784,10 @@ def export_dental_services_docx(request, pk):
 @login_required
 @role_required('staff', 'doctor')
 def export_prescription_docx(request, pk):
-    """Export Prescription as print-ready HTML that mirrors the official .docx template."""
+    """Export Prescription as print-ready HTML mirroring the official .docx template."""
     rx = get_object_or_404(Prescription, pk=pk)
     items = rx.items.all()
     return render(request, 'health_forms_services/prescription_print.html', {
         'prescription': rx,
         'items': items,
     })
-
-
-

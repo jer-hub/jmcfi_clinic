@@ -1,0 +1,48 @@
+{% comment %}Appointment summary for record create. Requires: appointment{% endcomment %}
+<div class="px-4 sm:px-6 py-5 bg-gradient-to-r from-primary-50/80 to-info-50/80 border-b border-primary-100">
+  <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+    <div class="flex items-center gap-3">
+      <span class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center shrink-0">
+        <i class="fas fa-calendar-check text-primary-600"></i>
+      </span>
+      <div>
+        <h3 class="text-base font-semibold text-gray-900">Appointment details</h3>
+        <p class="text-xs text-gray-500">Reference #{{ appointment.id }}</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 flex-wrap">
+      {% if appointment.status == 'confirmed' %}
+        {% include "components/status_badge.html" with label=appointment.get_status_display variant="success" size="sm" %}
+      {% elif appointment.status == 'completed' %}
+        {% include "components/status_badge.html" with label=appointment.get_status_display variant="info" size="sm" %}
+      {% elif appointment.status == 'cancelled' %}
+        {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" size="sm" %}
+      {% else %}
+        {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" size="sm" %}
+      {% endif %}
+      <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+        {{ appointment.get_appointment_type_display }}
+      </span>
+    </div>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+    <div>
+      <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</p>
+      <p class="font-semibold text-gray-900 mt-0.5">{{ appointment.student.get_full_name }}</p>
+      <p class="text-xs text-gray-500 truncate">{{ appointment.student.email }}</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Doctor</p>
+      <p class="font-semibold text-gray-900 mt-0.5">{{ appointment.doctor.get_full_name|default:appointment.doctor.email }}</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</p>
+      <p class="font-semibold text-gray-900 mt-0.5">{{ appointment.date|date:"M d, Y" }}</p>
+      <p class="text-xs text-gray-500">{{ appointment.time|time:"g:i A" }}</p>
+    </div>
+    <div>
+      <p class="text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</p>
+      <p class="text-gray-900 mt-0.5 line-clamp-2">{{ appointment.reason }}</p>
+    </div>
+  </div>
+</div>

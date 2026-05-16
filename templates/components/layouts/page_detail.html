@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}
+{% comment %}
+  Generic detail page layout.
+
+  Override blocks:
+    {% block page_title %}    – browser tab title
+    {% block subnav %}        – sub-navigation
+    {% block page_header %}   – page header (use components/page_header.html)
+    {% block primary %}       – left/main column
+    {% block sidebar %}       – right sidebar (small column)
+    {% block extra %}         – content appended below the two-column grid
+{% endcomment %}
+
+{% block title %}{% block page_title %}{% endblock %}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  {% block subnav %}{% endblock %}
+  {% block page_header %}{% endblock %}
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-6">
+      {% block primary %}{% endblock %}
+    </div>
+    <aside class="space-y-6">
+      {% block sidebar %}{% endblock %}
+    </aside>
+  </div>
+  {% block extra %}{% endblock %}
+</div>
+{% endblock %}

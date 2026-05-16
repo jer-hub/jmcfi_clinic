@@ -2,24 +2,19 @@
 {% block title %}Population Health Dashboard{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     {% include 'analytics/_subnav.html' %}
 
-    <!-- Header -->
-    <div class="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
-          <svg class="inline-block w-8 h-8 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          Population Health Dashboard
-        </h1>
-        <p class="mt-1 text-sm text-gray-500">Health data by student demographics – identify vulnerable groups</p>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+      <div class="flex-1">
+        {% include "components/page_header.html" with title="Population Health Dashboard" subtitle="Health data by student demographics – identify vulnerable groups" icon="fa-people-group" %}
       </div>
-      <a href="{% url 'analytics:dashboard' %}" class="text-primary-600 hover:text-primary-700 text-sm font-medium">&larr; Back to Analytics</a>
+      <a href="{% url 'analytics:dashboard' %}" class="inline-flex items-center gap-2 px-3 py-2 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+        <i class="fas fa-arrow-left"></i>Back to Analytics
+      </a>
     </div>
 
-    <!-- Date Filter -->
-    <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-6">
+    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 mb-6">
       <form method="get" class="flex flex-wrap items-end gap-4">
         <div>
           <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
@@ -29,15 +24,13 @@
           <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
           {{ filter_form.date_to }}
         </div>
-        <button type="submit" class="px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 transition-colors">Filter</button>
+        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"><i class="fas fa-filter"></i>Filter</button>
       </form>
     </div>
 
-    <!-- Demographics Overview -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-      <!-- By Gender -->
-      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Gender Distribution</h3>
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-venus-mars text-primary-500"></i>Gender Distribution</h3>
         {% if demographics.gender %}
         <canvas id="genderChart" height="200"></canvas>
         {% else %}
@@ -45,9 +38,8 @@
         {% endif %}
       </div>
 
-      <!-- By Year Level -->
-      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Year Level Distribution</h3>
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-layer-group text-primary-500"></i>Year Level Distribution</h3>
         {% if demographics.year_level %}
         <canvas id="yearChart" height="200"></canvas>
         {% else %}
@@ -55,9 +47,8 @@
         {% endif %}
       </div>
 
-      <!-- Blood Type -->
-      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Blood Type Distribution</h3>
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-droplet text-primary-500"></i>Blood Type Distribution</h3>
         {% if blood_types %}
         <canvas id="bloodChart" height="200"></canvas>
         {% else %}
@@ -66,10 +57,9 @@
       </div>
     </div>
 
-    <!-- Health Data by Course -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Medical Records by Course</h3>
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-file-medical text-primary-500"></i>Medical Records by Course</h3>
         {% if health_by_course %}
         <div class="space-y-2">
           {% for item in health_by_course %}
@@ -89,8 +79,8 @@
         {% endif %}
       </div>
 
-      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Medical Records by Year Level</h3>
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-layer-group text-primary-500"></i>Medical Records by Year Level</h3>
         {% if health_by_year %}
         <div class="space-y-2">
           {% for item in health_by_year %}
@@ -111,9 +101,8 @@
       </div>
     </div>
 
-    <!-- Appointments by Course -->
-    <div class="bg-white rounded-lg shadow p-4 sm:p-6 mb-8">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Appointments by Course</h3>
+    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 mb-8">
+      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-graduation-cap text-primary-500"></i>Appointments by Course</h3>
       {% if appt_by_course %}
       <canvas id="apptCourseChart" height="250"></canvas>
       {% else %}
@@ -121,15 +110,11 @@
       {% endif %}
     </div>
 
-    <!-- Export -->
     <div class="flex justify-end">
-      <a href="{% url 'analytics:export_report' %}?report=demographics" class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition">
-        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        Export Demographics CSV
+      <a href="{% url 'analytics:export_report' %}?report=demographics" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+        <i class="fas fa-file-export"></i>Export Demographics CSV
       </a>
     </div>
-
-  </div>
 </div>
 {% endblock %}
 

@@ -1,0 +1,26 @@
+{% comment %}
+  Status / role / category pill badge.
+
+  Context:
+    label    – display text (required)
+    variant  – success | warning | danger | info | primary | muted | draft (default "muted")
+    icon     – optional FA icon class
+    size     – sm | md (default "md")
+
+  Example:
+    {% include "components/status_badge.html" with label="Approved" variant="success" icon="fa-check" %}
+{% endcomment %}
+{% with v=variant|default:'muted' s=size|default:'md' %}
+<span class="inline-flex items-center gap-1 rounded-full font-medium
+             {% if s == 'sm' %}px-2 py-0.5 text-xs{% else %}px-2.5 py-0.5 text-xs{% endif %}
+             {% if v == 'success' %}bg-success-100 text-success-800
+             {% elif v == 'warning' %}bg-warning-100 text-warning-800
+             {% elif v == 'danger' %}bg-danger-100 text-danger-800
+             {% elif v == 'info' %}bg-info-100 text-info-800
+             {% elif v == 'primary' %}bg-primary-100 text-primary-800
+             {% elif v == 'draft' %}bg-gray-100 text-gray-700
+             {% else %}bg-muted-100 text-muted-700{% endif %}">
+  {% if icon %}<i class="fas {{ icon }} text-[0.65rem]"></i>{% endif %}
+  <span>{{ label }}</span>
+</span>
+{% endwith %}

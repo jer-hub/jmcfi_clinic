@@ -1,297 +1,202 @@
 {% extends 'core/base.html' %}
-{% load static %}
 
-{% block title %}Medical Record Details - JMCFI Clinic{% endblock %}
+{% block title %}{{ title }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 pt-0 pb-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto">
-        {% include 'medical_records/_subnav.html' %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="{ tab: 'patient' }">
+  {% include "components/page_header.html" with title=title subtitle="Medical visit record and clinical summary" icon="fa-file-medical" breadcrumbs=breadcrumbs %}
 
-        <!-- Header -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                        <span class="text-primary-600">
-                            <i class="fas fa-file-medical"></i> Medical Record Details
-                        </span>
-                    </h1>
-                    <p class="mt-2 text-gray-600">Comprehensive medical health record</p>
-                </div>
-                <div class="flex gap-2 flex-wrap">
-                    <a href="{% url 'medical_records:medical_records' %}"
-                       class="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </a>
-                </div>
-            </div>
-        </div>
+  <div id="jmcfi-mr-detail-header" class="flex flex-wrap items-center justify-between gap-3 mb-6">
+    {% include "medical_records/_mr_detail_header_inner.html" %}
+  </div>
 
-        <!-- Navigation Tabs -->
-        <div class="bg-white rounded-t-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div class="border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100">
-                <nav class="flex w-full -mb-px px-0" aria-label="Tabs">
-                    <button onclick="switchTab('patient-info')" id="tab-patient-info" class="tab-button active flex-1 py-2 px-3 border-b-2 border-primary-600 font-medium text-xs text-primary-600 focus:outline-none text-center">
-                        <i class="fas fa-user mr-1"></i> Patient Info
-                    </button>
-                    <button onclick="switchTab('vital-signs')" id="tab-vital-signs" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-heartbeat mr-1"></i> Vital Signs
-                    </button>
-                    <button onclick="switchTab('clinical-notes')" id="tab-clinical-notes" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-notes-medical mr-1"></i> Clinical Notes
-                    </button>
-                    <button onclick="switchTab('follow-up')" id="tab-follow-up" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-calendar-check mr-1"></i> Follow-up
-                    </button>
-                    <button onclick="switchTab('metadata')" id="tab-metadata" class="tab-button flex-1 py-2 px-3 border-b-2 border-transparent font-medium text-xs text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none text-center">
-                        <i class="fas fa-info-circle mr-1"></i> Metadata
-                    </button>
-                </nav>
-            </div>
-
-            <!-- Tab Panels -->
-            <div class="p-6 sm:p-8">
-
-                <!-- Patient Info Tab -->
-                <div id="panel-patient-info" class="tab-panel">
-                    <div class="space-y-6">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b-2 border-primary-200 flex items-center gap-2">
-                                <i class="fas fa-user-circle text-primary-600"></i> Patient Information
-                            </h3>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="space-y-4">
-                                    <div class="p-4 bg-primary-50 rounded-lg">
-                                        <span class="text-sm font-medium text-gray-600">Patient Name</span>
-                                        <p class="text-gray-900 font-semibold mt-1">{{ record.student.get_full_name }}</p>
-                                    </div>
-                                    <div class="p-4 bg-primary-50 rounded-lg">
-                                        <span class="text-sm font-medium text-gray-600">Student ID</span>
-                                        <p class="text-gray-900 mt-1">
-                                            {% if record.student.student_profile %}
-                                                {{ record.student.student_profile.student_id }}
-                                            {% else %}
-                                                <span class="text-gray-400 italic">N/A</span>
-                                            {% endif %}
-                                        </p>
-                                    </div>
-                                    <div class="p-4 bg-primary-50 rounded-lg">
-                                        <span class="text-sm font-medium text-gray-600">Email</span>
-                                        <p class="text-gray-900 mt-1">{{ record.student.email }}</p>
-                                    </div>
-                                    {% if record.student.student_profile %}
-                                    <div class="p-4 bg-primary-50 rounded-lg">
-                                        <span class="text-sm font-medium text-gray-600">Course / Department</span>
-                                        <p class="text-gray-900 mt-1">{{ record.student.student_profile.course|default:"N/A" }} - {{ record.student.student_profile.department|default:"N/A" }}</p>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                <div class="space-y-4">
-                                    <div class="p-4 bg-primary-50 rounded-lg">
-                                        <span class="text-sm font-medium text-gray-600">Record Date</span>
-                                        <p class="text-gray-900 font-semibold mt-1">{{ record.created_at|date:"F d, Y" }}</p>
-                                        <p class="text-gray-600 text-sm">{{ record.created_at|time:"g:i A" }}</p>
-                                    </div>
-                                    <div class="p-4 bg-primary-50 rounded-lg">
-                                        <span class="text-sm font-medium text-gray-600">Attending Doctor</span>
-                                        <p class="text-gray-900 font-semibold mt-1">Dr. {{ record.doctor.get_full_name }}</p>
-                                        {% if record.doctor.staff_profile %}
-                                        <p class="text-gray-600 text-sm mt-1">{{ record.doctor.staff_profile.department|default:"" }} {% if record.doctor.staff_profile.specialization %}- {{ record.doctor.staff_profile.specialization }}{% endif %}</p>
-                                        {% endif %}
-                                    </div>
-                                    {% if record.appointment %}
-                                    <div class="p-4 bg-primary-50 rounded-lg">
-                                        <span class="text-sm font-medium text-gray-600">Related Appointment</span>
-                                        <p class="text-gray-900 mt-1">{{ record.appointment.date|date:"F d, Y" }} at {{ record.appointment.time|time:"g:i A" }}</p>
-                                        <p class="text-gray-600 text-sm mt-1">{{ record.appointment.get_appointment_type_display }}</p>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Vital Signs Tab -->
-                <div id="panel-vital-signs" class="tab-panel hidden">
-                    {% if record.vital_signs %}
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="space-y-4">
-                            {% if record.vital_signs.blood_pressure %}
-                            <div class="p-4 bg-primary-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-600">Blood Pressure</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ record.vital_signs.blood_pressure }}</p>
-                            </div>
-                            {% endif %}
-                            {% if record.vital_signs.heart_rate %}
-                            <div class="p-4 bg-primary-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-600">Heart Rate</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ record.vital_signs.heart_rate }} bpm</p>
-                            </div>
-                            {% endif %}
-                            {% if record.vital_signs.pulse_rate %}
-                            <div class="p-4 bg-primary-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-600">Pulse Rate</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ record.vital_signs.pulse_rate }} bpm</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="space-y-4">
-                            {% if record.vital_signs.temperature %}
-                            <div class="p-4 bg-primary-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-600">Temperature</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ record.vital_signs.temperature }}°</p>
-                            </div>
-                            {% endif %}
-                            {% if record.vital_signs.respiratory_rate %}
-                            <div class="p-4 bg-primary-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-600">Respiratory Rate</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ record.vital_signs.respiratory_rate }}</p>
-                            </div>
-                            {% endif %}
-                            {% if record.vital_signs.oxygen_saturation %}
-                            <div class="p-4 bg-primary-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-600">Oxygen Saturation</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ record.vital_signs.oxygen_saturation }}%</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="space-y-4">
-                            {% if record.vital_signs.weight %}
-                            <div class="p-4 bg-primary-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-600">Weight</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ record.vital_signs.weight }} kg</p>
-                            </div>
-                            {% endif %}
-                            {% if record.vital_signs.height %}
-                            <div class="p-4 bg-primary-50 rounded-lg">
-                                <span class="text-sm font-medium text-gray-600">Height</span>
-                                <p class="text-gray-900 text-lg font-semibold mt-1">{{ record.vital_signs.height }}</p>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% else %}
-                    <p class="text-gray-500 text-center py-8">No vital signs data available</p>
-                    {% endif %}
-                </div>
-
-                <!-- Clinical Notes Tab -->
-                <div id="panel-clinical-notes" class="tab-panel hidden">
-                    <div class="space-y-6">
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Diagnosis</span>
-                            <p class="text-gray-900 mt-2 whitespace-pre-line">{{ record.diagnosis }}</p>
-                        </div>
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Treatment</span>
-                            <p class="text-gray-900 mt-2 whitespace-pre-line">{{ record.treatment }}</p>
-                        </div>
-                        {% if record.prescription %}
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Prescription</span>
-                            <p class="text-gray-900 mt-2 whitespace-pre-line">{{ record.prescription }}</p>
-                        </div>
-                        {% endif %}
-                        {% if record.lab_results %}
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Lab Results</span>
-                            <p class="text-gray-900 mt-2 whitespace-pre-line">{{ record.lab_results }}</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Follow-up Tab -->
-                <div id="panel-follow-up" class="tab-panel hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div class="p-6 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Follow-up Status</span>
-                            <div class="mt-4">
-                                {% if record.follow_up_required %}
-                                <span class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                                    <i class="fas fa-exclamation-circle mr-2"></i> Follow-up Required
-                                </span>
-                                {% if record.follow_up_date %}
-                                <p class="text-gray-700 mt-2">Scheduled on {{ record.follow_up_date|date:"F d, Y" }}</p>
-                                {% endif %}
-                                {% else %}
-                                <span class="inline-flex items-center px-4 py-2 text-sm font-semibold rounded-full bg-green-100 text-green-800">
-                                    <i class="fas fa-check-circle mr-2"></i> No Follow-up Required
-                                </span>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <div class="p-6 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Related Appointment</span>
-                            <div class="mt-4">
-                                {% if record.appointment %}
-                                <p class="text-gray-900 font-semibold">{{ record.appointment.date|date:"F d, Y" }} at {{ record.appointment.time|time:"g:i A" }}</p>
-                                <p class="text-gray-700 mt-1">{{ record.appointment.get_appointment_type_display }}</p>
-                                {% else %}
-                                <p class="text-gray-500">No related appointment</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Metadata Tab -->
-                <div id="panel-metadata" class="tab-panel hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Record ID</span>
-                            <p class="text-gray-900 font-semibold mt-1">#{{ record.id }}</p>
-                        </div>
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Created</span>
-                            <p class="text-gray-900 font-semibold mt-1">{{ record.created_at|date:"M d, Y g:i A" }}</p>
-                        </div>
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Last Updated</span>
-                            <p class="text-gray-900 font-semibold mt-1">{{ record.updated_at|date:"M d, Y g:i A" }}</p>
-                        </div>
-                        <div class="p-4 bg-primary-50 rounded-lg md:col-span-2">
-                            <span class="text-sm font-medium text-gray-600">Doctor</span>
-                            <p class="text-gray-900 font-semibold mt-1">Dr. {{ record.doctor.get_full_name }}</p>
-                            {% if record.doctor.staff_profile %}
-                            <p class="text-gray-600 text-sm mt-1">{{ record.doctor.staff_profile.department|default:"" }} {% if record.doctor.staff_profile.specialization %}- {{ record.doctor.staff_profile.specialization }}{% endif %}</p>
-                            {% endif %}
-                        </div>
-                        <div class="p-4 bg-primary-50 rounded-lg">
-                            <span class="text-sm font-medium text-gray-600">Patient</span>
-                            <p class="text-gray-900 font-semibold mt-1">{{ record.student.get_full_name }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="border-b border-gray-200">
+      <nav class="flex overflow-x-auto -mb-px px-3" aria-label="Tabs" style="scrollbar-width: thin;">
+        {% with t="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none" %}
+        <button type="button" @click="tab='patient'" :class="tab==='patient' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-user text-xs"></i> Patient</button>
+        <button type="button" @click="tab='vitals'" :class="tab==='vitals' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-heartbeat text-xs"></i> Vitals</button>
+        <button type="button" @click="tab='clinical'" :class="tab==='clinical' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-notes-medical text-xs"></i> Clinical</button>
+        <button type="button" @click="tab='prescriptions'" :class="tab==='prescriptions' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-prescription text-xs"></i> Prescriptions{% if record.prescription_record and record.prescription_record.items.all %}<span class="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary-100 text-primary-700 text-[10px] font-semibold">{{ record.prescription_record.items.all|length }}</span>{% endif %}</button>
+        <button type="button" @click="tab='meta'" :class="tab==='meta' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-info-circle text-xs"></i> Details</button>
+        {% endwith %}
+      </nav>
     </div>
+
+    <div class="p-5 sm:p-6">
+
+      {# ── Patient ── #}
+      <div x-show="tab==='patient'">
+        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+          <i class="fas fa-user-circle text-primary-600 text-sm"></i>
+          <h2 class="text-sm font-semibold text-gray-800">Patient information</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="space-y-3">
+            <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ record.student.get_full_name }}</dd>
+            </div>
+            <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Student ID</dt>
+              <dd class="mt-1 text-sm text-gray-900">{% if record.student.student_profile %}{{ record.student.student_profile.student_id }}{% else %}<span class="text-gray-400">—</span>{% endif %}</dd>
+            </div>
+            <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</dt>
+              <dd class="mt-1 text-sm text-gray-900 break-all">{{ record.student.email }}</dd>
+            </div>
+            {% if record.student.student_profile %}
+            <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Course / department</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ record.student.student_profile.course|default:"—" }} — {{ record.student.student_profile.department|default:"—" }}</dd>
+            </div>
+            {% endif %}
+          </div>
+          <div class="space-y-3">
+            <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Record date</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ record.created_at|date:"F j, Y" }}</dd>
+              <dd class="text-xs text-gray-500 mt-0.5">{{ record.created_at|time:"g:i A" }}</dd>
+            </div>
+            <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Attending physician</dt>
+              <dd class="mt-1 text-sm font-semibold text-gray-900">Dr. {{ record.doctor.get_full_name }}</dd>
+              {% if record.doctor.staff_profile %}
+              <dd class="text-xs text-gray-500 mt-1">{{ record.doctor.staff_profile.department|default:"" }}{% if record.doctor.staff_profile.specialization %} · {{ record.doctor.staff_profile.specialization }}{% endif %}</dd>
+              {% endif %}
+            </div>
+            {% if record.appointment %}
+            <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+              <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Related appointment</dt>
+              <dd class="mt-1 text-sm text-gray-900">{{ record.appointment.date|date:"F j, Y" }} at {{ record.appointment.time|time:"g:i A" }}</dd>
+              <dd class="text-xs text-gray-500 mt-1">{{ record.appointment.get_appointment_type_display }}</dd>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# ── Vitals ── #}
+      <div x-show="tab==='vitals'" x-cloak>
+        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+          <i class="fas fa-heartbeat text-danger-500 text-sm"></i>
+          <h2 class="text-sm font-semibold text-gray-800">Vital signs</h2>
+        </div>
+        {% if record.has_vital_signs_data %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {% if record.vital_signs.blood_pressure %}
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Blood pressure</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ record.vital_signs.blood_pressure }}</dd>
+          </div>
+          {% endif %}
+          {% if record.vital_signs.heart_rate %}
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Heart rate</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ record.vital_signs.heart_rate }} bpm</dd>
+          </div>
+          {% endif %}
+          {% if record.vital_signs.pulse_rate %}
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Pulse</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ record.vital_signs.pulse_rate }} bpm</dd>
+          </div>
+          {% endif %}
+          {% if record.vital_signs.temperature %}
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ record.vital_signs.temperature }} °C</dd>
+          </div>
+          {% endif %}
+          {% if record.vital_signs.respiratory_rate %}
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Respiratory rate</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ record.vital_signs.respiratory_rate }}</dd>
+          </div>
+          {% endif %}
+          {% if record.vital_signs.oxygen_saturation %}
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">SpO₂</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ record.vital_signs.oxygen_saturation }}%</dd>
+          </div>
+          {% endif %}
+          {% if record.vital_signs.weight %}
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Weight</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ record.vital_signs.weight }} kg</dd>
+          </div>
+          {% endif %}
+          {% if record.vital_signs.height %}
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Height</dt>
+            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ record.vital_signs.height }}</dd>
+          </div>
+          {% endif %}
+        </div>
+        {% else %}
+          {% include "components/empty_state.html" with icon="fa-heart-pulse" title="No vital signs" description="No vitals were captured for this visit." %}
+        {% endif %}
+      </div>
+
+      {# ── Clinical ── #}
+      <div x-show="tab==='clinical'" x-cloak>
+        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+          <i class="fas fa-notes-medical text-primary-600 text-sm"></i>
+          <h2 class="text-sm font-semibold text-gray-800">Clinical notes</h2>
+        </div>
+        <div class="space-y-4">
+          <div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Diagnosis</h3>
+            <p class="text-sm text-gray-900 whitespace-pre-line">{{ record.diagnosis }}</p>
+          </div>
+          <div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Treatment</h3>
+            <p class="text-sm text-gray-900 whitespace-pre-line">{{ record.treatment }}</p>
+          </div>
+          {% if record.lab_results %}
+          <div class="p-4 bg-gray-50 rounded-lg border border-gray-100">
+            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Lab results</h3>
+            <p class="text-sm text-gray-900 whitespace-pre-line">{{ record.lab_results }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {# ── Prescriptions ── #}
+      <div x-show="tab==='prescriptions'" x-cloak>
+        {% include "medical_records/_mr_detail_prescriptions_tab.html" %}
+      </div>
+
+      {# ── Metadata ── #}
+      <div x-show="tab==='meta'" x-cloak>
+        <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+          <i class="fas fa-info-circle text-primary-600 text-sm"></i>
+          <h2 class="text-sm font-semibold text-gray-800">Record details</h2>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Record ID</dt>
+            <dd class="mt-1 text-sm font-semibold text-gray-900">#{{ record.id }}</dd>
+          </div>
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Created</dt>
+            <dd class="mt-1 text-sm text-gray-900">{{ record.created_at|date:"M j, Y g:i A" }}</dd>
+          </div>
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Last updated</dt>
+            <dd class="mt-1 text-sm text-gray-900">{{ record.updated_at|date:"M j, Y g:i A" }}</dd>
+          </div>
+          <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100 md:col-span-2">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Physician</dt>
+            <dd class="mt-1 text-sm font-semibold text-gray-900">Dr. {{ record.doctor.get_full_name }}</dd>
+            {% if record.doctor.staff_profile %}
+            <dd class="text-xs text-gray-500 mt-1">{{ record.doctor.staff_profile.department|default:"" }}{% if record.doctor.staff_profile.specialization %} · {{ record.doctor.staff_profile.specialization }}{% endif %}</dd>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 </div>
-
-<script>
-function switchTab(tabName) {
-    const panels = document.querySelectorAll('.tab-panel');
-    panels.forEach(panel => panel.classList.add('hidden'));
-
-    const buttons = document.querySelectorAll('.tab-button');
-    buttons.forEach(button => {
-        button.classList.remove('border-primary-600', 'text-primary-600');
-        button.classList.add('border-transparent', 'text-gray-500');
-    });
-
-    const selectedPanel = document.getElementById('panel-' + tabName);
-    if (selectedPanel) {
-        selectedPanel.classList.remove('hidden');
-    }
-
-    const selectedButton = document.getElementById('tab-' + tabName);
-    if (selectedButton) {
-        selectedButton.classList.remove('border-transparent', 'text-gray-500');
-        selectedButton.classList.add('border-primary-600', 'text-primary-600');
-    }
-}
-</script>
-
 {% endblock %}

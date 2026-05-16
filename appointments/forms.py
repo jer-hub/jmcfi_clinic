@@ -33,11 +33,13 @@ class AppointmentTypeDefaultForm(forms.ModelForm):
             'appointment_type': 'Select the type of appointment',
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, doctors_qs=None, **kwargs):
         super().__init__(*args, **kwargs)
-        doctors_qs = User.objects.filter(
-            role__in=['doctor', 'staff'],
-        ).order_by('first_name', 'last_name')
+        if doctors_qs is None:
+            doctors_qs = User.objects.filter(
+                role__in=['doctor', 'staff'],
+                is_active=True,
+            ).select_related('staff_profile').order_by('first_name', 'last_name')
 
         self.fields['assigned_doctors'].queryset = doctors_qs
 
@@ -48,7 +50,6 @@ class AppointmentTypeDefaultForm(forms.ModelForm):
 
         self.fields['assigned_doctors'].label_from_instance = doctor_label
 
-        # Make appointment_type readonly when editing (can't change type once created)
         if self.instance and self.instance.pk:
             self.fields['appointment_type'].widget.attrs['disabled'] = 'disabled'
             self.fields['appointment_type'].required = False

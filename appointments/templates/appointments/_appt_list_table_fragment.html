@@ -1,0 +1,120 @@
+{% if appointments %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Appointment / Created</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">{% if user.role == 'student' %}Doctor{% else %}Patient{% endif %}</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Reason</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+          <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        {% for appointment in appointments %}
+          <tr class="hover:bg-primary-50/30 transition-colors">
+            <td class="px-4 py-3 whitespace-nowrap text-sm">
+              <div class="text-xs font-medium text-primary-700 mb-0.5">Appointment</div>
+              <div class="font-medium text-gray-900">{{ appointment.date|date:"M d, Y" }}</div>
+              <div class="text-xs text-gray-600 flex items-center gap-1 mt-0.5">
+                <i class="far fa-clock" aria-hidden="true"></i>{{ appointment.time|time:"g:i A" }}
+              </div>
+              <div class="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
+                <i class="fas fa-calendar-plus" aria-hidden="true"></i>
+                Created {{ appointment.created_at|date:"M d, Y" }} at {{ appointment.created_at|time:"g:i A" }}
+              </div>
+            </td>
+            <td class="px-4 py-3 text-sm">
+              {% if user.role == 'student' %}
+                <div class="text-gray-900">Dr. {{ appointment.doctor.last_name }}, {{ appointment.doctor.first_name }}</div>
+              {% else %}
+                <div class="flex items-center gap-2 min-w-0">
+                  {% include "components/avatar.html" with user=appointment.student size="sm" %}
+                  <div class="min-w-0">
+                    <div class="text-gray-900 font-medium truncate">{{ appointment.student.last_name }}, {{ appointment.student.first_name }}</div>
+                    <div class="text-xs text-gray-500 truncate">{{ appointment.student.student_profile.student_id|default:'' }}</div>
+                  </div>
+                </div>
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 text-sm text-gray-700">{{ appointment.get_appointment_type_display }}</td>
+            <td class="px-4 py-3 text-sm text-gray-600 max-w-xs">
+              <p class="line-clamp-2" title="{{ appointment.reason }}">{{ appointment.reason }}</p>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+              {% if appointment.status == 'pending' %}
+                {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" size="sm" %}
+              {% elif appointment.status == 'confirmed' %}
+                {% include "components/status_badge.html" with label="Confirmed" variant="info" icon="fa-circle-check" size="sm" %}
+              {% elif appointment.status == 'completed' %}
+                {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-check-double" size="sm" %}
+              {% elif appointment.status == 'cancelled' %}
+                {% include "components/status_badge.html" with label="Cancelled" variant="danger" icon="fa-ban" size="sm" %}
+              {% endif %}
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
+              <div class="inline-flex items-center gap-1">
+                <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="p-1.5 rounded text-primary-600 hover:bg-primary-50 transition-colors" title="View Details"><i class="fas fa-eye"></i></a>
+                {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
+                  {% if appointment.status == 'pending' %}
+                    {% include "appointments/partials/_confirm_appointment_action.html" with use_htmx_list=use_htmx_list next_url=request.get_full_path %}
+                  {% endif %}
+                  {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
+                    {% include "appointments/partials/_cancel_appointment_action.html" with use_htmx_list=use_htmx_list %}
+                  {% endif %}
+                {% endif %}
+                {% if user.role == 'doctor' or user.role == 'staff' %}
+                  {% if appointment.status == 'confirmed' %}
+                    {% if appointment.appointment_type != 'dental' %}
+                      {% if not appointment.medicalrecord_set.exists %}
+                        <a href="{% url 'medical_records:create_medical_record' appointment.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="Create Medical Record"><i class="fas fa-plus"></i></a>
+                      {% else %}
+                        <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="Edit Medical Record"><i class="fas fa-pen-to-square"></i></a>
+                      {% endif %}
+                    {% else %}
+                      {% if not appointment.dental_records.exists %}
+                        <a href="{% url 'dental_records:dental_record_create' %}?appointment={{ appointment.id }}" class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors" title="Create Dental Record"><i class="fas fa-plus"></i></a>
+                      {% else %}
+                        <a href="{% url 'dental_records:dental_record_edit' appointment.dental_records.first.id %}" class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors" title="Edit Dental Record"><i class="fas fa-pen-to-square"></i></a>
+                      {% endif %}
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+                {% if appointment.status == 'completed' and appointment.medicalrecord_set.exists %}
+                  <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="p-1.5 rounded text-success-700 hover:bg-success-50 transition-colors" title="View Medical Record"><i class="fas fa-file-medical"></i></a>
+                {% endif %}
+                {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
+                  {% if appointment.status == 'completed' %}
+                    <a href="{% url 'appointments:schedule_for_student' %}?student={{ appointment.student.id }}"
+                       class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors"
+                       title="Book an appointment again"><i class="fas fa-calendar-plus"></i></a>
+                  {% endif %}
+                {% endif %}
+                {% if user.role == 'student' and appointment.status == 'completed' %}
+                  <a href="{% url 'appointments:schedule_appointment' %}"
+                     class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors"
+                     title="Book an appointment again"><i class="fas fa-calendar-plus"></i></a>
+                  {% if appointment.dental_records.exists %}
+                    <a href="{% url 'dental_records:dental_record_detail' appointment.dental_records.first.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="View Dental Record"><i class="fas fa-tooth"></i></a>
+                  {% endif %}
+                  <a href="{% url 'feedback:submit_feedback_appointment' appointment.id %}" class="p-1.5 rounded text-success-700 hover:bg-success-50 transition-colors" title="Give Feedback"><i class="fas fa-comment-dots"></i></a>
+                {% endif %}
+                {% if user.role == 'student' and appointment.status == 'cancelled' %}
+                  <a href="{% url 'appointments:schedule_appointment' %}" class="px-2 py-1 rounded text-white bg-primary-600 hover:bg-primary-700 text-xs transition-colors" title="Book Again"><i class="fas fa-plus mr-1"></i>Book</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% include "components/pagination.html" with page_obj=appointments hx_target="body" hx_swap="none" querystring=appt_list_querystring %}
+{% else %}
+  {% if user.role == 'student' %}
+    {% include "components/empty_state.html" with icon="fa-calendar-xmark" title="No appointments yet" description="Book your first appointment to get started." action_label="Schedule Appointment" action_url='/appointments/schedule/' %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="fa-calendar-xmark" title="No appointments found" description="No appointments match your current filters." %}
+  {% endif %}
+{% endif %}

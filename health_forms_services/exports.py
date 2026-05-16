@@ -855,7 +855,7 @@ def generate_prescription(rx):
     patient_name = _val(rx.patient_name)
     age = _val(rx.age, "")
     gender = rx.get_gender_display() if rx.gender else ""
-    date_str = str(rx.date) if rx.date else ""
+    date_str = str(rx.display_date)
     address = _val(rx.address, "")
     physician = _val(rx.physician_name, "")
     license_no = _val(rx.license_no, "")

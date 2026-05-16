@@ -17,7 +17,7 @@ from ..forms import (
 
 class HealthProfileListView(BaseFormListView):
     model = HealthProfileForm
-    template_name = 'health_forms_services/forms_list_new.html'
+    template_name = 'health_forms_services/forms_list.html'
     detail_url_name = 'health_forms_services:form_detail'
     edit_url_name = 'health_forms_services:edit_form'
     create_url_name = 'health_forms_services:manual_entry'
@@ -31,7 +31,7 @@ class HealthProfileListView(BaseFormListView):
 
 class HealthProfileDetailView(BaseFormDetailView):
     model = HealthProfileForm
-    template_name = 'health_forms_services/form_detail_new.html'
+    template_name = 'health_forms_services/form_detail.html'
     list_url_name = 'health_forms_services:forms_list'
     edit_url_name = 'health_forms_services:edit_form'
     export_url_name = 'health_forms_services:export_form'
@@ -131,7 +131,7 @@ class HealthProfileDetailView(BaseFormDetailView):
 
 class HealthProfileEditView(BaseFormEditView):
     model = HealthProfileForm
-    template_name = 'health_forms_services/edit_form_new.html'
+    template_name = 'health_forms_services/edit_form.html'
     detail_url_name = 'health_forms_services:form_detail'
     form_class_map = {
         'personal': HealthProfilePersonalInfoForm,

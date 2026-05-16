@@ -1,0 +1,166 @@
+{% load user_filters %}
+{% comment %}
+  Clinical notes + prescription medications (Alpine).
+  Requires: student, prescription_form, form_state, medication_entries_json, student_age
+{% endcomment %}
+<div
+  x-data="{
+    medications: JSON.parse('{{ medication_entries_json|escapejs }}'),
+    physicianName: '{{ prescription_form.physician_name.value|default:''|escapejs }}',
+    physicianLicense: '{{ prescription_form.license_no.value|default:''|escapejs }}',
+    physicianPtr: '{{ prescription_form.ptr_no.value|default:''|escapejs }}',
+    get medicationsText() {
+      return this.medications
+        .filter(med => med.name.trim() !== '')
+        .map(med => {
+          const parts = [med.name.trim()];
+          if (med.dosage.trim()) parts.push(med.dosage.trim());
+          if (med.frequency.trim()) parts.push(med.frequency.trim());
+          if (med.duration.trim()) parts.push(med.duration.trim());
+          if (med.quantity.trim()) parts.push(med.quantity.trim());
+          if (med.instructions.trim()) parts.push('(' + med.instructions.trim() + ')');
+          return parts.join(' ');
+        })
+        .join('\n');
+    },
+    addMedication() {
+      this.medications.push({ name: '', dosage: '', frequency: '', duration: '', quantity: '', instructions: '' });
+    },
+    removeMedication(index) {
+      if (this.medications.length > 1) this.medications.splice(index, 1);
+    },
+    syncPhysician() {
+      const selected = this.$refs.physicianSelect?.selectedOptions?.[0];
+      if (selected?.value) {
+        this.physicianName = selected.textContent.trim().replace(/^Dr\.\s*/, '').trim();
+        this.physicianLicense = selected.dataset.license || '';
+        this.physicianPtr = selected.dataset.ptr || '';
+        return;
+      }
+      this.physicianName = '';
+      this.physicianLicense = '';
+      this.physicianPtr = '';
+    },
+    init() { this.syncPhysician(); }
+  }"
+  x-init="init()"
+  class="rounded-xl border border-primary-200 bg-gradient-to-br from-primary-50/80 to-white overflow-hidden">
+  <div class="p-5 sm:p-6 space-y-6">
+    <div class="hidden" aria-hidden="true">
+      <input type="text" name="patient_name" id="id_patient_name" value="{% if student %}{{ student|format_student_name }}{% endif %}">
+      <input type="number" name="age" id="id_age" value="{% if student_age %}{{ student_age }}{% endif %}">
+      <select name="gender" id="id_gender">
+        <option value="">---------</option>
+        <option value="male" {% if student and student.student_profile and student.student_profile.gender == 'male' %}selected{% endif %}>Male</option>
+        <option value="female" {% if student and student.student_profile and student.student_profile.gender == 'female' %}selected{% endif %}>Female</option>
+      </select>
+      <textarea name="address" id="id_address">{% if student and student.student_profile %}{{ student.student_profile.address|default:'' }}{% endif %}</textarea>
+      <input type="hidden" name="date" id="id_date" value="{% if prescription_form.date.value %}{{ prescription_form.date.value|date:'Y-m-d' }}{% elif prescription_form.initial.date %}{{ prescription_form.initial.date|date:'Y-m-d' }}{% endif %}">
+    </div>
+
+    <div class="space-y-3" role="group" aria-label="Prescription field errors">
+      {% for field in prescription_form %}
+        {% if field.errors and field.name != 'diagnosis' %}
+          {% include "components/forms/inline_errors.html" with label=field.label errors=field.errors suppress_margin=True %}
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div>
+        <label for="{{ prescription_form.diagnosis.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-1.5">
+          Diagnosis / impression <span class="text-danger-500">*</span>
+        </label>
+        <div class="rounded-lg{% if prescription_form.diagnosis.errors %} border border-danger-300 ring-1 ring-danger-200{% endif %}">
+          {{ prescription_form.diagnosis }}
+        </div>
+        {% include "components/forms/inline_errors.html" with errors=prescription_form.diagnosis.errors %}
+      </div>
+      <div>
+        <label for="treatment" class="block text-sm font-semibold text-gray-700 mb-1.5">
+          Treatment rendered <span class="text-danger-500">*</span>
+        </label>
+        <textarea id="treatment" name="treatment" rows="3" class="form-textarea min-h-[80px]{% for err in prescription_form.non_field_errors %}{% if 'Treatment rendered' in err %} border-danger-400 ring-1 ring-danger-200{% endif %}{% endfor %}"
+                  placeholder="Medications, lifestyle advice, referrals…">{{ form_state.treatment|escape }}</textarea>
+        {% for err in prescription_form.non_field_errors %}
+          {% if 'Treatment rendered' in err %}
+            {% include "components/forms/inline_errors.html" with message=err %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if prescription_form.non_field_errors %}
+      <div class="space-y-2 mb-1" role="group" aria-label="Additional form errors">
+        {% for err in prescription_form.non_field_errors %}
+          {% if 'Treatment rendered' not in err %}
+            {% include "components/forms/inline_errors.html" with message=err suppress_margin=True %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="border-t border-primary-100 pt-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-gray-700">Medications / prescription items</h3>
+        <button type="button" @click="addMedication()"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-100 rounded-lg hover:bg-primary-200 transition-colors">
+          <i class="fas fa-plus"></i> Add medication
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <template x-for="(med, index) in medications" :key="index">
+          <div class="bg-white rounded-lg border border-primary-200 shadow-sm">
+            <div class="flex items-center justify-between px-4 py-2.5 bg-primary-50/80 border-b border-primary-100 rounded-t-lg">
+              <span class="text-xs font-semibold text-primary-800 uppercase tracking-wider">
+                <span class="inline-flex w-6 h-6 items-center justify-center rounded-full bg-primary-100 text-primary-700 font-bold mr-1" x-text="index + 1"></span>
+                Medication
+              </span>
+              <button type="button" @click="removeMedication(index)" x-show="medications.length > 1"
+                      class="p-1 text-danger-500 hover:bg-danger-50 rounded transition-colors" title="Remove">
+                <i class="fas fa-trash-can text-sm"></i>
+              </button>
+            </div>
+            <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div class="sm:col-span-2 lg:col-span-3">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Name</label>
+                <input type="text" x-model="med.name" :name="'med_item_' + index + '_name'" class="form-input" placeholder="e.g. Paracetamol">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Dosage</label>
+                <input type="text" x-model="med.dosage" :name="'med_item_' + index + '_dosage'" class="form-input" placeholder="500mg">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
+                <input type="text" x-model="med.frequency" :name="'med_item_' + index + '_frequency'" class="form-input" placeholder="3x daily">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Duration</label>
+                <input type="text" x-model="med.duration" :name="'med_item_' + index + '_duration'" class="form-input" placeholder="7 days">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Quantity</label>
+                <input type="text" x-model="med.quantity" :name="'med_item_' + index + '_quantity'" class="form-input" placeholder="#21">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-gray-600 mb-1">Instructions</label>
+                <input type="text" x-model="med.instructions" :name="'med_item_' + index + '_instructions'" class="form-input" placeholder="After meals">
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <input type="hidden" x-model="medicationsText" name="medications" id="id_medications_combined">
+    </div>
+
+    <div class="hidden" aria-hidden="true">
+      {{ prescription_form.physician }}
+      {{ prescription_form.license_no }}
+      {{ prescription_form.ptr_no }}
+      {{ prescription_form.prescription_body }}
+      {{ prescription_form.physician_name }}
+    </div>
+  </div>
+</div>

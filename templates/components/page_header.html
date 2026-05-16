@@ -1,0 +1,49 @@
+{% comment %}
+  Reusable page header.
+
+  Context:
+    title          – string (required)
+    subtitle       – string (optional)
+    icon           – Font Awesome icon class (e.g. "fa-calendar", optional)
+    icon_color     – Tailwind text color class for the icon (default "text-primary-600")
+    back_url       – optional URL for a left chevron back-link
+    back_label     – label for the back link (default "Back")
+    actions          – pre-rendered HTML block of action buttons (mark safe in view) — optional
+    actions_include  – template path to include in the header actions area (end-aligned) — optional
+    breadcrumbs      – list of {label, url} (optional). When set, replaces back link.
+
+  Example:
+    {% include "components/page_header.html" with title="Appointments" subtitle="Manage clinic appointments" icon="fa-calendar-days" %}
+{% endcomment %}
+
+<div class="{{ header_mb|default:'mb-6' }}">
+  {% if breadcrumbs %}
+    {% include "components/breadcrumbs.html" with crumbs=breadcrumbs %}
+  {% elif back_url %}
+    <a href="{{ back_url }}" class="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-primary-600 mb-3 transition-colors">
+      <i class="fas fa-arrow-left text-xs"></i>
+      <span>{{ back_label|default:"Back" }}</span>
+    </a>
+  {% endif %}
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div class="flex items-start gap-3 min-w-0">
+      {% if icon %}
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary-50 {{ icon_color|default:'text-primary-600' }} flex-shrink-0">
+          <i class="fas {{ icon }} text-lg"></i>
+        </span>
+      {% endif %}
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">{{ title }}</h1>
+        {% if subtitle %}
+          <p class="mt-1 text-sm text-gray-500">{{ subtitle }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% if actions or actions_include %}
+      <div class="flex items-center justify-end gap-3 flex-shrink-0 flex-wrap">
+        {% if actions %}{{ actions }}{% endif %}
+        {% if actions_include %}{% include actions_include %}{% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>

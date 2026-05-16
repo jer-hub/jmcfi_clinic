@@ -1,0 +1,19 @@
+{% if unavailable %}
+  <div class="rounded-lg border border-warning-200 bg-warning-50 px-3 py-2.5 text-sm text-warning-800">
+    This record's status changed since this dialog was opened. Close it and refresh the page.
+  </div>
+{% else %}
+  <div class="space-y-3 text-left">
+    <p class="text-sm text-gray-600">
+      Mark this dental record as <strong class="text-gray-900">completed</strong>?
+      {% if dental_record.appointment %}
+        If the linked appointment is not completed yet, it will be marked completed as well.
+      {% endif %}
+      <span class="block mt-2 text-xs text-gray-500">This cannot be undone.</span>
+    </p>
+    <form hx-post="{{ post_url }}" hx-swap="none" class="hidden" aria-hidden="true">
+      {% csrf_token %}
+      <input type="hidden" name="status" value="completed">
+    </form>
+  </div>
+{% endif %}

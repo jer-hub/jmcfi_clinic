@@ -661,13 +661,12 @@ class UserEditForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Limit role choices to student, staff, and doctor only
         self.fields['role'].choices = [
+            ('admin', 'Admin'),
             ('student', 'Student'),
             ('staff', 'Staff'),
             ('doctor', 'Doctor'),
         ]
-        # Make fields required (username is optional)
         for field_name in ['email', 'first_name', 'last_name', 'role']:
             self.fields[field_name].required = True
         self.fields['username'].required = False

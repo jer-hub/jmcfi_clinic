@@ -1,0 +1,151 @@
+---
+description: Django model and form conventions — field patterns, validation, services layer, and form organization
+globs: "**/models.py,**/forms.py,**/services.py"
+alwaysApply: false
+---
+
+# Models & Forms
+
+## Model Conventions
+
+### Timestamps
+
+Every model should include `created_at` and `updated_at`:
+
+```python
+class MyModel(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+```
+
+### Soft Delete
+
+For user-facing records, prefer soft delete over hard delete:
+
+```python
+is_deleted = models.BooleanField(default=False)
+deleted_at = models.DateTimeField(null=True, blank=True)
+```
+
+### Status Fields
+
+Use `CharField` with `choices`, not `IntegerField`:
+
+```python
+STATUS_CHOICES = [
+    ('pending', 'Pending'),
+    ('approved', 'Approved'),
+    ('rejected', 'Rejected'),
+    ('completed', 'Completed'),
+]
+status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+```
+
+### Foreign Keys
+
+Always set `on_delete` explicitly and add `related_name`:
+
+```python
+user = models.ForeignKey(
+    settings.AUTH_USER_MODEL,
+    on_delete=models.CASCADE,
+    related_name='medical_records',
+)
+doctor = models.ForeignKey(
+    settings.AUTH_USER_MODEL,
+    on_delete=models.SET_NULL,
+    null=True,
+    related_name='assigned_records',
+)
+```
+
+### String Representation
+
+Every model must define `__str__`:
+
+```python
+def __str__(self):
+    return f"{self.get_full_name()} - {self.created_at:%Y-%m-%d}"
+```
+
+## Form Conventions
+
+### Widget Styling
+
+Apply Tailwind classes via widget attrs:
+
+```python
+class MyForm(forms.ModelForm):
+    class Meta:
+        model = MyModel
+        fields = ['name', 'email', 'status']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                'placeholder': 'Full name',
+            }),
+        }
+```
+
+### Custom Validation
+
+Add field-level and form-level validation:
+
+```python
+def clean_email(self):
+    email = self.cleaned_data['email']
+    if not email.endswith('@jmc.edu.ph'):
+        raise forms.ValidationError('Must use institutional email.')
+    return email
+
+def clean(self):
+    cleaned = super().clean()
+    if cleaned.get('start_date') and cleaned.get('end_date'):
+        if cleaned['start_date'] > cleaned['end_date']:
+            raise forms.ValidationError('Start date must be before end date.')
+    return cleaned
+```
+
+### Form Sets
+
+For related models (e.g., medication items, purchase order items):
+
+```python
+MedicationFormSet = forms.formset_factory(
+    MedicationItemForm,
+    extra=1,
+    can_delete=True,
+)
+```
+
+## Services Layer
+
+For complex business logic, use a services module instead of fat views:
+
+```python
+# app/services.py
+def get_records_for_user(user, model_class):
+    """Role-filtered queryset."""
+    qs = model_class.objects.filter(is_deleted=False)
+    if user.role == 'student':
+        return qs.filter(user=user)
+    elif user.role in ('staff', 'doctor'):
+        return qs.filter(doctor=user)
+    return qs
+
+def apply_search_and_filter(queryset, search, status, search_fields):
+    """Apply search and status filter to queryset."""
+    if search:
+        q = Q()
+        for field in search_fields:
+            q |= Q(**{f'{field}__icontains': search})
+        queryset = queryset.filter(q)
+    if status:
+        queryset = queryset.filter(status=status)
+    return queryset
+```
+
+Apps with services layers: `health_forms_services/services.py`, `messaging/services.py`, `core/user_management_services.py`. Prefer this pattern for new apps with complex logic.

@@ -17,7 +17,7 @@ This policy ensures clinic scheduling operates efficiently by preventing double-
 **Conflict exists if:**
 - Same doctor has another appointment on same date
 - AND requested time overlaps with existing appointment ± 30-minute buffer
-- Both appointments must have status in ['pending', 'confirmed', 'completed']
+- Both appointments must have status in ['pending', 'confirmed']
 
 **Example:**
 ```
@@ -30,11 +30,12 @@ Available slots: 08:00 AM - 09:30 AM, 11:30 AM onwards
 
 ### 3. Status-Based Filtering
 Conflicts are checked against appointments with status:
-- `pending`: User may still cancel/reschedule
-- `confirmed`: Definite conflict; block slot
-- `completed`: Past appointment; do NOT block future slots
+- `pending`: User may still cancel/reschedule — blocks the slot
+- `confirmed`: Definite conflict — blocks the slot
+- `completed`: Past appointment — does NOT block future slots
+- `cancelled`: Freed slot — does NOT block
 
-This prevents users from being blocked by old completed appointments.
+This prevents users from being blocked by old completed or cancelled appointments.
 
 ### 4. Buffer Interval Details
 - **Duration:** 30 minutes

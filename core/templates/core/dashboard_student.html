@@ -1,170 +1,89 @@
-<!-- Student Dashboard -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
-  <!-- Quick Stats -->
-  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-primary-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Upcoming Appointments</p>
-        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ upcoming_appointments.count }}</p>
-      </div>
-    </div>
-  </div>
+{% comment %}Student dashboard.{% endcomment %}
 
-  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-green-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Medical Records</p>
-        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ total_records }}</p>
-      </div>
-    </div>
-  </div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {% include "components/stat_card.html" with label="Upcoming Appointments" value=upcoming_appointments.count icon="fa-calendar-days" variant="primary" hint="Scheduled visits" %}
+  {% include "components/stat_card.html" with label="Medical Records" value=total_records icon="fa-file-medical" variant="success" hint="Your medical history" %}
+  {% include "components/stat_card.html" with label="Pending Certificates" value=pending_certificates icon="fa-file-circle-question" variant="warning" hint="Awaiting issuance" %}
+  {% include "components/stat_card.html" with label="Notifications" value=unread_notifications icon="fa-bell" variant="info" hint="Unread alerts" %}
+</div>
 
-  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-yellow-100 rounded-full">
-        <svg class="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-        </svg>
-      </div>
-      <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Pending Certificates</p>
-        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ pending_certificates }}</p>
-      </div>
-    </div>
+<div class="bg-white rounded-card shadow-sm border border-gray-200 mb-6">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+      <i class="fas fa-bolt text-warning-500"></i>Quick Actions
+    </h3>
   </div>
-
-  <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-    <div class="flex items-center">
-      <div class="p-2 sm:p-3 bg-purple-100 rounded-full">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
-        </svg>
+  <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <a href="{% url 'appointments:schedule_appointment' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-200 transition-colors group">
+      <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-600 text-white group-hover:scale-105 transition-transform"><i class="fas fa-calendar-plus"></i></span>
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-gray-900">Book Appointment</p>
+        <p class="text-xs text-gray-500">Schedule with a doctor</p>
       </div>
-      <div class="ml-3 sm:ml-4">
-        <p class="text-xs sm:text-sm text-gray-600 break-words">Notifications</p>
-        <p class="text-lg sm:text-2xl font-semibold text-gray-900">{{ unread_notifications }}</p>
+    </a>
+    <a href="{% url 'document_request:request_document' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-success-50 hover:border-success-200 transition-colors group">
+      <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-success-600 text-white group-hover:scale-105 transition-transform"><i class="fas fa-file-medical"></i></span>
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-gray-900">Request Certificate</p>
+        <p class="text-xs text-gray-500">Medical certificate</p>
       </div>
-    </div>
+    </a>
+    <a href="{% url 'health_tips:health_tips_list' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-info-50 hover:border-info-200 transition-colors group">
+      <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-info-600 text-white group-hover:scale-105 transition-transform"><i class="fas fa-heart-pulse"></i></span>
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-gray-900">Health Tips</p>
+        <p class="text-xs text-gray-500">Browse health advice</p>
+      </div>
+    </a>
+    <a href="{% url 'medical_records:medical_records' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-warning-50 hover:border-warning-200 transition-colors group">
+      <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-warning-600 text-white group-hover:scale-105 transition-transform"><i class="fas fa-folder-open"></i></span>
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-gray-900">Medical Records</p>
+        <p class="text-xs text-gray-500">View your records</p>
+      </div>
+    </a>
   </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="bg-white rounded-lg shadow mb-6 sm:mb-8">
-  <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Quick Actions</h3>
-  </div>
-  <div class="p-4 sm:p-6">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <a href="{% url 'appointments:schedule_appointment' %}" class="flex items-center p-4 bg-gradient-to-r from-primary-50 to-primary-100 rounded-lg hover:shadow-md transition-all duration-200 group">
-        <div class="flex-shrink-0">
-          <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm font-semibold text-gray-900">Book Appointment</p>
-          <p class="text-xs text-gray-600">Schedule with a doctor</p>
-        </div>
-      </a>
-
-      <a href="{% url 'document_request:request_document' %}" class="flex items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg hover:shadow-md transition-all duration-200 group">
-        <div class="flex-shrink-0">
-          <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm font-semibold text-gray-900">Request Certificate</p>
-          <p class="text-xs text-gray-600">Apply for medical cert</p>
-        </div>
-      </a>
-
-      <a href="{% url 'health_tips:health_tips_list' %}" class="flex items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg hover:shadow-md transition-all duration-200 group">
-        <div class="flex-shrink-0">
-          <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm font-semibold text-gray-900">Health Tips</p>
-          <p class="text-xs text-gray-600">Browse health advice</p>
-        </div>
-      </a>
-
-      <a href="{% url 'medical_records:medical_records' %}" class="flex items-center p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg hover:shadow-md transition-all duration-200 group">
-        <div class="flex-shrink-0">
-          <div class="w-10 h-10 bg-yellow-600 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-          </div>
-        </div>
-        <div class="ml-3">
-          <p class="text-sm font-semibold text-gray-900">Medical Records</p>
-          <p class="text-xs text-gray-600">View your records</p>
-        </div>
-      </a>
+<div class="bg-white rounded-card shadow-sm border border-gray-200">
+  <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+    <div>
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-calendar-check text-primary-500"></i>Upcoming Appointments
+      </h3>
+      <p class="text-xs text-gray-500 mt-0.5">{{ upcoming_appointments.count }} upcoming</p>
     </div>
+    <a href="{% url 'appointments:appointment_list' %}" class="text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center gap-1">
+      View all <i class="fas fa-arrow-right text-xs"></i>
+    </a>
   </div>
-</div>
-
-<!-- Upcoming Appointments (minimal) -->
-<div class="bg-white rounded-lg shadow mb-6">
-  <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
-    <div class="flex items-center justify-between">
-      <div>
-        <h3 class="text-base sm:text-lg font-semibold text-gray-900">Upcoming Appointments</h3>
-        <p class="text-sm text-gray-500 mt-1">{{ upcoming_appointments.count }} upcoming</p>
-      </div>
-      <div>
-        <a href="{% url 'appointments:appointment_list' %}" class="text-primary-600 hover:text-primary-500 text-sm font-medium">View all →</a>
-      </div>
-    </div>
-  </div>
-  <div class="p-4 sm:p-6">
+  <div class="p-5">
     {% if upcoming_appointments %}
       <ul class="divide-y divide-gray-100">
         {% for appointment in upcoming_appointments %}
-          <li class="flex items-center justify-between py-3">
-            <div class="flex items-center space-x-3 min-w-0">
-              <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-700">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-              </div>
+          <li class="flex items-center justify-between py-3 gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex-shrink-0"><i class="fas fa-calendar"></i></span>
               <div class="min-w-0">
                 <p class="text-sm font-medium text-gray-900 truncate">{{ appointment.get_appointment_type_display }}</p>
                 <p class="text-xs text-gray-500 truncate">Dr. {{ appointment.doctor.get_full_name }} · {{ appointment.date|date:"M d" }} · {{ appointment.time|time:"g:i A" }}</p>
               </div>
             </div>
-            <div class="flex items-center space-x-3">
-              <span class="text-xs font-medium px-2 py-1 rounded-full
-                {% if appointment.status == 'pending' %}bg-yellow-100 text-yellow-800
-                {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
-                {% else %}bg-green-100 text-green-800{% endif %}">
-                {{ appointment.get_status_display }}
-              </span>
-              <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="text-primary-600 text-sm font-medium">View</a>
+            <div class="flex items-center gap-2">
+              {% if appointment.status == 'pending' %}
+                {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" size="sm" %}
+              {% elif appointment.status == 'cancelled' %}
+                {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" size="sm" %}
+              {% else %}
+                {% include "components/status_badge.html" with label=appointment.get_status_display variant="success" size="sm" %}
+              {% endif %}
+              <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="text-primary-600 text-sm font-medium hover:text-primary-700">View</a>
             </div>
           </li>
         {% endfor %}
       </ul>
     {% else %}
-      <div class="py-8 text-center text-sm text-gray-500">No upcoming appointments</div>
+      {% include "components/empty_state.html" with icon="fa-calendar-xmark" title="No upcoming appointments" description="When you book one, it'll show up here." action_label="Book Appointment" action_url='/appointments/schedule/' %}
     {% endif %}
   </div>
 </div>

@@ -5,14 +5,12 @@
     {% elif type_key == 'emergency' %}bg-red-100
     {% elif type_key == 'dental' %}bg-yellow-100
     {% else %}bg-orange-100{% endif %}">
-    <svg class="h-4 w-4
-        {% if type_key == 'consultation' %}text-blue-600
-        {% elif type_key == 'checkup' %}text-green-600
-        {% elif type_key == 'vaccination' %}text-purple-600
-        {% elif type_key == 'emergency' %}text-red-600
-        {% elif type_key == 'dental' %}text-yellow-600
-        {% else %}text-orange-600{% endif %}"
-        fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-    </svg>
+    <i class="fas
+        {% if type_key == 'consultation' %}fa-stethoscope text-blue-600
+        {% elif type_key == 'checkup' %}fa-clipboard-check text-green-600
+        {% elif type_key == 'vaccination' %}fa-syringe text-purple-600
+        {% elif type_key == 'emergency' %}fa-truck-medical text-red-600
+        {% elif type_key == 'dental' %}fa-tooth text-yellow-600
+        {% else %}fa-calendar-check text-orange-600{% endif %}
+        text-sm"></i>
 </div>

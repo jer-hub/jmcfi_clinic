@@ -1,0 +1,30 @@
+{% extends "core/base.html" %}
+{% comment %}
+  Generic list page layout.
+
+  Override blocks:
+    {% block page_title %}      – browser tab title
+    {% block subnav %}          – sub-navigation
+    {% block page_header %}     – page title row (use components/page_header.html)
+    {% block stats %}           – stat cards row
+    {% block filters %}         – search/filter row
+    {% block list %}            – main list content (table / grid)
+    {% block pagination %}      – pagination
+    {% block extra %}           – anything appended after list
+
+  Plus the regular `head` and `scripts` blocks from base.html.
+{% endcomment %}
+
+{% block title %}{% block page_title %}{% endblock %}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  {% block subnav %}{% endblock %}
+  {% block page_header %}{% endblock %}
+  {% block stats %}{% endblock %}
+  {% block filters %}{% endblock %}
+  {% block list %}{% endblock %}
+  {% block pagination %}{% endblock %}
+  {% block extra %}{% endblock %}
+</div>
+{% endblock %}

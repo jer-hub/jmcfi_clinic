@@ -1,11 +1,4 @@
-<div class="mb-6 bg-white border border-gray-200 rounded-xl shadow-sm">
-  <div class="px-3 py-3 overflow-x-auto">
-    <div class="flex items-center gap-2 min-w-max">
-      {% if request.user.role == 'admin' %}
-      <a href="{% url 'core:user_management' %}" class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium {% if request.resolver_match.view_name == 'core:user_management' or request.resolver_match.view_name == 'core:user_create' or request.resolver_match.view_name == 'core:user_detail' or request.resolver_match.view_name == 'core:user_edit' or request.resolver_match.view_name == 'core:user_delete' or request.resolver_match.view_name == 'core:user_toggle_status' or request.resolver_match.view_name == 'core:user_reset_password' %}bg-primary-100 text-primary-700{% else %}text-gray-600 hover:bg-gray-100 hover:text-gray-900{% endif %}">
-        <i class="fas fa-users-gear mr-2"></i>Users
-      </a>
-      {% endif %}
-    </div>
-  </div>
-</div>
+{% load app_subnav %}
+{% if request.user.role == 'admin' %}
+{% core_admin_subnav %}
+{% endif %}

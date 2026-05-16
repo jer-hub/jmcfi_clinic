@@ -3,172 +3,234 @@
 {% block title %}Schedule Appointment - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-12">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% include 'appointments/_subnav.html' %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  {% include 'appointments/_subnav.html' %}
 
-        <div class="bg-white rounded-lg shadow-lg">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-2xl font-bold text-gray-900">Schedule Appointment</h2>
-                <p class="mt-1 text-sm text-gray-600">Book an appointment with our medical staff</p>
-            </div>
+  {% include "components/page_header.html" with title="Schedule Appointment" subtitle="Book an appointment with our medical staff" icon="fa-calendar-plus" %}
 
-            <form method="POST" class="p-6 space-y-6"
-                  x-data="appointmentForm()"
-                  @submit.prevent
-                  hx-post=""
-                  hx-target="this"
-                  hx-swap="outerHTML"
-                  hx-trigger="submit"
-                  @htmx:before-request="if(!validate()) $event.preventDefault()">
-                {% csrf_token %}
-                
-                <!-- Appointment Type -->
-                <div>
-                    <label for="appointment_type" class="block text-sm font-medium text-gray-700">Appointment Type</label>
-                    <select id="appointment_type" name="appointment_type" required x-model="selectedType" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Select type</option>
-                        {% for default in active_defaults %}
-                            <option value="{{ default.appointment_type }}">{{ default.get_appointment_type_display }}</option>
-                        {% empty %}
-                            <option value="" disabled>No appointment types available</option>
-                        {% endfor %}
-                    </select>
-                    <p class="mt-1 text-xs text-gray-500">The available doctors will update based on your appointment type</p>
-                    {% if not active_defaults %}
-                    <p class="mt-1 text-xs text-red-500">No appointment types are currently configured. Please contact the clinic admin.</p>
-                    {% endif %}
-                </div>
+  <div class="mb-6">{% include "partials/messages.html" %}</div>
 
-                <!-- Doctor Selection -->
-                <div>
-                    <label for="doctor" class="block text-sm font-medium text-gray-700">
-                        Select Doctor
-                    </label>
-                    <select id="doctor" name="doctor" required x-model="selectedDoctor"
-                        :disabled="!selectedType"
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
-                        <option value="">Choose a doctor</option>
-                        <template x-for="doc in filteredDoctors" :key="doc.id">
-                            <option :value="doc.id" x-text="doc.name"></option>
-                        </template>
-                    </select>
-                    <p x-show="!selectedType" class="mt-1.5 flex items-center gap-1.5 text-xs text-amber-600">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                        </svg>
-                        Please select an appointment type first.
-                    </p>
-                    <p x-show="selectedType && filteredDoctors.length === 0" class="mt-1 text-xs text-red-500">No doctors are currently assigned to this appointment type. Please contact the clinic.</p>
-                </div>
+  <form method="post"
+        class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden"
+        x-data="appointmentForm()"
+        @submit="handleSubmit($event)">
+    {% csrf_token %}
 
-                <!-- Date and Time -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label for="date" class="block text-sm font-medium text-gray-700">Preferred Date</label>
-                        <input type="date" id="date" name="date" required x-model="selectedDate" :min="minDate" :max="maxDate" @change="validateWeekday($event)"
-                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
-                        <p class="mt-1 text-xs text-gray-500">Select a date from today onwards</p>
-                    </div>
-                    <div>
-                        <label for="time" class="block text-sm font-medium text-gray-700">Preferred Time</label>
-                        <select id="time" name="time" required x-model="selectedTime" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
-                            <option value="">Select time</option>
-                            <optgroup label="Morning">
-                                <option value="09:00">9:00 AM</option>
-                                <option value="09:30">9:30 AM</option>
-                                <option value="10:00">10:00 AM</option>
-                                <option value="10:30">10:30 AM</option>
-                                <option value="11:00">11:00 AM</option>
-                                <option value="11:30">11:30 AM</option>
-                            </optgroup>
-                            <optgroup label="Afternoon">
-                                <option value="14:00">2:00 PM</option>
-                                <option value="14:30">2:30 PM</option>
-                                <option value="15:00">3:00 PM</option>
-                                <option value="15:30">3:30 PM</option>
-                                <option value="16:00">4:00 PM</option>
-                                <option value="16:30">4:30 PM</option>
-                            </optgroup>
-                        </select>
-                        <p class="mt-1 text-xs text-gray-500">Clinic hours: 9:00 AM - 5:00 PM</p>
-                    </div>
-                </div>
-
-                <!-- Reason -->
-                <div>
-                    <label for="reason" class="block text-sm font-medium text-gray-700">Reason for Visit</label>
-                    <textarea id="reason" name="reason" rows="4" required x-model.trim="reason" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500" placeholder="Please describe your symptoms or reason for the appointment..."></textarea>
-                </div>
-
-                <!-- Submit Button -->
-                <div class="flex justify-end space-x-3">
-                    <a href="{% url 'core:dashboard' %}" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                        Cancel
-                    </a>
-                    <button type="submit" id="submit-btn" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                        Schedule Appointment
-                    </button>
-                </div>
-            </form>
-        </div>
-        
-        <!-- Appointment Guidelines -->
-        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 class="text-sm font-medium text-blue-800 mb-2">Appointment Guidelines:</h3>
-            <ul class="text-sm text-blue-700 space-y-1">
-                <li>• Please arrive 10 minutes before your scheduled time</li>
-                <li>• Bring your student ID and any relevant medical documents</li>
-                <li>• If you need to cancel, please do so at least 24 hours in advance</li>
-                <li>• Emergency cases will be prioritized regardless of appointment time</li>
-            </ul>
-        </div>
+    {# ── Appointment type & doctor ── #}
+    <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary-100 text-primary-600">
+          <i class="fas fa-stethoscope text-sm"></i>
+        </span>
+        <h2 class="text-sm font-semibold text-gray-900">Visit details</h2>
+      </div>
+      <p class="mt-1 text-xs text-gray-500 pl-10">Choose the type of visit and who you would like to see.</p>
     </div>
-</div>
+    <div class="p-5 sm:p-6 space-y-5">
+      <div>
+        <label for="appointment_type" class="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">Appointment type</label>
+        <select id="appointment_type" name="appointment_type" required
+                x-model="selectedType"
+                @change="selectedDoctor = ''"
+                class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
+          <option value="">Select a type…</option>
+          {% for default in active_defaults %}
+            <option value="{{ default.appointment_type }}" {% if form_data.appointment_type == default.appointment_type %}selected{% endif %}>
+              {{ default.get_appointment_type_display }}
+            </option>
+          {% empty %}
+            <option value="" disabled>No appointment types available</option>
+          {% endfor %}
+        </select>
+        {% if not active_defaults %}
+          <p class="mt-2 text-xs text-danger-600">No appointment types are currently configured. Please contact the clinic admin.</p>
+        {% endif %}
+        <p x-show="errors.appointment_type" x-text="errors.appointment_type" class="mt-1.5 text-sm text-danger-600" x-cloak></p>
+      </div>
 
-<script>
-    function appointmentForm() {
-        return {
-            selectedType: '',
-            selectedDoctor: '',
-            selectedDate: '',
-            selectedTime: '',
-            reason: '',
-            typeDoctorMap: {{ type_doctor_map|safe }},
-            doctors: [
-                {% for doctor in doctors %}
-                {id: '{{ doctor.id }}', name: 'Dr. {{ doctor.get_full_name }}{% if doctor.staff_profile.specialization %} - {{ doctor.staff_profile.specialization }}{% endif %}{% if doctor.staff_profile.department %} ({{ doctor.staff_profile.department }}){% endif %}'},
-                {% endfor %}
-            ],
-            get minDate() {
-                const t = new Date(); return t.toISOString().split('T')[0];
-            },
-            get maxDate() {
-                const t = new Date(); t.setMonth(t.getMonth() + 3); return t.toISOString().split('T')[0];
-            },
-            get filteredDoctors() {
-                if (!this.selectedType) return [];
-                const allowed = this.typeDoctorMap[this.selectedType];
-                if (!allowed || allowed.length === 0) return this.doctors;
-                return this.doctors.filter(d => allowed.includes(parseInt(d.id)));
-            },
-            validateWeekday(e) {
-                if (!this.selectedDate) return;
-                const d = new Date(this.selectedDate + 'T12:00:00');
-                if (d.getDay() === 0 || d.getDay() === 6) {
-                    alert('Please select a weekday. The clinic is closed on weekends.');
-                    this.selectedDate = '';
-                }
-            },
-            validate() {
-                if (!this.selectedType) { alert('Please select an appointment type.'); return false; }
-                if (!this.selectedDoctor) { alert('Please select a doctor.'); return false; }
-                if (!this.selectedDate) { alert('Please select a date.'); return false; }
-                if (!this.selectedTime) { alert('Please select a time.'); return false; }
-                if (!this.reason) { alert('Please provide a reason for your visit.'); return false; }
-                return true;
-            }
-        };
-    }
-</script>
+      <div>
+        <label for="doctor" class="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">Doctor</label>
+        <select id="doctor" name="doctor" required
+                x-model="selectedDoctor"
+                :disabled="!selectedType"
+                class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+          <option value="">Select a doctor…</option>
+          <template x-for="doc in filteredDoctors" :key="doc.id">
+            <option :value="doc.id" x-text="doc.name" :selected="String(doc.id) === String(selectedDoctor)"></option>
+          </template>
+        </select>
+        <p x-show="!selectedType" class="mt-2 flex items-center gap-1.5 text-xs text-warning-700">
+          <i class="fas fa-circle-info flex-shrink-0"></i>
+          Select an appointment type first.
+        </p>
+        <p x-show="selectedType && filteredDoctors.length === 0" class="mt-2 text-xs text-danger-600">
+          No doctors are assigned to this appointment type. Please contact the clinic.
+        </p>
+        <p x-show="errors.doctor" x-text="errors.doctor" class="mt-1.5 text-sm text-danger-600" x-cloak></p>
+      </div>
+    </div>
+
+    {# ── Date & time ── #}
+    <div class="px-5 py-4 border-t border-b border-gray-100 bg-gray-50/60">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary-100 text-primary-600">
+          <i class="fas fa-calendar-day text-sm"></i>
+        </span>
+        <h2 class="text-sm font-semibold text-gray-900">When</h2>
+      </div>
+      <p class="mt-1 text-xs text-gray-500 pl-10">Weekdays only, within clinic hours.</p>
+    </div>
+    <div class="p-5 sm:p-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label for="date" class="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">Preferred date</label>
+          <input type="date" id="date" name="date" required
+                 x-model="selectedDate"
+                 :min="minDate" :max="maxDate"
+                 @change="validateWeekday()"
+                 class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
+          <p class="mt-1.5 text-xs text-gray-500">Up to 3 months ahead</p>
+          <p x-show="errors.date" x-text="errors.date" class="mt-1.5 text-sm text-danger-600" x-cloak></p>
+        </div>
+        <div>
+          <label for="time" class="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">Preferred time</label>
+          <select id="time" name="time" required x-model="selectedTime"
+                  class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
+            <option value="">Select a time…</option>
+            <optgroup label="Morning">
+              <option value="09:00">9:00 AM</option>
+              <option value="09:30">9:30 AM</option>
+              <option value="10:00">10:00 AM</option>
+              <option value="10:30">10:30 AM</option>
+              <option value="11:00">11:00 AM</option>
+              <option value="11:30">11:30 AM</option>
+            </optgroup>
+            <optgroup label="Afternoon">
+              <option value="14:00">2:00 PM</option>
+              <option value="14:30">2:30 PM</option>
+              <option value="15:00">3:00 PM</option>
+              <option value="15:30">3:30 PM</option>
+              <option value="16:00">4:00 PM</option>
+              <option value="16:30">4:30 PM</option>
+            </optgroup>
+          </select>
+          <p class="mt-1.5 text-xs text-gray-500">Clinic hours: 9:00 AM – 5:00 PM</p>
+          <p x-show="errors.time" x-text="errors.time" class="mt-1.5 text-sm text-danger-600" x-cloak></p>
+        </div>
+      </div>
+    </div>
+
+    {# ── Reason ── #}
+    <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-primary-100 text-primary-600">
+          <i class="fas fa-notes-medical text-sm"></i>
+        </span>
+        <h2 class="text-sm font-semibold text-gray-900">Reason for visit</h2>
+      </div>
+    </div>
+    <div class="p-5 sm:p-6">
+      <label for="reason" class="sr-only">Reason for visit</label>
+      <textarea id="reason" name="reason" rows="4" required
+                x-model="reason"
+                class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                placeholder="Describe your symptoms or what you need help with…"></textarea>
+      <p x-show="errors.reason" x-text="errors.reason" class="mt-1.5 text-sm text-danger-600" x-cloak></p>
+    </div>
+
+    {# ── Actions ── #}
+    <div class="px-5 sm:px-6 py-4 bg-gray-50/80 border-t border-gray-100 flex flex-wrap items-center justify-end gap-3">
+      <a href="{% url 'appointments:appointment_list' %}"
+         class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium rounded-lg transition-colors">
+        <i class="fas fa-arrow-left text-xs"></i>
+        Cancel
+      </a>
+      <button type="submit"
+              :disabled="submitting"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+        <template x-if="submitting">
+          <i class="fas fa-spinner fa-spin"></i>
+        </template>
+        <template x-if="!submitting">
+          <i class="fas fa-calendar-plus"></i>
+        </template>
+        <span x-text="submitting ? 'Scheduling…' : 'Schedule appointment'"></span>
+      </button>
+    </div>
+  </form>
+
+  <aside class="mt-6 rounded-card border border-info-200 bg-info-50 p-5">
+    <h3 class="text-sm font-semibold text-info-900 flex items-center gap-2">
+      <i class="fas fa-circle-info text-info-600"></i>
+      Appointment guidelines
+    </h3>
+    <ul class="mt-3 text-sm text-info-800 space-y-1.5 ml-5 list-disc marker:text-info-400">
+      <li>Arrive about 10 minutes before your scheduled time.</li>
+      <li>Bring your student ID and any relevant medical documents.</li>
+      <li>Cancel at least 24 hours in advance when possible.</li>
+      <li>Emergency cases may be prioritized regardless of booking time.</li>
+    </ul>
+  </aside>
+</div>
 {% endblock content %}
+
+{% block scripts %}
+<script>
+function appointmentForm() {
+  const fd = {{ form_data_json|safe }};
+  return {
+    selectedType: fd.appointment_type || '',
+    selectedDoctor: fd.doctor ? String(fd.doctor) : '',
+    selectedDate: fd.date || '',
+    selectedTime: fd.time || '',
+    reason: fd.reason || '',
+    submitting: false,
+    errors: {},
+    typeDoctorMap: {{ type_doctor_map|safe }},
+    doctors: {{ doctors_json|safe }},
+    get minDate() {
+      return new Date().toISOString().split('T')[0];
+    },
+    get maxDate() {
+      const t = new Date();
+      t.setMonth(t.getMonth() + 3);
+      return t.toISOString().split('T')[0];
+    },
+    get filteredDoctors() {
+      if (!this.selectedType) return [];
+      const allowed = this.typeDoctorMap[this.selectedType];
+      if (!allowed || allowed.length === 0) return this.doctors;
+      return this.doctors.filter(function (d) {
+        return allowed.indexOf(parseInt(d.id, 10)) !== -1;
+      });
+    },
+    validateWeekday() {
+      if (!this.selectedDate) return;
+      const d = new Date(this.selectedDate + 'T12:00:00');
+      if (d.getDay() === 0 || d.getDay() === 6) {
+        this.errors.date = 'The clinic is closed on weekends. Please choose a weekday.';
+        this.selectedDate = '';
+      } else {
+        delete this.errors.date;
+      }
+    },
+    validate() {
+      this.errors = {};
+      if (!this.selectedType) this.errors.appointment_type = 'Please select an appointment type.';
+      if (!this.selectedDoctor) this.errors.doctor = 'Please select a doctor.';
+      if (!this.selectedDate) this.errors.date = 'Please select a date.';
+      if (!this.selectedTime) this.errors.time = 'Please select a time.';
+      if (!this.reason || !this.reason.trim()) this.errors.reason = 'Please describe the reason for your visit.';
+      return Object.keys(this.errors).length === 0;
+    },
+    handleSubmit(e) {
+      if (!this.validate()) {
+        e.preventDefault();
+        return;
+      }
+      this.submitting = true;
+    },
+  };
+}
+</script>
+{% endblock scripts %}

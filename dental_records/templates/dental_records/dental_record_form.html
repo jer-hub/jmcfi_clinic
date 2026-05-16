@@ -4,36 +4,14 @@
 {% block title %}{{ title }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto">
-        {% include 'dental_records/_subnav.html' %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+     x-data="dentalRecordForm()"
+     x-init="init()">
+    {% include 'dental_records/_subnav.html' %}
 
-        <!-- Header -->
-        <div class="mb-8">
-            <div class="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                        <span class="text-primary-600"><i class="fas fa-tooth"></i></span>
-                        {{ title }}
-                    </h1>
-                    <p class="mt-2 text-gray-600">Complete the form below to create a new dental record</p>
-                </div>
-                {% if appointment %}
-                <a href="{% url 'appointments:appointment_detail' appointment.id %}"
-                   class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium">
-                    <i class="fas fa-arrow-left"></i> Back to Appointment
-                </a>
-                {% else %}
-                <a href="{% url 'dental_records:dental_record_list' %}"
-                   class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium">
-                    <i class="fas fa-arrow-left"></i> Back to List
-                </a>
-                {% endif %}
-            </div>
-        </div>
+    {% include "components/page_header.html" with title=title subtitle="Complete the form below to create a dental record" icon="fa-tooth" %}
 
         {% if appointment %}
-        <!-- Appointment Info Banner -->
         <div class="mb-6 rounded-xl border border-gray-200 overflow-hidden shadow-sm">
             <div class="flex items-center gap-2 px-5 py-2.5 bg-gray-700">
                 <i class="fas fa-calendar-check text-white text-sm"></i>
@@ -60,17 +38,14 @@
         </div>
         {% endif %}
 
-        <!-- Form Card -->
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-            <div class="p-8">
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="p-6 sm:p-8">
 
         {% if form.non_field_errors %}
-        <div class="mb-6 bg-red-50 border-l-4 border-red-400 rounded-lg p-4 shadow-sm">
+      <div class="mb-6 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4">
             <div class="flex items-start gap-3">
-                <svg class="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                </svg>
-                <ul class="text-sm text-red-800 list-disc list-inside space-y-1">
+          <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+          <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
                     {% for error in form.non_field_errors %}
                         <li>{{ error }}</li>
                     {% endfor %}
@@ -82,250 +57,295 @@
         <form method="post" novalidate>
             {% csrf_token %}
 
-            <!-- Patient Search Section -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                    <i class="fas fa-search text-primary-600"></i> Patient Search &amp; Selection
-                </h2>
-                <div class="bg-gradient-to-r from-primary-50 to-primary-100 p-5 rounded-xl border border-primary-200">
+        {# ── Patient Search & Selection ── #}
+        <section class="mb-8">
+          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+            <i class="fas fa-search text-primary-600 text-sm"></i>
+            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Patient Search &amp; Selection</h2>
+          </div>
 
-                            <!-- Patient Search with Autocomplete -->
-                            <div class="mb-6">
+          <div class="relative">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                                    <i class="fas fa-search mr-1"></i> Search & Select Patient
-                                    <span class="ml-2 text-xs text-gray-500 font-normal">(Type at least 2 characters)</span>
+              <i class="fas fa-search mr-1 text-gray-400"></i> Search &amp; Select Patient
+              <span class="ml-1 text-xs text-gray-400 font-normal">(Type at least 2 characters)</span>
                                 </label>
                                 <div class="relative">
                                     <input type="text" 
-                                           id="patient-search-input" 
-                                           placeholder="Start typing patient name, email, or ID..."
-                                         class="w-full px-4 py-3 pr-12 border-2 rounded-lg transition-all text-base bg-white {% if form.patient.errors %}border-red-400 focus:ring-2 focus:ring-red-200 focus:border-red-500{% else %}border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500{% endif %}"
-                                           autocomplete="off"
-                                           aria-label="Search for patient"
-                                           aria-describedby="search-instructions">
-                                    <div id="search-spinner" class="hidden absolute right-4 top-4 pointer-events-none">
+                     x-model="query"
+                     @input.debounce.300ms="searchPatients()"
+                     @keydown.arrow-down.prevent="highlightedIdx = 0; $refs.resultsList?.querySelector('[data-idx=\'0\']')?.focus()"
+                     @keydown.escape="showResults = false"
+                     :disabled="isPreselected && selected"
+                     :class="isPreselected && selected ? 'opacity-50 cursor-not-allowed' : ''"
+                     :placeholder="isPreselected && selected ? 'Patient preselected from appointment' : 'Start typing patient name, email, or ID...'"
+                     class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 {% if form.patient.errors %}border-danger-400 focus:ring-danger-200 focus:border-danger-500{% endif %}"
+                     autocomplete="off">
+              <div x-show="loading" class="absolute right-4 top-3.5 pointer-events-none">
                                         <i class="fas fa-spinner fa-spin text-primary-600"></i>
                                     </div>
-                                    
-                                    <!-- Search Instructions -->
-                                    <p id="search-instructions" class="mt-2 text-xs text-gray-500">
+            </div>
+            <p class="mt-1.5 text-xs text-gray-400">
                                         <i class="fas fa-info-circle mr-1"></i>
-                                        Search by name, email, or ID. Click on a result to auto-fill the form with patient information.
-                                    </p>
-                                    
-                                    <!-- Search Results Dropdown -->
-                                    <div id="patient-search-results" 
-                                         class="hidden absolute z-[9999] left-0 right-0 mt-1 bg-white rounded-lg shadow-2xl border-2 border-primary-300 max-h-80 overflow-y-auto"
-                                         role="listbox"
-                                         aria-label="Patient search results">
+              Search by name, email, or ID. Click a result to auto-fill the form.
+            </p>
+            {% include 'partials/field_errors.html' with errors=form.patient.errors %}
+
+            {# Search Results Dropdown #}
+            <div x-show="showResults"
+                 x-transition:enter="transition ease-out duration-150"
+                 x-transition:enter-start="opacity-0 -translate-y-1"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-100"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 @click.outside="showResults = false"
+                 x-cloak
+                 x-ref="resultsList"
+                 class="absolute z-50 left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-72 overflow-y-auto">
+
+              <template x-if="results.length === 0 && !loading">
+                <div class="p-6 text-center">
+                  <i class="fas fa-user-slash text-3xl text-gray-300 mb-2"></i>
+                  <p class="text-sm font-medium text-gray-600">No patients found</p>
+                  <p class="text-xs text-gray-400 mt-0.5">Try a different search term</p>
+                </div>
+              </template>
+
+              <template x-if="results.length > 0">
+                <div>
+                  <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 sticky top-0">
+                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <i class="fas fa-users mr-1"></i>
+                      <span x-text="results.length"></span> Patient<span x-show="results.length !== 1">s</span> Found
+                    </p>
+                  </div>
+                  <template x-for="(patient, idx) in results" :key="patient.id">
+                    <button type="button"
+                            :data-idx="idx"
+                            @click="selectPatient(patient)"
+                            @keydown.arrow-down.prevent="$el.nextElementSibling?.focus()"
+                            @keydown.arrow-up.prevent="$el.previousElementSibling?.focus() || $refs.resultsList?.previousElementSibling?.querySelector('input')?.focus()"
+                            @keydown.escape.prevent="showResults = false"
+                            class="w-full text-left p-3 hover:bg-primary-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors focus:outline-none focus:bg-primary-50 flex items-center gap-3">
+                      <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <i class="fas fa-user text-primary-600 text-sm"></i>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900" x-text="patient.text"></p>
+                        <p class="text-xs text-gray-500 truncate">
+                          <i class="fas fa-envelope mr-0.5"></i> <span x-text="patient.email"></span>
+                        </p>
+                      </div>
+                      <span x-show="patient.role"
+                            class="px-2 py-0.5 text-xs font-medium rounded-full bg-primary-50 text-primary-700"
+                            x-text="patient.role"></span>
+                    </button>
+                  </template>
+                </div>
+              </template>
                                     </div>
-                                </div>
-                                {% include 'partials/field_errors.html' with errors=form.patient.errors %}
                             </div>
                                 
-                            <!-- Selected Patient Display -->
-                            <div id="selected-patient-display" class="{% if not preselected_patient %}hidden{% endif %} mb-6">
-                                <div class="p-5 bg-white border-2 border-primary-300 rounded-lg shadow-sm">
-                                    <div class="flex items-start justify-between">
-                                        <div class="flex items-start gap-3 flex-1">
-                                            <div class="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-700 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
-                                                <i class="fas fa-user-check text-white text-xl"></i>
+          {# Selected Patient Display #}
+          <div x-show="selected" x-cloak x-transition class="mt-4">
+            <div class="p-4 bg-success-50 border border-success-200 rounded-lg">
+              <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-10 h-10 bg-success-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-user-check text-success-600"></i>
                                             </div>
-                                            <div class="flex-1">
-                                                <p class="text-xs text-primary-600 font-semibold uppercase tracking-wide mb-1">
-                                                    <i class="fas fa-check-circle mr-1"></i>Selected Patient
-                                                </p>
-                                                <p class="text-xl font-bold text-gray-900" id="selected-patient-name">
-                                                    {% if preselected_patient %}{{ preselected_patient.get_full_name }}{% endif %}
-                                                </p>
-                                                <p class="text-sm text-gray-600 mt-1" id="selected-patient-info"></p>
-                                                <p class="text-xs text-green-600 mt-2">
-                                                    <i class="fas fa-magic mr-1"></i>Form fields will be auto-filled below
-                                                </p>
+                  <div class="min-w-0">
+                    <p class="text-xs font-semibold text-success-700 uppercase tracking-wide">
+                      <i class="fas fa-check-circle mr-0.5"></i> Selected Patient
+                    </p>
+                    <p class="text-sm font-bold text-gray-900 truncate" x-text="selected?.name || ''"></p>
+                    <p class="text-xs text-gray-500 truncate" x-text="selected?.email || ''"></p>
                                             </div>
                                         </div>
                                         <button type="button" 
-                                                id="clear-patient-selection" 
-                                                class="px-4 py-2 bg-white border-2 border-red-300 text-red-700 rounded-lg hover:bg-red-50 hover:border-red-400 transition-all shadow-sm"
-                                                title="Clear selection and choose a different patient">
-                                            <i class="fas fa-times mr-1"></i> Change Patient
+                        @click="clearSelection()"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0">
+                  <i class="fas fa-xmark"></i> Change
                                         </button>
                                     </div>
                                 </div>
                             </div>
                             
-                            <!-- Hidden actual patient field -->
-                            <div class="hidden">
-                                {{ form.patient }}
-                            </div>
-                    </div><!-- end patient search inner -->
-            </div><!-- end patient search section -->
+          {# Hidden patient field #}
+          <div class="hidden">{{ form.patient }}</div>
+        </section>
 
-            <!-- Patient Information Section -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                    <i class="fas fa-user-circle text-primary-600"></i> Patient Information
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {# ── Patient Information ── #}
+        <section class="mb-8">
+          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+            <i class="fas fa-user-circle text-primary-600 text-sm"></i>
+            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Patient Information</h2>
+                            </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.student_id.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.student_id.label }}</label>
                         <input type="text" id="student-id-display" readonly
                                class="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 font-semibold text-sm"
                                value="{% if preselected_patient %}{% if preselected_patient.student_profile %}{{ preselected_patient.student_profile.student_id }}{% elif preselected_patient.staff_profile %}{{ preselected_patient.staff_profile.staff_id }}{% endif %}{% endif %}">
                         <div class="hidden">{{ form.student_id }}</div>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.middle_name.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.middle_name.label }}</label>
                         {{ form.middle_name }}
                         {% include 'partials/field_errors.html' with errors=form.middle_name.errors %}
                     </div>
                 </div>
-            </div>
+        </section>
 
-            <!-- Demographics Section -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                    <i class="fas fa-id-card text-primary-600"></i> Demographics
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {# ── Demographics ── #}
+        <section class="mb-8">
+          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+            <i class="fas fa-id-card text-primary-600 text-sm"></i>
+            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Demographics</h2>
+            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.age.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.age.label }}</label>
                         {{ form.age }}
                         {% include 'partials/field_errors.html' with errors=form.age.errors %}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.gender.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.gender.label }}</label>
                         {{ form.gender }}
                         {% include 'partials/field_errors.html' with errors=form.gender.errors %}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.civil_status.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.civil_status.label }}</label>
                         {{ form.civil_status }}
                         {% include 'partials/field_errors.html' with errors=form.civil_status.errors %}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.date_of_birth.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.date_of_birth.label }}</label>
                         {{ form.date_of_birth }}
                         {% include 'partials/field_errors.html' with errors=form.date_of_birth.errors %}
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.place_of_birth.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.place_of_birth.label }}</label>
                         {{ form.place_of_birth }}
                         {% include 'partials/field_errors.html' with errors=form.place_of_birth.errors %}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.email.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.email.label }}</label>
                         {{ form.email }}
                         {% include 'partials/field_errors.html' with errors=form.email.errors %}
                     </div>
                 </div>
-            </div>
+        </section>
 
-            <!-- Contact Information Section -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                    <i class="fas fa-phone text-primary-600"></i> Contact Information
-                </h2>
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.address.label }}</label>
+        {# ── Contact Information ── #}
+        <section class="mb-8">
+          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+            <i class="fas fa-phone text-primary-600 text-sm"></i>
+            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Contact Information</h2>
+            </div>
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.address.label }}</label>
                     {{ form.address }}
                     {% include 'partials/field_errors.html' with errors=form.address.errors %}
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div data-phone-wrapper>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.contact_number.label }}</label>
-                        <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500">
-                            <span class="flex items-center px-3 bg-gray-100 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.contact_number.label }}</label>
+              <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
+                <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
                             {{ form.contact_number }}
                         </div>
                         <div class="mt-1 flex items-center justify-between">
-                            <p class="text-xs text-gray-500">e.g. 917 123 4567</p>
+                <p class="text-xs text-gray-400">e.g. 917 123 4567</p>
                             <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span>
                         </div>
                         {% include 'partials/field_errors.html' with errors=form.contact_number.errors %}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.telephone_number.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.telephone_number.label }}</label>
                         {{ form.telephone_number }}
                         {% include 'partials/field_errors.html' with errors=form.telephone_number.errors %}
                     </div>
                 </div>
-            </div>
+        </section>
 
-            <!-- Institutional Information Section -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                    <i class="fas fa-building text-primary-600"></i> Institutional Information
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {# ── Institutional Information ── #}
+        <section class="mb-8">
+          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+            <i class="fas fa-building text-primary-600 text-sm"></i>
+            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Institutional Information</h2>
+            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.designation.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.designation.label }}</label>
                         {{ form.designation }}
                         {% include 'partials/field_errors.html' with errors=form.designation.errors %}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.department_college_office.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.department_college_office.label }}</label>
                         {{ form.department_college_office }}
                         {% include 'partials/field_errors.html' with errors=form.department_college_office.errors %}
                     </div>
                 </div>
-            </div>
+        </section>
 
-            <!-- Emergency Contact Section -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                    <i class="fas fa-user-shield text-primary-600"></i> Emergency Contact
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {# ── Emergency Contact ── #}
+        <section class="mb-8">
+          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+            <i class="fas fa-user-shield text-primary-600 text-sm"></i>
+            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Emergency Contact</h2>
+            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.guardian_name.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.guardian_name.label }}</label>
                         {{ form.guardian_name }}
                         {% include 'partials/field_errors.html' with errors=form.guardian_name.errors %}
                     </div>
                     <div data-phone-wrapper>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.guardian_contact.label }}</label>
-                        <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500 focus-within:border-primary-500">
-                            <span class="flex items-center px-3 bg-gray-100 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.guardian_contact.label }}</label>
+              <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
+                <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
                             {{ form.guardian_contact }}
                         </div>
                         <div class="mt-1 flex items-center justify-between">
-                            <p class="text-xs text-gray-500">e.g. 917 123 4567</p>
+                <p class="text-xs text-gray-400">e.g. 917 123 4567</p>
                             <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span>
                         </div>
                         {% include 'partials/field_errors.html' with errors=form.guardian_contact.errors %}
                     </div>
                 </div>
-            </div>
+        </section>
 
-            <!-- Examination Details Section -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                    <i class="fas fa-stethoscope text-primary-600"></i> Examination Details
-                </h2>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {# ── Examination Details ── #}
+        <section class="mb-8">
+          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+            <i class="fas fa-stethoscope text-primary-600 text-sm"></i>
+            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Examination Details</h2>
+            </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.date_of_examination.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.date_of_examination.label }}</label>
                         {{ form.date_of_examination }}
                         {% include 'partials/field_errors.html' with errors=form.date_of_examination.errors %}
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.examined_by.label }}</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.examined_by.label }}</label>
                         <div class="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-sm text-gray-700 flex items-center gap-2">
                             <i class="fas fa-user-md text-primary-500"></i>
                             <span class="font-medium">{{ request.user.get_full_name }}</span>
-                            <span class="text-xs text-gray-400 ml-1">({{ request.user.email }})</span>
+                <span class="text-xs text-gray-400">({{ request.user.email }})</span>
                         </div>
                         {{ form.examined_by.as_hidden }}
                     </div>
                 </div>
-            </div>
+        </section>
 
-            <!-- What Happens Next Banner -->
-            <div class="mb-8 bg-blue-50 border border-blue-200 rounded-xl p-5 flex gap-3">
-                <i class="fas fa-info-circle text-blue-500 mt-0.5 flex-shrink-0"></i>
-                <div class="text-sm text-blue-800">
+        {# ── What Happens Next ── #}
+        <div class="mb-8 bg-info-50 border border-info-200 rounded-xl p-4 flex gap-3">
+          <i class="fas fa-info-circle text-info-500 mt-0.5 flex-shrink-0"></i>
+          <div class="text-sm text-info-800">
                     <p class="font-semibold mb-1">What happens next?</p>
                     <p>After creating the record you will be taken to the <strong>Edit page</strong> where you can fill in:
                     Extraoral &amp; Intraoral Examination, Vital Signs, Health Questionnaire, Systems Review, Dental History,
@@ -333,15 +353,15 @@
                 </div>
             </div>
 
-            <!-- Consent Section -->
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b-2 border-primary-200 flex items-center gap-2">
-                    <i class="fas fa-file-signature text-primary-600"></i> Patient Consent
-                </h2>
+        {# ── Patient Consent ── #}
+        <section class="mb-8">
+          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
+            <i class="fas fa-file-signature text-primary-600 text-sm"></i>
+            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Patient Consent</h2>
+          </div>
 
-                <!-- Data Accuracy Consent -->
-                <div class="mb-6 p-5 bg-gray-50 border border-gray-200 rounded-xl">
-                    <p class="text-sm text-gray-700 mb-4">
+          <div class="mb-5 p-5 bg-gray-50 border border-gray-200 rounded-lg">
+            <p class="text-sm text-gray-600 italic mb-4">
                         "To my best knowledge, all the preceding answers are true and correct. If ever I have any change in my health or my medications, I will inform my dentist at my next appointment."
                     </p>
                     <div class="flex items-start gap-3">
@@ -360,9 +380,8 @@
                     </div>
                 </div>
 
-                <!-- Informed Consent -->
-                <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl">
-                    <p class="text-sm text-gray-700 mb-4">
+          <div class="p-5 bg-gray-50 border border-gray-200 rounded-lg">
+            <p class="text-sm text-gray-600 italic mb-4">
                         "I acknowledge that the information I provided is true and correct. I hereby authorize any dental procedures, intervention or management or treatment to be performed, which is deemed necessary to improve his/her/my dental health. I will not hold the dentist liable with unforeseen unusualties. I trust whatever dental intervention performed on me will serve my best interest. I will follow the verbal post-operative instructions by my dentist and recalls prescribed. I understand that I will be referred to another healthcare provider which is beyond the scope of my dentist. I was given the opportunity to ask and discussed procedures and interventions to be done in my oral cavity."
                     </p>
                     <div class="flex items-start gap-3">
@@ -380,634 +399,170 @@
                         {% include 'partials/field_errors.html' with errors=form.informed_consent_date.errors %}
                     </div>
                 </div>
-            </div>
+        </section>
 
-            <!-- Form Actions -->
+        {# ── Form Actions ── #}
             <div class="flex items-center justify-between pt-6 border-t border-gray-200">
                 {% if appointment %}
                 <a href="{% url 'appointments:appointment_detail' appointment.id %}"
-                   class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium">
-                    <i class="fas fa-arrow-left"></i><span>Back to Appointment</span>
+             class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+            <i class="fas fa-arrow-left text-xs"></i><span>Back to Appointment</span>
                 </a>
                 {% else %}
                 <a href="{% url 'dental_records:dental_record_list' %}"
-                   class="inline-flex items-center gap-2 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium">
-                    <i class="fas fa-arrow-left"></i><span>Back to List</span>
+             class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+            <i class="fas fa-arrow-left text-xs"></i><span>Back to List</span>
                 </a>
                 {% endif %}
                 <button type="submit"
-                        class="inline-flex items-center gap-2 px-8 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all duration-200 shadow-md hover:shadow-lg font-medium">
+                  class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
                     <i class="fas fa-save"></i><span>Create Dental Record</span>
                 </button>
             </div>
         </form>
-            </div><!-- closes p-8 -->
-        </div><!-- closes card -->
-    </div><!-- closes max-w-5xl -->
-</div><!-- closes min-h-screen -->
-
-<style>
-    /* Style for Django form fields */
-    input[type="text"],
-    input[type="email"],
-    input[type="number"],
-    input[type="date"],
-    input[type="tel"],
-    select,
-    textarea {
-        width: 100%;
-        padding: 0.625rem 1rem;
-        border: 1px solid #D1D5DB;
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        transition: all 0.2s;
-    }
-    
-    input[type="text"]:focus,
-    input[type="email"]:focus,
-    input[type="number"]:focus,
-    input[type="date"]:focus,
-    input[type="tel"]:focus,
-    select:focus,
-    textarea:focus {
-        outline: none;
-        border-color: #9333EA;
-        box-shadow: 0 0 0 3px rgba(147, 51, 234, 0.1);
-    }
-    
-    textarea {
-        min-height: 4rem;
-        resize: vertical;
-    }
-    
-    input[type="checkbox"] {
-        width: 1.25rem;
-        height: 1.25rem;
-        accent-color: #9333EA;
-    }
-
-    /* Phone prefix wrapper: strip inner input border/shadow */
-    [data-phone-wrapper] input[type="text"],
-    [data-phone-wrapper] input[type="tel"] {
-        border: none;
-        border-radius: 0;
-        box-shadow: none;
-    }
-    [data-phone-wrapper] input[type="text"]:focus,
-    [data-phone-wrapper] input[type="tel"]:focus {
-        border: none;
-        box-shadow: none;
-    }
-</style>
+    </div>
+  </div>
+</div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOMContentLoaded fired');
-    
-    const searchInput = document.getElementById('patient-search-input');
-    const resultsDiv = document.getElementById('patient-search-results');
-    const selectedDisplay = document.getElementById('selected-patient-display');
-    const selectedName = document.getElementById('selected-patient-name');
-    const selectedInfo = document.getElementById('selected-patient-info');
-    const clearBtn = document.getElementById('clear-patient-selection');
-    const patientSelect = document.getElementById('patient-select-field');
-    const searchSpinner = document.getElementById('search-spinner');
-    const isPreselected = {{ preselected_patient|yesno:"true,false" }};
+function dentalRecordForm() {
+  return {
+    query: '',
+    results: [],
+    selected: null,
+    showResults: false,
+    loading: false,
+    highlightedIdx: -1,
+    isPreselected: {{ preselected_patient|yesno:"true,false" }},
 
-    // Auto-focus first invalid field after failed submit
-    {% if form.errors %}
-    const errorFieldOrder = [
-        {% if form.patient.errors %}'patient-search-input',{% endif %}
-        {% if form.student_id.errors %}'id_student_id',{% endif %}
-        {% if form.middle_name.errors %}'id_middle_name',{% endif %}
-        {% if form.age.errors %}'id_age',{% endif %}
-        {% if form.gender.errors %}'id_gender',{% endif %}
-        {% if form.civil_status.errors %}'id_civil_status',{% endif %}
-        {% if form.date_of_birth.errors %}'id_date_of_birth',{% endif %}
-        {% if form.place_of_birth.errors %}'id_place_of_birth',{% endif %}
-        {% if form.email.errors %}'id_email',{% endif %}
-        {% if form.address.errors %}'id_address',{% endif %}
-        {% if form.contact_number.errors %}'id_contact_number',{% endif %}
-        {% if form.telephone_number.errors %}'id_telephone_number',{% endif %}
-        {% if form.designation.errors %}'id_designation',{% endif %}
-        {% if form.department_college_office.errors %}'id_department_college_office',{% endif %}
-        {% if form.guardian_name.errors %}'id_guardian_name',{% endif %}
-        {% if form.guardian_contact.errors %}'id_guardian_contact',{% endif %}
-        {% if form.date_of_examination.errors %}'id_date_of_examination',{% endif %}
-        {% if form.examined_by.errors %}'id_examined_by',{% endif %}
-        {% if form.consent_signed.errors %}'id_consent_signed',{% endif %}
-        {% if form.consent_date.errors %}'id_consent_date',{% endif %}
-        {% if form.informed_consent_signed.errors %}'id_informed_consent_signed',{% endif %}
-        {% if form.informed_consent_date.errors %}'id_informed_consent_date',{% endif %}
-    ];
-
-    const firstErrorFieldId = errorFieldOrder.find(Boolean);
-    if (firstErrorFieldId) {
-        const firstErrorField = document.getElementById(firstErrorFieldId);
-        if (firstErrorField) {
-            firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            setTimeout(() => firstErrorField.focus(), 250);
-        }
-    }
-    {% endif %}
-    
-    // Helper function to set field value (used by both preselected and search flows)
-    function setFieldValue(fieldId, value) {
-        const field = document.getElementById(fieldId);
-        if (field) {
-            field.value = value || '';
-            // For phone fields, fire an input event so phone-input.js reformats the value
-            if (field.dataset.phoneInput) {
-                field.dispatchEvent(new Event('input', { bubbles: true }));
-            }
-        }
-    }
-    
-    console.log('Elements found:', {
-        searchInput: !!searchInput,
-        resultsDiv: !!resultsDiv,
-        selectedDisplay: !!selectedDisplay,
-        patientSelect: !!patientSelect,
-        patientSelectId: patientSelect ? patientSelect.id : 'NOT FOUND'
-    });
-    
-    if (!patientSelect) {
-        console.error('ERROR: Patient select field not found! Looking for element with id="patient-select-field"');
-        console.log('Available form elements:', document.querySelectorAll('select[name="patient"]'));
-        console.log('All selects:', document.querySelectorAll('select'));
-    }
-    
-    // Handle preselected patient from appointment
+    init() {
     {% if preselected_patient %}
-    console.log('Preselected patient found, setting up display');
-    
-    // Disable search input since patient is preselected
-    searchInput.disabled = true;
-    searchInput.classList.add('opacity-50');
-    searchInput.placeholder = 'Patient preselected from appointment';
-    
-    // Show selected patient display
-    selectedDisplay.classList.remove('hidden');
-    
-    // Set patient select field value
-    patientSelect.value = '{{ preselected_patient.id }}';
-    
-    // Auto-fill all form fields
-    {% if preselected_patient.student_profile %}
-    {% with profile=preselected_patient.student_profile %}
-    setFieldValue('id_student_id', '{{ profile.student_id }}');
-    setFieldValue('id_middle_name', '{{ profile.middle_name }}');
-    setFieldValue('id_email', '{{ preselected_patient.email }}');
-    setFieldValue('id_age', '{{ profile.age }}');
-    setFieldValue('id_gender', '{{ profile.gender }}');
-    setFieldValue('id_civil_status', '{{ profile.civil_status }}');
-    setFieldValue('id_date_of_birth', '{{ profile.date_of_birth|date:"Y-m-d" }}');
-    setFieldValue('id_place_of_birth', '{{ profile.place_of_birth }}');
-    setFieldValue('id_address', '{{ profile.address }}');
-    setFieldValue('id_contact_number', '{{ profile.phone }}');
-    setFieldValue('id_telephone_number', '{{ profile.telephone_number }}');
-    setFieldValue('id_designation', 'student');
-    setFieldValue('id_department_college_office', '{{ profile.department }}');
-    setFieldValue('id_guardian_name', '{{ profile.emergency_contact }}');
-    setFieldValue('id_guardian_contact', '{{ profile.emergency_phone }}');
-    {% endwith %}
-    {% elif preselected_patient.staff_profile %}
-    {% with profile=preselected_patient.staff_profile %}
-    setFieldValue('id_student_id', '{{ profile.staff_id }}');
-    setFieldValue('id_middle_name', '{{ profile.middle_name }}');
-    setFieldValue('id_email', '{{ preselected_patient.email }}');
-    setFieldValue('id_age', '{{ profile.age }}');
-    setFieldValue('id_gender', '{{ profile.gender }}');
-    setFieldValue('id_civil_status', '{{ profile.civil_status }}');
-    setFieldValue('id_date_of_birth', '{{ profile.date_of_birth|date:"Y-m-d" }}');
-    setFieldValue('id_place_of_birth', '{{ profile.place_of_birth }}');
-    setFieldValue('id_address', '{{ profile.address }}');
-    setFieldValue('id_contact_number', '{{ profile.phone }}');
-    setFieldValue('id_telephone_number', '{{ profile.telephone_number }}');
-    setFieldValue('id_designation', 'employee');
-    setFieldValue('id_department_college_office', '{{ profile.department }}');
-    setFieldValue('id_guardian_name', '{{ profile.emergency_contact }}');
-    setFieldValue('id_guardian_contact', '{{ profile.emergency_phone }}');
-    {% endwith %}
+      this.selected = {
+        id: '{{ preselected_patient.id }}',
+        name: '{{ preselected_patient.get_full_name|escapejs }}',
+        email: '{{ preselected_patient.email|escapejs }}',
+        role: '{% if preselected_patient.role == "student" %}Student{% else %}Staff{% endif %}'
+      };
     {% endif %}
     
-    console.log('Preselected patient setup complete');
+      {% if form.errors %}
+      this.$nextTick(() => this.focusFirstError());
     {% endif %}
-    
-    let searchTimeout;
-    let currentPatients = [];
-    
-    // Search patients as user types
-    searchInput.addEventListener('input', function() {
-        const query = this.value.trim();
-        
-        console.log('Search query:', query);
-        clearTimeout(searchTimeout);
-        
-        if (query.length < 2) {
-            resultsDiv.classList.add('hidden');
-            searchSpinner.classList.add('hidden');
+    },
+
+    async searchPatients() {
+      if (this.query.length < 2) {
+        this.results = [];
+        this.showResults = false;
             return;
         }
-        
-        searchSpinner.classList.remove('hidden');
-        
-        searchTimeout = setTimeout(() => {
-            const searchUrl = `/dental-records/api/search-patients/?q=${encodeURIComponent(query)}`;
-            console.log('Fetching from:', searchUrl);
-            
-            fetch(searchUrl, {
-                credentials: 'same-origin',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Search results:', data);
-                    searchSpinner.classList.add('hidden');
-                    currentPatients = data.results || [];
-                    displaySearchResults(data.results || []);
-                })
-                .catch(error => {
-                    console.error('Search error:', error);
-                    searchSpinner.classList.add('hidden');
-                    resultsDiv.innerHTML = `
-                        <div class="p-4 text-center text-red-500">
-                            <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                            <p class="font-medium">Error loading results</p>
-                            <p class="text-sm mt-1">${error.message || 'An error occurred'}</p>
-                        </div>
-                    `;
-                    resultsDiv.classList.remove('hidden');
-                });
-        }, 300);
-    });
-    
-    // Display search results
-    function displaySearchResults(results) {
-        console.log('displaySearchResults called with:', results);
-        console.log('Results length:', results.length);
-        console.log('resultsDiv element:', resultsDiv);
-        
-        if (results.length === 0) {
-            console.log('No results, showing empty message');
-            resultsDiv.innerHTML = `
-                <div class="p-6 text-center text-gray-500">
-                    <i class="fas fa-user-slash text-4xl mb-3 text-gray-400"></i>
-                    <p class="font-semibold text-gray-700">No patients found</p>
-                    <p class="text-xs mt-1">Try a different search term</p>
-                </div>
-            `;
-            resultsDiv.classList.remove('hidden');
-            console.log('resultsDiv classList after showing empty:', resultsDiv.classList);
-            return;
-        }
-        
-        console.log('Building HTML for', results.length, 'results');
-        const resultsHeader = `
-            <div class="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky top-0">
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    <i class="fas fa-users mr-1"></i>${results.length} Patient${results.length !== 1 ? 's' : ''} Found - Click to Select
-                </p>
-            </div>
-        `;
-        
-        const resultsItems = results.map((patient, index) => `
-            <div class="patient-result-item p-4 hover:bg-gradient-to-r hover:from-primary-50 hover:to-primary-100 active:bg-primary-100 cursor-pointer border-b border-gray-100 last:border-b-0 transition-all duration-200"
-                 data-patient-id="${patient.id}"
-                 data-patient-name="${patient.text}"
-                 data-patient-email="${patient.email}"
-                 data-patient-role="${patient.role}"
-                 role="option"
-                 tabindex="0"
-                 data-index="${index}"
-                 style="user-select: none; -webkit-user-select: none;">
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-gradient-to-br from-primary-400 to-primary-600 rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
-                        <i class="fas fa-user text-white text-lg"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="font-bold text-gray-900 text-base">${patient.text}</p>
-                        <p class="text-sm text-gray-600 truncate">
-                            <i class="fas fa-envelope mr-1 text-xs"></i>${patient.email}
-                        </p>
-                        ${patient.role ? `<span class="inline-block mt-1.5 px-2.5 py-1 text-xs font-semibold rounded-full ${
-                            patient.role.includes('Student') ? 'bg-primary-100 text-blue-700' : 'bg-green-100 text-green-700'
-                        }">${patient.role}</span>` : ''}
-                    </div>
-                    <div class="flex-shrink-0">
-                        <div class="px-3 py-1 bg-primary-100 text-primary-700 rounded-md text-xs font-semibold">
-                            Click to Select
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        
-        resultsDiv.innerHTML = resultsHeader + resultsItems;
-        
-        console.log('HTML generated, showing results');
-        resultsDiv.classList.remove('hidden');
-        console.log('resultsDiv classList after showing:', resultsDiv.classList);
-        console.log('resultsDiv HTML:', resultsDiv.innerHTML.substring(0, 200));
-        
-        // Add keyboard navigation
-        addKeyboardNavigation();
-    }
-    
-    // Keyboard navigation for search results
-    function addKeyboardNavigation() {
-        const items = resultsDiv.querySelectorAll('.patient-result-item');
-        
-        searchInput.addEventListener('keydown', function(e) {
-            if (items.length === 0) return;
-            
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                items[0].focus();
-            }
-        });
-        
-        items.forEach((item, index) => {
-            item.addEventListener('keydown', function(e) {
-                if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    if (index < items.length - 1) {
-                        items[index + 1].focus();
-                    }
-                } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    if (index > 0) {
-                        items[index - 1].focus();
+      this.loading = true;
+      try {
+        const resp = await fetch(
+          `/dental-records/api/search-patients/?q=${encodeURIComponent(this.query)}`,
+          { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } }
+        );
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        this.results = data.results || [];
+        this.showResults = true;
+      } catch (e) {
+        this.results = [];
+        this.showResults = true;
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    async selectPatient(patient) {
+      const patientSelect = document.getElementById('patient-select-field');
+      if (!patientSelect) return;
+
+      patientSelect.value = patient.id;
+      this.selected = { id: patient.id, name: patient.text, email: patient.email, role: patient.role };
+      this.showResults = false;
+      this.query = '';
+
+      try {
+        const resp = await fetch(
+          `/dental-records/api/patient/${patient.id}/profile/`,
+          { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } }
+        );
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const profile = await resp.json();
+        this.autoFillForm(profile);
+      } catch (e) {
+        // Profile fetch failed — patient selection still stands
+      }
+    },
+
+    autoFillForm(profile) {
+      const map = {
+        'id_student_id': profile.student_id,
+        'id_middle_name': profile.middle_name,
+        'id_email': profile.email,
+        'id_age': profile.age,
+        'id_gender': profile.gender,
+        'id_civil_status': profile.civil_status,
+        'id_date_of_birth': profile.date_of_birth,
+        'id_place_of_birth': profile.place_of_birth,
+        'id_address': profile.address,
+        'id_contact_number': profile.contact_number,
+        'id_telephone_number': profile.telephone_number,
+        'id_designation': profile.designation,
+        'id_department_college_office': profile.department_college_office,
+        'id_guardian_name': profile.guardian_name,
+        'id_guardian_contact': profile.guardian_contact,
+      };
+      for (const [id, val] of Object.entries(map)) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        el.value = val || '';
+        if (el.dataset.phoneInput) {
+          el.dispatchEvent(new Event('input', { bubbles: true }));
                     } else {
-                        searchInput.focus();
-                    }
-                } else if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    item.click();
-                } else if (e.key === 'Escape') {
-                    e.preventDefault();
-                    resultsDiv.classList.add('hidden');
-                    searchInput.focus();
-                }
-            });
-        });
-    }
-    
-    // Event delegation for patient selection - attach to resultsDiv
-    resultsDiv.addEventListener('click', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        const item = e.target.closest('.patient-result-item');
-        if (item) {
-            console.log('✓ Patient item clicked');
-            
-            // Visual feedback
-            item.style.transform = 'scale(0.98)';
-            setTimeout(() => {
-                item.style.transform = '';
-            }, 150);
-            
-            const patientData = {
-                id: item.dataset.patientId,
-                name: item.dataset.patientName,
-                email: item.dataset.patientEmail,
-                role: item.dataset.patientRole
-            };
-            console.log('Patient data:', patientData);
-            selectPatient(patientData);
+          el.dispatchEvent(new Event('change', { bubbles: true }));
         }
-    });
-    
-    // Select a patient
-    function selectPatient(patient) {
-        console.log('✓ selectPatient called with:', patient);
-        console.log('Patient ID:', patient.id);
-        
-        // Check if patientSelect exists
-        if (!patientSelect) {
-            console.error('CRITICAL: patientSelect element is null!');
-            selectedDisplay.classList.remove('hidden');
-            selectedName.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Form configuration error';
-            if (selectedInfo) selectedInfo.textContent = 'Patient field is unavailable. Please refresh the page.';
-            return;
-        }
-        
-        // Show loading state
-        selectedDisplay.classList.remove('hidden');
-        selectedName.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Loading patient data...';
-        if (selectedInfo) selectedInfo.textContent = 'Please wait...';
-        
-        // Set the hidden select field
-        try {
-            patientSelect.value = patient.id;
-            console.log('Patient select field set to:', patient.id);
-        } catch (error) {
-            console.error('Error setting patient value:', error);
-            selectedName.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Error selecting patient';
-            if (selectedInfo) selectedInfo.textContent = 'Could not select patient. Please refresh the page.';
-            return;
-        }
-        
-        // Hide results and clear search
-        resultsDiv.classList.add('hidden');
-        searchInput.value = '';
-        searchInput.disabled = true;
-        searchInput.classList.add('opacity-50');
-        
-        // Fetch patient profile with timeout
-        const profileUrl = `/dental-records/api/patient/${patient.id}/profile/`;
-        console.log('Fetching patient profile from:', profileUrl);
-        console.log('Full URL:', window.location.origin + profileUrl);
-        
-        // Create abort controller for timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => {
-            controller.abort();
-            console.error('Request timeout after 10 seconds');
-        }, 10000); // 10 second timeout
-        
-        const startTime = Date.now();
-        
-        fetch(profileUrl, {
-            signal: controller.signal,
-            credentials: 'same-origin',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'Accept': 'application/json'
-            }
-        })
-            .then(response => {
-                clearTimeout(timeoutId);
-                const elapsed = Date.now() - startTime;
-                console.log(`Profile response received in ${elapsed}ms`);
-                console.log('Profile response status:', response.status);
-                console.log('Profile response headers:', [...response.headers.entries()]);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                console.log('✓ Profile data received:', data);
-                console.log('Total time:', Date.now() - startTime, 'ms');
-                
-                // Update display with loaded data
-                selectedName.textContent = patient.name;
-                if (selectedInfo) selectedInfo.innerHTML = `<i class="fas fa-envelope mr-1"></i>${patient.email} <span class="mx-2">•</span> <i class="fas fa-id-badge mr-1"></i>${patient.role}`;
-                
-                // Re-enable search
-                searchInput.disabled = false;
-                searchInput.classList.remove('opacity-50');
-                
-                autoFillForm(data);
-            })
-            .catch(error => {
-                clearTimeout(timeoutId);
-                console.error('✗ Error fetching patient profile:', error);
-                console.error('Error name:', error.name);
-                console.error('Error message:', error.message);
-                
-                let errorMessage = error.message;
-                if (error.name === 'AbortError') {
-                    errorMessage = 'Request timeout - server took too long to respond';
-                }
-                
-                // Show error state
-                selectedName.innerHTML = '<i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>Error loading patient';
-                if (selectedInfo) selectedInfo.textContent = errorMessage;
-                
-                // Re-enable search
-                searchInput.disabled = false;
-                searchInput.classList.remove('opacity-50');
-            });
-    }
-    
-    // Auto-fill form fields with patient profile data
-    function autoFillForm(profile) {
-        console.log('autoFillForm called with profile:', profile);
-        
-        let fieldsPopulated = 0;
-        
-        // Helper function to set field value
-        const setFieldValue = (fieldId, value) => {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                // Set value even if empty (allows clearing fields)
-                const newValue = value || '';
-                if (field.value !== newValue) {
-                    field.value = newValue;
-                    console.log(`Set ${fieldId} to:`, newValue);
-                    
-                    // Only show visual feedback for non-empty values
-                    if (newValue) {
-                        fieldsPopulated++;
-                        // Add a visual indicator that field was auto-filled
-                        field.classList.add('bg-green-50', 'border-green-300');
-                        setTimeout(() => {
-                            field.classList.remove('bg-green-50', 'border-green-300');
-                        }, 2000);
-                    }
-                    
-                    // For phone fields, fire input event so phone-input.js reformats & validates
-                    if (field.dataset.phoneInput) {
-                        field.dispatchEvent(new Event('input', { bubbles: true }));
-                    } else {
-                        // Trigger change event for any other listeners
-                        field.dispatchEvent(new Event('change', { bubbles: true }));
-                    }
-                }
-            } else {
-                console.log(`Field ${fieldId} not found in form`);
-            }
-        };
-        
-        // Fill in all available fields
-        setFieldValue('id_student_id', profile.student_id);
-        setFieldValue('id_middle_name', profile.middle_name);
-        setFieldValue('id_email', profile.email);
-        setFieldValue('id_age', profile.age);
-        setFieldValue('id_gender', profile.gender);
-        setFieldValue('id_civil_status', profile.civil_status);
-        setFieldValue('id_date_of_birth', profile.date_of_birth);
-        setFieldValue('id_place_of_birth', profile.place_of_birth);
-        setFieldValue('id_address', profile.address);
-        setFieldValue('id_contact_number', profile.contact_number);
-        setFieldValue('id_telephone_number', profile.telephone_number);
-        setFieldValue('id_designation', profile.designation);
-        setFieldValue('id_department_college_office', profile.department_college_office);
-        setFieldValue('id_guardian_name', profile.guardian_name);
-        setFieldValue('id_guardian_contact', profile.guardian_contact);
-        
-        // Set student ID display (profile ID)
-        const studentIdDisplay = document.getElementById('student-id-display');
-        if (studentIdDisplay) {
-            studentIdDisplay.value = profile.student_id || profile.staff_id || '';
-        }
-    }
-    
-    // Clear selection
-    clearBtn.addEventListener('click', function() {
-        console.log('✓ Clearing patient selection');
-        
-        if (isPreselected) {
-            // For preselected patients, enable search to change patient without clearing current data
-            searchInput.disabled = false;
-            searchInput.classList.remove('opacity-50');
-            searchInput.placeholder = 'Search for a different patient...';
-            searchInput.focus();
-            // Don't clear the selected display or form fields - let user select new patient to replace
-        } else {
-            // For manually selected patients, clear everything
-            // Clear all auto-filled fields
-            const fieldsToClear = ['student_id', 'middle_name', 'email', 'age', 'gender', 'civil_status', 
+      }
+      const idDisplay = document.getElementById('student-id-display');
+      if (idDisplay) idDisplay.value = profile.student_id || profile.staff_id || '';
+    },
+
+    clearSelection() {
+      if (this.isPreselected) {
+        this.isPreselected = false;
+      }
+      const fields = [
+        'student_id', 'middle_name', 'email', 'age', 'gender', 'civil_status',
                                     'date_of_birth', 'place_of_birth', 'address', 'contact_number',
                                     'telephone_number', 'designation', 'department_college_office',
-                                    'guardian_name', 'guardian_contact'];
-            
-            fieldsToClear.forEach(fieldName => {
-                const field = document.getElementById(`id_${fieldName}`);
+        'guardian_name', 'guardian_contact'
+      ];
+      fields.forEach(f => {
+        const el = document.getElementById(`id_${f}`);
+        if (el) el.value = '';
+      });
+      const idDisplay = document.getElementById('student-id-display');
+      if (idDisplay) idDisplay.value = '';
+      const patientSelect = document.getElementById('patient-select-field');
+      if (patientSelect) patientSelect.value = '';
+      this.selected = null;
+      this.query = '';
+      this.$nextTick(() => this.$el.querySelector('input[type="text"]:not([readonly])').focus());
+    },
+
+    focusFirstError() {
+      const el = this.$el.querySelector('.text-danger-600, .text-red-600');
+      if (el) {
+        const field = el.closest('.mb-5, .mb-8, div')?.querySelector('input, select, textarea');
                 if (field) {
-                    field.value = '';
-                }
-            });
-            
-            // Clear student ID display
-            document.getElementById('student-id-display').value = '';
-            
-            // Reset UI
-            patientSelect.value = '';
-            selectedDisplay.classList.add('hidden');
-            searchInput.value = '';
-            searchInput.disabled = false;
-            searchInput.classList.remove('opacity-50');
-            searchInput.focus();
-            
-            // Show confirmation
-            searchInput.placeholder = 'Patient cleared. Start typing to search again...';
-            setTimeout(() => {
-                searchInput.placeholder = 'Start typing patient name, email, or ID...';
-            }, 3000);
+          field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => field.focus(), 250);
         }
-    });
-    
-    // Close results when clicking outside
-    document.addEventListener('click', function(e) {
-        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
-            resultsDiv.classList.add('hidden');
-        }
-    });
-});
+      }
+    }
+  };
+}
 </script>
 <script src="{% static 'js/phone-input.js' %}"></script>
 {% endblock %}

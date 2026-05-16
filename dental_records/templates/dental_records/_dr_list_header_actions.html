@@ -1,0 +1,9 @@
+<span id="jmcfi-dr-header-total-count" class="text-sm text-gray-600 inline-flex items-center gap-1.5">
+  <span class="w-2 h-2 bg-primary-500 rounded-full"></span>
+  {{ total_count }} record{{ total_count|pluralize }}
+</span>
+{% if user.role == 'student' %}
+<a href="{% url 'appointments:schedule_appointment' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm transition-colors">
+  <i class="fas fa-plus"></i>New Appointment
+</a>
+{% endif %}

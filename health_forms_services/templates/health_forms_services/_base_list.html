@@ -11,50 +11,38 @@
 {% block title %}{% block list_head_title %}{{ form_type_label }}{% endblock %} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-4 sm:py-8">
-  <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     {% include 'health_forms_services/_subnav.html' %}
 
-    {# ── Header ── #}
-    <div class="mb-6 flex items-start justify-between gap-3 sm:gap-4">
-      <div class="min-w-0 flex-1">
-        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">{{ form_type_label }}</h1>
-        <p class="text-gray-600 mt-1 text-sm sm:text-base">
-          {% block list_subtitle %}Manage {{ form_type_label|lower }}{% endblock %}
-          {% if total_count %}<span class="text-gray-400"> &middot; {{ total_count }} total</span>{% endif %}
-        </p>
-      </div>
-      {% if request.user.role == 'staff' or request.user.role == 'doctor' or request.user.role == 'admin' %}
-        {% if create_url %}
-        <a href="{{ create_url }}"
-           class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-medium flex-shrink-0">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-          </svg>
-          <span>New {{ form_type_label }}</span>
-        </a>
-        {% endif %}
-      {% endif %}
-    </div>
+    {% include "components/page_header.html" with title=form_type_label subtitle=list_subtitle_text|default:"" icon="fa-file-medical" %}
 
-    {# ── Filters ── #}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
+    {% if request.user.role == 'staff' or request.user.role == 'doctor' or request.user.role == 'admin' %}
+      {% if create_url %}
+      <div class="flex justify-end mb-4">
+        <a href="{{ create_url }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm">
+          <i class="fas fa-plus"></i><span>New {{ form_type_label }}</span>
+        </a>
+      </div>
+      {% endif %}
+    {% endif %}
+
+    <div class="bg-white rounded-card shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
       <form method="get" class="flex flex-col sm:flex-row gap-2 sm:gap-3">
         <div class="flex-1 relative">
-          <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-          <input type="text" name="search" value="{{ search }}" 
+          <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+          <input type="text" name="search" value="{{ search }}"
                  placeholder="Search by name or email..."
-                 class="w-full pl-9 pr-4 py-2.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                 class="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
         </div>
-        <div class="flex gap-2 sm:gap-3">
-          <select name="status" class="flex-1 sm:w-auto px-4 py-2.5 sm:py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+        <div class="flex gap-2">
+          <select name="status" class="flex-1 sm:w-auto px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
             <option value="">All Status</option>
             {% for value, label in status_choices %}
               <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
           </select>
-          <button type="submit" class="px-4 py-2.5 sm:py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium text-sm whitespace-nowrap">
-            Filter
+          <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm whitespace-nowrap transition-colors">
+            <i class="fas fa-filter"></i>Filter
           </button>
         </div>
       </form>
@@ -79,11 +67,7 @@
         </div>
         {% endif %}
         <div class="flex items-start gap-3 pr-6">
-          <div class="w-9 h-9 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-            <span class="text-xs font-semibold text-primary-700">
-              {{ form_obj.first_name|default:""|slice:":1" }}{{ form_obj.last_name|default:form_obj.user.first_name|default:""|slice:":1" }}
-            </span>
-          </div>
+          {% include "components/avatar.html" with user=form_obj.user|default:form_obj size="md" %}
           <div class="min-w-0 flex-1">
             <a href="{% url detail_url_name form_obj.pk %}" class="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block">
               {{ form_obj.get_full_name|default:form_obj.user.get_full_name|default:"—" }}
@@ -94,15 +78,15 @@
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
           <div class="flex items-center gap-2">
             {% if form_obj.status == 'pending' %}
-              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">Pending</span>
+              {% include "components/status_badge.html" with label="Pending" variant="warning" size="sm" %}
             {% elif form_obj.status == 'completed' %}
-              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">Completed</span>
+              {% include "components/status_badge.html" with label="Completed" variant="success" size="sm" %}
             {% elif form_obj.status == 'rejected' %}
-              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">Rejected</span>
+              {% include "components/status_badge.html" with label="Rejected" variant="danger" size="sm" %}
             {% elif form_obj.status == 'incomplete' %}
-              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700">Incomplete</span>
+              {% include "components/status_badge.html" with label="Incomplete" variant="warning" size="sm" %}
             {% else %}
-              <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{{ form_obj.get_status_display }}</span>
+              {% include "components/status_badge.html" with label=form_obj.get_status_display variant="muted" size="sm" %}
             {% endif %}
             <span class="text-xs text-gray-400">{{ form_obj.created_at|date:"M d, Y" }}</span>
           </div>
@@ -124,7 +108,7 @@
     </div>
 
     {# ── Desktop table (hidden on mobile) ── #}
-    <div class="hidden sm:block bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
+    <div class="hidden sm:block bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden mb-6">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
@@ -150,11 +134,7 @@
               {% endif %}
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
-                  <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span class="text-xs font-semibold text-primary-700">
-                      {{ form_obj.first_name|default:""|slice:":1" }}{{ form_obj.last_name|default:form_obj.user.first_name|default:""|slice:":1" }}
-                    </span>
-                  </div>
+                  {% include "components/avatar.html" with user=form_obj.user|default:form_obj size="sm" %}
                   <div class="min-w-0">
                     <a href="{% url detail_url_name form_obj.pk %}" class="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block">
                       {{ form_obj.get_full_name|default:form_obj.user.get_full_name|default:"—" }}
@@ -165,13 +145,13 @@
               </td>
               <td class="px-4 py-3">
                 {% if form_obj.status == 'pending' %}
-                  <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700">Pending</span>
+                  {% include "components/status_badge.html" with label="Pending" variant="warning" size="sm" %}
                 {% elif form_obj.status == 'completed' %}
-                  <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-700">Completed</span>
+                  {% include "components/status_badge.html" with label="Completed" variant="success" size="sm" %}
                 {% elif form_obj.status == 'rejected' %}
-                  <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-700">Rejected</span>
+                  {% include "components/status_badge.html" with label="Rejected" variant="danger" size="sm" %}
                 {% else %}
-                  <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">{{ form_obj.get_status_display }}</span>
+                  {% include "components/status_badge.html" with label=form_obj.get_status_display variant="muted" size="sm" %}
                 {% endif %}
               </td>
               <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
@@ -198,40 +178,12 @@
       </div>
     </div>
     {% else %}
-    {# ── Empty state ── #}
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
-      <i class="fas fa-folder-open text-gray-300 text-4xl sm:text-5xl mb-4"></i>
-      <p class="text-gray-500 text-base sm:text-lg">{% block empty_message %}No forms found{% endblock %}</p>
-      {% if search or status_filter %}
-        <a href="?" class="text-primary-600 hover:text-primary-700 text-sm mt-2 inline-block">Clear filters</a>
-      {% endif %}
-    </div>
+    {% block empty_state %}
+      {% include "components/empty_state.html" with icon="fa-folder-open" title="No forms found" description="" %}
+    {% endblock %}
     {% endif %}
 
-    {# ── Pagination ── #}
-    {% if forms.has_other_pages %}
-    <div class="flex justify-center">
-      <nav class="inline-flex rounded-lg shadow-sm bg-white border border-gray-200 overflow-hidden">
-        {% if forms.has_previous %}
-          <a href="?page={{ forms.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-             class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50 border-r border-gray-200">&laquo; Prev</a>
-        {% endif %}
-        {% for num in forms.paginator.page_range %}
-          {% if num == forms.number %}
-            <span class="px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold bg-primary-50 text-primary-700 border-r border-gray-200">{{ num }}</span>
-          {% elif num > forms.number|add:'-3' and num < forms.number|add:'3' %}
-            <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-               class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50 border-r border-gray-200">{{ num }}</a>
-          {% endif %}
-        {% endfor %}
-        {% if forms.has_next %}
-          <a href="?page={{ forms.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}"
-             class="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-50">Next &raquo;</a>
-        {% endif %}
-      </nav>
-    </div>
-    {% endif %}
-  </div>
+    {% include "components/pagination.html" with page_obj=forms %}
 </div>
 
 {# ── Bulk action bar ── #}

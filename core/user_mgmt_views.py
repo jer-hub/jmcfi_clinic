@@ -178,11 +178,11 @@ def user_restore(request, user_id):
         notification_type='general',
     )
     _log_audit(request, user, AccountProvisioningAudit.ACTION.RESTORED)
-    messages.success(request, f'User "{user.email}" has been restored successfully.')
+    messages.success(request, 'User has been restored successfully.')
     if request.headers.get('HX-Request') == 'true':
         response = render(request, 'core/user_management/user_deleted_list.html', _get_deleted_user_management_context(request))
         response = htmx_add_trigger(response, 'refreshUserStats')
-        return htmx_add_toast(response, f'User "{user.email}" restored successfully.')
+        return htmx_add_toast(response, 'User restored successfully.')
 
     query_string = request.GET.urlencode()
     target = reverse('core:deleted_user_management')
@@ -511,13 +511,13 @@ def user_cleanup_stale(request):
 def _log_audit(request, target_user, action):
     """Helper to log provisioning audit entries."""
     from .models import AccountProvisioningAudit
-    from core.views import _get_client_ip
+    from .utils import get_client_ip
 
     AccountProvisioningAudit.objects.create(
         actor=request.user,
         target_user=target_user,
         action=action,
-        ip_address=_get_client_ip(request),
+        ip_address=get_client_ip(request),
         metadata={
             'triggered_by': 'bulk_action' if 'bulk' in action else 'single_action',
         },

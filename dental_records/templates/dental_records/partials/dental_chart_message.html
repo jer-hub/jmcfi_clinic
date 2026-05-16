@@ -1,0 +1,21 @@
+{% comment %}
+  Inline message banner used by HTMX dental chart API responses.
+
+  Context:
+    message       – text to display
+    message_type  – "success" | "error" | "info" | "warning" (default: "info")
+{% endcomment %}
+{% with mt=message_type|default:'info' %}
+<div role="alert"
+     class="flex items-start gap-3 rounded-lg border px-4 py-3 text-sm
+            {% if mt == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-800
+            {% elif mt == 'error' %}border-red-200 bg-red-50 text-red-800
+            {% elif mt == 'warning' %}border-amber-200 bg-amber-50 text-amber-800
+            {% else %}border-primary-200 bg-primary-50 text-primary-800{% endif %}">
+  <i class="fas {% if mt == 'success' %}fa-circle-check
+                 {% elif mt == 'error' %}fa-circle-exclamation
+                 {% elif mt == 'warning' %}fa-triangle-exclamation
+                 {% else %}fa-circle-info{% endif %} mt-0.5"></i>
+  <p class="flex-1 leading-relaxed">{{ message }}</p>
+</div>
+{% endwith %}

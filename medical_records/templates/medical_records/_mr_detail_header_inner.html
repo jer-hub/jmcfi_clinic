@@ -1,0 +1,30 @@
+    <div class="flex flex-wrap gap-2">
+      {% if record.appointment %}
+        {% if record.appointment.status == 'pending' %}
+          {% include "components/status_badge.html" with label="Awaiting appointment confirmation" variant="warning" icon="fa-hourglass-half" %}
+        {% elif not record.is_documentation_complete %}
+          {% include "components/status_badge.html" with label="Incomplete documentation" variant="warning" icon="fa-file-circle-exclamation" %}
+        {% endif %}
+        {% if record.appointment.status == 'completed' %}
+          {% include "components/status_badge.html" with label="Appointment completed" variant="success" icon="fa-calendar-check" %}
+        {% elif record.appointment.status == 'confirmed' %}
+          {% include "components/status_badge.html" with label="Appointment confirmed" variant="info" icon="fa-circle-check" %}
+        {% elif record.appointment.status == 'cancelled' %}
+          {% include "components/status_badge.html" with label="Appointment cancelled" variant="danger" icon="fa-ban" %}
+        {% endif %}
+      {% else %}
+        {% if not record.is_documentation_complete %}
+          {% include "components/status_badge.html" with label="Incomplete documentation" variant="warning" icon="fa-file-circle-exclamation" %}
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      <a href="{% url 'medical_records:medical_records' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 shadow-sm transition-colors">
+        <i class="fas fa-arrow-left"></i><span class="hidden sm:inline">All records</span>
+      </a>
+      {% if record.appointment %}
+        <a href="{% url 'appointments:appointment_detail' record.appointment.id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm transition-colors">
+          <i class="fas fa-calendar"></i><span class="hidden sm:inline">Appointment</span>
+        </a>
+      {% endif %}
+    </div>

@@ -10,9 +10,6 @@ urlpatterns = [
     path('schedule-for-student/', views.schedule_for_student, name='schedule_for_student'),
     path('<int:appointment_id>/', views.appointment_detail, name='appointment_detail'),
     
-    # API
-    path('api/completed-appointments/<int:student_id>/', views.completed_appointments_api, name='completed_appointments_api'),
-    
     # Appointment Settings (Admin Only)
     path('settings/', views.appointment_type_settings, name='appointment_type_settings'),
     path('settings/edit/<str:type_key>/', views.edit_appointment_type_default, name='edit_appointment_type_default'),

@@ -1,0 +1,26 @@
+{% comment %}
+  Initials avatar.
+
+  Context:
+    user         – User object (preferred) — uses get_full_name / email
+    name         – fallback name string
+    size         – xs | sm | md | lg (default "md")
+    color_seed   – optional seed string for color variation; defaults to name
+
+  Renders a colored circle with initials.
+{% endcomment %}
+{% with fallback_name=name|default:"?" %}
+{% with display_name=user.get_full_name|default:user.email|default:fallback_name %}
+{% with letter=display_name|slice:':1'|upper %}
+<span class="inline-flex items-center justify-center rounded-full font-semibold text-white flex-shrink-0
+             {% if size == 'xs' %}w-6 h-6 text-[0.65rem]
+             {% elif size == 'sm' %}w-8 h-8 text-xs
+             {% elif size == 'lg' %}w-12 h-12 text-base
+             {% else %}w-10 h-10 text-sm{% endif %}
+             bg-gradient-to-br from-primary-500 to-primary-700"
+      aria-label="{{ display_name }}">
+  {{ letter }}
+</span>
+{% endwith %}
+{% endwith %}
+{% endwith %}

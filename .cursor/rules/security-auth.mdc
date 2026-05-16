@@ -1,0 +1,72 @@
+---
+description: Security and authentication patterns — role enforcement, CSRF, access control, and data protection
+globs: "**/views.py,**/views/*.py,**/middleware.py,**/decorators.py"
+alwaysApply: false
+---
+
+# Security & Authentication
+
+## Authentication
+
+- **Google OAuth only** — no password login exists. Enforced via `NoPasswordAdapter` in `core/adapters.py`
+- **Admin login** — separate endpoint at `/auth/admin-login/` for admin-role users
+- **Allowed domains** — controlled by `GOOGLE_ALLOWED_DOMAINS` env variable
+- **Session timeout** — enforced by `SessionTimeoutMiddleware`
+
+## Access Control Layers
+
+### 1. Decorators (view level)
+
+```python
+@login_required
+@role_required('admin', 'doctor', 'staff')
+def staff_view(request):
+    ...
+```
+
+Always stack: `@login_required` first, then `@role_required()`.
+
+### 2. Queryset filtering (data level)
+
+Never trust the URL alone. Always filter data by the requesting user's role:
+
+```python
+if request.user.role == 'student':
+    qs = qs.filter(user=request.user)
+```
+
+### 3. Object-level checks
+
+For edit/delete operations on specific records:
+
+```python
+obj = get_object_or_404(MyModel, pk=pk)
+if request.user.role != 'admin' and obj.user != request.user:
+    raise PermissionDenied
+```
+
+## CSRF Protection
+
+- All forms must include `{% csrf_token %}`
+- HTMX requests: use `hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'` for non-form requests (DELETE, PUT)
+- Never disable CSRF middleware
+
+## Data Exposure
+
+- Student data is never visible to other students
+- Staff/doctor see only their assigned records (unless admin)
+- Sensitive fields (SSN, medical history) require explicit role checks
+- Export/download endpoints must verify permissions
+
+## Environment Secrets
+
+Never commit `.env` files. Required env vars:
+
+```
+SECRET_KEY
+DEBUG
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+GOOGLE_ALLOWED_DOMAINS
+DATABASE_URL (production)
+```

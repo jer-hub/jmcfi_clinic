@@ -1,0 +1,33 @@
+{% comment %}
+  Inline field validation messages (single pattern for forms).
+
+  Use either:
+    - errors – iterable (e.g. BoundField.errors / ErrorList), or
+    - message – a single string (e.g. manual / vital validation).
+
+  Optional:
+    label – short heading above messages (e.g. for grouped / hidden fields).
+{% endcomment %}
+{% if message %}
+  <div class="{% if not suppress_margin %}mt-1.5 {% endif %}space-y-1" role="alert">
+    {% if label %}
+      <p class="text-xs font-semibold text-danger-700">{{ label }}</p>
+    {% endif %}
+    <p class="text-sm text-danger-600 flex items-start gap-1.5">
+      <i class="fas fa-circle-exclamation mt-0.5 text-danger-500 text-xs flex-shrink-0" aria-hidden="true"></i>
+      <span>{{ message }}</span>
+    </p>
+  </div>
+{% elif errors %}
+  <div class="{% if not suppress_margin %}mt-1.5 {% endif %}space-y-1" role="alert">
+    {% if label %}
+      <p class="text-xs font-semibold text-danger-700">{{ label }}</p>
+    {% endif %}
+    {% for err in errors %}
+      <p class="text-sm text-danger-600 flex items-start gap-1.5">
+        <i class="fas fa-circle-exclamation mt-0.5 text-danger-500 text-xs flex-shrink-0" aria-hidden="true"></i>
+        <span>{{ err }}</span>
+      </p>
+    {% endfor %}
+  </div>
+{% endif %}

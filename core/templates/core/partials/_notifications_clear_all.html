@@ -1,0 +1,23 @@
+{% comment %}
+  Clear-all notifications: hidden POST embed + trigger (see hf-delete-embed pattern).
+  Requires: total_count in context.
+{% endcomment %}
+{% if total_count > 0 %}
+<div x-data>
+  <button type="button"
+          @click="__jmcfiClearAllNotificationsModal()"
+          class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg border border-danger-200 text-danger-700 bg-danger-50 hover:bg-danger-100 transition-colors">
+    <i class="fas fa-trash-can" aria-hidden="true"></i>
+    <span>Clear all</span>
+  </button>
+
+  <div id="notifications-clear-all-embed" class="hidden" aria-hidden="true">
+    <form method="post" action="{% url 'core:clear_all_notifications' %}" class="space-y-4">
+      {% csrf_token %}
+      <p class="text-sm text-gray-600 leading-relaxed">
+        Are you sure you want to clear all notifications? This action cannot be undone.
+      </p>
+    </form>
+  </div>
+</div>
+{% endif %}

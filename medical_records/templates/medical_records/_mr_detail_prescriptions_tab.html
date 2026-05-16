@@ -1,0 +1,103 @@
+{% comment %}
+  Prescriptions tab body for medical record detail.
+  Requires: record (MedicalRecord with prescription_record prefetched)
+{% endcomment %}
+{% with rx=record.prescription_record %}
+{% if rx %}
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4 pb-2 border-b border-gray-200">
+    <div class="flex items-center gap-2">
+      <i class="fas fa-prescription text-primary-600 text-sm"></i>
+      <h2 class="text-sm font-semibold text-gray-800">Prescription (F-HSS-20-0004)</h2>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      {% if rx.status == 'rejected' %}
+        {% include "components/status_badge.html" with label=rx.get_status_display variant="danger" icon="fa-ban" %}
+      {% elif rx.status == 'incomplete' %}
+        {% include "components/status_badge.html" with label=rx.get_status_display variant="warning" icon="fa-clock" %}
+      {% elif rx.status != 'completed' %}
+        {% include "components/status_badge.html" with label=rx.get_status_display variant="warning" icon="fa-hourglass-half" %}
+      {% endif %}
+      {% if user.role in 'staff,doctor,admin' %}
+        <a href="{% url 'health_forms_services:prescription_detail' rx.pk %}"
+           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+          <i class="fas fa-arrow-up-right-from-square"></i>Open full form
+        </a>
+        <a href="{% url 'health_forms_services:export_prescription_docx' rx.pk %}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-primary-300 text-primary-700 bg-primary-50 hover:bg-primary-100 transition-colors">
+          <i class="fas fa-file-arrow-down"></i>Download .docx
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+      <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</dt>
+      <dd class="mt-1 text-sm font-semibold text-gray-900">{{ rx.patient_name|default:record.student.get_full_name }}</dd>
+    </div>
+    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+      <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Physician</dt>
+      <dd class="mt-1 text-sm text-gray-900">{{ rx.physician_name|default:"—" }}</dd>
+      {% if rx.license_no or rx.ptr_no %}
+      <dd class="text-xs text-gray-500 mt-1">
+        {% if rx.license_no %}Lic. {{ rx.license_no }}{% endif %}
+        {% if rx.license_no and rx.ptr_no %} · {% endif %}
+        {% if rx.ptr_no %}PTR {{ rx.ptr_no }}{% endif %}
+      </dd>
+      {% endif %}
+    </div>
+    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+      <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Prescription date</dt>
+      <dd class="mt-1 text-sm text-gray-900">{% if rx.date %}{{ rx.date|date:"F j, Y" }}{% elif record.created_at %}{{ record.created_at|date:"F j, Y" }}{% else %}—{% endif %}</dd>
+    </div>
+    {% if rx.age or rx.gender %}
+    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+      <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Age / gender</dt>
+      <dd class="mt-1 text-sm text-gray-900">{{ rx.age|default:"—" }} / {{ rx.get_gender_display|default:"—" }}</dd>
+    </div>
+    {% endif %}
+    {% if rx.address %}
+    <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100 sm:col-span-2">
+      <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Address</dt>
+      <dd class="mt-1 text-sm text-gray-900 whitespace-pre-line">{{ rx.address }}</dd>
+    </div>
+    {% endif %}
+  </div>
+
+  {% if rx.items.all %}
+  <div class="mb-6">
+    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Medications</h3>
+    <div class="space-y-3">
+      {% for item in rx.items.all %}
+      <div class="p-4 bg-gray-50 rounded-lg border border-gray-100 border-l-4 border-l-primary-400">
+        <p class="text-sm font-semibold text-gray-900">{{ item.medication_name }}</p>
+        {% if item.dosage or item.frequency %}
+        <p class="text-sm text-gray-600 mt-1">
+          {% if item.dosage %}{{ item.dosage }}{% endif %}
+          {% if item.dosage and item.frequency %} · {% endif %}
+          {% if item.frequency %}{{ item.frequency }}{% endif %}
+        </p>
+        {% endif %}
+        {% if item.duration or item.quantity %}
+        <p class="text-xs text-gray-500 mt-1">
+          {% if item.duration %}Duration: {{ item.duration }}{% endif %}
+          {% if item.duration and item.quantity %} · {% endif %}
+          {% if item.quantity %}Qty: {{ item.quantity }}{% endif %}
+        </p>
+        {% endif %}
+        {% if item.instructions %}
+        <p class="text-xs text-gray-600 mt-2 whitespace-pre-line">{{ item.instructions }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+
+{% else %}
+  {% include "components/empty_state.html" with icon="fa-prescription-bottle-medical" title="No prescription" description="No prescription was recorded for this medical visit." %}
+{% endif %}
+{% endwith %}

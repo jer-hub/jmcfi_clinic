@@ -1,0 +1,106 @@
+---
+description: Template naming, inheritance, and partial conventions for consistent template organization
+globs: "**/*.html"
+alwaysApply: false
+---
+
+# Template Conventions
+
+## Naming
+
+| Type | Pattern | Example |
+|------|---------|---------|
+| List page | `<resource>_list.html` | `appointment_list.html` |
+| Detail page | `<resource>_detail.html` | `appointment_detail.html` |
+| Create page | `create_<resource>.html` | `create_appointment.html` |
+| Edit page | `edit_<resource>.html` | `edit_appointment.html` |
+| Partial/fragment | `_<name>.html` | `_appointment_row.html` |
+| Base template | `_base_<type>.html` | `_base_list.html` |
+| Subnav | `_subnav.html` | `_subnav.html` |
+
+Partials always start with underscore `_`. They must never contain `<html>`, `<head>`, or `<body>` tags.
+
+## Inheritance
+
+```
+core/templates/core/base.html          ← root layout (sidebar, nav, scripts)
+  └── app/templates/app/list.html      ← full page extending base
+        └── includes _list_content.html ← partial for HTMX swap target
+```
+
+### Full Page Template
+
+```html
+{% extends "core/base.html" %}
+{% block title %}Page Title{% endblock %}
+{% block content %}
+<div class="p-6">
+  {% include "app/_page_header.html" %}
+  <div id="content-area">
+    {% include "app/_list_content.html" %}
+  </div>
+</div>
+{% endblock %}
+```
+
+### Partial Template (for HTMX)
+
+```html
+{# app/_list_content.html — no extends, no html/head/body #}
+<div id="content-area">
+  {% for item in page_obj %}
+    {% include "app/_item_row.html" %}
+  {% empty %}
+    {% include "app/_empty_state.html" %}
+  {% endfor %}
+  {% include "app/_pagination.html" %}
+</div>
+```
+
+## HTMX Swap Targets
+
+Define clear `id` attributes on elements that HTMX will swap:
+
+```html
+<!-- Full page has the target -->
+<div id="item-list">
+  {% include "app/_list_content.html" %}
+</div>
+
+<!-- HTMX request targets this id -->
+<button hx-get="{% url 'app:list' %}?page=2" hx-target="#item-list" hx-swap="innerHTML">
+  Next Page
+</button>
+```
+
+## Template Blocks
+
+Standard blocks provided by `base.html`:
+
+| Block | Purpose |
+|-------|---------|
+| `title` | Page title in `<title>` tag |
+| `content` | Main page content area |
+| `extra_css` | Additional CSS (use sparingly) |
+| `extra_js` | Additional JS at bottom of body |
+
+## Form Error Display
+
+Use shared partials from `templates/partials/`:
+
+```html
+{% include "partials/form_errors.html" with form=form %}
+{% include "partials/field_errors.html" with field=form.email %}
+```
+
+## Messages/Toasts
+
+Django messages display via the base template. Add messages in views:
+
+```python
+messages.success(request, 'Record saved successfully.')
+messages.error(request, 'Failed to save record.')
+messages.warning(request, 'Some fields were skipped.')
+```
+
+For HTMX responses, use `htmx_add_toast()` from `core/htmx_utils.py`.

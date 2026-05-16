@@ -2,54 +2,20 @@
 {% block title %}My Health Summary{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     {% include 'analytics/_subnav.html' %}
 
-    <!-- Header -->
-    <div class="mb-6 sm:mb-8">
-      <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
-        <svg class="inline-block w-8 h-8 mr-2 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-        My Health Summary
-      </h1>
-      <p class="mt-1 text-sm text-gray-500">Your personal health analytics</p>
-    </div>
+    {% include "components/page_header.html" with title="My Health Summary" subtitle="Your personal health analytics" icon="fa-chart-line" %}
 
-    <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      <div class="bg-white rounded-lg shadow p-4 sm:p-5 flex items-center">
-        <div class="flex-shrink-0 bg-primary-100 rounded-full p-3 mr-4">
-          <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        </div>
-        <div>
-          <p class="text-sm font-medium text-gray-500">Medical Records</p>
-          <p class="text-2xl font-bold text-gray-900">{{ total_records }}</p>
-        </div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4 sm:p-5 flex items-center">
-        <div class="flex-shrink-0 bg-blue-100 rounded-full p-3 mr-4">
-          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-        </div>
-        <div>
-          <p class="text-sm font-medium text-gray-500">Total Appointments</p>
-          <p class="text-2xl font-bold text-gray-900">{{ total_appointments }}</p>
-        </div>
-      </div>
-      <div class="bg-white rounded-lg shadow p-4 sm:p-5 flex items-center">
-        <div class="flex-shrink-0 bg-green-100 rounded-full p-3 mr-4">
-          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </div>
-        <div>
-          <p class="text-sm font-medium text-gray-500">Completed</p>
-          <p class="text-2xl font-bold text-gray-900">{{ completed_appointments }}</p>
-        </div>
-      </div>
+      {% include "components/stat_card.html" with label="Medical Records" value=total_records icon="fa-file-medical" variant="primary" %}
+      {% include "components/stat_card.html" with label="Total Appointments" value=total_appointments icon="fa-calendar-days" variant="info" %}
+      {% include "components/stat_card.html" with label="Completed" value=completed_appointments icon="fa-circle-check" variant="success" %}
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Visit History Chart -->
-      <div class="bg-white rounded-lg shadow p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Visit History</h3>
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-calendar-check text-primary-500"></i>Visit History</h3>
         {% if appointment_history %}
         <canvas id="visitChart" height="250"></canvas>
         {% else %}
@@ -57,9 +23,8 @@
         {% endif %}
       </div>
 
-      <!-- Recent Diagnoses -->
-      <div class="bg-white rounded-lg shadow p-4 sm:p-5">
-        <h3 class="text-md font-semibold text-gray-900 mb-3">Diagnosis Summary</h3>
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5">
+        <h3 class="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-stethoscope text-primary-500"></i>Diagnosis Summary</h3>
         {% if recent_diagnoses %}
         <div class="space-y-1.5">
           {% for item in recent_diagnoses %}
@@ -74,8 +39,6 @@
         {% endif %}
       </div>
     </div>
-
-  </div>
 </div>
 {% endblock %}
 

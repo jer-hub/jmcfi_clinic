@@ -72,10 +72,11 @@ class MedicalRecordsBadgeCountTests(TestCase):
 		self.assertEqual(
 			response.context['status_totals'],
 			{
-				'completed': 2,
+				'completed': 3,
 				'confirmed': 1,
 				'cancelled': 1,
-				'pending': 2,
+				'pending': 1,
+				'missed': 0,
 			},
 		)
 		self.assertEqual(response.context['total_count'], 6)

@@ -1,40 +1,41 @@
-<form method="POST" action="{% url 'appointments:edit_appointment_type_default' type_key=item.type_key %}" class="flex items-center gap-3" x-data="doctorDropdown()" x-init="init()" @change.debounce.400ms="submitForm()" hx-post="{% url 'appointments:edit_appointment_type_default' type_key=item.type_key %}" hx-target="closest .bg-white" hx-swap="outerHTML" hx-indicator=".form-spinner-{{ item.type_key }}" hx-on="htmx:beforeSend: this.classList.add('opacity-60'); this.style.pointerEvents = 'none'; htmx:afterSettle: this.classList.remove('opacity-60'); this.style.pointerEvents = 'auto'">
+<form method="POST"
+      action="{% url 'appointments:edit_appointment_type_default' type_key=item.type_key %}"
+      class="flex items-center gap-3"
+      x-data="doctorDropdown()"
+      x-init="init()"
+      hx-post="{% url 'appointments:edit_appointment_type_default' type_key=item.type_key %}"
+      hx-target="#status-{{ item.type_key }}"
+      hx-swap="innerHTML"
+      hx-indicator=".form-spinner-{{ item.type_key }}">
     {% csrf_token %}
     <input type="hidden" name="appointment_type" value="{{ item.type_key }}">
 
-    <!-- Crispy dropdown -->
     <div class="relative flex-1 min-w-0">
 
         <!-- Trigger -->
         <button type="button" @click="open = !open"
             class="w-full flex items-center justify-between px-3 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm text-gray-700 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-300 transition-all duration-150">
             <span class="flex items-center gap-2 min-w-0">
-                <svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
+                <i class="fas fa-user-doctor text-gray-400 flex-shrink-0"></i>
                 <span class="truncate" x-text="selectedLabel()"></span>
             </span>
-            <svg class="w-4 h-4 text-gray-400 flex-shrink-0 transition-transform duration-200 ml-2" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-            </svg>
+            <i class="fas fa-chevron-down text-gray-400 flex-shrink-0 transition-transform duration-200 ml-2 text-xs" :class="open ? 'rotate-180' : ''"></i>
         </button>
 
         <!-- Dropdown Panel -->
-        <div x-show="open" x-cloak @click.outside="open = false"
+        <div x-show="open" x-cloak
             x-transition:enter="transition ease-out duration-150"
             x-transition:enter-start="opacity-0 translate-y-1"
             x-transition:enter-end="opacity-100 translate-y-0"
             x-transition:leave="transition ease-in duration-100"
             x-transition:leave-start="opacity-100 translate-y-0"
             x-transition:leave-end="opacity-0 translate-y-1"
-            class="absolute left-0 right-0 sm:right-auto top-full z-50 mt-1.5 sm:w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+            class="absolute left-0 right-0 sm:right-auto top-full z-50 mt-1.5 sm:w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden flex flex-col">
 
             <!-- Search -->
             <div class="p-2 border-b border-gray-100 bg-white">
                 <div class="relative">
-                    <svg class="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/>
-                    </svg>
+                    <i class="fas fa-magnifying-glass absolute left-2.5 top-2.5 text-gray-400 text-xs"></i>
                     <input type="text" x-model="search" placeholder="Search doctors..."
                         class="w-full pl-7 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-400 bg-gray-50">
                 </div>
@@ -48,7 +49,7 @@
             </div>
 
             <!-- Checkbox list -->
-            <ul class="doctor-cb-list max-h-52 overflow-y-auto py-1">
+            <ul class="doctor-cb-list max-h-52 overflow-y-auto py-1" @change="updateCount()">
                 {% for checkbox in item.form.assigned_doctors %}
                 <li x-show="!search || '{{ checkbox.choice_label|lower }}'.includes(search.toLowerCase())" class="group">
                     <label for="{{ checkbox.id_for_label }}"
@@ -63,14 +64,29 @@
                 <li class="px-3 py-4 text-center text-sm text-gray-400 italic">No doctors available.</li>
                 {% endfor %}
             </ul>
+
+            <!-- Save / Cancel footer -->
+            <div class="sticky bottom-0 border-t border-gray-100 bg-gray-50 px-3 py-2 flex items-center justify-between gap-2">
+                <span class="text-xs text-amber-600 font-medium" x-show="dirty" x-cloak>
+                    <i class="fas fa-circle-dot text-[10px]"></i> Unsaved changes
+                </span>
+                <span class="text-xs text-gray-400" x-show="!dirty">No changes</span>
+                <div class="flex items-center gap-2">
+                    <button type="button" @click="cancel()"
+                        class="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-800 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="button" @click="save()" :disabled="!dirty"
+                        class="px-3 py-1.5 text-xs font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                        <i class="fas fa-check mr-1"></i> Save
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
     <span class="form-spinner-{{ item.type_key }} htmx-indicator ml-2 inline-flex items-center gap-1">
-        <svg class="animate-spin h-3 w-3 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+        <i class="fas fa-spinner fa-spin text-primary-600 text-xs"></i>
     </span>
 
 </form>

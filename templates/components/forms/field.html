@@ -1,0 +1,37 @@
+{% comment %}
+  Standard Django form field wrapper.
+
+  Context:
+    field        – BoundField (required)
+    label        – override label text (defaults to field.label)
+    help_text    – override help text (defaults to field.help_text)
+    required     – override required flag (defaults to field.field.required)
+    icon         – optional FA icon rendered next to the label
+    label_class  – override the label class string
+    hide_label   – when truthy, hides the label visually (still readable to screen readers)
+
+  Example:
+    {% include "components/forms/field.html" with field=form.email icon="fa-envelope" %}
+{% endcomment %}
+{% with f=field is_req=required|default:field.field.required %}
+<div class="space-y-1">
+  {% if f.label %}
+    <label for="{{ f.id_for_label }}" class="{{ label_class|default:'block text-sm font-medium text-gray-700' }} {% if hide_label %}sr-only{% endif %}">
+      {% if icon %}<i class="fas {{ icon }} text-gray-400 mr-1"></i>{% endif %}
+      {{ label|default:f.label }}{% if is_req %} <span class="text-danger-500">*</span>{% endif %}
+    </label>
+  {% endif %}
+  {{ f }}
+  {% if help_text or f.help_text %}
+    <p class="text-xs text-gray-500">{{ help_text|default:f.help_text }}</p>
+  {% endif %}
+  {% if f.errors %}
+    {% for err in f.errors %}
+      <p class="text-xs text-danger-600 flex items-center gap-1">
+        <i class="fas fa-circle-exclamation"></i>
+        <span>{{ err }}</span>
+      </p>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endwith %}

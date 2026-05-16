@@ -1,0 +1,38 @@
+{% comment %}
+  Pagination control compatible with both classic GET pagination and HTMX
+  in-place pagination (when hx_target is provided).
+
+  Context:
+    page_obj      – Django Page object (required)
+    base_url      – base URL to append ?page=N to (optional; uses current path by default)
+    hx_target     – when set, renders HTMX-aware links targeting this selector
+    hx_swap       – HTMX swap strategy (default "innerHTML")
+    hx_push_url   – HTMX push URL (default "true")
+    querystring   – optional extra query string (e.g. "&search=foo")
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 %}
+{% with target=hx_target swap=hx_swap|default:'innerHTML' push=hx_push_url|default:'true' qs=querystring|default:'' %}
+<nav class="flex items-center justify-between gap-4 px-4 py-3 bg-white border-t border-gray-200" aria-label="Pagination">
+  <p class="hidden sm:block text-sm text-gray-500">
+    Showing <span class="font-medium text-gray-700">{{ page_obj.start_index }}</span>
+    to <span class="font-medium text-gray-700">{{ page_obj.end_index }}</span>
+    of <span class="font-medium text-gray-700">{{ page_obj.paginator.count }}</span>
+  </p>
+  <div class="flex items-center gap-2">
+    {% if page_obj.has_previous %}
+      <a {% if target %}hx-get="?page={{ page_obj.previous_page_number }}{{ qs }}" hx-target="{{ target }}" hx-swap="{{ swap }}" hx-push-url="{{ push }}"{% else %}href="?page={{ page_obj.previous_page_number }}{{ qs }}"{% endif %}
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        <i class="fas fa-chevron-left text-[0.65rem]"></i> Previous
+      </a>
+    {% endif %}
+    <span class="text-sm text-gray-500 px-2">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a {% if target %}hx-get="?page={{ page_obj.next_page_number }}{{ qs }}" hx-target="{{ target }}" hx-swap="{{ swap }}" hx-push-url="{{ push }}"{% else %}href="?page={{ page_obj.next_page_number }}{{ qs }}"{% endif %}
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        Next <i class="fas fa-chevron-right text-[0.65rem]"></i>
+      </a>
+    {% endif %}
+  </div>
+</nav>
+{% endwith %}
+{% endif %}

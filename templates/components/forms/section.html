@@ -1,0 +1,24 @@
+{% comment %}
+  Form section wrapper.
+
+  Context:
+    title       – section heading (required)
+    description – optional helper text
+    icon        – optional FA icon
+    body        – pre-rendered HTML body (the grid of fields) (required)
+    columns     – number of grid columns at md+ (default 2)
+{% endcomment %}
+<section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+  <header class="px-6 py-4 border-b border-gray-100">
+    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+      {% if icon %}<i class="fas {{ icon }} text-primary-500"></i>{% endif %}
+      {{ title }}
+    </h3>
+    {% if description %}<p class="mt-1 text-sm text-gray-500">{{ description }}</p>{% endif %}
+  </header>
+  <div class="px-6 py-5">
+    <div class="grid grid-cols-1 md:grid-cols-{{ columns|default:2 }} gap-x-6 gap-y-4">
+      {{ body }}
+    </div>
+  </div>
+</section>

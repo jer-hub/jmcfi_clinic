@@ -1,0 +1,13 @@
+<span id="jmcfi-dr-header-total-count" hx-swap-oob="true" class="text-sm text-gray-600 inline-flex items-center gap-1.5">
+  <span class="w-2 h-2 bg-primary-500 rounded-full"></span>
+  {{ total_count }} record{{ total_count|pluralize }}
+</span>
+<div id="jmcfi-dental-edit-action-bar" class="flex flex-wrap items-center justify-between gap-3 mb-6" hx-swap-oob="true">
+{% include "dental_records/_dental_edit_action_bar_inner.html" %}
+</div>
+<div id="jmcfi-dr-list-stats" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6" hx-swap-oob="true">
+{% include "dental_records/_dr_list_stat_cards_inner.html" %}
+</div>
+<div id="jmcfi-dr-list-table-fragment" hx-swap-oob="true">
+{% include "dental_records/_dr_list_table_fragment.html" %}
+</div>

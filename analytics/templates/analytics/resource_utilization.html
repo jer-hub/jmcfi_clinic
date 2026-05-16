@@ -1,119 +1,151 @@
 {% extends "core/base.html" %}
-{% block title %}Resource Utilization{% endblock %}
+{% load app_subnav %}
+{% block title %}Resource Utilization - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-      <div class="flex-1">
-        {% include "components/page_header.html" with title="Resource Utilization" subtitle="Staff efficiency, consultation times, and patient throughput" icon="fa-chart-column" %}
+    <div class="mb-5 rounded-card border border-gray-200 bg-white shadow-sm p-3 sm:p-4">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900">Reporting period</p>
+          <p class="mt-0.5 text-xs text-gray-500 truncate">
+            {{ date_from|date:"M j, Y" }} – {{ date_to|date:"M j, Y" }}
+            <span class="text-gray-400">· utilization &amp; appointments</span>
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Quick ranges">
+          {% for preset in period_presets %}
+          <a href="?date_from={{ preset.date_from|date:'Y-m-d' }}&amp;date_to={{ preset.date_to|date:'Y-m-d' }}"
+            class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors {% if preset.active %}bg-primary-100 text-primary-700 ring-1 ring-primary-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+            {{ preset.label }}
+          </a>
+          {% endfor %}
+        </div>
       </div>
-      <a href="{% url 'analytics:dashboard' %}" class="inline-flex items-center gap-2 px-3 py-2 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
-        <i class="fas fa-arrow-left"></i>Back to Analytics
-      </a>
-    </div>
 
-    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 mb-6">
-      <form method="get" class="flex flex-wrap items-end gap-4">
+      <form method="get" class="mt-3 pt-3 border-t border-gray-100 flex w-full flex-wrap items-end justify-end gap-2 sm:gap-3">
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
-          {{ filter_form.date_from }}
+          <label for="resources-date-from" class="block text-xs font-medium text-gray-500 mb-1">From</label>
+          <input type="date" id="resources-date-from" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
+            class="form-input form-input--compact w-full min-w-[9.5rem]">
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
-          {{ filter_form.date_to }}
+          <label for="resources-date-to" class="block text-xs font-medium text-gray-500 mb-1">To</label>
+          <input type="date" id="resources-date-to" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
+            class="form-input form-input--compact w-full min-w-[9.5rem]">
         </div>
-        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"><i class="fas fa-filter"></i>Filter</button>
+        <button type="submit" class="form-btn--compact form-btn--compact-primary shrink-0">
+          <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
+        </button>
       </form>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      {% include "components/stat_card.html" with label="Avg Consultation" value=avg_consultation|stringformat:"s"|add:" min" icon="fa-clock" variant="primary" %}
-      {% include "components/stat_card.html" with label="Total Throughput" value=total_throughput icon="fa-people-arrows" variant="success" %}
-      {% include "components/stat_card.html" with label="Avg Daily Throughput" value=avg_throughput icon="fa-chart-line" variant="info" %}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+      {% include "components/stat_card.html" with label="Avg consultation" value=avg_consultation_display icon="fa-clock" variant="primary" hint="Logged daily records" %}
+      {% include "components/stat_card.html" with label="Total throughput" value=total_throughput icon="fa-people-arrows" variant="success" hint="In period" %}
+      {% include "components/stat_card.html" with label="Avg daily throughput" value=avg_throughput icon="fa-chart-line" variant="info" hint=period_hint %}
     </div>
 
-    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 mb-8">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-user-doctor text-primary-500"></i>Staff Appointment Completion</h3>
-      {% if staff_stats %}
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Staff Member</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Completed</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Distribution</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            {% for s in staff_stats %}
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm text-gray-700">{{ s.doctor__first_name }} {{ s.doctor__last_name }}</td>
-              <td class="px-4 py-3 text-sm font-medium text-gray-900 text-right">{{ s.total }}</td>
-              <td class="px-4 py-3">
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div class="bg-primary-500 h-2 rounded-full" style="width: {% widthratio s.total staff_stats.0.total 100 %}%"></div>
-                </div>
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-      <p class="text-sm text-gray-500">No completed appointment data for this period.</p>
-      {% endif %}
-    </div>
-
-    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-list-check text-primary-500"></i>Daily Utilization Log</h3>
-      {% if records %}
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Consultations</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Avg Min</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Throughput</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Staff</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Efficiency</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            {% for r in records %}
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm text-gray-700">{{ r.date|date:"M d, Y" }}</td>
-              <td class="px-4 py-3 text-sm text-right">{{ r.total_consultations }}</td>
-              <td class="px-4 py-3 text-sm text-right">{{ r.avg_consultation_minutes|floatformat:0 }}</td>
-              <td class="px-4 py-3 text-sm text-right">{{ r.patient_throughput }}</td>
-              <td class="px-4 py-3 text-sm text-right">{{ r.staff_on_duty }}</td>
-              <td class="px-4 py-3 text-sm text-right font-medium">{{ r.efficiency_score }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      {% if records.has_other_pages %}
-      <nav class="flex justify-center mt-4" aria-label="Pagination">
-        <ul class="inline-flex -space-x-px text-sm">
-          {% if records.has_previous %}
-          <li><a href="?page={{ records.previous_page_number }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-l-lg">Prev</a></li>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="staff-completion-heading">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 id="staff-completion-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-user-doctor text-primary-500"></i>Staff completions
+          </h2>
+          {% if staff_total_completed %}
+          <span class="text-xs font-medium text-gray-500 tabular-nums">{{ staff_total_completed }} total</span>
           {% endif %}
-          {% for num in records.paginator.page_range %}
-          <li><a href="?page={{ num }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="px-3 py-2 border border-gray-300 {% if records.number == num %}bg-primary-50 text-primary-600{% else %}bg-white text-gray-500 hover:bg-gray-100{% endif %}">{{ num }}</a></li>
+        </div>
+
+        {% if staff_stats %}
+        <ol class="space-y-3">
+          {% for s in staff_stats %}
+          <li>
+            <div class="flex items-baseline justify-between gap-2 mb-1">
+              <span class="text-sm font-medium text-gray-800 truncate min-w-0">
+                <span class="text-gray-400 font-normal tabular-nums mr-1.5">{{ forloop.counter }}.</span>
+                {{ s.doctor__first_name }} {{ s.doctor__last_name }}
+              </span>
+              <span class="text-sm font-bold text-gray-900 tabular-nums shrink-0">{{ s.total }}</span>
+            </div>
+            <div class="h-2 bg-gray-100 rounded-full overflow-hidden" role="presentation">
+              <div class="h-full rounded-full bg-gradient-to-r from-primary-400 to-primary-600"
+                style="width: {% if staff_total_completed %}{% widthratio s.total staff_total_completed 100 %}{% else %}0{% endif %}%"></div>
+            </div>
+          </li>
           {% endfor %}
-          {% if records.has_next %}
-          <li><a href="?page={{ records.next_page_number }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-r-lg">Next</a></li>
-          {% endif %}
-        </ul>
-      </nav>
-      {% endif %}
-      {% else %}
-      <p class="text-sm text-gray-500">No daily utilization records found. Records can be added via the Admin panel.</p>
-      {% endif %}
+        </ol>
+        {% else %}
+        <div class="flex flex-col items-center justify-center text-center py-8 px-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
+          <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white border border-gray-200 text-gray-400 mb-2">
+            <i class="fas fa-user-doctor"></i>
+          </span>
+          <p class="text-sm font-medium text-gray-700">No completed appointments</p>
+          <p class="mt-0.5 text-xs text-gray-500">Try a wider date range.</p>
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[12rem]" aria-labelledby="daily-log-heading">
+        <div class="flex items-center justify-between gap-3 mb-4">
+          <h2 id="daily-log-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-list-check text-primary-500"></i>Daily utilization log
+          </h2>
+          <a href="{% url 'analytics:predictive_analytics' %}?date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+            class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Predictive →</a>
+        </div>
+
+        {% if records %}
+        <div class="overflow-x-auto -mx-1 flex-1">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200">
+                <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
+                <th scope="col" class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Consults</th>
+                <th scope="col" class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Throughput</th>
+                <th scope="col" class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Score</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for r in records %}
+              <tr class="hover:bg-gray-50/80">
+                <td class="px-3 py-2.5 text-gray-700 whitespace-nowrap">{{ r.date|date:"M j, Y" }}</td>
+                <td class="px-3 py-2.5 text-right tabular-nums text-gray-900">{{ r.total_consultations }}</td>
+                <td class="px-3 py-2.5 text-right tabular-nums text-gray-700">{{ r.patient_throughput }}</td>
+                <td class="px-3 py-2.5 text-right font-semibold tabular-nums text-gray-900">{{ r.efficiency_score }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        {% if records.has_other_pages %}
+        <nav class="flex justify-center mt-4 pt-3 border-t border-gray-100" aria-label="Utilization log pagination">
+          <ul class="inline-flex -space-x-px text-sm">
+            {% if records.has_previous %}
+            <li><a href="?page={{ records.previous_page_number }}&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+              class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 rounded-l-lg">Prev</a></li>
+            {% endif %}
+            {% for num in records.paginator.page_range %}
+            <li><a href="?page={{ num }}&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+              class="px-3 py-2 border border-gray-300 {% if records.number == num %}bg-primary-50 text-primary-700 border-primary-200{% else %}bg-white text-gray-500 hover:bg-gray-50{% endif %}">{{ num }}</a></li>
+            {% endfor %}
+            {% if records.has_next %}
+            <li><a href="?page={{ records.next_page_number }}&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+              class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 rounded-r-lg">Next</a></li>
+            {% endif %}
+          </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="flex-1 flex flex-col items-center justify-center text-center py-8 px-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
+          <p class="text-sm font-medium text-gray-700">No daily records</p>
+          <p class="mt-0.5 text-xs text-gray-500">Add utilization entries in the admin panel.</p>
+        </div>
+        {% endif %}
+      </section>
     </div>
 </div>
 {% endblock %}

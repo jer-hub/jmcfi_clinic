@@ -3,7 +3,7 @@ from functools import wraps
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.contrib import messages
-from .utils import get_user_profile
+from .utils import get_user_profile, role_home_url_name
 from .profile_policy import (
     STUDENT_PROFILE_REQUIRED_FIELDS,
     STAFF_PROFILE_REQUIRED_FIELDS,
@@ -39,13 +39,13 @@ def role_required(*roles):
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({'success': False, 'error': 'Admin access is not permitted for clinical application pages.'}, status=403)
                 messages.error(request, 'Admin access is not permitted for clinical application pages.')
-                return redirect('core:dashboard')
+                return redirect(role_home_url_name(request.user))
             
             if request.user.role not in roles:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({'success': False, 'error': f'Access denied. Required role(s): {", ".join(roles)}.'}, status=403)
                 messages.error(request, 'Access denied. You do not have permission to access this page.')
-                return redirect('core:dashboard')
+                return redirect(role_home_url_name(request.user))
             return view_func(request, *args, **kwargs)
         wrapped_view.required_roles = roles
         return wrapped_view
@@ -63,7 +63,7 @@ def admin_required(view_func):
         
         if request.user.role != 'admin':
             messages.error(request, 'You do not have permission to access this page.')
-            return redirect('core:dashboard')
+            return redirect(role_home_url_name(request.user))
         
         return view_func(request, *args, **kwargs)
     return wrapped_view

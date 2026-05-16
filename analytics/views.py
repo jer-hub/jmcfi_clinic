@@ -50,18 +50,94 @@ def _get_date_range(request):
     return date_from, date_to
 
 
+def _period_presets(date_from, date_to):
+    """Quick date-range shortcuts for analytics filter bars."""
+    today = timezone.localdate()
+    presets = []
+    for label, days in (('30 days', 30), ('90 days', 90), ('6 months', 180)):
+        preset_from = today - timedelta(days=days)
+        presets.append({
+            'label': label,
+            'date_from': preset_from,
+            'date_to': today,
+            'active': date_from == preset_from and date_to == today,
+        })
+    return presets
+
+
 def _friendly_diagnosis_label(value):
     """Normalize diagnosis labels for chart/list display."""
     text = (value or '').strip()
     if not text:
-        return 'Unspecified Diagnosis'
-    return ' '.join(text.replace('_', ' ').split())
+        return 'Unspecified diagnosis'
+    text = ' '.join(text.replace('_', ' ').split())
+    if text.islower():
+        return text.title()
+    return text
 
 
-def _illness_stats(date_from, date_to, doctor=None):
+def _diagnosis_aggregate_key(value):
+    """Bucket placeholder diagnoses so lists stay readable."""
+    text = _friendly_diagnosis_label(value)
+    key = text.lower().strip('.')
+    if key in {'diagnosis', 'diag', 'unspecified diagnosis', 'n/a', 'na', 'none', 'test'}:
+        return '__unspecified__'
+    if len(key) <= 12 and key.startswith('diag'):
+        return '__unspecified__'
+    return key
+
+
+def _diagnosis_display_name(key, sample_value):
+    if key == '__unspecified__':
+        return 'Unspecified / general'
+    return _friendly_diagnosis_label(sample_value)
+
+
+def _student_visit_history(user, months=6):
+    """Last N calendar months of appointment counts (zeros for quiet months)."""
+    from appointments.models import Appointment
+
+    now = timezone.now()
+    month_starts = []
+    cursor = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    for _ in range(months):
+        month_starts.append(cursor)
+        if cursor.month == 1:
+            cursor = cursor.replace(year=cursor.year - 1, month=12)
+        else:
+            cursor = cursor.replace(month=cursor.month - 1)
+    month_starts.reverse()
+
+    raw = (
+        Appointment.objects.filter(student=user)
+        .annotate(month=TruncMonth(Cast('date', output_field=models.DateTimeField())))
+        .values('month')
+        .annotate(count=Count('id'))
+    )
+    count_map = {}
+    for row in raw:
+        month_val = row['month']
+        if not month_val:
+            continue
+        if timezone.is_aware(month_val):
+            month_val = timezone.localtime(month_val)
+        count_map[(month_val.year, month_val.month)] = row['count']
+
+    return [
+        {
+            'month': month_start,
+            'label': month_start.strftime('%b %Y'),
+            'count': count_map.get((month_start.year, month_start.month), 0),
+        }
+        for month_start in month_starts
+    ]
+
+
+def _illness_stats(date_from, date_to, doctor=None, diagnosis_query=None):
     """Aggregate diagnosis signals from medical records plus dental encounters.
 
     Optional `doctor` scope limits results to records handled by that clinician.
+    Optional `diagnosis_query` filters medical records and ranked results (icontains).
     """
     from medical_records.models import MedicalRecord
     from dental_records.models import DentalRecord
@@ -76,24 +152,38 @@ def _illness_stats(date_from, date_to, doctor=None):
         date_of_examination__lte=date_to,
     )
 
+    if diagnosis_query:
+        medical_qs = medical_qs.filter(diagnosis__icontains=diagnosis_query)
+
     if doctor is not None:
         medical_qs = medical_qs.filter(doctor=doctor)
         dental_qs = dental_qs.filter(examined_by=doctor)
 
     aggregated = defaultdict(int)
+    display_names = {}
 
     for item in medical_qs.values('diagnosis').annotate(count=Count('id')):
-        diagnosis = _friendly_diagnosis_label(item['diagnosis'])
-        aggregated[diagnosis] += item['count']
+        key = _diagnosis_aggregate_key(item['diagnosis'])
+        aggregated[key] += item['count']
+        if key not in display_names:
+            display_names[key] = _diagnosis_display_name(key, item['diagnosis'])
 
     dental_count = dental_qs.count()
     if dental_count:
-        aggregated['Dental Consultation'] += dental_count
+        aggregated['__dental__'] += dental_count
+        display_names.setdefault('__dental__', 'Dental consultation')
 
-    return [
-        {'diagnosis': diagnosis, 'count': count}
-        for diagnosis, count in sorted(aggregated.items(), key=lambda x: x[1], reverse=True)
+    results = [
+        {'diagnosis': display_names[key], 'count': count}
+        for key, count in sorted(aggregated.items(), key=lambda x: x[1], reverse=True)
     ]
+    if diagnosis_query:
+        needle = diagnosis_query.lower()
+        results = [
+            item for item in results
+            if needle in item['diagnosis'].lower()
+        ]
+    return results
 
 
 def _appointment_volume(date_from, date_to):
@@ -190,6 +280,14 @@ def _financial_summary(date_from, date_to):
 @login_required
 def analytics_dashboard(request):
     """Main analytics hub – role-based dashboard."""
+    if request.user.role == 'admin':
+        return redirect('core:dashboard')
+    return render_analytics_dashboard(request)
+
+
+@login_required
+def render_analytics_dashboard(request):
+    """Render analytics hub (admin home is served at / via core.dashboard)."""
     date_from, date_to = _get_date_range(request)
     user = request.user
 
@@ -207,30 +305,50 @@ def analytics_dashboard(request):
 
         records = MedicalRecord.objects.filter(student=user).order_by('-created_at')
         appointments = Appointment.objects.filter(student=user)
-
-        context.update({
-            'total_records': records.count(),
-            'total_appointments': appointments.count(),
-            'completed_appointments': appointments.filter(status='completed').count(),
-            'recent_diagnoses': [],
-            'appointment_history': list(
-                appointments.annotate(
-                    month=TruncMonth(Cast('date', output_field=models.DateTimeField()))
-                ).values('month').annotate(count=Count('id')).order_by('month')
-            ),
-        })
+        total_appointments = appointments.count()
+        completed_appointments = appointments.filter(status='completed').count()
+        appointment_history = _student_visit_history(user, months=6)
 
         recent_diag_raw = list(
             records.exclude(diagnosis='').values('diagnosis')
             .annotate(count=Count('id')).order_by('-count')[:25]
         )
         recent_diag_map = defaultdict(int)
+        display_names = {}
         for item in recent_diag_raw:
-            recent_diag_map[_friendly_diagnosis_label(item['diagnosis'])] += item['count']
-        context['recent_diagnoses'] = [
-            {'diagnosis': diagnosis, 'count': count}
-            for diagnosis, count in sorted(recent_diag_map.items(), key=lambda x: x[1], reverse=True)[:10]
+            key = _diagnosis_aggregate_key(item['diagnosis'])
+            recent_diag_map[key] += item['count']
+            if key not in display_names:
+                display_names[key] = _diagnosis_display_name(key, item['diagnosis'])
+
+        recent_diagnoses = [
+            {
+                'diagnosis': display_names[key],
+                'count': count,
+            }
+            for key, count in sorted(recent_diag_map.items(), key=lambda x: x[1], reverse=True)[:8]
         ]
+        max_diagnosis_count = max((d['count'] for d in recent_diagnoses), default=0)
+
+        completion_rate = (
+            round(completed_appointments * 100 / total_appointments)
+            if total_appointments
+            else 0
+        )
+
+        context.update({
+            'total_records': records.count(),
+            'total_appointments': total_appointments,
+            'completed_appointments': completed_appointments,
+            'completion_rate': completion_rate,
+            'completion_hint': f'{completion_rate}% completion rate' if total_appointments else 'No appointments yet',
+            'appointment_history': appointment_history,
+            'visit_chart_labels': [item['label'] for item in appointment_history],
+            'visit_chart_data': [item['count'] for item in appointment_history],
+            'visit_chart_total': sum(item['count'] for item in appointment_history),
+            'recent_diagnoses': recent_diagnoses,
+            'max_diagnosis_count': max_diagnosis_count,
+        })
 
         return render(request, 'analytics/dashboard_student.html', context)
 
@@ -289,25 +407,40 @@ def analytics_dashboard(request):
 @role_required('staff', 'doctor', 'admin')
 def health_trends(request):
     """Student health trend analysis across semesters."""
-    form = HealthTrendFilterForm(request.GET or None)
-    trends = HealthTrendRecord.objects.all()
+    from .forms import split_health_trend_term
 
-    if form.is_valid():
-        if form.cleaned_data.get('academic_year'):
-            trends = trends.filter(academic_year=form.cleaned_data['academic_year'])
-        if form.cleaned_data.get('semester'):
-            trends = trends.filter(semester=form.cleaned_data['semester'])
-        if form.cleaned_data.get('illness_category'):
-            trends = trends.filter(illness_category__icontains=form.cleaned_data['illness_category'])
-
-    # Live stats from medical records
     date_from, date_to = _get_date_range(request)
-    live_illness = _illness_stats(date_from, date_to)
+    form = HealthTrendFilterForm(
+        request.GET or None,
+        initial={'date_from': date_from, 'date_to': date_to},
+    )
+    trends = HealthTrendRecord.objects.all()
+    illness_q = ''
 
+    if request.GET:
+        illness_q = (request.GET.get('illness_category') or '').strip()
+        term_val = (request.GET.get('term') or '').strip()
+        academic_year, semester = split_health_trend_term(term_val)
+        if academic_year:
+            trends = trends.filter(academic_year=academic_year)
+        if semester:
+            trends = trends.filter(semester=semester)
+        if illness_q:
+            trends = trends.filter(illness_category__icontains=illness_q)
+
+    live_illness = _illness_stats(
+        date_from, date_to,
+        diagnosis_query=illness_q or None,
+    )
+
+    live_illness_stats = live_illness[:20]
     context = {
         'form': form,
         'trends': trends,
-        'live_illness_stats': live_illness[:20],
+        'trends_count': trends.count(),
+        'live_illness_stats': live_illness_stats,
+        'live_cases_total': sum(item['count'] for item in live_illness_stats),
+        'illness_filter': illness_q,
         'date_from': date_from,
         'date_to': date_to,
     }
@@ -345,7 +478,10 @@ def predictive_analytics(request):
         'insight_types': PredictiveInsight.INSIGHT_TYPES,
         'selected_type': insight_filter,
         'peak_hour': peak_hour,
+        'peak_hour_display': f'{peak_hour:02d}:00' if peak_hour is not None else 'N/A',
         'busiest_day': day_names.get(busiest_day, 'N/A'),
+        'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
+        'period_presets': _period_presets(date_from, date_to),
         'hourly_data': hourly,
         'weekday_data': weekday,
         'day_names': day_names,
@@ -449,15 +585,21 @@ def resource_utilization(request):
         .order_by('-total')
     )
 
+    staff_stats = list(live_data)
+    staff_total_completed = sum(s['total'] for s in staff_stats)
+
     context = {
         'records': paginate_queryset(records, request, per_page=15),
         'avg_consultation': round(avg_consultation, 1),
+        'avg_consultation_display': f'{round(avg_consultation, 1)} min',
         'total_throughput': total_throughput,
         'avg_throughput': round(avg_throughput, 1),
-        'staff_stats': list(live_data),
+        'staff_stats': staff_stats,
+        'staff_total_completed': staff_total_completed,
+        'period_presets': _period_presets(date_from, date_to),
+        'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
         'date_from': date_from,
         'date_to': date_to,
-        'filter_form': DateRangeFilterForm(initial={'date_from': date_from, 'date_to': date_to}),
     }
     return render(request, 'analytics/resource_utilization.html', context)
 
@@ -470,14 +612,21 @@ def resource_utilization(request):
 @admin_required
 def compliance_reports(request):
     """List and manage compliance reports."""
-    reports = ComplianceReport.objects.all()
+    reports_qs = ComplianceReport.objects.all()
     report_filter = request.GET.get('type', '')
     if report_filter:
-        reports = reports.filter(report_type=report_filter)
+        reports_qs = reports_qs.filter(report_type=report_filter)
+
+    type_labels = dict(ComplianceReport.REPORT_TYPES)
     context = {
-        'reports': paginate_queryset(reports, request, per_page=10),
+        'reports': paginate_queryset(reports_qs, request, per_page=10),
         'report_types': ComplianceReport.REPORT_TYPES,
         'selected_type': report_filter,
+        'filter_label': type_labels.get(report_filter, 'All types'),
+        'reports_total': reports_qs.count(),
+        'reports_draft': reports_qs.filter(status='draft').count(),
+        'reports_final': reports_qs.filter(status='final').count(),
+        'reports_submitted': reports_qs.filter(status='submitted').count(),
     }
     return render(request, 'analytics/compliance_reports.html', context)
 
@@ -579,15 +728,25 @@ def population_health(request):
         .order_by('-count')
     )
 
+    records_in_period = sum(item['count'] for item in health_by_course)
+    appt_in_period = sum(item['count'] for item in appt_by_course)
+    total_students = sum(g['count'] for g in demographics['gender']) or StudentProfile.objects.count()
+
     context = {
         'demographics': demographics,
         'health_by_course': health_by_course,
         'health_by_year': health_by_year,
+        'health_by_course_total': records_in_period,
+        'health_by_year_total': sum(item['count'] for item in health_by_year),
         'appt_by_course': appt_by_course,
         'blood_types': blood_types,
+        'total_students': total_students,
+        'records_in_period': records_in_period,
+        'appt_in_period': appt_in_period,
+        'period_presets': _period_presets(date_from, date_to),
+        'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
         'date_from': date_from,
         'date_to': date_to,
-        'filter_form': DateRangeFilterForm(initial={'date_from': date_from, 'date_to': date_to}),
     }
     return render(request, 'analytics/population_health.html', context)
 
@@ -596,20 +755,34 @@ def population_health(request):
 # 7. Financial & Cost Analysis
 # =====================================================================
 
+def _fmt_peso(amount):
+    """Format a decimal amount as Philippine peso."""
+    value = amount or Decimal('0')
+    return f'₱{value:,.2f}'
+
+
 @login_required
 @admin_required
 def financial_overview(request):
     """Financial overview dashboard."""
     date_from, date_to = _get_date_range(request)
     summary = _financial_summary(date_from, date_to)
-    recent = FinancialRecord.objects.filter(date__gte=date_from, date__lte=date_to)
+    records_qs = FinancialRecord.objects.filter(
+        date__gte=date_from, date__lte=date_to,
+    ).order_by('-date', '-id')
 
     context = {
         'summary': summary,
-        'records': paginate_queryset(recent, request, per_page=15),
+        'records': paginate_queryset(records_qs, request, per_page=15),
+        'records_count': records_qs.count(),
         'date_from': date_from,
         'date_to': date_to,
-        'filter_form': DateRangeFilterForm(initial={'date_from': date_from, 'date_to': date_to}),
+        'period_presets': _period_presets(date_from, date_to),
+        'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
+        'expenses_display': _fmt_peso(summary['total_expenses']),
+        'income_display': _fmt_peso(summary['total_income']),
+        'net_display': _fmt_peso(summary['net']),
+        'net_variant': 'success' if summary['net'] >= 0 else 'danger',
     }
     return render(request, 'analytics/financial_overview.html', context)
 
@@ -667,12 +840,20 @@ def academic_correlation(request):
         .order_by('-count')
     )
 
+    total_visits = sum(v['visit_count'] for v in frequent_visitors)
+    high_visit_students = sum(1 for v in frequent_visitors if v['visit_count'] >= 5)
+    emergency_total = sum(item['count'] for item in emergency_visits)
+
     context = {
         'frequent_visitors': frequent_visitors,
         'emergency_visits': emergency_visits,
+        'total_visits': total_visits,
+        'high_visit_students': high_visit_students,
+        'emergency_total': emergency_total,
+        'period_presets': _period_presets(date_from, date_to),
+        'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
         'date_from': date_from,
         'date_to': date_to,
-        'filter_form': DateRangeFilterForm(initial={'date_from': date_from, 'date_to': date_to}),
     }
     return render(request, 'analytics/academic_correlation.html', context)
 

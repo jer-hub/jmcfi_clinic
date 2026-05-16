@@ -1,111 +1,141 @@
 {% extends "core/base.html" %}
-{% block title %}Compliance Reports{% endblock %}
+{% load app_subnav %}
+{% block title %}Compliance Reports - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-      <div class="flex-1">
-        {% include "components/page_header.html" with title="Compliance & Accreditation Reports" subtitle="CHED, DOH, and university accreditation reporting" icon="fa-shield-halved" %}
-      </div>
-      <div class="flex gap-2">
-        <a href="{% url 'analytics:dashboard' %}" class="inline-flex items-center gap-2 px-3 py-2 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
-          <i class="fas fa-arrow-left"></i>Back
+    <div class="mb-5 rounded-card border border-gray-200 bg-white shadow-sm p-3 sm:p-4">
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 flex items-center gap-2">
+            <i class="fas fa-shield-halved text-primary-500 text-xs" aria-hidden="true"></i>
+            Compliance &amp; accreditation
+          </p>
+          <p class="mt-0.5 text-xs text-gray-500">CHED, DOH, and university reporting</p>
+        </div>
+        <a href="{% url 'analytics:generate_compliance_report' %}"
+          class="form-btn--compact form-btn--compact-primary shrink-0 self-start lg:self-center">
+          <i class="fas fa-plus text-[10px]" aria-hidden="true"></i>Generate report
         </a>
-        <a href="{% url 'analytics:generate_compliance_report' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
-          <i class="fas fa-plus"></i>Generate Report
-        </a>
       </div>
-    </div>
-
-    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-3 mb-6">
-      <div class="flex flex-wrap items-center gap-2">
-        <span class="text-sm font-medium text-gray-700"><i class="fas fa-filter mr-1"></i>Filter:</span>
-        <a href="{% url 'analytics:compliance_reports' %}" class="px-3 py-1 text-xs font-medium rounded-full {% if not selected_type %}bg-primary-100 text-primary-700{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %} transition-colors">All</a>
+      <div class="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-1.5" role="group" aria-label="Report type">
+        <a href="{% url 'analytics:compliance_reports' %}"
+          class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors {% if not selected_type %}bg-primary-100 text-primary-700 ring-1 ring-primary-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">All</a>
         {% for value, label in report_types %}
-        <a href="?type={{ value }}" class="px-3 py-1 text-xs font-medium rounded-full {% if selected_type == value %}bg-primary-100 text-primary-700{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %} transition-colors">{{ label }}</a>
+        <a href="?type={{ value }}"
+          class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors {% if selected_type == value %}bg-primary-100 text-primary-700 ring-1 ring-primary-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">{{ label }}</a>
         {% endfor %}
       </div>
     </div>
 
-    {% if reports %}
-    <div class="space-y-3">
-      {% for report in reports %}
-      <a href="{% url 'analytics:compliance_report_detail' report.pk %}" class="block bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 hover:shadow-md hover:border-primary-200 transition group">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <h4 class="text-base font-semibold text-gray-900 group-hover:text-primary-700">{{ report.title }}</h4>
-            <p class="text-sm text-gray-500 mt-1">{{ report.get_report_type_display }} · {{ report.period_start|date:"M d, Y" }} – {{ report.period_end|date:"M d, Y" }}</p>
-            {% if report.description %}
-            <p class="text-sm text-gray-600 mt-2">{{ report.description|truncatewords:30 }}</p>
-            {% endif %}
-          </div>
-          {% if report.status == 'submitted' %}{% include "components/status_badge.html" with label=report.get_status_display variant="success" icon="fa-paper-plane" %}
-          {% elif report.status == 'final' %}{% include "components/status_badge.html" with label=report.get_status_display variant="info" icon="fa-circle-check" %}
-          {% else %}{% include "components/status_badge.html" with label=report.get_status_display variant="muted" icon="fa-pen" %}{% endif %}
-        </div>
-        <p class="text-xs text-gray-400 mt-2">Generated {{ report.created_at|timesince }} ago{% if report.generated_by %} by {{ report.generated_by.get_full_name }}{% endif %}</p>
-      </a>
-      {% endfor %}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      {% include "components/stat_card.html" with label="Reports" value=reports_total icon="fa-shield-halved" variant="primary" hint=filter_label %}
+      {% include "components/stat_card.html" with label="Draft" value=reports_draft icon="fa-pen" variant="muted" hint="In progress" %}
+      {% include "components/stat_card.html" with label="Final" value=reports_final icon="fa-circle-check" variant="info" hint="Ready to submit" %}
+      {% include "components/stat_card.html" with label="Submitted" value=reports_submitted icon="fa-paper-plane" variant="success" hint="Sent" %}
     </div>
 
-    {% if reports.has_other_pages %}
-    <div class="flex items-center justify-center gap-1 mt-6">
-        <!-- Previous Button -->
+    <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="reports-list-heading">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h2 id="reports-list-heading" class="text-sm font-semibold text-gray-900">Generated reports</h2>
+        {% if reports_total %}
+        <span class="text-xs font-medium text-gray-500 tabular-nums">{{ reports_total }} report{{ reports_total|pluralize }}</span>
+        {% endif %}
+      </div>
+
+      {% if reports %}
+      <ul class="divide-y divide-gray-100 -mx-1">
+        {% for report in reports %}
+        <li>
+          <a href="{% url 'analytics:compliance_report_detail' report.pk %}"
+            class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-3 py-3 rounded-lg hover:bg-gray-50/80 transition-colors group">
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-gray-900 group-hover:text-primary-700 truncate">{{ report.title }}</p>
+              <p class="mt-0.5 text-xs text-gray-500">
+                {{ report.get_report_type_display }}
+                <span class="text-gray-300">·</span>
+                {{ report.period_start|date:"M j, Y" }} – {{ report.period_end|date:"M j, Y" }}
+              </p>
+              {% if report.description %}
+              <p class="mt-1 text-xs text-gray-600 line-clamp-1">{{ report.description }}</p>
+              {% endif %}
+              <p class="mt-1 text-[10px] text-gray-400">
+                {{ report.created_at|timesince }} ago{% if report.generated_by %} · {{ report.generated_by.get_full_name }}{% endif %}
+              </p>
+            </div>
+            <div class="shrink-0 self-start sm:self-center">
+              {% if report.status == 'submitted' %}{% include "components/status_badge.html" with label=report.get_status_display variant="success" icon="fa-paper-plane" %}
+              {% elif report.status == 'final' %}{% include "components/status_badge.html" with label=report.get_status_display variant="info" icon="fa-circle-check" %}
+              {% else %}{% include "components/status_badge.html" with label=report.get_status_display variant="muted" icon="fa-pen" %}{% endif %}
+            </div>
+          </a>
+        </li>
+        {% endfor %}
+      </ul>
+
+      {% if reports.has_other_pages %}
+      <div class="flex items-center justify-center gap-1 mt-6 pt-4 border-t border-gray-100">
         {% if reports.has_previous %}
-            <a href="?page={{ reports.previous_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-            </a>
+        <a href="?page={{ reports.previous_page_number }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
+          class="inline-flex items-center justify-center w-9 h-9 border border-gray-300 text-sm rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 transition-colors"
+          aria-label="Previous page">
+          <i class="fas fa-chevron-left text-xs"></i>
+        </a>
         {% else %}
-            <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                </svg>
-            </span>
+        <span class="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed" aria-hidden="true">
+          <i class="fas fa-chevron-left text-xs"></i>
+        </span>
         {% endif %}
-        
-        <!-- Page Numbers -->
+
         <div class="flex items-center gap-1">
-            {% for num in reports.paginator.page_range %}
-                {% if num == reports.number %}
-                    <span class="inline-flex items-center justify-center w-10 h-10 text-sm font-semibold rounded-lg text-white bg-gradient-to-r from-primary-600 to-primary-700 shadow-sm">{{ num }}</span>
-                {% elif num|add:"0" <= 2 %}
-                    <a href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
-                {% elif num|add:"0" >= reports.paginator.num_pages|add:"-1" %}
-                    {% if num|add:"0" == reports.paginator.num_pages|add:"-1" and reports.number not in reports.paginator.page_range|slice:"-3:" %}
-                        <span class="px-2 py-1 text-sm text-gray-500">...</span>
-                    {% endif %}
-                    <a href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
-                {% elif num|add:"0" >= reports.number|add:"-1" and num|add:"0" <= reports.number|add:"1" %}
-                    <a href="?page={{ num }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">{{ num }}</a>
-                {% elif num|add:"0" == 3 and reports.number > 4 %}
-                    <span class="px-2 py-1 text-sm text-gray-500">...</span>
-                {% endif %}
-            {% endfor %}
+          {% for num in reports.paginator.page_range %}
+            {% if num == reports.number %}
+            <span class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-semibold rounded-lg text-white bg-primary-600">{{ num }}</span>
+            {% elif num|add:"0" <= 2 %}
+            <a href="?page={{ num }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
+              class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-primary-50 transition-colors">{{ num }}</a>
+            {% elif num|add:"0" >= reports.paginator.num_pages|add:"-1" %}
+            {% if num|add:"0" == reports.paginator.num_pages|add:"-1" and reports.number not in reports.paginator.page_range|slice:"-3:" %}
+            <span class="px-1 text-xs text-gray-400">…</span>
+            {% endif %}
+            <a href="?page={{ num }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
+              class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-primary-50 transition-colors">{{ num }}</a>
+            {% elif num|add:"0" >= reports.number|add:"-1" and num|add:"0" <= reports.number|add:"1" %}
+            <a href="?page={{ num }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
+              class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-primary-50 transition-colors">{{ num }}</a>
+            {% elif num|add:"0" == 3 and reports.number > 4 %}
+            <span class="px-1 text-xs text-gray-400">…</span>
+            {% endif %}
+          {% endfor %}
         </div>
-        
-        <!-- Next Button -->
+
         {% if reports.has_next %}
-            <a href="?page={{ reports.next_page_number }}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 hover:text-primary-700 transition-all duration-200">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </a>
+        <a href="?page={{ reports.next_page_number }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
+          class="inline-flex items-center justify-center w-9 h-9 border border-gray-300 text-sm rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 transition-colors"
+          aria-label="Next page">
+          <i class="fas fa-chevron-right text-xs"></i>
+        </a>
         {% else %}
-            <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-200 text-sm font-medium rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
-            </span>
+        <span class="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed" aria-hidden="true">
+          <i class="fas fa-chevron-right text-xs"></i>
+        </span>
         {% endif %}
-    </div>
-    {% endif %}
-    {% else %}
-    {% url 'analytics:generate_compliance_report' as generate_url %}
-    {% include "components/empty_state.html" with icon="fa-shield-halved" title="No compliance reports yet" description="Generate your first compliance report for CHED, DOH, or accreditation." action_label="Generate Report" action_url=generate_url %}
-    {% endif %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div class="rounded-lg border border-dashed border-gray-200 bg-gray-50/50 py-10 px-4 text-center">
+        <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-gray-200 text-gray-400 mb-3">
+          <i class="fas fa-shield-halved text-lg" aria-hidden="true"></i>
+        </span>
+        <p class="text-sm font-medium text-gray-700">No reports{% if selected_type %} for {{ filter_label }}{% endif %}</p>
+        <p class="mt-1 text-xs text-gray-500 max-w-sm mx-auto">
+          Use <span class="font-medium text-gray-700">Generate report</span> above to create your first CHED, DOH, or accreditation export.
+        </p>
+      </div>
+      {% endif %}
+    </section>
 </div>
 {% endblock %}

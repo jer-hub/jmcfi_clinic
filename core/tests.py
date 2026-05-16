@@ -198,6 +198,12 @@ class AdminDashboardNavigationTests(TestCase):
 		)
 		_complete_staff_like_profile(self.admin_user, 'ADM-NAV-001')
 
+	def test_analytics_root_redirects_admin_to_home(self):
+		self.client.force_login(self.admin_user)
+		response = self.client.get(reverse('analytics:dashboard'))
+
+		self.assertRedirects(response, reverse('core:dashboard'))
+
 	def test_admin_dashboard_hides_removed_app_links(self):
 		self.client.force_login(self.admin_user)
 		response = self.client.get(reverse('core:dashboard'))
@@ -207,7 +213,6 @@ class AdminDashboardNavigationTests(TestCase):
 		self.assertNotContains(response, f'href="{reverse("medical_records:medical_records")}"')
 		self.assertNotContains(response, f'href="{reverse("dental_records:dental_record_list")}"')
 		self.assertNotContains(response, f'href="{reverse("document_request:document_requests")}"')
-		self.assertNotContains(response, f'href="{reverse("health_forms_services:forms_list")}"')
 		self.assertNotContains(response, f'href="{reverse("health_tips:health_tips_list")}"')
 		self.assertNotContains(response, f'href="{reverse("pharmacy:dashboard")}"')
 		self.assertNotContains(response, f'href="{reverse("feedback:feedback_list")}"')
@@ -218,7 +223,7 @@ class AdminDashboardNavigationTests(TestCase):
 
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, f'href="{reverse("core:user_management")}"')
-		self.assertContains(response, f'href="{reverse("analytics:dashboard")}"')
+		self.assertContains(response, f'href="{reverse("analytics:health_trends")}"')
 		self.assertContains(response, f'href="{reverse("appointments:appointment_type_settings")}"')
 
 

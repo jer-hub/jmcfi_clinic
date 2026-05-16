@@ -1,6 +1,7 @@
 import re
 
 from django.db.models import Count, Q, Avg
+from django.urls import reverse
 from django.utils import timezone
 from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError
@@ -14,6 +15,27 @@ from .profile_policy import (
 )
 
 User = get_user_model()
+
+
+def role_home_url_name(user=None, *, role=None):
+    """Django URL name for the authenticated user's primary home page."""
+    return 'core:dashboard'
+
+
+def role_home_url(user=None, *, role=None):
+    return reverse(role_home_url_name(user, role=role))
+
+
+def analytics_home_url_name(user=None, *, role=None):
+    """Django URL name for the analytics hub (admin hub lives at /)."""
+    resolved_role = role or getattr(user, 'role', None)
+    if resolved_role == 'admin':
+        return 'core:dashboard'
+    return 'analytics:dashboard'
+
+
+def analytics_home_url(user=None, *, role=None):
+    return reverse(analytics_home_url_name(user, role=role))
 
 
 # ---------------------------------------------------------------------------

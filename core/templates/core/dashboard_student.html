@@ -1,89 +1,75 @@
 {% comment %}Student dashboard.{% endcomment %}
+{% url 'medical_records:medical_records' as medical_records_url %}
+{% url 'dental_records:dental_record_list' as dental_records_url %}
+{% url 'document_request:document_requests' as document_requests_url %}
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  {% include "components/stat_card.html" with label="Upcoming Appointments" value=upcoming_appointments.count icon="fa-calendar-days" variant="primary" hint="Scheduled visits" %}
-  {% include "components/stat_card.html" with label="Medical Records" value=total_records icon="fa-file-medical" variant="success" hint="Your medical history" %}
-  {% include "components/stat_card.html" with label="Pending Certificates" value=pending_certificates icon="fa-file-circle-question" variant="warning" hint="Awaiting issuance" %}
-  {% include "components/stat_card.html" with label="Notifications" value=unread_notifications icon="fa-bell" variant="info" hint="Unread alerts" %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+  {% include "components/stat_card.html" with label="Medical Records" value=total_records icon="fa-file-medical" variant="success" hint="View your medical history" href=medical_records_url %}
+  {% include "components/stat_card.html" with label="Dental Records" value=total_dental_records icon="fa-tooth" variant="info" hint="View your dental records" href=dental_records_url %}
+  {% include "components/stat_card.html" with label="Pending Certificates" value=pending_certificates icon="fa-file-circle-question" variant="warning" hint="View pending requests" href=document_requests_url|add:"?status=pending_review" %}
 </div>
 
-<div class="bg-white rounded-card shadow-sm border border-gray-200 mb-6">
-  <div class="px-5 py-4 border-b border-gray-100">
-    <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-      <i class="fas fa-bolt text-warning-500"></i>Quick Actions
-    </h3>
-  </div>
-  <div class="p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-    <a href="{% url 'appointments:schedule_appointment' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-primary-50 hover:border-primary-200 transition-colors group">
-      <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-600 text-white group-hover:scale-105 transition-transform"><i class="fas fa-calendar-plus"></i></span>
-      <div class="min-w-0">
-        <p class="text-sm font-semibold text-gray-900">Book Appointment</p>
-        <p class="text-xs text-gray-500">Schedule with a doctor</p>
-      </div>
-    </a>
-    <a href="{% url 'document_request:request_document' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-success-50 hover:border-success-200 transition-colors group">
-      <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-success-600 text-white group-hover:scale-105 transition-transform"><i class="fas fa-file-medical"></i></span>
-      <div class="min-w-0">
-        <p class="text-sm font-semibold text-gray-900">Request Certificate</p>
-        <p class="text-xs text-gray-500">Medical certificate</p>
-      </div>
-    </a>
-    <a href="{% url 'health_tips:health_tips_list' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-info-50 hover:border-info-200 transition-colors group">
-      <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-info-600 text-white group-hover:scale-105 transition-transform"><i class="fas fa-heart-pulse"></i></span>
-      <div class="min-w-0">
-        <p class="text-sm font-semibold text-gray-900">Health Tips</p>
-        <p class="text-xs text-gray-500">Browse health advice</p>
-      </div>
-    </a>
-    <a href="{% url 'medical_records:medical_records' %}" class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-warning-50 hover:border-warning-200 transition-colors group">
-      <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-warning-600 text-white group-hover:scale-105 transition-transform"><i class="fas fa-folder-open"></i></span>
-      <div class="min-w-0">
-        <p class="text-sm font-semibold text-gray-900">Medical Records</p>
-        <p class="text-xs text-gray-500">View your records</p>
-      </div>
-    </a>
-  </div>
-</div>
-
-<div class="bg-white rounded-card shadow-sm border border-gray-200">
-  <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+<section class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
+  <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-start justify-between gap-3">
     <div>
-      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-        <i class="fas fa-calendar-check text-primary-500"></i>Upcoming Appointments
-      </h3>
-      <p class="text-xs text-gray-500 mt-0.5">{{ upcoming_appointments.count }} upcoming</p>
+      <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-calendar-check text-primary-500" aria-hidden="true"></i>Upcoming appointments
+      </h2>
+      <p class="mt-0.5 text-xs text-gray-500">
+        {% if upcoming_appointments %}
+          {{ upcoming_appointments.count }} scheduled visit{{ upcoming_appointments.count|pluralize }}
+        {% else %}
+          Nothing on your calendar yet
+        {% endif %}
+      </p>
     </div>
-    <a href="{% url 'appointments:appointment_list' %}" class="text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center gap-1">
-      View all <i class="fas fa-arrow-right text-xs"></i>
+    <a href="{% url 'appointments:appointment_list' %}"
+       class="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors">
+      View all<i class="fas fa-arrow-right text-xs" aria-hidden="true"></i>
     </a>
   </div>
-  <div class="p-5">
+  <div class="p-4 sm:p-5">
     {% if upcoming_appointments %}
-      <ul class="divide-y divide-gray-100">
-        {% for appointment in upcoming_appointments %}
-          <li class="flex items-center justify-between py-3 gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex-shrink-0"><i class="fas fa-calendar"></i></span>
-              <div class="min-w-0">
-                <p class="text-sm font-medium text-gray-900 truncate">{{ appointment.get_appointment_type_display }}</p>
-                <p class="text-xs text-gray-500 truncate">Dr. {{ appointment.doctor.get_full_name }} · {{ appointment.date|date:"M d" }} · {{ appointment.time|time:"g:i A" }}</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              {% if appointment.status == 'pending' %}
-                {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" size="sm" %}
-              {% elif appointment.status == 'cancelled' %}
-                {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" size="sm" %}
-              {% else %}
-                {% include "components/status_badge.html" with label=appointment.get_status_display variant="success" size="sm" %}
-              {% endif %}
-              <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="text-primary-600 text-sm font-medium hover:text-primary-700">View</a>
-            </div>
-          </li>
-        {% endfor %}
-      </ul>
+    <ul class="space-y-3">
+      {% for appointment in upcoming_appointments %}
+      <li>
+        <a href="{% url 'appointments:appointment_detail' appointment.id %}"
+           class="group flex items-center gap-3 sm:gap-4 p-3 rounded-xl border border-gray-200 hover:border-primary-200 hover:bg-primary-50/40 transition-all">
+          <div class="flex flex-col items-center justify-center w-14 h-14 rounded-xl bg-primary-50 text-primary-700 flex-shrink-0 border border-primary-100 group-hover:bg-primary-100 transition-colors">
+            <span class="text-lg font-bold leading-none tabular-nums">{{ appointment.date|date:"d" }}</span>
+            <span class="text-[10px] font-semibold uppercase tracking-wide mt-0.5">{{ appointment.date|date:"M" }}</span>
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-semibold text-gray-900 truncate">{{ appointment.get_appointment_type_display }}</p>
+            <p class="mt-1 text-xs text-gray-500 flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-0.5 sm:gap-x-2">
+              <span class="inline-flex items-center gap-1 min-w-0">
+                <i class="fas fa-user-doctor text-[10px] text-gray-400 flex-shrink-0" aria-hidden="true"></i>
+                <span class="truncate">Dr. {{ appointment.doctor.get_full_name }}</span>
+              </span>
+              <span class="hidden sm:inline text-gray-300" aria-hidden="true">·</span>
+              <span class="inline-flex items-center gap-1">
+                <i class="fas fa-clock text-[10px] text-gray-400" aria-hidden="true"></i>
+                {{ appointment.time|time:"g:i A" }}
+              </span>
+            </p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            {% if appointment.status == 'pending' %}
+              {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" size="sm" %}
+            {% elif appointment.status == 'cancelled' %}
+              {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" size="sm" %}
+            {% else %}
+              {% include "components/status_badge.html" with label=appointment.get_status_display variant="success" size="sm" %}
+            {% endif %}
+            <i class="fas fa-chevron-right text-xs text-gray-300 group-hover:text-primary-500 transition-colors max-sm:hidden" aria-hidden="true"></i>
+          </div>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
     {% else %}
-      {% include "components/empty_state.html" with icon="fa-calendar-xmark" title="No upcoming appointments" description="When you book one, it'll show up here." action_label="Book Appointment" action_url='/appointments/schedule/' %}
+    {% url 'appointments:schedule_appointment' as schedule_url %}
+    {% include "components/empty_state.html" with icon="fa-calendar-xmark" title="No upcoming appointments" description="Book a visit with the clinic and it will appear here." action_label="Book appointment" action_url=schedule_url %}
     {% endif %}
   </div>
-</div>
+</section>

@@ -169,11 +169,18 @@
       }
 
       .site-nav-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
         font-size: 1.125rem;
         font-weight: 700;
         color: #9333ea;
         white-space: nowrap;
         text-decoration: none;
+      }
+
+      .site-nav-brand .jmc-logo {
+        flex-shrink: 0;
       }
 
       @media (min-width: 640px) {
@@ -392,6 +399,30 @@
       .form-select--compact {
         padding: 0.5rem 0.75rem;
         font-size: 0.8125rem;
+      }
+
+      .form-btn--compact {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        line-height: 1.5;
+        border-radius: 0.5rem;
+        border: 1px solid transparent;
+        white-space: nowrap;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+      }
+
+      .form-btn--compact-primary {
+        background-color: #9333ea;
+        color: #fff;
+      }
+
+      .form-btn--compact-primary:hover {
+        background-color: #7c3aed;
       }
 
       .form-input--lg,

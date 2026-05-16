@@ -18,9 +18,13 @@ from appointments.models import Appointment
 def feedback_list(request):
     """Display list of feedback."""
     if request.user.role == 'student':
-        feedbacks_qs = Feedback.objects.filter(student=request.user).select_related('appointment')
+        feedbacks_qs = Feedback.objects.filter(student=request.user).select_related(
+            'appointment', 'appointment__doctor',
+        )
     else:
-        feedbacks_qs = Feedback.objects.all().select_related('student', 'appointment')
+        feedbacks_qs = Feedback.objects.all().select_related(
+            'student', 'appointment', 'appointment__doctor',
+        )
 
     paginator = Paginator(feedbacks_qs.order_by('-created_at'), 10)
     page = request.GET.get('page')

@@ -1,3 +1,4 @@
+{% load static %}
 <nav class="site-nav-root bg-white border-b border-gray-200 sticky top-0 z-40"
   x-data="{ mobileOpen: false, mobilePanel: '', moreOpen: false }"
   @keydown.escape.window="
@@ -7,10 +8,19 @@
   <div class="site-nav-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="site-nav-row h-16 flex items-center justify-between gap-4">
       <div class="site-nav-left flex items-center gap-4">
-        <a href="{% url 'core:dashboard' %}" class="site-nav-brand text-lg sm:text-xl font-bold text-primary-600 whitespace-nowrap">JMCFI Clinic</a>
+        <a href="{% url 'core:dashboard' %}" class="site-nav-brand inline-flex items-center gap-2 text-lg sm:text-xl font-bold text-primary-600 whitespace-nowrap" title="Home">
+          <img src="{% static 'logo/jmc-logo.png' %}"
+               alt=""
+               class="jmc-logo h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0"
+               width="36"
+               height="36">
+          <span>JMCFI Clinic</span>
+        </a>
 
         <div class="site-nav-desktop-links hidden lg:flex items-center gap-1">
+          {% if user.role != 'admin' %}
           <a href="{% url 'core:dashboard' %}" class="nav-link {% if nav_active.dashboard %}active{% endif %}">Dashboard</a>
+          {% endif %}
 
           {% if user.role == 'student' %}
             {% include 'core/partials/_navbar_services_desktop.html' with svc_role=user.role %}
@@ -28,7 +38,6 @@
           {% elif user.role == 'admin' %}
             {% include 'core/partials/_navbar_admin_settings_desktop.html' %}
             {% include 'core/partials/_nav_health_forms_desktop.html' with include_document_request_link=False %}
-            <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
           {% endif %}
         </div>
       </div>
@@ -179,7 +188,9 @@
           </form>
         </div>
 
+        {% if user.role != 'admin' %}
         <a href="{% url 'core:dashboard' %}" class="mobile-link {% if nav_active.dashboard %}active{% endif %}">Dashboard</a>
+        {% endif %}
 
         {% if user.role == 'student' %}
           {% include 'core/partials/_navbar_services_mobile.html' with svc_role=user.role %}
@@ -200,7 +211,6 @@
         {% elif user.role == 'admin' %}
           {% include 'core/partials/_navbar_admin_settings_mobile.html' %}
           {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}
-          <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
           <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if nav_active.messaging %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
           <a href="{% url 'core:user_management' %}" class="mobile-link {% if nav_active.user_management %}active{% endif %}">User Management</a>
         {% endif %}

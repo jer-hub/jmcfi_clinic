@@ -20,11 +20,12 @@
     {% include "components/stat_card.html" with label="Pending" value=stats.pending icon="fa-clock" variant="warning" %}
 {% endcomment %}
 {% with v=variant|default:'primary' %}
-{% if href %}<a href="{{ href }}"
+{% if href %}<a href="{{ href }}" aria-label="View {{ label }}"
 {% elif hx_get %}<a href="{{ hx_get }}" hx-get="{{ hx_get }}" hx-target="{{ hx_target|default:'#stat-target' }}" hx-swap="{{ hx_swap|default:'innerHTML' }}"{% if hx_push_url %} hx-push-url="{{ hx_push_url }}"{% endif %}
 {% else %}<div{% endif %}
-   class="no-underline group block bg-white border rounded-card shadow-sm p-5 hover:shadow-md transition-all cursor-pointer
-          {% if active %}border-{{ v }}-400 ring-2 ring-{{ v }}-200 bg-{{ v }}-50/40{% else %}border-gray-200 hover:border-{{ v }}-200{% endif %}">
+   class="no-underline group block bg-white border rounded-card shadow-sm p-5 transition-all
+          {% if href or hx_get %}hover:shadow-md cursor-pointer{% else %}cursor-default{% endif %}
+          {% if active %}border-{{ v }}-400 ring-2 ring-{{ v }}-200 bg-{{ v }}-50/40{% else %}border-gray-200{% if href or hx_get %} hover:border-{{ v }}-200{% endif %}{% endif %}">
   <div class="flex items-start justify-between gap-3">
     <div class="min-w-0 flex-1">
       <p class="text-xs font-medium uppercase tracking-wider text-gray-500">{{ label }}</p>

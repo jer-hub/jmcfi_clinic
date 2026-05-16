@@ -1,96 +1,136 @@
 {% extends "core/base.html" %}
-{% block title %}Financial & Cost Analysis{% endblock %}
+{% load app_subnav %}
+{% block title %}Financial & Cost Analysis - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
-      <div class="flex-1">
-        {% include "components/page_header.html" with title="Financial & Cost Analysis" subtitle="Track expenses, billing, and cost comparisons" icon="fa-coins" %}
+    <div class="mb-5 rounded-card border border-gray-200 bg-white shadow-sm p-3 sm:p-4">
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 flex items-center gap-2">
+            <i class="fas fa-coins text-primary-500 text-xs" aria-hidden="true"></i>
+            Financial &amp; cost analysis
+          </p>
+          <p class="mt-0.5 text-xs text-gray-500 truncate">
+            {{ date_from|date:"M j, Y" }} – {{ date_to|date:"M j, Y" }}
+            <span class="text-gray-400">· expenses &amp; income</span>
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Quick ranges">
+          {% for preset in period_presets %}
+          <a href="?date_from={{ preset.date_from|date:'Y-m-d' }}&amp;date_to={{ preset.date_to|date:'Y-m-d' }}"
+            class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors {% if preset.active %}bg-primary-100 text-primary-700 ring-1 ring-primary-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+            {{ preset.label }}
+          </a>
+          {% endfor %}
+        </div>
       </div>
-      <div class="flex gap-2">
-        <a href="{% url 'analytics:dashboard' %}" class="inline-flex items-center gap-2 px-3 py-2 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
-          <i class="fas fa-arrow-left"></i>Back
-        </a>
-        <a href="{% url 'analytics:financial_record_create' %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
-          <i class="fas fa-plus"></i>Add Record
-        </a>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 mb-6">
-      <form method="get" class="flex flex-wrap items-end gap-4">
+      <form method="get" class="mt-3 pt-3 border-t border-gray-100 flex w-full flex-wrap items-end justify-end gap-2 sm:gap-3">
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
-          {{ filter_form.date_from }}
+          <label for="financial-date-from" class="block text-xs font-medium text-gray-500 mb-1">From</label>
+          <input type="date" id="financial-date-from" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
+            class="form-input form-input--compact w-full min-w-[9.5rem]">
         </div>
         <div>
-          <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
-          {{ filter_form.date_to }}
+          <label for="financial-date-to" class="block text-xs font-medium text-gray-500 mb-1">To</label>
+          <input type="date" id="financial-date-to" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
+            class="form-input form-input--compact w-full min-w-[9.5rem]">
         </div>
-        <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"><i class="fas fa-filter"></i>Filter</button>
+        <button type="submit" class="form-btn--compact form-btn--compact-primary shrink-0">
+          <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
+        </button>
       </form>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 border-l-4 border-l-danger-400">
-        <p class="text-sm font-medium text-gray-500">Total Expenses</p>
-        <p class="text-2xl font-bold text-danger-600">₱{{ summary.total_expenses|floatformat:2 }}</p>
-      </div>
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 border-l-4 border-l-success-400">
-        <p class="text-sm font-medium text-gray-500">Total Income</p>
-        <p class="text-2xl font-bold text-success-600">₱{{ summary.total_income|floatformat:2 }}</p>
-      </div>
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 border-l-4 {% if summary.net >= 0 %}border-l-success-400{% else %}border-l-danger-400{% endif %}">
-        <p class="text-sm font-medium text-gray-500">Net</p>
-        <p class="text-2xl font-bold {% if summary.net >= 0 %}text-success-600{% else %}text-danger-600{% endif %}">₱{{ summary.net|floatformat:2 }}</p>
-      </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+      {% include "components/stat_card.html" with label="Total expenses" value=expenses_display icon="fa-arrow-trend-down" variant="danger" hint=period_hint %}
+      {% include "components/stat_card.html" with label="Total income" value=income_display icon="fa-arrow-trend-up" variant="success" hint=period_hint %}
+      {% include "components/stat_card.html" with label="Net" value=net_display icon="fa-scale-balanced" variant=net_variant hint="Income minus expenses" %}
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-chart-pie text-primary-500"></i>Expenses by Category</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[16rem]"
+        aria-labelledby="category-chart-heading">
+        <h2 id="category-chart-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <i class="fas fa-chart-pie text-primary-500"></i>Expenses by category
+        </h2>
         {% if summary.by_category %}
-        <canvas id="categoryChart" height="250"></canvas>
+        <div class="relative flex-1 min-h-[12rem]">
+          <canvas id="categoryChart" class="max-h-56"></canvas>
+        </div>
         {% else %}
-        <p class="text-sm text-gray-500">No expense data for this period.</p>
+        <div class="flex-1 flex flex-col items-center justify-center text-center py-8 px-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
+          <i class="fas fa-chart-pie text-2xl text-gray-300 mb-2" aria-hidden="true"></i>
+          <p class="text-sm text-gray-500">No expense data for this period</p>
+        </div>
         {% endif %}
-      </div>
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-chart-column text-primary-500"></i>Monthly Overview</h3>
+      </section>
+
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[16rem]"
+        aria-labelledby="monthly-chart-heading">
+        <h2 id="monthly-chart-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <i class="fas fa-chart-column text-primary-500"></i>Monthly overview
+        </h2>
         {% if summary.monthly %}
-        <canvas id="monthlyChart" height="250"></canvas>
+        <div class="relative flex-1 min-h-[12rem]">
+          <canvas id="monthlyChart" class="max-h-56"></canvas>
+        </div>
         {% else %}
-        <p class="text-sm text-gray-500">No monthly data available.</p>
+        <div class="flex-1 flex flex-col items-center justify-center text-center py-8 px-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
+          <i class="fas fa-chart-column text-2xl text-gray-300 mb-2" aria-hidden="true"></i>
+          <p class="text-sm text-gray-500">No monthly data for this period</p>
+        </div>
         {% endif %}
-      </div>
+      </section>
     </div>
 
-    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-list-ul text-primary-500"></i>Financial Records</h3>
+    <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="records-heading">
+      <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-4">
+        <div class="flex flex-wrap items-center gap-2 min-w-0">
+          <h2 id="records-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-list-ul text-primary-500"></i>Financial records
+          </h2>
+          <a href="{% url 'analytics:export_report' %}?report=financial&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors shrink-0"
+            title="Download records as CSV">
+            <i class="fas fa-file-export text-gray-400" aria-hidden="true"></i>Export
+          </a>
+        </div>
+        <div class="flex flex-wrap items-center justify-end gap-2 shrink-0">
+          {% if records_count %}
+          <span class="text-xs font-medium text-gray-500 tabular-nums">{{ records_count }} record{{ records_count|pluralize }}</span>
+          {% endif %}
+          <a href="{% url 'analytics:financial_record_create' %}"
+            class="form-btn--compact form-btn--compact-primary">
+            <i class="fas fa-plus text-[10px]" aria-hidden="true"></i>Add record
+          </a>
+        </div>
+      </div>
+
       {% if records %}
-      <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Type</th>
+      <div class="overflow-x-auto -mx-1">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
+              <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Category</th>
+              <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Description</th>
+              <th scope="col" class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Amount</th>
+              <th scope="col" class="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">Type</th>
             </tr>
           </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
+          <tbody class="divide-y divide-gray-100">
             {% for r in records %}
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm text-gray-700">{{ r.date|date:"M d, Y" }}</td>
-              <td class="px-4 py-3 text-sm text-gray-700">{{ r.get_category_display }}</td>
-              <td class="px-4 py-3 text-sm text-gray-700">{{ r.description }}</td>
-              <td class="px-4 py-3 text-sm font-medium text-right {% if r.is_expense %}text-danger-600{% else %}text-success-600{% endif %}">
-                {% if r.is_expense %}-{% else %}+{% endif %}₱{{ r.amount|floatformat:2 }}
+            <tr class="hover:bg-gray-50/80">
+              <td class="px-3 py-2.5 text-gray-700 whitespace-nowrap">{{ r.date|date:"M j, Y" }}</td>
+              <td class="px-3 py-2.5 text-gray-700">{{ r.get_category_display }}</td>
+              <td class="px-3 py-2.5 text-gray-900 max-w-xs truncate">{{ r.description }}</td>
+              <td class="px-3 py-2.5 text-right font-semibold tabular-nums whitespace-nowrap {% if r.is_expense %}text-danger-600{% else %}text-success-600{% endif %}">
+                {% if r.is_expense %}−{% else %}+{% endif %}₱{{ r.amount|floatformat:2 }}
               </td>
-              <td class="px-4 py-3 text-center">
+              <td class="px-3 py-2.5 text-center">
                 {% if r.is_expense %}{% include "components/status_badge.html" with label="Expense" variant="danger" icon="fa-arrow-down" %}
                 {% else %}{% include "components/status_badge.html" with label="Income" variant="success" icon="fa-arrow-up" %}{% endif %}
               </td>
@@ -101,30 +141,48 @@
       </div>
 
       {% if records.has_other_pages %}
-      <nav class="flex justify-center mt-4">
-        <ul class="inline-flex -space-x-px text-sm">
-          {% if records.has_previous %}
-          <li><a href="?page={{ records.previous_page_number }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-l-md">Prev</a></li>
-          {% endif %}
+      <div class="flex items-center justify-center gap-1 mt-6 pt-4 border-t border-gray-100">
+        {% if records.has_previous %}
+        <a href="?page={{ records.previous_page_number }}&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+          class="inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-primary-50 transition-colors"
+          aria-label="Previous page"><i class="fas fa-chevron-left text-xs"></i></a>
+        {% else %}
+        <span class="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed" aria-hidden="true">
+          <i class="fas fa-chevron-left text-xs"></i>
+        </span>
+        {% endif %}
+        <div class="flex items-center gap-1">
           {% for num in records.paginator.page_range %}
-          <li><a href="?page={{ num }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="px-3 py-2 border border-gray-300 {% if records.number == num %}bg-primary-50 text-primary-600{% else %}bg-white text-gray-500 hover:bg-gray-100{% endif %}">{{ num }}</a></li>
+            {% if num == records.number %}
+            <span class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-semibold rounded-lg text-white bg-primary-600">{{ num }}</span>
+            {% elif num|add:"0" <= 3 or num|add:"0" > records.paginator.num_pages|add:"-3" or num|add:"0" >= records.number|add:"-1" and num|add:"0" <= records.number|add:"1" %}
+            <a href="?page={{ num }}&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+              class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-primary-50 transition-colors">{{ num }}</a>
+            {% endif %}
           {% endfor %}
-          {% if records.has_next %}
-          <li><a href="?page={{ records.next_page_number }}&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="px-3 py-2 border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 rounded-r-md">Next</a></li>
-          {% endif %}
-        </ul>
-      </nav>
+        </div>
+        {% if records.has_next %}
+        <a href="?page={{ records.next_page_number }}&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+          class="inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-primary-50 transition-colors"
+          aria-label="Next page"><i class="fas fa-chevron-right text-xs"></i></a>
+        {% else %}
+        <span class="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed" aria-hidden="true">
+          <i class="fas fa-chevron-right text-xs"></i>
+        </span>
+        {% endif %}
+      </div>
       {% endif %}
-      {% else %}
-      <p class="text-sm text-gray-500">No financial records for this period.</p>
-      {% endif %}
-    </div>
 
-    <div class="flex justify-end mt-4">
-      <a href="{% url 'analytics:export_report' %}?report=financial&date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-        <i class="fas fa-file-export"></i>Export CSV
-      </a>
-    </div>
+      {% else %}
+      <div class="rounded-lg border border-dashed border-gray-200 bg-gray-50/50 py-10 px-4 text-center">
+        <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white border border-gray-200 text-gray-400 mb-3">
+          <i class="fas fa-receipt text-lg" aria-hidden="true"></i>
+        </span>
+        <p class="text-sm font-medium text-gray-700">No records in this period</p>
+        <p class="mt-1 text-xs text-gray-500">Use <span class="font-medium text-gray-700">Add record</span> in this section or widen the date range.</p>
+      </div>
+      {% endif %}
+    </section>
 </div>
 {% endblock %}
 
@@ -132,24 +190,24 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
 const COLORS = ['#a855f7','#3b82f6','#10b981','#f59e0b','#ef4444','#ec4899','#6366f1','#14b8a6'];
+const chartDefaults = { responsive: true, maintainAspectRatio: false };
 
 {% if summary.by_category %}
 new Chart(document.getElementById('categoryChart'), {
   type: 'doughnut',
   data: {
     labels: [{% for c in summary.by_category %}"{{ c.category }}"{% if not forloop.last %},{% endif %}{% endfor %}],
-    datasets: [{data: [{% for c in summary.by_category %}{{ c.total }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: COLORS}]
+    datasets: [{ data: [{% for c in summary.by_category %}{{ c.total }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: COLORS }]
   },
-  options: {responsive: true, plugins: {legend: {position: 'bottom'}}}
+  options: { ...chartDefaults, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } }
 });
 {% endif %}
 
 {% if summary.monthly %}
-// Build monthly data
 const monthlyData = {};
 {% for m in summary.monthly %}
 const key_{{ forloop.counter }} = "{{ m.month|date:'Y-m' }}";
-if(!monthlyData[key_{{ forloop.counter }}]) monthlyData[key_{{ forloop.counter }}] = {expense: 0, income: 0};
+if (!monthlyData[key_{{ forloop.counter }}]) monthlyData[key_{{ forloop.counter }}] = { expense: 0, income: 0 };
 {% if m.is_expense %}monthlyData[key_{{ forloop.counter }}].expense = {{ m.total }};{% else %}monthlyData[key_{{ forloop.counter }}].income = {{ m.total }};{% endif %}
 {% endfor %}
 const months = Object.keys(monthlyData).sort();
@@ -158,11 +216,15 @@ new Chart(document.getElementById('monthlyChart'), {
   data: {
     labels: months,
     datasets: [
-      {label: 'Expenses', data: months.map(m => monthlyData[m].expense), backgroundColor: '#ef4444'},
-      {label: 'Income', data: months.map(m => monthlyData[m].income), backgroundColor: '#10b981'}
+      { label: 'Expenses', data: months.map(m => monthlyData[m].expense), backgroundColor: '#ef4444' },
+      { label: 'Income', data: months.map(m => monthlyData[m].income), backgroundColor: '#10b981' }
     ]
   },
-  options: {responsive: true, plugins: {legend: {position: 'bottom'}}, scales: {y: {beginAtZero: true}}}
+  options: {
+    ...chartDefaults,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } },
+    scales: { y: { beginAtZero: true, ticks: { font: { size: 11 } } }, x: { ticks: { font: { size: 11 } } } }
+  }
 });
 {% endif %}
 </script>

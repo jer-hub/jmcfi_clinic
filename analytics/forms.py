@@ -1,5 +1,27 @@
 from django import forms
+
 from .models import FinancialRecord, ComplianceReport, HealthTrendRecord
+
+
+def health_trend_term_choices():
+    """School-term options from stored trend records only."""
+    sem_labels = dict(HealthTrendRecord.SEMESTER_CHOICES)
+    pairs = HealthTrendRecord.objects.values_list('academic_year', 'semester').distinct()
+    return [
+        (
+            f'{academic_year}|{semester}',
+            f'{academic_year} · {sem_labels.get(semester, semester)}',
+        )
+        for academic_year, semester in sorted(pairs, reverse=True)
+    ]
+
+
+def split_health_trend_term(term_value):
+    """Return (academic_year, semester) from a combined term value, or ('', '')."""
+    if not term_value or '|' not in term_value:
+        return '', ''
+    academic_year, semester = term_value.split('|', 1)
+    return academic_year.strip(), semester.strip()
 
 # Standard Tailwind widget classes matching the rest of the project
 INPUT_CSS = (
@@ -23,19 +45,48 @@ class DateRangeFilterForm(forms.Form):
 
 
 class HealthTrendFilterForm(forms.Form):
-    academic_year = forms.CharField(
+    term = forms.ChoiceField(
         required=False,
-        widget=forms.TextInput(attrs={'class': INPUT_CSS, 'placeholder': 'e.g. 2025-2026'}),
-    )
-    semester = forms.ChoiceField(
-        required=False,
-        choices=[('', 'All Semesters')] + HealthTrendRecord.SEMESTER_CHOICES,
-        widget=forms.Select(attrs={'class': SELECT_CSS}),
+        label='School term',
+        choices=[],
+        widget=forms.Select(attrs={'class': 'form-input form-input--compact'}),
     )
     illness_category = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'class': INPUT_CSS, 'placeholder': 'Search illness…'}),
+        label='Illness category',
+        widget=forms.TextInput(attrs={
+            'class': 'form-input form-input--compact',
+            'placeholder': 'Filter diagnoses…',
+        }),
     )
+    date_from = forms.DateField(
+        required=False,
+        label='From',
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-input form-input--compact w-full min-w-[9.5rem]',
+        }),
+    )
+    date_to = forms.DateField(
+        required=False,
+        label='To',
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'form-input form-input--compact w-full min-w-[9.5rem]',
+        }),
+    )
+
+    def __init__(self, *args, **kwargs):
+        data = args[0] if args else None
+        if data is not None and not data.get('term'):
+            legacy_year = (data.get('academic_year') or '').strip()
+            legacy_sem = (data.get('semester') or '').strip()
+            if legacy_year and legacy_sem:
+                data = data.copy()
+                data['term'] = f'{legacy_year}|{legacy_sem}'
+                args = (data,) + args[1:]
+        super().__init__(*args, **kwargs)
+        self.fields['term'].choices = [('', 'All terms')] + health_trend_term_choices()
 
 
 class FinancialRecordForm(forms.ModelForm):

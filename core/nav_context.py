@@ -51,7 +51,7 @@ def nav_bar_context(request: HttpRequest) -> dict[str, Any]:
         "services": ns in SERVICES_NAMESPACES,
         "health_forms": ns == "health_forms_services",
         "health_tips": ns == "health_tips",
-        "analytics": ns == "analytics",
+        "analytics": ns == "analytics" and url_name == "dashboard",
         "pharmacy": ns == "pharmacy",
         "settings_menu": ns == "appointments" and url_name in APPOINTMENT_SETTINGS_URL_NAMES,
         "messaging": ns == "messaging",

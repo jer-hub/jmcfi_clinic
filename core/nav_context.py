@@ -25,6 +25,16 @@ APPOINTMENT_SETTINGS_URL_NAMES = frozenset(
     }
 )
 
+CORE_SETTINGS_URL_NAMES = frozenset(
+    {
+        "settings_hub",
+        "settings_clinic",
+        "settings_roles",
+        "settings_role_edit",
+        "settings_audit",
+    }
+)
+
 
 def nav_bar_context(request: HttpRequest) -> dict[str, Any]:
     """
@@ -53,7 +63,10 @@ def nav_bar_context(request: HttpRequest) -> dict[str, Any]:
         "health_tips": ns == "health_tips",
         "analytics": ns == "analytics" and url_name == "dashboard",
         "pharmacy": ns == "pharmacy",
-        "settings_menu": ns == "appointments" and url_name in APPOINTMENT_SETTINGS_URL_NAMES,
+        "settings_menu": (
+            (ns == "appointments" and url_name in APPOINTMENT_SETTINGS_URL_NAMES)
+            or (ns == "core" and url_name in CORE_SETTINGS_URL_NAMES)
+        ),
         "messaging": ns == "messaging",
         "feedback": ns == "feedback",
         "notifications": bool(ns == "core" and url_name and "notification" in url_name),

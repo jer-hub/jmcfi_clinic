@@ -4,10 +4,11 @@ Custom adapters for django-allauth to enforce Google-only authentication
 from allauth.core.exceptions import ImmediateHttpResponse
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-from django.conf import settings
 from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.urls import reverse
+
+from core.settings_service import get_clinic_settings, get_google_allowed_domains
 
 
 class NoPasswordAdapter(DefaultAccountAdapter):
@@ -45,11 +46,7 @@ class GoogleOnlyAdapter(DefaultSocialAccountAdapter):
     """
     
     def _is_allowed_email(self, email):
-        allowed_domains = {
-            domain.strip().lower()
-            for domain in getattr(settings, 'GOOGLE_ALLOWED_DOMAINS', [])
-            if domain and domain.strip()
-        }
+        allowed_domains = {domain.lower() for domain in get_google_allowed_domains()}
         if not allowed_domains:
             return True
         if not email or '@' not in email:
@@ -72,10 +69,14 @@ class GoogleOnlyAdapter(DefaultSocialAccountAdapter):
 
     def is_open_for_signup(self, request, sociallogin):
         """
-        Allow signup via Google OAuth when email policy allows it.
+        Allow signup via Google OAuth when email policy and clinic settings allow it.
         """
         email = (sociallogin.account.extra_data or {}).get('email') or sociallogin.user.email
-        return self._is_allowed_email(email)
+        if not self._is_allowed_email(email):
+            return False
+        if sociallogin.is_existing:
+            return True
+        return get_clinic_settings().allow_student_self_signup
     
     def populate_user(self, request, sociallogin, data):
         """

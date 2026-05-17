@@ -1,0 +1,25 @@
+{% comment %}
+  Dental examination read-only display (detail / student view).
+{% endcomment %}
+<div class="space-y-6">
+  {% for section in sections %}
+  <section>
+    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+      <i class="fas {{ section.icon }} {{ section.icon_class }} text-sm" aria-hidden="true"></i>
+      <h3 class="text-sm font-semibold text-gray-800">{{ section.title }}</h3>
+    </div>
+    {% if section.has_data %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for item in section.items %}
+      <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ item.label }}</dt>
+        <dd class="mt-1 text-sm text-gray-900">{{ item.value }}</dd>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 italic py-2">No data recorded</p>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>

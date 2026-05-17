@@ -1,0 +1,49 @@
+{% extends "components/layouts/page_form.html" %}
+
+{% block page_title %}Preferences - {{ clinic_name }}{% endblock %}
+
+{% block page_header %}
+  {% url 'core:profile' as profile_url %}
+  {% include "components/page_header.html" with title="Preferences" subtitle="Manage how you receive notifications and display options." icon="fa-sliders" back_url=profile_url back_label="My profile" %}
+{% endblock %}
+
+{% block form_open %}
+<form method="post" novalidate>{% csrf_token %}
+{% endblock %}
+
+{% block form_body %}
+  {% if form.non_field_errors %}
+    <div class="mb-4 rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-bell text-primary-500"></i> Notifications
+      </h3>
+      <p class="mt-1 text-sm text-gray-500">Control how the clinic reaches you. In-app alerts still respect system announcements.</p>
+    </header>
+    <div class="px-6 py-5 space-y-4">
+      {% include "components/forms/field.html" with field=form.email_notifications %}
+      {% include "components/forms/field.html" with field=form.in_app_notifications %}
+    </div>
+  </section>
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-display text-primary-500"></i> Display
+      </h3>
+    </header>
+    <div class="px-6 py-5">
+      {% include "components/forms/field.html" with field=form.compact_nav %}
+    </div>
+  </section>
+{% endblock %}
+
+{% block submit_bar %}
+  {% url 'core:profile' as profile_url %}
+  {% include "components/forms/submit_bar.html" with submit_label="Save preferences" cancel_url=profile_url cancel_label="Back to profile" %}
+{% endblock %}

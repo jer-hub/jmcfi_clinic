@@ -10,7 +10,7 @@ from decimal import Decimal
 
 from core.decorators import role_required
 from core.utils import paginate_queryset
-from core.models import Notification
+from core.notification_delivery import notify_user
 
 from .models import (
     Medicine, MedicineCategory, Batch, Supplier,
@@ -533,11 +533,13 @@ def dispensing_create(request):
                      f'Dispensed {disp.quantity} {batch.medicine.unit} of {batch.medicine.name} '
                      f'to {disp.patient.first_name} {disp.patient.last_name}.')
                 # Notify patient
-                Notification.objects.create(
-                    user=disp.patient,
+                notify_user(
+                    disp.patient,
                     title='Medicine Dispensed',
-                    message=f'{disp.quantity} {batch.medicine.unit}(s) of {batch.medicine.name} '
-                            f'has been dispensed to you.',
+                    message=(
+                        f'{disp.quantity} {batch.medicine.unit}(s) of {batch.medicine.name} '
+                        f'has been dispensed to you.'
+                    ),
                     notification_type='general',
                     transaction_type='general_announcement',
                 )

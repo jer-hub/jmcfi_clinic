@@ -1,16 +1,12 @@
 # decorators.py
 from functools import wraps
+
+from django.contrib import messages
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
-from django.contrib import messages
-from .utils import get_user_profile, role_home_url_name
-from .profile_policy import (
-    STUDENT_PROFILE_REQUIRED_FIELDS,
-    STAFF_PROFILE_REQUIRED_FIELDS,
-    DOCTOR_PROFILE_REQUIRED_FIELDS,
-    ADMIN_PROFILE_REQUIRED_FIELDS,
-)
 
+from .settings_service import admin_blocks_clinical_namespaces
+from .utils import is_profile_complete, role_home_url_name
 
 CLINICAL_ADMIN_BLOCKED_NAMESPACES = {
     'health_forms_services',
@@ -20,10 +16,13 @@ CLINICAL_ADMIN_BLOCKED_NAMESPACES = {
 def _blocks_admin_in_clinical_namespace(request, roles):
     if 'admin' not in roles or getattr(request.user, 'role', None) != 'admin':
         return False
+    if not admin_blocks_clinical_namespaces():
+        return False
 
     match = getattr(request, 'resolver_match', None)
     namespace = getattr(match, 'namespace', '') or ''
     return namespace in CLINICAL_ADMIN_BLOCKED_NAMESPACES
+
 
 def role_required(*roles):
     def decorator(view_func):
@@ -31,120 +30,80 @@ def role_required(*roles):
         def wrapped_view(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({'success': False, 'error': 'Authentication required.'}, status=401)
+                    return JsonResponse(
+                        {'success': False, 'error': 'Authentication required.'},
+                        status=401,
+                    )
                 messages.error(request, 'You must be logged in to access this page.')
                 return redirect('account_login')
 
             if _blocks_admin_in_clinical_namespace(request, roles):
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({'success': False, 'error': 'Admin access is not permitted for clinical application pages.'}, status=403)
-                messages.error(request, 'Admin access is not permitted for clinical application pages.')
+                    return JsonResponse(
+                        {
+                            'success': False,
+                            'error': 'Admin access is not permitted for clinical application pages.',
+                        },
+                        status=403,
+                    )
+                messages.error(
+                    request,
+                    'Admin access is not permitted for clinical application pages.',
+                )
                 return redirect(role_home_url_name(request.user))
-            
+
             if request.user.role not in roles:
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse({'success': False, 'error': f'Access denied. Required role(s): {", ".join(roles)}.'}, status=403)
+                    return JsonResponse(
+                        {
+                            'success': False,
+                            'error': f'Access denied. Required role(s): {", ".join(roles)}.',
+                        },
+                        status=403,
+                    )
                 messages.error(request, 'Access denied. You do not have permission to access this page.')
                 return redirect(role_home_url_name(request.user))
             return view_func(request, *args, **kwargs)
+
         wrapped_view.required_roles = roles
         return wrapped_view
+
     return decorator
 
+
 def admin_required(view_func):
-    """
-    Decorator to ensure only admin users can access the view
-    """
+    """Decorator to ensure only admin users can access the view."""
+
     @wraps(view_func)
     def wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
             messages.error(request, 'You must be logged in to access this page.')
             return redirect('core:admin_login')
-        
+
         if request.user.role != 'admin':
             messages.error(request, 'You do not have permission to access this page.')
             return redirect(role_home_url_name(request.user))
-        
+
         return view_func(request, *args, **kwargs)
+
     return wrapped_view
 
+
 def profile_required(view_func):
-    """
-    Decorator to ensure user has completed their profile before accessing the view
-    """
+    """Ensure the user has completed their profile before accessing the view."""
+
     @wraps(view_func)
     def wrapped_view(request, *args, **kwargs):
-        # Skip if user is not authenticated
         if not request.user.is_authenticated:
             return redirect('account_login')
-        
-        # Skip for superusers
+
         if request.user.is_superuser:
             return view_func(request, *args, **kwargs)
 
-        # Check if profile is complete
-        if not _is_profile_complete(request.user):
+        if not is_profile_complete(request.user):
             messages.warning(request, 'Please complete your profile before accessing this page.')
             return redirect('core:edit_profile')
-        
+
         return view_func(request, *args, **kwargs)
+
     return wrapped_view
-
-def _is_profile_complete(user):
-    """Check if user's profile is complete"""
-    try:
-        profile = get_user_profile(user)
-        
-        if not profile:
-            return False
-
-        if user.role == 'student':
-            return _is_student_profile_complete(user, profile)
-        elif user.role == 'staff':
-            return _is_staff_profile_complete(user, profile)
-        elif user.role == 'doctor':
-            return _is_doctor_profile_complete(user, profile)
-        elif user.role == 'admin':
-            return _is_admin_profile_complete(user, profile)
-        
-        return True
-    except Exception:
-        return False
-
-def _is_student_profile_complete(user, profile):
-    """Check if student profile is complete with all required fields"""
-    for field in STUDENT_PROFILE_REQUIRED_FIELDS:
-        value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
-        if not value or (isinstance(value, str) and not value.strip()):
-            return False
-    
-    return True
-
-def _is_staff_profile_complete(user, profile):
-    """Check if staff profile is complete with all required fields"""
-    for field in STAFF_PROFILE_REQUIRED_FIELDS:
-        value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
-        if not value or (isinstance(value, str) and not value.strip()):
-            return False
-
-    return True
-
-
-def _is_doctor_profile_complete(user, profile):
-    """Check if doctor profile is complete with all required fields"""
-    for field in DOCTOR_PROFILE_REQUIRED_FIELDS:
-        value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
-        if not value or (isinstance(value, str) and not value.strip()):
-            return False
-
-    return True
-
-
-def _is_admin_profile_complete(user, profile):
-    """Check if admin profile is complete with all required fields"""
-    for field in ADMIN_PROFILE_REQUIRED_FIELDS:
-        value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
-        if not value or (isinstance(value, str) and not value.strip()):
-            return False
-
-    return True

@@ -21,5 +21,9 @@
   role="region"
   aria-labelledby="nav-mobile-settings-trigger"
   class="overflow-hidden px-2 pb-2">
+  <a href="{% url 'core:settings_hub' %}" class="mobile-link text-sm">System Settings</a>
+  <a href="{% url 'core:settings_clinic' %}" class="mobile-link text-sm">Clinic Settings</a>
+  <a href="{% url 'core:settings_roles' %}" class="mobile-link text-sm">Role Settings</a>
+  <a href="{% url 'core:settings_audit' %}" class="mobile-link text-sm">Settings Audit Log</a>
   <a href="{% url 'appointments:appointment_type_settings' %}" class="mobile-link text-sm">Appointment Settings</a>
 </div>

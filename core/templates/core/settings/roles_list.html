@@ -1,0 +1,38 @@
+{% extends "core/base.html" %}
+
+{% block title %}Role Settings - {{ clinic_name }}{% endblock %}
+
+{% block content %}
+{% include "core/settings/_page_open.html" %}
+  {% include "core/settings/_subnav.html" %}
+
+  {% url 'core:settings_hub' as hub_url %}
+  {% include "components/page_header.html" with title="Role settings" subtitle="Session length, profile requirements, and feature flags per role." icon="fa-user-shield" back_url=hub_url back_label="Settings overview" %}
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    {% for card in role_cards %}
+    <a href="{% url 'core:settings_role_edit' role=card.role %}"
+       class="block bg-white border border-gray-200 rounded-card shadow-sm p-5 hover:border-primary-300 hover:shadow-md transition-all">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-base font-semibold text-gray-900">{{ card.label }}</h2>
+          <p class="mt-1 text-sm text-gray-500">Session timeout: {{ card.session_hours }} hours</p>
+          <ul class="mt-3 flex flex-wrap gap-2">
+            {% if card.settings.can_book_appointments %}
+              <li>{% include "components/status_badge.html" with label="Booking" variant="success" %}</li>
+            {% endif %}
+            {% if card.settings.can_access_analytics %}
+              <li>{% include "components/status_badge.html" with label="Analytics" variant="info" %}</li>
+            {% endif %}
+            {% if card.settings.block_clinical_namespaces %}
+              <li>{% include "components/status_badge.html" with label="Clinical block" variant="warning" %}</li>
+            {% endif %}
+          </ul>
+        </div>
+        <i class="fas fa-chevron-right text-gray-300 mt-1"></i>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+{% include "core/settings/_page_close.html" %}
+{% endblock %}

@@ -304,6 +304,7 @@
                 </div>
                 <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
               </a>
+              {% if role_features.can_book_appointments %}
               <a href="{% url 'appointments:schedule_appointment' %}"
                  class="group w-full flex items-center gap-3 p-3 rounded-xl border border-primary-200 bg-primary-50/50 hover:bg-primary-100 transition-all">
                 <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-100 text-primary-600 group-hover:bg-primary-200 transition-colors flex-shrink-0">
@@ -315,6 +316,7 @@
                 </div>
                 <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
               </a>
+              {% endif %}
             {% endif %}
 
           {% endif %}

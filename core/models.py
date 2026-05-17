@@ -465,4 +465,193 @@ class AccountProvisioningAudit(models.Model):
     def __str__(self):
         actor_email = self.actor.email if self.actor else 'system'
         return f"{actor_email} -> {self.target_user.email} [{self.action}]"
-    
+
+
+class ClinicSettings(models.Model):
+    """Singleton clinic-wide configuration editable by admins."""
+
+    SINGLETON_PK = 1
+
+    clinic_name = models.CharField(max_length=120, default='JMCFI Clinic')
+    logo = models.ImageField(upload_to='clinic/', blank=True, null=True)
+    support_email = models.EmailField(blank=True, default='')
+    support_phone = models.CharField(max_length=30, blank=True, default='')
+
+    timezone = models.CharField(max_length=64, default='Asia/Manila')
+    date_format = models.CharField(
+        max_length=20,
+        default='Y-m-d',
+        help_text='Python strftime-style date format for exports and displays.',
+    )
+
+    google_allowed_domains = models.TextField(
+        blank=True,
+        default='',
+        help_text='Comma-separated email domains allowed for Google sign-in. Empty uses env GOOGLE_ALLOWED_DOMAINS.',
+    )
+    allow_student_self_signup = models.BooleanField(
+        default=True,
+        help_text='Allow new students to register via Google OAuth.',
+    )
+
+    default_session_hours = models.PositiveSmallIntegerField(
+        default=24,
+        help_text='Fallback session length when role settings are unavailable.',
+    )
+    appointment_interval_minutes = models.PositiveSmallIntegerField(
+        default=30,
+        help_text='Minimum buffer between consecutive appointments.',
+    )
+    max_advance_booking_days = models.PositiveSmallIntegerField(
+        default=30,
+        help_text='How far ahead students may book appointments.',
+    )
+    cancellation_cutoff_hours = models.PositiveSmallIntegerField(
+        default=24,
+        help_text='Hours before appointment when cancellation is no longer allowed.',
+    )
+
+    enable_email_notifications = models.BooleanField(default=False)
+    digest_hour = models.PositiveSmallIntegerField(
+        default=8,
+        help_text='Hour of day (0–23) for notification digests when enabled.',
+    )
+
+    maintenance_mode = models.BooleanField(default=False)
+    maintenance_message = models.TextField(blank=True, default='')
+
+    updated_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='clinic_settings_updates',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Clinic settings'
+        verbose_name_plural = 'Clinic settings'
+
+    def save(self, *args, **kwargs):
+        self.pk = self.SINGLETON_PK
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise RuntimeError('Clinic settings cannot be deleted.')
+
+    @classmethod
+    def load(cls):
+        """Return the singleton row, creating it with defaults if needed."""
+        obj, _ = cls.objects.get_or_create(pk=cls.SINGLETON_PK)
+        return obj
+
+    def __str__(self):
+        return self.clinic_name
+
+
+class RoleSettings(models.Model):
+    """Per-role defaults for sessions, profile policy, and feature access."""
+
+    role = models.CharField(
+        max_length=10,
+        choices=User.ROLE.choices,
+        unique=True,
+    )
+    session_timeout_seconds = models.PositiveIntegerField(
+        help_text='Session expiry for this role, in seconds.',
+    )
+    profile_required_fields = models.JSONField(
+        default=list,
+        help_text='Field names required before profile is considered complete.',
+    )
+
+    can_access_analytics = models.BooleanField(default=True)
+    can_submit_feedback = models.BooleanField(default=True)
+    can_use_messaging = models.BooleanField(default=True)
+    can_book_appointments = models.BooleanField(default=False)
+    block_clinical_namespaces = models.BooleanField(
+        default=False,
+        help_text='When true, admin users cannot access clinical app namespaces.',
+    )
+    show_health_tips_nav = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Role settings'
+        verbose_name_plural = 'Role settings'
+        ordering = ['role']
+
+    def __str__(self):
+        return f'{self.get_role_display()} settings'
+
+
+class UserPreferences(models.Model):
+    """Per-user notification and UI preferences."""
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='preferences',
+    )
+    email_notifications = models.BooleanField(
+        default=True,
+        help_text='Receive email for important clinic updates.',
+    )
+    in_app_notifications = models.BooleanField(
+        default=True,
+        help_text='Show in-app notification alerts.',
+    )
+    compact_nav = models.BooleanField(
+        default=False,
+        help_text='Use a more compact navigation layout when supported.',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'User preferences'
+        verbose_name_plural = 'User preferences'
+
+    def __str__(self):
+        return f'Preferences for {self.user.email}'
+
+
+class SettingsChangeLog(models.Model):
+    """Audit trail for clinic and role settings changes."""
+
+    class SettingType(models.TextChoices):
+        CLINIC = 'clinic', 'Clinic'
+        ROLE = 'role', 'Role'
+
+    setting_type = models.CharField(max_length=10, choices=SettingType.choices)
+    role = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        help_text='Role key when setting_type is role.',
+    )
+    field_name = models.CharField(max_length=80)
+    old_value = models.TextField(blank=True, default='')
+    new_value = models.TextField(blank=True, default='')
+    changed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='settings_changes',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Settings change log'
+        verbose_name_plural = 'Settings change logs'
+
+    def __str__(self):
+        target = self.role or self.get_setting_type_display()
+        return f'{target}.{self.field_name} @ {self.created_at:%Y-%m-%d %H:%M}'
+

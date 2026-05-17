@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+
+{% block title %}System Settings - {{ clinic_name }}{% endblock %}
+
+{% block content %}
+{% include "core/settings/_page_open.html" %}
+  {% include "core/settings/_subnav.html" %}
+
+  {% include "components/page_header.html" with title="System Settings" subtitle="Configure clinic-wide defaults and per-role behavior." icon="fa-sliders" %}
+
+  {% if clinic.maintenance_mode %}
+  <div class="mb-6 flex gap-3 rounded-card border border-warning-200 bg-warning-50 p-4">
+    <i class="fas fa-triangle-exclamation mt-0.5 flex-shrink-0 text-warning-600" aria-hidden="true"></i>
+    <div>
+      <p class="text-sm font-medium text-warning-900">Maintenance mode is on</p>
+      <p class="mt-1 text-sm text-warning-800">{{ clinic.maintenance_message|default:"Users may see a maintenance notice." }}</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+    {% for card in hub_cards %}
+      {% include "core/settings/_hub_card.html" with card=card %}
+    {% endfor %}
+  </div>
+
+  <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Roles at a glance</h3>
+  <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    {% for card in role_cards %}
+    <a href="{% url 'core:settings_role_edit' role=card.role %}"
+       class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 transition-colors hover:border-primary-300">
+      <div>
+        <p class="text-sm font-medium text-gray-900">{{ card.label }}</p>
+        <p class="mt-0.5 text-xs text-gray-500">Session {{ card.session_hours }}h</p>
+      </div>
+      <i class="fas fa-chevron-right text-sm text-gray-300" aria-hidden="true"></i>
+    </a>
+    {% endfor %}
+  </div>
+{% include "core/settings/_page_close.html" %}
+{% endblock %}

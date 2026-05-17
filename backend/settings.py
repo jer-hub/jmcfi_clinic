@@ -69,7 +69,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
         "core.middleware.UserActivityMiddleware",  # Track last user activity
-    "core.middleware.SessionTimeoutMiddleware",  # Role-based session timeout
+        "core.middleware.SessionTimeoutMiddleware",  # Role-based session timeout
+    "core.middleware.MaintenanceModeMiddleware",
+    "core.middleware.RoleFeatureAccessMiddleware",
     "core.middleware.RoleMiddleware",
     "core.middleware.ProfileCompleteMiddleware",  # Require complete profile for access
 ]
@@ -131,6 +133,9 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "core.context_processors.notification_context",
                 "core.context_processors.profile_context",
+                "core.context_processors.clinic_settings_context",
+                "core.context_processors.role_features_context",
+                "core.context_processors.user_preferences_context",
                 "core.nav_context.nav_bar_context",
             ],
         },
@@ -238,6 +243,14 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 # PDF generation engine path (wkhtmltopdf)
 WKHTMLTOPDF_CMD = config("WKHTMLTOPDF_CMD", default="")
+
+# Email (console backend in dev; override via EMAIL_BACKEND in production)
+EMAIL_BACKEND = config(
+    "EMAIL_BACKEND",
+    default="django.core.mail.backends.console.EmailBackend",
+)
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="clinic@jmcfi.edu.ph")
+SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

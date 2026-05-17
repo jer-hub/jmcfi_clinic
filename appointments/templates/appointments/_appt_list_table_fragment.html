@@ -55,7 +55,8 @@
             </td>
             <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
               <div class="inline-flex items-center gap-1">
-                <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="p-1.5 rounded text-primary-600 hover:bg-primary-50 transition-colors" title="View Details"><i class="fas fa-eye"></i></a>
+                {% url 'appointments:appointment_detail' appointment.id as appt_detail_url %}
+                {% include "components/table_icon_link.html" with href=appt_detail_url icon="fa-eye" title="View details" tone="view" %}
                 {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
                   {% if appointment.status == 'pending' %}
                     {% include "appointments/partials/_confirm_appointment_action.html" with use_htmx_list=use_htmx_list next_url=request.get_full_path %}
@@ -88,20 +89,25 @@
                   {% if appointment.status == 'completed' %}
                     <a href="{% url 'appointments:schedule_for_student' %}?student={{ appointment.student.id }}"
                        class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors"
-                       title="Book an appointment again"><i class="fas fa-calendar-plus"></i></a>
+                       title="Book again">
+                      <i class="fas fa-calendar-plus" aria-hidden="true"></i>
+                      <span class="sr-only">Book again</span>
+                    </a>
                   {% endif %}
                 {% endif %}
-                {% if user.role == 'student' and appointment.status == 'completed' %}
-                  <a href="{% url 'appointments:schedule_appointment' %}"
-                     class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors"
-                     title="Book an appointment again"><i class="fas fa-calendar-plus"></i></a>
-                  {% if appointment.dental_records.exists %}
-                    <a href="{% url 'dental_records:dental_record_detail' appointment.dental_records.first.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="View Dental Record"><i class="fas fa-tooth"></i></a>
+                {% if user.role == 'student' and role_features.can_book_appointments %}
+                  {% if appointment.status == 'cancelled' or appointment.status == 'completed' %}
+                    {% url 'appointments:schedule_appointment' as schedule_url %}
+                    {% include "components/table_icon_link.html" with href=schedule_url icon="fa-calendar-plus" title="Book again" %}
                   {% endif %}
-                  <a href="{% url 'feedback:submit_feedback_appointment' appointment.id %}" class="p-1.5 rounded text-success-700 hover:bg-success-50 transition-colors" title="Give Feedback"><i class="fas fa-comment-dots"></i></a>
-                {% endif %}
-                {% if user.role == 'student' and appointment.status == 'cancelled' %}
-                  <a href="{% url 'appointments:schedule_appointment' %}" class="px-2 py-1 rounded text-white bg-primary-600 hover:bg-primary-700 text-xs transition-colors" title="Book Again"><i class="fas fa-plus mr-1"></i>Book</a>
+                  {% if appointment.status == 'completed' %}
+                    {% if appointment.dental_records.exists %}
+                      {% url 'dental_records:dental_record_detail' appointment.dental_records.first.id as dental_detail_url %}
+                      {% include "components/table_icon_link.html" with href=dental_detail_url icon="fa-tooth" title="View dental record" tone="info" %}
+                    {% endif %}
+                    {% url 'feedback:submit_feedback_appointment' appointment.id as feedback_url %}
+                    {% include "components/table_icon_link.html" with href=feedback_url icon="fa-comment-dots" title="Give feedback" tone="success" %}
+                  {% endif %}
                 {% endif %}
               </div>
             </td>

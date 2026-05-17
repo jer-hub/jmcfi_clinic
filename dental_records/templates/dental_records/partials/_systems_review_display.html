@@ -1,0 +1,44 @@
+{% comment %}
+  Grouped systems review read-only display (detail / student view).
+{% endcomment %}
+<div class="space-y-6">
+  {% if systems_review.allergies %}
+  <div class="bg-danger-50 border-l-4 border-danger-500 p-4 rounded-r-lg">
+    <div class="flex items-start gap-3">
+      <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5" aria-hidden="true"></i>
+      <div>
+        <h3 class="text-sm font-semibold text-danger-900">Allergies</h3>
+        <p class="text-sm text-danger-800 mt-0.5">{{ systems_review.allergies }}</p>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% for section in sections %}
+  <section>
+    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+      <i class="fas {{ section.icon }} {{ section.icon_class }} text-sm" aria-hidden="true"></i>
+      <h3 class="text-sm font-semibold text-gray-800">{{ section.title }}</h3>
+    </div>
+    {% if section.has_active %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+      {% for item in section.active_fields %}
+      <div class="flex items-center gap-2 p-2.5 rounded-lg border text-sm {{ section.chip_wrap }}">
+        <i class="fas fa-check-circle {{ section.chip_icon }} text-xs" aria-hidden="true"></i>
+        <span class="text-gray-800">{{ item.label }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-sm text-gray-400 italic py-2">No conditions reported</p>
+    {% endif %}
+  </section>
+  {% endfor %}
+
+  {% if has_other_conditions %}
+  <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Other conditions</dt>
+    <dd class="mt-1 text-sm text-gray-900">{{ systems_review.other_conditions }}</dd>
+  </div>
+  {% endif %}
+</div>

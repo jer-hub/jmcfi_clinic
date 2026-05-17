@@ -40,15 +40,11 @@ from .forms import (
     PasswordResetForm,
     clean_strict_ph_number,
 )
-from .profile_policy import (
-    STUDENT_PROFILE_REQUIRED_FIELDS,
-    STAFF_PROFILE_REQUIRED_FIELDS,
-    DOCTOR_PROFILE_REQUIRED_FIELDS,
-    ADMIN_PROFILE_REQUIRED_FIELDS,
-)
+from .notification_delivery import notify_user
+from .settings_service import get_profile_required_fields
 from .utils import (
-    get_user_profile, create_notification, paginate_queryset,
-    create_bulk_notifications, get_missing_profile_fields, get_client_ip,
+    get_user_profile, paginate_queryset,
+    get_missing_profile_fields, get_client_ip,
     resolve_notification_url, student_display_name, student_search_q,
 )
 from .decorators import admin_required, role_required
@@ -280,7 +276,7 @@ def accept_invite(request, token):
             user.onboarding_status = User.ONBOARDING_STATUS.ACTIVE
             user.save(update_fields=['is_active', 'onboarding_status'])
 
-            create_notification(
+            notify_user(
                 user=user,
                 title='Invitation Accepted',
                 message='Your account invitation has been accepted and your account is now active.',
@@ -548,7 +544,11 @@ def create_system_notification(request):
             recipients = User.objects.filter(role__in=['student', 'staff', 'doctor', 'admin'])
         
         # Create notifications
-        created_count = len(create_bulk_notifications(recipients, title, message, notification_type))
+        from .notification_delivery import deliver_bulk_notifications
+
+        created_count = len(
+            deliver_bulk_notifications(recipients, title, message, notification_type)
+        )
         
         messages.success(request, 'Notification sent successfully.')
         return redirect('core:notifications')
@@ -568,24 +568,20 @@ def profile_view(request):
     # Calculate profile completion percentage
     completion_percentage = 0
     if profile:
-        if request.user.role == 'student':
-            required_fields = STUDENT_PROFILE_REQUIRED_FIELDS
-        elif request.user.role == 'doctor':
-            required_fields = DOCTOR_PROFILE_REQUIRED_FIELDS
-        elif request.user.role == 'admin':
-            required_fields = ADMIN_PROFILE_REQUIRED_FIELDS
-        else:
-            required_fields = STAFF_PROFILE_REQUIRED_FIELDS
+        required_fields = get_profile_required_fields(request.user.role)
         
-        filled_count = 0
-        for field in required_fields:
-            if field in {'first_name', 'last_name'}:
-                value = getattr(request.user, field, None)
-            else:
-                value = getattr(profile, field, None)
-            if value and (not isinstance(value, str) or value.strip()):
-                filled_count += 1
-        completion_percentage = int((filled_count / len(required_fields)) * 100)
+        if required_fields:
+            filled_count = 0
+            for field in required_fields:
+                if field in {'first_name', 'last_name'}:
+                    value = getattr(request.user, field, None)
+                else:
+                    value = getattr(profile, field, None)
+                if value and (not isinstance(value, str) or value.strip()):
+                    filled_count += 1
+            completion_percentage = int((filled_count / len(required_fields)) * 100)
+        else:
+            completion_percentage = 100
     
     course_queryset = CourseProgram.objects.filter(is_active=True).select_related('college_department')
     course_options = list(course_queryset.values_list('name', flat=True))
@@ -1276,7 +1272,7 @@ def user_create(request):
 
                 # Create notification for the new user
                 is_pending_activation = user.onboarding_status == User.ONBOARDING_STATUS.PENDING_ACTIVATION
-                create_notification(
+                notify_user(
                     user=user,
                     title='Welcome to JMCFI Clinic',
                     message=(
@@ -1392,7 +1388,7 @@ def user_delete(request, user_id):
 
     if request.method == 'POST':
         soft_delete_user(request=request, actor=request.user, target_user=user)
-        create_notification(
+        notify_user(
             user=user,
             title='Account Deleted',
             message='Your account has been soft-deleted by an administrator. Please contact an administrator if you need to restore access.',
@@ -1445,7 +1441,7 @@ def user_toggle_status(request, user_id):
     )
     messages.success(request, status_message)
 
-    create_notification(
+    notify_user(
         user=user,
         title='Account Activated' if user.is_active else 'Account Deactivated',
         message=(
@@ -1497,7 +1493,7 @@ def user_resend_invite(request, user_id):
         reverse('core:accept_invite', kwargs={'token': raw_token})
     )
 
-    create_notification(
+    notify_user(
         user=user,
         title='New Invitation Link',
         message='A new account invitation link has been generated for you by an administrator.',
@@ -1528,7 +1524,7 @@ def user_reset_password(request, user_id):
             user.save()
             
             # Create notification for the user
-            create_notification(
+            notify_user(
                 user=user,
                 title='Password Reset',
                 message='Your password has been reset by an administrator. Please login with your new password.',

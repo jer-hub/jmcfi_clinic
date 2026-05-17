@@ -9,12 +9,20 @@
     <div class="site-nav-row h-16 flex items-center justify-between gap-4">
       <div class="site-nav-left flex items-center gap-4">
         <a href="{% url 'core:dashboard' %}" class="site-nav-brand inline-flex items-center gap-2 text-lg sm:text-xl font-bold text-primary-600 whitespace-nowrap" title="Home">
+          {% if clinic_logo_url %}
+          <img src="{{ clinic_logo_url }}"
+               alt=""
+               class="jmc-logo h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0"
+               width="36"
+               height="36">
+          {% else %}
           <img src="{% static 'logo/jmc-logo.png' %}"
                alt=""
                class="jmc-logo h-8 w-8 sm:h-9 sm:w-9 object-contain flex-shrink-0"
                width="36"
                height="36">
-          <span>JMCFI Clinic</span>
+          {% endif %}
+          <span>{{ clinic_name }}</span>
         </a>
 
         <div class="site-nav-desktop-links hidden lg:flex items-center gap-1">
@@ -24,17 +32,27 @@
 
           {% if user.role == 'student' %}
             {% include 'core/partials/_navbar_services_desktop.html' with svc_role=user.role %}
+            {% if role_features.show_health_tips_nav %}
             <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if nav_active.health_tips %}active{% endif %}">Health Tips</a>
+            {% endif %}
+            {% if role_features.can_access_analytics %}
             <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
+            {% endif %}
           {% elif user.role == 'doctor' %}
             {% include 'core/partials/_navbar_services_desktop.html' with svc_role=user.role %}
             {% include 'core/partials/_nav_health_forms_desktop.html' with include_document_request_link=False %}
+            {% if role_features.show_health_tips_nav %}
             <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if nav_active.health_tips %}active{% endif %}">Health Tips</a>
+            {% endif %}
+            {% if role_features.can_access_analytics %}
             <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
+            {% endif %}
           {% elif user.role == 'staff' %}
             {% include 'core/partials/_navbar_services_desktop.html' with svc_role=user.role %}
             {% include 'core/partials/_nav_health_forms_desktop.html' with include_document_request_link=False %}
+            {% if role_features.can_access_analytics %}
             <a href="{% url 'analytics:dashboard' %}" class="nav-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
+            {% endif %}
           {% elif user.role == 'admin' %}
             {% include 'core/partials/_navbar_admin_settings_desktop.html' %}
             {% include 'core/partials/_nav_health_forms_desktop.html' with include_document_request_link=False %}
@@ -53,7 +71,7 @@
           </a>
         {% endif %}
 
-        {% if user.role != 'admin' %}
+        {% if role_features.can_submit_feedback %}
           <a href="{% url 'feedback:feedback_list' %}" title="Feedback"
             class="site-nav-hide-sm relative hidden sm:inline-flex p-2 rounded-full {% if nav_active.feedback %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
             <span class="sr-only">Feedback</span>
@@ -63,6 +81,7 @@
           </a>
         {% endif %}
 
+        {% if role_features.can_use_messaging %}
         <a href="{% url 'messaging:inbox' %}" title="Messages"
           class="relative p-2 rounded-full {% if nav_active.messaging %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
           <span class="sr-only">Messages</span>
@@ -73,6 +92,7 @@
             <span id="messages-unread-count" data-unread-count class="text-[9px] font-bold text-white leading-tight">{% if unread_messages_count > 9 %}9+{% else %}{{ unread_messages_count }}{% endif %}</span>
           </span>
         </a>
+        {% endif %}
 
         <a href="{% url 'core:notifications' %}" title="Notifications"
           class="site-nav-hide-sm relative hidden sm:inline-flex p-2 rounded-full {% if nav_active.notifications %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
@@ -111,7 +131,7 @@
             role="region"
             aria-labelledby="nav-trigger-more"
             class="absolute right-0 z-50 mt-2 w-52 origin-top-right rounded-xl border border-gray-200 bg-white shadow-lg py-1">
-            {% if user.role != 'admin' %}
+            {% if role_features.can_submit_feedback %}
               <a href="{% url 'feedback:feedback_list' %}"
                 @click="moreOpen = false"
                 class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 {% if nav_active.feedback %}text-primary-700 font-medium{% endif %}">
@@ -177,6 +197,7 @@
           <div class="flex-1 min-w-0">
             <a href="{% url 'core:profile' %}" class="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block">{{ user.get_full_name }}</a>
             <div class="text-xs text-gray-500">{{ user.get_role_display }}</div>
+            <a href="{% url 'core:profile_preferences' %}" class="text-xs text-primary-600 hover:text-primary-700 mt-1 inline-block">Preferences</a>
           </div>
           <form method="post" action="{% url 'account_logout' %}" class="inline">
             {% csrf_token %}
@@ -194,20 +215,36 @@
 
         {% if user.role == 'student' %}
           {% include 'core/partials/_navbar_services_mobile.html' with svc_role=user.role %}
+          {% if role_features.show_health_tips_nav %}
           <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if nav_active.health_tips %}active{% endif %}">Health Tips</a>
+          {% endif %}
+          {% if role_features.can_access_analytics %}
           <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
+          {% endif %}
+          {% if role_features.can_use_messaging %}
           <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if nav_active.messaging %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
+          {% endif %}
         {% elif user.role == 'doctor' %}
           {% include 'core/partials/_navbar_services_mobile.html' with svc_role=user.role %}
           {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}
+          {% if role_features.show_health_tips_nav %}
           <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if nav_active.health_tips %}active{% endif %}">Health Tips</a>
+          {% endif %}
+          {% if role_features.can_access_analytics %}
           <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
+          {% endif %}
+          {% if role_features.can_use_messaging %}
           <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if nav_active.messaging %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
+          {% endif %}
         {% elif user.role == 'staff' %}
           {% include 'core/partials/_navbar_services_mobile.html' with svc_role=user.role %}
           {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}
+          {% if role_features.can_access_analytics %}
           <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
+          {% endif %}
+          {% if role_features.can_use_messaging %}
           <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if nav_active.messaging %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
+          {% endif %}
         {% elif user.role == 'admin' %}
           {% include 'core/partials/_navbar_admin_settings_mobile.html' %}
           {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}

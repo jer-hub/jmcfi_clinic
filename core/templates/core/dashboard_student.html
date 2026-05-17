@@ -68,8 +68,12 @@
       {% endfor %}
     </ul>
     {% else %}
+    {% if role_features.can_book_appointments %}
     {% url 'appointments:schedule_appointment' as schedule_url %}
     {% include "components/empty_state.html" with icon="fa-calendar-xmark" title="No upcoming appointments" description="Book a visit with the clinic and it will appear here." action_label="Book appointment" action_url=schedule_url %}
+    {% else %}
+    {% include "components/empty_state.html" with icon="fa-calendar-xmark" title="No upcoming appointments" description="Book a visit with the clinic and it will appear here." %}
+    {% endif %}
     {% endif %}
   </div>
 </section>

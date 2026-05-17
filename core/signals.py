@@ -3,7 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from allauth.socialaccount.signals import social_account_added, pre_social_login
-from .models import StudentProfile, StaffProfile
+from .models import StudentProfile, StaffProfile, UserPreferences
 import requests
 from django.core.files.base import ContentFile
 import logging
@@ -128,6 +128,12 @@ def create_profile_from_google(sender, request, sociallogin, **kwargs):
                         
             except Exception as e:
                 logger.error(f"Error creating StaffProfile for {user.email}: {e}")
+
+
+@receiver(post_save, sender=User)
+def create_user_preferences(sender, instance, created, **kwargs):
+    if created:
+        UserPreferences.objects.get_or_create(user=instance)
 
 
 @receiver(post_save, sender=User)

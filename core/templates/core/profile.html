@@ -13,6 +13,12 @@
                     <h1 class="text-3xl font-bold text-gray-900">My Profile</h1>
                     <p class="text-gray-600 mt-1">View and manage your personal information</p>
                 </div>
+                <div class="flex flex-wrap items-center gap-2">
+                <a href="{% url 'core:profile_preferences' %}"
+                   class="inline-flex items-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-sm">
+                    <i class="fas fa-sliders mr-2 text-gray-500"></i>
+                    Preferences
+                </a>
                 <a href="{% url 'core:edit_profile' %}" 
                    class="inline-flex items-center px-5 py-2.5 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-md">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -20,6 +26,7 @@
                     </svg>
                     Edit Profile
                 </a>
+                </div>
             </div>
         </div>
 

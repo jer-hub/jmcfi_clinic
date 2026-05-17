@@ -25,8 +25,8 @@ from .models import (
     Notification,
     User,
 )
+from .notification_delivery import notify_user
 from .utils import (
-    create_notification,
     get_user_profile,
     paginate_queryset,
 )
@@ -111,7 +111,7 @@ def user_bulk_action(request):
             onboarding_status='active',
         )
         for user in users:
-            create_notification(
+            notify_user(
                 user=user,
                 title='Account Activated',
                 message='Your account has been activated by an administrator (bulk action).',
@@ -130,7 +130,7 @@ def user_bulk_action(request):
             onboarding_status='suspended',
         )
         for user in users:
-            create_notification(
+            notify_user(
                 user=user,
                 title='Account Deactivated',
                 message='Your account has been deactivated by an administrator (bulk action).',
@@ -146,7 +146,7 @@ def user_bulk_action(request):
         updated = 0
         for user in users:
             user.soft_delete()
-            create_notification(
+            notify_user(
                 user=user,
                 title='Account Deleted',
                 message='Your account has been deleted by an administrator. Please contact support.',
@@ -171,7 +171,7 @@ def user_restore(request, user_id):
     user = get_object_or_404(User, id=user_id, is_deleted=True)
 
     restore_user(request=request, actor=request.user, target_user=user)
-    create_notification(
+    notify_user(
         user=user,
         title='Account Restored',
         message='Your account has been restored by an administrator.',
@@ -252,7 +252,7 @@ def deleted_user_bulk_restore(request):
     restored_count = 0
     for user in users:
         restore_user(request=request, actor=request.user, target_user=user)
-        create_notification(
+        notify_user(
             user=user,
             title='Account Restored',
             message='Your account has been restored by an administrator.',
@@ -298,7 +298,7 @@ def deleted_user_bulk_action(request):
         handled_count = 0
         for user in users:
             restore_user(request=request, actor=request.user, target_user=user)
-            create_notification(
+            notify_user(
                 user=user,
                 title='Account Restored',
                 message='Your account has been restored by an administrator.',

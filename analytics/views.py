@@ -382,6 +382,20 @@ def render_analytics_dashboard(request):
         total_records = MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to).count()
         avg_feedback = Feedback.objects.aggregate(avg=Avg('rating'))['avg'] or 0
 
+        from appointments.calendar_service import build_admin_calendar_context
+
+        today = timezone.localdate()
+        try:
+            cal_year = int(request.GET.get('year', today.year))
+        except (TypeError, ValueError):
+            cal_year = today.year
+        try:
+            cal_month = int(request.GET.get('month', today.month))
+        except (TypeError, ValueError):
+            cal_month = today.month
+        cal_month = max(1, min(12, cal_month))
+        cal_selected = parse_date(request.GET.get('date', '')) or today
+
         context.update({
             'total_students': total_students,
             'total_staff': total_staff,
@@ -396,6 +410,11 @@ def render_analytics_dashboard(request):
             'demographics': _student_demographics(),
             'financial_summary': _financial_summary(date_from, date_to),
         })
+        context.update(build_admin_calendar_context(
+            year=cal_year,
+            month=cal_month,
+            selected_date=cal_selected,
+        ))
         return render(request, 'analytics/dashboard_admin.html', context)
 
 

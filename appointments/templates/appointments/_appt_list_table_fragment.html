@@ -43,15 +43,8 @@
               <p class="line-clamp-2" title="{{ appointment.reason }}">{{ appointment.reason }}</p>
             </td>
             <td class="px-4 py-3 whitespace-nowrap">
-              {% if appointment.status == 'pending' %}
-                {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" size="sm" %}
-              {% elif appointment.status == 'confirmed' %}
-                {% include "components/status_badge.html" with label="Confirmed" variant="info" icon="fa-circle-check" size="sm" %}
-              {% elif appointment.status == 'completed' %}
-                {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-check-double" size="sm" %}
-              {% elif appointment.status == 'cancelled' %}
-                {% include "components/status_badge.html" with label="Cancelled" variant="danger" icon="fa-ban" size="sm" %}
-              {% endif %}
+              {% load status_tags %}
+              {% appointment_status_badge appointment=appointment size="sm" %}
             </td>
             <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
               <div class="inline-flex items-center gap-1">

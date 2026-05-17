@@ -1,0 +1,14 @@
+{% extends 'core/base.html' %}
+{% load app_subnav %}
+
+{% block title %}Calendar - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 sm:pb-8 pt-0">
+  {% include "appointments/_subnav.html" %}
+
+  {% include "components/page_header.html" with title="Appointment calendar" subtitle="Month view with day details" icon="fa-calendar-days" header_mb="mb-4" %}
+
+  {% include "components/calendar/_calendar_shell.html" with calendar_embedded=False %}
+</div>
+{% endblock content %}

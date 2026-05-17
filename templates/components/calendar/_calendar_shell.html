@@ -1,0 +1,59 @@
+{% comment %}
+  Calendar shell (dashboard embed or full page).
+  Expects build_calendar_context() keys.
+{% endcomment %}
+<section class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden {% if calendar_embedded %}mb-6{% endif %}"
+         id="dashboard-calendar"
+         x-data="{ selectedDate: '{{ calendar_selected_iso }}', loading: false, viewMode: '{{ calendar_view_mode|default:'month' }}' }"
+         @htmx:before-request="if ($event.detail.elt?.closest('#dashboard-calendar')) loading = true"
+         @htmx:after-settle="
+           loading = false;
+           const path = $event.detail.requestConfig?.path || '';
+           if (path.includes('/calendar/body/') || path.includes('/calendar/month/')) {
+             try {
+               const params = new URL(path, window.location.origin).searchParams;
+               viewMode = params.get('view') === 'week' ? 'week' : 'month';
+             } catch (e) {}
+           }
+         "
+         @htmx:response-error="loading = false">
+  <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-calendar-days text-primary-500" aria-hidden="true"></i>Schedule
+      </h2>
+      <p class="mt-0.5 text-xs text-gray-500"
+         {% if calendar_show_week_view %}
+         x-text="viewMode === 'week' ? 'Pick a day below to view details' : 'Tap a day to see appointments'"
+         {% endif %}>
+        {% if calendar_show_week_view %}
+          {% if calendar_view_mode == 'week' %}Pick a day below to view details{% else %}Tap a day to see appointments{% endif %}
+        {% else %}
+          Tap a day to see appointments
+        {% endif %}
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+      {% if calendar_embedded %}
+      <a href="{% url 'appointments:appointment_calendar' %}?year={{ calendar_year }}&month={{ calendar_month }}&date={{ calendar_selected_iso }}{% if calendar_view_mode == 'week' %}&view=week{% endif %}{% if calendar_doctor_id %}&doctor={{ calendar_doctor_id }}{% endif %}{% if calendar_status_filter %}&status={{ calendar_status_filter }}{% endif %}"
+         class="text-xs font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg px-2.5 py-1.5 inline-flex items-center gap-1">
+        <i class="fas fa-up-right-and-down-left-from-center text-[10px]" aria-hidden="true"></i>Expand
+      </a>
+      {% endif %}
+      {% include "components/calendar/_view_mode_toggle.html" %}
+      <a href="{{ calendar_export_ics_url }}"
+         class="text-xs font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg px-2.5 py-1.5 inline-flex items-center gap-1"
+         title="Download calendar file">
+        <i class="fas fa-download text-[10px]" aria-hidden="true"></i>Export
+      </a>
+      {% include "components/calendar/_calendar_period_nav.html" %}
+      {% include "components/calendar/_calendar_today_btn.html" %}
+    </div>
+  </div>
+
+  <div class="p-4 sm:p-5" :class="loading ? 'opacity-50' : ''">
+    <div id="cal-calendar-main" class="{% include 'components/calendar/_calendar_main_classes.html' %}">
+      {% include "components/calendar/_calendar_main_inner.html" %}
+    </div>
+  </div>
+</section>

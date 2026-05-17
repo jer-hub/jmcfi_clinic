@@ -1,0 +1,25 @@
+{% comment %}Period prev/next + label; pass calendar_nav_oob for HTMX body responses{% endcomment %}
+<div id="cal-period-nav"
+     class="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5"
+     {% if calendar_nav_oob %}hx-swap-oob="outerHTML"{% endif %}
+     :class="loading ? 'opacity-60 pointer-events-none' : ''">
+  <button type="button"
+          class="p-1.5 rounded-md text-gray-600 hover:bg-white hover:text-gray-900 transition-colors"
+          aria-label="Previous period"
+          hx-get="{{ calendar_nav_prev_url }}"
+          hx-target="#cal-calendar-main"
+          hx-swap="outerHTML">
+    <i class="fas fa-chevron-left text-xs" aria-hidden="true"></i>
+  </button>
+  <span id="cal-month-label" class="px-2 text-sm font-semibold text-gray-900 min-w-[8.5rem] text-center tabular-nums">
+    {{ calendar_period_label }}
+  </span>
+  <button type="button"
+          class="p-1.5 rounded-md text-gray-600 hover:bg-white hover:text-gray-900 transition-colors"
+          aria-label="Next period"
+          hx-get="{{ calendar_nav_next_url }}"
+          hx-target="#cal-calendar-main"
+          hx-swap="outerHTML">
+    <i class="fas fa-chevron-right text-xs" aria-hidden="true"></i>
+  </button>
+</div>

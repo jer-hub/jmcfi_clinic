@@ -13,15 +13,8 @@
           <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
             <i class="fas fa-circle-info text-primary-500"></i>Appointment Information
           </h2>
-          {% if appointment.status == 'pending' %}
-            {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" icon="fa-clock" %}
-          {% elif appointment.status == 'confirmed' %}
-            {% include "components/status_badge.html" with label=appointment.get_status_display variant="info" icon="fa-circle-check" %}
-          {% elif appointment.status == 'completed' %}
-            {% include "components/status_badge.html" with label=appointment.get_status_display variant="success" icon="fa-check-double" %}
-          {% elif appointment.status == 'cancelled' %}
-            {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" icon="fa-ban" %}
-          {% endif %}
+          {% load status_tags %}
+          {% appointment_status_badge appointment=appointment %}
         </div>
         <div class="p-5">
           <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -20,41 +20,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2">
       <div class="text-sm font-medium text-gray-900">{{ cert_request.get_document_type_display }}</div>
       <div>
-        {% if user.role == 'student' %}
-          {% if cert_request.status == 'rejected' %}
-            {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
-              <button type="button"
-                      data-rejection-reason="{{ cert_request.rejection_reason|escape }}"
-                      onclick="window.__jmcfiDocRejectionReasonModal(this)"
-                      class="cursor-pointer hover:opacity-80 transition-opacity">
-                {% include "components/status_badge.html" with label="Rejected (view reason)" variant="danger" icon="fa-circle-info" size="sm" %}
-              </button>
-            {% else %}
-              {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" size="sm" %}
-            {% endif %}
-          {% elif cert_request.status == 'completed' %}
-            {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" size="sm" %}
-          {% else %}
-            {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" size="sm" %}
-          {% endif %}
-        {% else %}
-          {% if cert_request.status == 'pending_review' %}
-            {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" size="sm" %}
-          {% elif cert_request.status == 'completed' %}
-            {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" size="sm" %}
-          {% elif cert_request.status == 'rejected' %}
-            {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
-              <button type="button"
-                      data-rejection-reason="{{ cert_request.rejection_reason|escape }}"
-                      onclick="window.__jmcfiDocRejectionReasonModal(this)"
-                      class="cursor-pointer hover:opacity-80 transition-opacity">
-                {% include "components/status_badge.html" with label="Rejected (view reason)" variant="danger" icon="fa-circle-info" size="sm" %}
-              </button>
-            {% else %}
-              {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" size="sm" %}
-            {% endif %}
-          {% endif %}
-        {% endif %}
+        {% include "document_request/_document_request_status_display.html" with cert_request=cert_request %}
       </div>
     </div>
     <p class="text-sm text-gray-700"><span class="text-gray-500">Purpose:</span> {{ cert_request.purpose|truncatechars:120 }}</p>
@@ -115,41 +81,7 @@
           </div>
         </td>
         <td class="px-2 py-3 whitespace-nowrap align-middle">
-          {% if user.role == 'student' %}
-            {% if cert_request.status == 'rejected' %}
-              {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
-                <button type="button"
-                        data-rejection-reason="{{ cert_request.rejection_reason|escape }}"
-                        onclick="window.__jmcfiDocRejectionReasonModal(this)"
-                        class="cursor-pointer hover:opacity-80 transition-opacity">
-                  {% include "components/status_badge.html" with label="Rejected (view reason)" variant="danger" icon="fa-circle-info" size="sm" %}
-                </button>
-              {% else %}
-                {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" size="sm" %}
-              {% endif %}
-            {% elif cert_request.status == 'completed' %}
-              {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" size="sm" %}
-            {% else %}
-              {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" size="sm" %}
-            {% endif %}
-          {% else %}
-            {% if cert_request.status == 'pending_review' %}
-              {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" size="sm" %}
-            {% elif cert_request.status == 'completed' %}
-              {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" size="sm" %}
-            {% elif cert_request.status == 'rejected' %}
-              {% if cert_request.rejection_reason and cert_request.rejection_reason.strip %}
-                <button type="button"
-                        data-rejection-reason="{{ cert_request.rejection_reason|escape }}"
-                        onclick="window.__jmcfiDocRejectionReasonModal(this)"
-                        class="cursor-pointer hover:opacity-80 transition-opacity">
-                  {% include "components/status_badge.html" with label="Rejected (view reason)" variant="danger" icon="fa-circle-info" size="sm" %}
-                </button>
-              {% else %}
-                {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" size="sm" %}
-              {% endif %}
-            {% endif %}
-          {% endif %}
+          {% include "document_request/_document_request_status_display.html" with cert_request=cert_request %}
         </td>
         <td class="px-2 py-3 whitespace-nowrap text-right align-middle">
           {% include "document_request/_document_requests_row_actions.html" with cert_request=cert_request %}

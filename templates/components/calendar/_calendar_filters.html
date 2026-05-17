@@ -1,0 +1,27 @@
+{% comment %}Staff doctor filter (inside #cal-calendar-main).{% endcomment %}
+{% if calendar_show_doctor_filter %}
+<div class="flex flex-wrap items-center gap-3 py-2 mb-1 border-b border-gray-100">
+  <form class="flex items-center gap-2 min-w-[12rem]"
+        hx-get="{% url 'appointments:calendar_month_fragment' %}"
+        hx-target="#cal-calendar-main"
+        hx-swap="outerHTML"
+        hx-trigger="change from:select">
+    <input type="hidden" name="year" value="{{ calendar_year }}">
+    <input type="hidden" name="month" value="{{ calendar_month }}">
+    <input type="hidden" name="date" value="{{ calendar_selected_iso }}">
+    {% if calendar_status_filter %}<input type="hidden" name="status" value="{{ calendar_status_filter }}">{% endif %}
+    {% if calendar_full_page %}<input type="hidden" name="full" value="1">{% endif %}
+    {% if calendar_view_mode == 'week' %}<input type="hidden" name="view" value="week">{% endif %}
+    <label for="cal-doctor-filter" class="text-xs font-medium text-gray-600 whitespace-nowrap">Doctor</label>
+    <select id="cal-doctor-filter" name="doctor"
+            class="form-select form-select--compact text-sm min-w-[10rem]">
+      <option value="">All doctors</option>
+      {% for doc in calendar_doctors %}
+      <option value="{{ doc.pk }}" {% if calendar_doctor_id == doc.pk %}selected{% endif %}>
+        Dr. {{ doc.get_full_name }}
+      </option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+{% endif %}

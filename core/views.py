@@ -56,6 +56,7 @@ from .user_management_services import (
 )
 from .htmx_utils import htmx_add_trigger, htmx_add_toast, htmx_redirect, is_htmx_request
 from appointments.models import Appointment
+from appointments.calendar_service import build_dashboard_calendar_context
 from medical_records.models import MedicalRecord
 from dental_records.models import DentalRecord
 from document_request.models import DocumentRequest
@@ -313,11 +314,6 @@ def _appointment_list_url_for_local_date(d):
 
 
 def _appointment_list_url_status(status: str) -> str:
-    """Appointment list filtered by appointment status query param."""
-    return f"{reverse('appointments:appointment_list')}?{urlencode({'status': status})}"
-
-
-def _appointment_list_url_status(status: str) -> str:
     """Appointment list filtered by appointment status (GET param matches list view)."""
     query = urlencode({'status': status})
     return f"{reverse('appointments:appointment_list')}?{query}"
@@ -410,6 +406,9 @@ def dashboard(request):
             'appointment_list_today_url': _appointment_list_url_for_local_date(today),
             'appointment_list_pending_url': _appointment_list_url_status('pending'),
         })
+
+    if request.user.role in ('student', 'doctor', 'staff'):
+        context.update(build_dashboard_calendar_context(request.user))
 
     return render(request, 'core/dashboard.html', context)
 

@@ -1,0 +1,32 @@
+{% comment %}Month / week view toggle (doctor & staff). Synced via Alpine viewMode on #dashboard-calendar.{% endcomment %}
+{% if calendar_show_week_view %}
+<div id="cal-view-mode-toggle"
+     class="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-0.5"
+     {% if calendar_nav_oob %}hx-swap-oob="outerHTML"{% endif %}
+     role="tablist"
+     aria-label="Calendar view"
+     :class="loading ? 'opacity-60 pointer-events-none' : ''">
+  <a href="{{ calendar_view_month_url }}"
+     role="tab"
+     :aria-selected="viewMode === 'month' ? 'true' : 'false'"
+     hx-get="{{ calendar_view_month_url }}"
+     hx-target="#cal-calendar-main"
+     hx-swap="outerHTML"
+     @click="viewMode = 'month'"
+     class="px-2.5 py-1 rounded-md text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+     :class="viewMode === 'month' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'">
+    Month
+  </a>
+  <a href="{{ calendar_view_week_url }}"
+     role="tab"
+     :aria-selected="viewMode === 'week' ? 'true' : 'false'"
+     hx-get="{{ calendar_view_week_url }}"
+     hx-target="#cal-calendar-main"
+     hx-swap="outerHTML"
+     @click="viewMode = 'week'"
+     class="px-2.5 py-1 rounded-md text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+     :class="viewMode === 'week' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'">
+    Week
+  </a>
+</div>
+{% endif %}

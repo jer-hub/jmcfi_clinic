@@ -34,6 +34,8 @@
       {% include "components/stat_card.html" with label="Avg rating" value=avg_feedback icon="fa-star" variant="danger" hint="All-time feedback" %}
     </div>
 
+    {% include "components/calendar/_admin_calendar_heatmap.html" %}
+
     <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 mb-6" aria-labelledby="chart-volume-heading">
       <div class="flex items-center justify-between gap-3 mb-3">
         <h2 id="chart-volume-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">

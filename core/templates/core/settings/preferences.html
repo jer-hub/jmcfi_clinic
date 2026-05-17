@@ -3,8 +3,7 @@
 {% block page_title %}Preferences - {{ clinic_name }}{% endblock %}
 
 {% block page_header %}
-  {% url 'core:profile' as profile_url %}
-  {% include "components/page_header.html" with title="Preferences" subtitle="Manage how you receive notifications and display options." icon="fa-sliders" back_url=profile_url back_label="My profile" %}
+  {% include "components/page_header.html" with title="Preferences" subtitle="Manage how you receive notifications and display options." icon="fa-sliders" %}
 {% endblock %}
 
 {% block form_open %}

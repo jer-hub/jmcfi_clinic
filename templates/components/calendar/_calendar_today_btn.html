@@ -1,0 +1,12 @@
+{% comment %}Today button; OOB-updated from _calendar_body.html{% endcomment %}
+<button type="button"
+        id="cal-today-btn"
+        {% if calendar_nav_oob %}hx-swap-oob="outerHTML"{% endif %}
+        class="text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 rounded-lg px-2.5 py-1.5 transition-colors"
+        aria-label="Go to today"
+        hx-get="{{ calendar_nav_today_url }}"
+        hx-target="#cal-calendar-main"
+        hx-swap="outerHTML"
+        @click="selectedDate = '{{ calendar_today_iso }}'">
+  Today
+</button>

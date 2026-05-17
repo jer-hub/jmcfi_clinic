@@ -1,8 +1,9 @@
+{% load role_tags %}
 {% comment %}
   Row actions for document request list (desktop + mobile).
   Expects: cert_request, user
 {% endcomment %}
-{% if user.role == 'student' %}
+{% if user|is_patient_role %}
   <a href="{% url 'document_request:document_request_detail' cert_request.id %}"
      class="inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-primary-200 rounded-lg text-primary-700 bg-primary-50 hover:bg-primary-100 text-sm font-medium transition-colors">
     <i class="fas fa-eye text-sm" aria-hidden="true"></i>

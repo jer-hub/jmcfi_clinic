@@ -50,7 +50,7 @@ urlpatterns = [
     path('users/cleanup/stale/', user_mgmt_views.user_cleanup_stale, name='user_cleanup_stale'),
     
     # Search
-    path('search/students/', views.search_students, name='search_students'),
+    path('search/patients/', views.search_patients, name='search_patients'),
 
     # System settings (admin)
     path('settings/', settings_views.settings_hub, name='settings_hub'),

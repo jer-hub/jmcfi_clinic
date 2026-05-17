@@ -1,4 +1,4 @@
-{% load user_filters %}
+{% load user_filters role_tags %}
 {% if requests %}
 {# Mobile cards #}
 <div class="md:hidden divide-y divide-gray-100">
@@ -8,12 +8,12 @@
       <span class="font-medium text-gray-700">{{ cert_request.created_at|date:"M d, Y" }}</span>
       · {{ cert_request.created_at|time:"g:i A" }}
     </p>
-    {% if user.role != 'student' %}
+    {% if not user|is_patient_role %}
     <div class="flex items-center gap-3">
-      {% include "components/avatar.html" with user=cert_request.student size="md" %}
+      {% include "components/avatar.html" with user=cert_request.patient size="md" %}
       <div class="min-w-0">
-        <p class="text-sm font-medium text-gray-900 truncate">{{ cert_request.student|format_student_name }}</p>
-        <p class="text-xs text-gray-500 truncate">{{ cert_request.student.email }}</p>
+        <p class="text-sm font-medium text-gray-900 truncate">{{ cert_request.patient|format_student_name }}</p>
+        <p class="text-xs text-gray-500 truncate">{{ cert_request.patient.email }}</p>
       </div>
     </div>
     {% endif %}
@@ -37,8 +37,8 @@
     <thead class="bg-gray-50">
       <tr>
         <th class="px-2 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap">Request Date</th>
-        {% if user.role != 'student' %}
-        <th class="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-52">Student</th>
+        {% if not user|is_patient_role %}
+        <th class="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-52">Patient</th>
         {% endif %}
         <th class="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-48">Document Type</th>
         <th class="px-3 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide min-w-56">Purpose</th>
@@ -53,13 +53,13 @@
           <div class="font-medium text-gray-900">{{ cert_request.created_at|date:"M d, Y" }}</div>
           <div class="text-gray-500">{{ cert_request.created_at|time:"g:i A" }}</div>
         </td>
-        {% if user.role != 'student' %}
+        {% if not user|is_patient_role %}
         <td class="px-3 py-3 whitespace-nowrap align-middle">
           <div class="flex items-center gap-3">
-            {% include "components/avatar.html" with user=cert_request.student size="md" %}
+            {% include "components/avatar.html" with user=cert_request.patient size="md" %}
             <div>
-              <div class="text-sm font-medium text-gray-900 truncate">{{ cert_request.student|format_student_name }}</div>
-              <div class="text-xs text-gray-500 truncate">{{ cert_request.student.email }}</div>
+              <div class="text-sm font-medium text-gray-900 truncate">{{ cert_request.patient|format_student_name }}</div>
+              <div class="text-xs text-gray-500 truncate">{{ cert_request.patient.email }}</div>
             </div>
           </div>
         </td>
@@ -95,7 +95,7 @@
 {% include "components/pagination.html" with page_obj=requests hx_target="body" hx_swap="none" querystring=doc_list_querystring %}
 {% else %}
   {% url 'document_request:request_document' as doc_request_new_url %}
-  {% if user.role == 'student' %}
+  {% if user|is_patient_role %}
     {% include "components/empty_state.html" with icon="fa-file-circle-question" title="No document requests yet" description="Start by requesting your first certificate." action_label="Request Certificate" action_url=doc_request_new_url %}
   {% else %}
     {% include "components/empty_state.html" with icon="fa-file-circle-question" title="No document requests found" description="No requests match your current filters." %}

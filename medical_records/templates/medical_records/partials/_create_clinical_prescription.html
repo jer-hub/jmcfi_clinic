@@ -1,7 +1,7 @@
 {% load user_filters %}
 {% comment %}
   Clinical notes + prescription medications (Alpine).
-  Requires: student, prescription_form, form_state, medication_entries_json, student_age
+  Requires: patient, prescription_form, form_state, medication_entries_json, patient_age
 {% endcomment %}
 <div
   x-data="{
@@ -47,14 +47,14 @@
   class="rounded-xl border border-primary-200 bg-gradient-to-br from-primary-50/80 to-white overflow-hidden">
   <div class="p-5 sm:p-6 space-y-6">
     <div class="hidden" aria-hidden="true">
-      <input type="text" name="patient_name" id="id_patient_name" value="{% if student %}{{ student|format_student_name }}{% endif %}">
-      <input type="number" name="age" id="id_age" value="{% if student_age %}{{ student_age }}{% endif %}">
+      <input type="text" name="patient_name" id="id_patient_name" value="{% if patient %}{{ patient|format_student_name }}{% endif %}">
+      <input type="number" name="age" id="id_age" value="{% if patient_age %}{{ patient_age }}{% endif %}">
       <select name="gender" id="id_gender">
         <option value="">---------</option>
-        <option value="male" {% if student and student.student_profile and student.student_profile.gender == 'male' %}selected{% endif %}>Male</option>
-        <option value="female" {% if student and student.student_profile and student.student_profile.gender == 'female' %}selected{% endif %}>Female</option>
+        <option value="male" {% if patient and patient.patient_profile and patient.patient_profile.gender == 'male' %}selected{% endif %}>Male</option>
+        <option value="female" {% if patient and patient.patient_profile and patient.patient_profile.gender == 'female' %}selected{% endif %}>Female</option>
       </select>
-      <textarea name="address" id="id_address">{% if student and student.student_profile %}{{ student.student_profile.address|default:'' }}{% endif %}</textarea>
+      <textarea name="address" id="id_address">{% if patient and patient.patient_profile %}{{ patient.patient_profile.address|default:'' }}{% endif %}</textarea>
       <input type="hidden" name="date" id="id_date" value="{% if prescription_form.date.value %}{{ prescription_form.date.value|date:'Y-m-d' }}{% elif prescription_form.initial.date %}{{ prescription_form.initial.date|date:'Y-m-d' }}{% endif %}">
     </div>
 

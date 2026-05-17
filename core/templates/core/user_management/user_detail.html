@@ -167,10 +167,10 @@
                     </div>
                     <div class="px-6 py-4">
                         <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {% if viewed_user.role == 'student' %}
+                            {% load role_tags %}{% if viewed_user|is_patient_role %}
                                 <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Student ID</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.student_id }}</dd>
+                                    <dt class="text-xs font-medium text-gray-500 uppercase">Patient ID</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.patient_id }}</dd>
                                 </div>
                                 <div>
                                     <dt class="text-xs font-medium text-gray-500 uppercase">Date of Birth</dt>

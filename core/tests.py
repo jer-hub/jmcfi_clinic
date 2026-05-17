@@ -2,6 +2,7 @@ import hashlib
 import re
 
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.core.cache import cache
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
@@ -74,7 +75,7 @@ class AdminLoginViewTests(TestCase):
 		self.student_user = User.objects.create_user(
 			email='student@jmcfi.edu.ph',
 			password='StudentPass123!',
-			role='student',
+			role='patient',
 			is_active=True,
 		)
 
@@ -163,7 +164,7 @@ class LogoutViewTests(TestCase):
 		self.user = User.objects.create_user(
 			email='logout-user@jmcfi.edu.ph',
 			password='LogoutPass123!',
-			role='student',
+			role='patient',
 			is_active=True,
 		)
 
@@ -183,7 +184,7 @@ class AccountLoginAccessControlTests(TestCase):
 		self.user = User.objects.create_user(
 			email='login-access-user@jmcfi.edu.ph',
 			password='LoginAccess123!',
-			role='student',
+			role='patient',
 			is_active=True,
 		)
 
@@ -294,7 +295,7 @@ class StaffDashboardNavigationTests(TestCase):
 
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, f'href="{reverse("appointments:appointment_list")}"')
-		self.assertContains(response, f'href="{reverse("appointments:schedule_for_student")}"')
+		self.assertContains(response, f'href="{reverse("appointments:schedule_for_patient")}"')
 		self.assertContains(response, f'href="{reverse("medical_records:medical_records")}"')
 		self.assertContains(response, f'href="{reverse("dental_records:dental_record_list")}"')
 
@@ -454,7 +455,7 @@ class AdminUserCreateFlowTests(TestCase):
 			'email': 'new.student@jmcfi.edu.ph',
 			'first_name': 'New',
 			'last_name': 'Student',
-			'role': 'student',
+			'role': 'patient',
 			'password1': 'ComplexPass123!',
 			'password2': 'ComplexPass123!',
 		}
@@ -554,7 +555,7 @@ class AdminUserResetPasswordFlowTests(TestCase):
 		self.target_user = User.objects.create_user(
 			email='target.reset@jmcfi.edu.ph',
 			password='OldTargetPass123!',
-			role='student',
+			role='patient',
 			is_active=True,
 		)
 		self.client.force_login(self.admin_user)
@@ -619,7 +620,7 @@ class AdminUserInviteLifecycleTests(TestCase):
 			'email': 'invite.user@jmcfi.edu.ph',
 			'first_name': 'Invite',
 			'last_name': 'User',
-			'role': 'student',
+			'role': 'patient',
 			'password1': 'InvitePass123!',
 			'password2': 'InvitePass123!',
 		}
@@ -627,10 +628,17 @@ class AdminUserInviteLifecycleTests(TestCase):
 		return data
 
 	def _extract_token_from_response(self, response):
+		for message in get_messages(response.wsgi_request):
+			text = str(message)
+			if 'Invite link:' not in text:
+				continue
+			match = re.search(r'/auth/invite/accept/([^/"\s]+)', text)
+			if match:
+				return match.group(1)
 		content = response.content.decode('utf-8')
-		match = re.search(r'/auth/invite/accept/([^"\s<]+)', content)
-		self.assertIsNotNone(match)
-		return match.group(1).rstrip('/')
+		match = re.search(r'/auth/invite/accept/([^/"\s<]+)', content)
+		self.assertIsNotNone(match, 'Invite link not found in response messages or body')
+		return match.group(1)
 
 	def test_pending_create_generates_invite_and_accept_activates_user(self):
 		response = self.client.post(self.create_url, self._create_payload(), follow=True)
@@ -661,7 +669,7 @@ class AdminUserInviteLifecycleTests(TestCase):
 		pending_user = User.objects.create_user(
 			email='expired.invite@jmcfi.edu.ph',
 			password='ExpiredPass123!',
-			role='student',
+			role='patient',
 			is_active=False,
 			onboarding_status=User.ONBOARDING_STATUS.PENDING_ACTIVATION,
 		)
@@ -687,7 +695,7 @@ class AdminUserInviteLifecycleTests(TestCase):
 		first_token = self._extract_token_from_response(response)
 		first_hash = hashlib.sha256(first_token.encode('utf-8')).hexdigest()
 
-		resend_response = self.client.get(
+		resend_response = self.client.post(
 			reverse('core:user_resend_invite', kwargs={'user_id': created_user.id}),
 			follow=True,
 		)
@@ -722,7 +730,7 @@ class AdminProvisioningAuditTrailTests(TestCase):
 				'email': 'audit.pending@jmcfi.edu.ph',
 				'first_name': 'Audit',
 				'last_name': 'Pending',
-				'role': 'student',
+				'role': 'patient',
 				'password1': 'AuditPass123!',
 				'password2': 'AuditPass123!',
 			},
@@ -742,7 +750,7 @@ class AdminProvisioningAuditTrailTests(TestCase):
 				'email': 'audit.active@jmcfi.edu.ph',
 				'first_name': 'Audit',
 				'last_name': 'Active',
-				'role': 'student',
+				'role': 'patient',
 				'password1': 'AuditPass123!',
 				'password2': 'AuditPass123!',
 				'activate_now': 'on',
@@ -759,7 +767,7 @@ class AdminProvisioningAuditTrailTests(TestCase):
 		target = User.objects.create_user(
 			email='audit.toggle@jmcfi.edu.ph',
 			password='TogglePass123!',
-			role='student',
+			role='patient',
 			is_active=False,
 			onboarding_status=User.ONBOARDING_STATUS.PENDING_ACTIVATION,
 		)

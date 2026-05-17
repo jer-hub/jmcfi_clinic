@@ -15,12 +15,12 @@ logger = logging.getLogger(__name__)
 
 
 def notify_assigned_clinicians_new_request(doc_request: DocumentRequest, actor) -> None:
-    recipients = list(get_assigned_doctors_for_student(doc_request.student))
+    recipients = list(get_assigned_doctors_for_student(doc_request.patient))
     if not recipients:
         logger.info(
             'No assigned doctor for document request %s (student %s); skipping notification.',
             doc_request.pk,
-            doc_request.student_id,
+            doc_request.patient_id,
         )
         return
 
@@ -50,7 +50,7 @@ def notify_student_ready(doc_request: DocumentRequest) -> None:
 
     def _deliver():
         notify_user(
-            doc_request.student,
+            doc_request.patient,
             title,
             message,
             notification_type='certificate',
@@ -70,7 +70,7 @@ def notify_student_rejected(doc_request: DocumentRequest, reason: str) -> None:
 
     def _deliver():
         notify_user(
-            doc_request.student,
+            doc_request.patient,
             title,
             message,
             notification_type='certificate',

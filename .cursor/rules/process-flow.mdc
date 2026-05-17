@@ -147,7 +147,7 @@ def resource_list(request):
     qs = MyModel.objects.all()
 
     # Role filtering
-    if request.user.role == 'student':
+    if role_matches(request.user.role, ROLE_PATIENT):
         qs = qs.filter(user=request.user)
 
     # Search

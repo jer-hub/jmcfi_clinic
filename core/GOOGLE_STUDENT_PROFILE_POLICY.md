@@ -1,14 +1,14 @@
-# Google Student Signup Profiling Policy
+# Google Patient Signup Profiling Policy
 
 ## Purpose
-Require student users who sign up using Google OAuth to complete profile fields before accessing clinic services.
+Require patient users who sign up using Google OAuth to complete profile fields before accessing clinic services.
 
 ## Trigger
-- Applies to Google social signup/login users with role `student`.
+- Applies to Google social signup/login users with role `patient`.
 - Enforcement starts immediately after authentication.
 
-## Required Student Profile Fields
-- student_id
+## Required Patient Profile Fields
+- patient_id
 - middle_name
 - gender
 - civil_status
@@ -34,14 +34,14 @@ Optional:
    - Protects decorated views with same completeness policy.
 
 3. `core.adapters.GoogleOnlyAdapter`
-   - On new Google student signup, sends policy message reminding user to complete profile.
+   - On new Google patient signup, sends policy message reminding user to complete profile.
 
 4. `core.utils`
    - Uses centralized policy constants for completion and missing-field checks.
 
 ## Source of Truth
 - `core/profile_policy.py`
-  - `STUDENT_PROFILE_REQUIRED_FIELDS`
+  - `PATIENT_PROFILE_REQUIRED_FIELDS` (`STUDENT_PROFILE_REQUIRED_FIELDS` alias)
   - `STAFF_PROFILE_REQUIRED_FIELDS`
 
 All profile-completion checks must use these constants to avoid policy drift.

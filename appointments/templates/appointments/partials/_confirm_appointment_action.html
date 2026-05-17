@@ -20,7 +20,7 @@
   <button type="button"
           class="group w-full flex items-center gap-3 p-3 rounded-xl border border-info-200 bg-info-50/50 hover:bg-info-100 transition-all text-left"
           data-form-id="confirm-appointment-form-{{ appointment.id }}"
-          data-subtitle="{{ appointment.student.get_full_name }}"
+          data-subtitle="{{ appointment.patient.get_full_name }}"
           data-message="Confirm the appointment on {{ appointment.date|date:'M d, Y' }} at {{ appointment.time|time:'g:i A' }}? The student will be notified this slot is reserved."
           onclick="__jmcfiConfirmAppointmentModal(this)">
     <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-info-100 text-info-600 group-hover:bg-info-200 transition-colors flex-shrink-0">
@@ -36,7 +36,7 @@
           class="p-1.5 rounded text-success-700 hover:bg-success-50 transition-colors"
           title="Confirm"
           data-form-id="confirm-appointment-form-{{ appointment.id }}"
-          data-subtitle="{{ appointment.student.get_full_name }}"
+          data-subtitle="{{ appointment.patient.get_full_name }}"
           data-message="Confirm the appointment on {{ appointment.date|date:'M d, Y' }} at {{ appointment.time|time:'g:i A' }}? The student will be notified this slot is reserved."
           onclick="__jmcfiConfirmAppointmentModal(this)">
     <i class="fas fa-check"></i>

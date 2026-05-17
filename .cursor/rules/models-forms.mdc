@@ -130,7 +130,7 @@ For complex business logic, use a services module instead of fat views:
 def get_records_for_user(user, model_class):
     """Role-filtered queryset."""
     qs = model_class.objects.filter(is_deleted=False)
-    if user.role == 'student':
+    if role_matches(user.role, ROLE_PATIENT):
         return qs.filter(user=user)
     elif user.role in ('staff', 'doctor'):
         return qs.filter(doctor=user)

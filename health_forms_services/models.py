@@ -13,7 +13,7 @@ class HealthProfileForm(models.Model):
         INCOMPLETE = 'incomplete', 'Incomplete'
     
     class Designation(models.TextChoices):
-        STUDENT = 'student', 'Student'
+        STUDENT = 'student', 'Patient'
         STAFF = 'staff', 'Staff'
         DOCTOR = 'doctor', 'Doctor'
         EMPLOYEE = 'employee', 'Employee'
@@ -257,7 +257,7 @@ class DentalHealthForm(models.Model):
         INCOMPLETE = 'incomplete', 'Incomplete'
 
     class Designation(models.TextChoices):
-        STUDENT = 'student', 'Student'
+        STUDENT = 'student', 'Patient'
         EMPLOYEE = 'employee', 'Employee'
 
     class Gender(models.TextChoices):
@@ -697,7 +697,7 @@ class PatientChart(models.Model):
         INCOMPLETE = 'incomplete', 'Incomplete'
     
     class Designation(models.TextChoices):
-        STUDENT = 'student', 'Student'
+        STUDENT = 'student', 'Patient'
         EMPLOYEE = 'employee', 'Employee'
     
     class Gender(models.TextChoices):

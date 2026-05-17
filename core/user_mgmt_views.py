@@ -31,6 +31,7 @@ from .utils import (
     paginate_queryset,
 )
 from .htmx_utils import htmx_add_toast, htmx_add_trigger
+from .roles import filter_users_by_role
 from .user_management_services import get_user_management_stats
 
 auth_logger = logging.getLogger('security.auth')
@@ -40,8 +41,8 @@ User = User  # Use the global User model
 def _hard_delete_user(user):
     """Delete a user and known user-owned records inside a transaction."""
     with transaction.atomic():
-        if hasattr(user, 'student_profile'):
-            user.student_profile.delete()
+        if hasattr(user, 'patient_profile'):
+            user.patient_profile.delete()
         if hasattr(user, 'staff_profile'):
             user.staff_profile.delete()
         user.notifications.all().delete()
@@ -57,7 +58,7 @@ def _get_deleted_user_management_context(request):
     users = User.objects.filter(is_deleted=True).order_by('-deleted_at')
 
     if role_filter:
-        users = users.filter(role=role_filter)
+        users = filter_users_by_role(users, role_filter)
 
     if search_query:
         users = users.filter(
@@ -398,7 +399,7 @@ def user_export_csv(request):
         date_to = form.cleaned_data.get('date_to')
 
         if role:
-            users = users.filter(role=role)
+            users = filter_users_by_role(users, role)
         if status == 'active':
             users = users.filter(is_active=True, onboarding_status='active')
         elif status == 'pending':
@@ -428,7 +429,7 @@ def user_export_csv(request):
         profile_dept = ''
 
         if profile:
-            profile_id = getattr(profile, 'student_id', '') or getattr(profile, 'staff_id', '')
+            profile_id = getattr(profile, 'patient_id', '') or getattr(profile, 'staff_id', '')
             profile_phone = getattr(profile, 'phone', '')
             profile_dept = getattr(profile, 'department', '')
 

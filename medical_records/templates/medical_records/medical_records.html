@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load role_tags %}
 
 {% block title %}Medical Records - JMCFI Clinic{% endblock title %}
 
@@ -6,7 +7,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
   {% include 'medical_records/_subnav.html' %}
 
-  {% if user.role == 'student' %}
+  {% if user|is_patient_role %}
     {% include "components/page_header.html" with title="My Medical Records" subtitle="View your complete medical history and health records" icon="fa-file-medical" actions_include="medical_records/_mr_list_header_actions.html" header_mb="mb-4" %}
   {% elif user.role == 'staff' or user.role == 'doctor' %}
     {% include "components/page_header.html" with title="Patient Medical Records" subtitle="Manage and review patient medical records" icon="fa-file-medical" actions_include="medical_records/_mr_list_header_actions.html" header_mb="mb-4" %}

@@ -1,16 +1,16 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Schedule for Student - JMCFI Clinic{% endblock title %}
+{% block title %}Schedule for Patient - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-{% if prefill_student %}
-{{ prefill_student|json_script:"schedule-student-prefill" }}
+{% if prefill_patient %}
+{{ prefill_patient|json_script:"schedule-patient-prefill" }}
 {% endif %}
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
-     x-data="scheduleForStudent({ studentLocked: {{ student_locked|yesno:'true,false' }} })">
+     x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }} })">
     {% include 'appointments/_subnav.html' %}
 
-    {% include "components/page_header.html" with title="Schedule for a Student" subtitle="Book an appointment on behalf of a student" icon="fa-user-plus" %}
+    {% include "components/page_header.html" with title="Schedule for a Patient" subtitle="Book an appointment on behalf of a patient" icon="fa-user-plus" %}
 
     {% if messages %}
     <div class="space-y-2 mb-6">
@@ -29,7 +29,7 @@
     <form method="POST" @submit="handleSubmit($event)" class="space-y-6" novalidate>
         {% csrf_token %}
 
-        {# ── Student ── #}
+        {# ── Patient ── #}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200">
             <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/60 rounded-t-xl">
                 <div class="flex items-center gap-2">
@@ -37,15 +37,15 @@
                         <i class="fas fa-user-magnifying-glass text-xs"></i>
                     </span>
                     <div>
-                        <h2 class="text-sm font-semibold text-gray-800">Student</h2>
-                        {% if student_locked %}
-                        <p class="text-xs text-gray-500 mt-0.5">Scheduling for this student — selection cannot be changed</p>
+                        <h2 class="text-sm font-semibold text-gray-800">Patient</h2>
+                        {% if patient_locked %}
+                        <p class="text-xs text-gray-500 mt-0.5">Scheduling for this patient — selection cannot be changed</p>
                         {% else %}
                         <p class="text-xs text-gray-500 mt-0.5" x-show="hasSelectedStudent" x-cloak>
-                            Selected — you can change the student before scheduling
+                            Selected — you can change the patient before scheduling
                         </p>
                         <p class="text-xs text-gray-500 mt-0.5" x-show="!hasSelectedStudent">
-                            Search and select a student to continue
+                            Search and select a patient to continue
                         </p>
                         {% endif %}
                     </div>
@@ -55,30 +55,30 @@
                 {% if prefill_invalid %}
                 <div class="flex items-start gap-2 rounded-lg border border-warning-200 bg-warning-50 px-3 py-2.5 text-sm text-warning-800">
                     <i class="fas fa-triangle-exclamation mt-0.5 flex-shrink-0"></i>
-                    <span>That student could not be found. Search below to pick a student.</span>
+                    <span>That patient could not be found. Search below to pick a patient.</span>
                 </div>
                 {% endif %}
 
-                {% if student_locked %}
+                {% if patient_locked %}
                 <div class="flex items-start gap-2 rounded-lg border border-primary-200 bg-primary-50/80 px-3 py-2.5 text-sm text-primary-900">
                     <i class="fas fa-calendar-plus mt-0.5 flex-shrink-0 text-primary-600"></i>
-                    <span>Booking again for <strong>{{ prefill_student.name }}</strong>. Confirm appointment details below.</span>
+                    <span>Booking again for <strong>{{ prefill_patient.name }}</strong>. Confirm appointment details below.</span>
                 </div>
                 <div class="p-4 bg-gradient-to-r from-primary-50 to-primary-50/50 border border-primary-200 rounded-xl">
                     <div class="flex items-center gap-3.5">
                         <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-base font-semibold flex-shrink-0 shadow-md ring-2 ring-white"
-                              aria-hidden="true">{{ prefill_student.name|first|upper }}</span>
+                              aria-hidden="true">{{ prefill_patient.name|first|upper }}</span>
                         <div class="min-w-0 flex-1">
-                            <p class="text-sm font-bold text-gray-900 truncate">{{ prefill_student.name }}</p>
-                            <p class="text-xs text-gray-500 truncate mt-0.5">{{ prefill_student.email }}</p>
-                            {% if prefill_student.student_id %}
-                            <p class="text-xs text-primary-700 font-mono mt-0.5">{{ prefill_student.student_id }}</p>
+                            <p class="text-sm font-bold text-gray-900 truncate">{{ prefill_patient.name }}</p>
+                            <p class="text-xs text-gray-500 truncate mt-0.5">{{ prefill_patient.email }}</p>
+                            {% if prefill_patient.patient_id %}
+                            <p class="text-xs text-primary-700 font-mono mt-0.5">{{ prefill_patient.patient_id }}</p>
                             {% endif %}
-                            {% if prefill_student.course or prefill_student.year_level %}
+                            {% if prefill_patient.course or prefill_patient.year_level %}
                             <p class="text-xs text-gray-500 mt-0.5">
-                                {% if prefill_student.course %}{{ prefill_student.course }}{% endif %}
-                                {% if prefill_student.course and prefill_student.year_level %} · {% endif %}
-                                {% if prefill_student.year_level %}{{ prefill_student.year_level }}{% endif %}
+                                {% if prefill_patient.course %}{{ prefill_patient.course }}{% endif %}
+                                {% if prefill_patient.course and prefill_patient.year_level %} · {% endif %}
+                                {% if prefill_patient.year_level %}{{ prefill_patient.year_level }}{% endif %}
                             </p>
                             {% endif %}
                         </div>
@@ -87,19 +87,19 @@
                         </span>
                     </div>
                 </div>
-                <input type="hidden" name="student" value="{{ prefill_student.id }}">
+                <input type="hidden" name="patient" value="{{ prefill_patient.id }}">
                 {% else %}
 
-                {# Search (hidden when a student is selected) #}
+                {# Search (hidden when a patient is selected) #}
                 <div x-show="!hasSelectedStudent" x-cloak>
-                    <label for="student-search" class="sr-only">Search students</label>
+                    <label for="patient-search" class="sr-only">Search patients</label>
                     <div class="relative" @click.away="showResults = false">
                         <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"
                            :class="searching && 'fa-spinner fa-spin'"></i>
-                        <input type="text" id="student-search"
-                               placeholder="Search by name, email, or student ID…"
-                               x-model="studentQuery"
-                               @input.debounce.300ms="searchStudents()"
+                        <input type="text" id="patient-search"
+                               placeholder="Search by name, email, or patient ID…"
+                               x-model="patientQuery"
+                               @input.debounce.300ms="searchPatients()"
                                @focus="if(searchResults.length) showResults = true"
                                @keydown.escape="showResults = false"
                                @keydown.arrow-down.prevent="highlightNext()"
@@ -107,14 +107,14 @@
                                @keydown.enter.prevent="selectHighlighted()"
                                autocomplete="off"
                                class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 placeholder:text-gray-400">
-                        <button type="button" x-show="studentQuery.length > 0" x-cloak
-                                @click="studentQuery=''; searchResults=[]; showResults=false"
+                        <button type="button" x-show="patientQuery.length > 0" x-cloak
+                                @click="patientQuery=''; searchResults=[]; showResults=false"
                                 class="absolute right-3.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
                                 aria-label="Clear search">
                             <i class="fas fa-circle-xmark text-sm"></i>
                         </button>
 
-                        <p class="mt-1.5 text-xs text-gray-400" x-show="!showResults && studentQuery.length < 2">
+                        <p class="mt-1.5 text-xs text-gray-400" x-show="!showResults && patientQuery.length < 2">
                             Type at least 2 characters to search
                         </p>
 
@@ -123,7 +123,7 @@
                             <template x-if="searchResults.length > 0">
                                 <div class="p-1.5">
                                     <template x-for="(s, idx) in searchResults" :key="s.id">
-                                        <button type="button" @click="selectStudent(s)"
+                                        <button type="button" @click="selectPatient(s)"
                                                 @mouseenter="highlightedIdx = idx"
                                                 :class="highlightedIdx === idx ? 'bg-primary-50 border-primary-200' : 'border-transparent hover:bg-gray-50'"
                                                 class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left border">
@@ -132,15 +132,15 @@
                                             <div class="min-w-0 flex-1">
                                                 <span class="font-semibold text-gray-900 truncate block" x-text="s.name || s.text"></span>
                                                 <span class="text-xs text-gray-500 truncate block" x-text="s.email"></span>
-                                                <span class="text-xs text-gray-400 truncate block" x-show="s.student_id" x-text="'ID: ' + s.student_id"></span>
+                                                <span class="text-xs text-gray-400 truncate block" x-show="s.patient_id" x-text="'ID: ' + s.patient_id"></span>
                                             </div>
                                         </button>
                                     </template>
                                 </div>
                             </template>
-                            <div x-show="studentQuery.length >= 2 && searchResults.length === 0 && !searching"
+                            <div x-show="patientQuery.length >= 2 && searchResults.length === 0 && !searching"
                                  class="px-4 py-8 text-center text-sm text-gray-500">
-                                No students found
+                                No patients found
                             </div>
                             <div x-show="searching" class="px-4 py-6 text-center text-xs text-gray-500">
                                 <i class="fas fa-spinner fa-spin text-primary-500"></i> Searching…
@@ -149,39 +149,39 @@
                     </div>
                 </div>
 
-                {# Selected student card #}
+                {# Selected patient card #}
                 <div x-show="hasSelectedStudent" x-cloak>
                     <div class="relative p-4 bg-gradient-to-r from-primary-50 to-primary-50/50 border border-primary-200 rounded-xl">
                         <div class="flex items-center gap-3.5 pr-20">
                             <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-base font-semibold flex-shrink-0 shadow-md ring-2 ring-white"
-                                  x-text="selectedStudentName ? selectedStudentName.charAt(0).toUpperCase() : '?'"></span>
+                                  x-text="selectedPatientName ? selectedPatientName.charAt(0).toUpperCase() : '?'"></span>
                             <div class="min-w-0 flex-1">
-                                <p class="text-sm font-bold text-gray-900 truncate" x-text="selectedStudentName"></p>
-                                <p class="text-xs text-gray-500 truncate mt-0.5" x-text="selectedStudentEmail"></p>
-                                <p x-show="selectedStudentSid" x-cloak class="text-xs text-primary-700 font-mono mt-0.5" x-text="selectedStudentSid"></p>
-                                <p x-show="selectedStudentCourse || selectedStudentYear" x-cloak
+                                <p class="text-sm font-bold text-gray-900 truncate" x-text="selectedPatientName"></p>
+                                <p class="text-xs text-gray-500 truncate mt-0.5" x-text="selectedPatientEmail"></p>
+                                <p x-show="selectedPatientSid" x-cloak class="text-xs text-primary-700 font-mono mt-0.5" x-text="selectedPatientSid"></p>
+                                <p x-show="selectedPatientCourse || selectedPatientYear" x-cloak
                                    class="text-xs text-gray-500 mt-0.5"
-                                   x-text="[selectedStudentCourse, selectedStudentYear].filter(Boolean).join(' · ')"></p>
+                                   x-text="[selectedPatientCourse, selectedPatientYear].filter(Boolean).join(' · ')"></p>
                             </div>
                         </div>
-                        <button type="button" @click="clearStudent()"
+                        <button type="button" @click="clearPatient()"
                                 class="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 bg-white/80 border border-gray-200 hover:text-danger-600 hover:border-danger-200 hover:bg-danger-50">
                             <i class="fas fa-xmark text-[10px]"></i> Change
                         </button>
                     </div>
                 </div>
 
-                <input type="hidden" name="student" x-model="selectedStudentId">
+                <input type="hidden" name="patient" x-model="selectedPatientId">
                 <p x-show="!hasSelectedStudent" class="text-xs text-danger-600">
-                    Select a student to enable scheduling.
+                    Select a patient to enable scheduling.
                 </p>
                 {% endif %}
             </div>
         </div>
 
-        {# ── Appointment details (disabled until student selected) ── #}
+        {# ── Appointment details (disabled until patient selected) ── #}
         <fieldset class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-0 min-w-0 p-0 m-0 border-solid"
-                  {% if student_locked %}
+                  {% if patient_locked %}
                   {% else %}
                   :disabled="!hasSelectedStudent"
                   :class="!hasSelectedStudent ? 'opacity-60' : ''"
@@ -257,7 +257,7 @@
                 Cancel
             </a>
             <button type="submit"
-                    :disabled="submitting || (!studentLocked && !hasSelectedStudent)"
+                    :disabled="submitting || (!patientLocked && !hasSelectedStudent)"
                     class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
                 <i class="fas fa-spinner fa-spin" x-show="submitting" x-cloak></i>
                 <i class="fas fa-calendar-plus" x-show="!submitting"></i>
@@ -268,8 +268,8 @@
 </div>
 
 <script>
-function readScheduleStudentPrefill() {
-    const el = document.getElementById('schedule-student-prefill');
+function readSchedulePatientPrefill() {
+    const el = document.getElementById('schedule-patient-prefill');
     if (!el || !el.textContent) return null;
     try {
         return JSON.parse(el.textContent);
@@ -278,38 +278,38 @@ function readScheduleStudentPrefill() {
     }
 }
 
-function scheduleForStudent(opts = {}) {
-    const studentLocked = Boolean(opts.studentLocked);
-    const prefill = studentLocked ? null : readScheduleStudentPrefill();
+function scheduleForPatient(opts = {}) {
+    const patientLocked = Boolean(opts.patientLocked);
+    const prefill = patientLocked ? null : readSchedulePatientPrefill();
     const initialId = prefill && prefill.id != null ? String(prefill.id) : '';
 
     return {
-        studentLocked,
-        studentQuery: '',
+        patientLocked,
+        patientQuery: '',
         searchResults: [],
         showResults: false,
         searching: false,
         highlightedIdx: -1,
-        selectedStudentId: initialId,
-        selectedStudentName: prefill ? (prefill.name || '') : '',
-        selectedStudentEmail: prefill ? (prefill.email || '') : '',
-        selectedStudentSid: prefill ? (prefill.student_id || '') : '',
-        selectedStudentCourse: prefill ? (prefill.course || '') : '',
-        selectedStudentYear: prefill ? (prefill.year_level || '') : '',
+        selectedPatientId: initialId,
+        selectedPatientName: prefill ? (prefill.name || '') : '',
+        selectedPatientEmail: prefill ? (prefill.email || '') : '',
+        selectedPatientSid: prefill ? (prefill.patient_id || '') : '',
+        selectedPatientCourse: prefill ? (prefill.course || '') : '',
+        selectedPatientYear: prefill ? (prefill.year_level || '') : '',
         submitting: false,
         dateError: '',
 
         get hasSelectedStudent() {
-            if (this.studentLocked) return true;
-            return String(this.selectedStudentId || '').trim().length > 0;
+            if (this.patientLocked) return true;
+            return String(this.selectedPatientId || '').trim().length > 0;
         },
 
         get minDate() {
             return new Date().toISOString().split('T')[0];
         },
 
-        async searchStudents() {
-            if (this.studentQuery.length < 2) {
+        async searchPatients() {
+            if (this.patientQuery.length < 2) {
                 this.searchResults = [];
                 this.showResults = false;
                 this.highlightedIdx = -1;
@@ -318,7 +318,7 @@ function scheduleForStudent(opts = {}) {
             this.searching = true;
             this.showResults = true;
             try {
-                const resp = await fetch(`{% url 'core:search_students' %}?q=${encodeURIComponent(this.studentQuery)}`);
+                const resp = await fetch(`{% url 'core:search_patients' %}?q=${encodeURIComponent(this.patientQuery)}`);
                 this.searchResults = await resp.json();
                 this.highlightedIdx = this.searchResults.length > 0 ? 0 : -1;
             } catch {
@@ -341,32 +341,32 @@ function scheduleForStudent(opts = {}) {
 
         selectHighlighted() {
             if (this.highlightedIdx >= 0 && this.highlightedIdx < this.searchResults.length) {
-                this.selectStudent(this.searchResults[this.highlightedIdx]);
+                this.selectPatient(this.searchResults[this.highlightedIdx]);
             }
         },
 
-        selectStudent(s) {
+        selectPatient(s) {
             if (!s || s.id == null) return;
-            this.selectedStudentId = String(s.id);
-            this.selectedStudentName = s.name || s.text || '';
-            this.selectedStudentEmail = s.email || '';
-            this.selectedStudentSid = s.student_id || '';
-            this.selectedStudentCourse = s.course || '';
-            this.selectedStudentYear = s.year_level || '';
-            this.studentQuery = '';
+            this.selectedPatientId = String(s.id);
+            this.selectedPatientName = s.name || s.text || '';
+            this.selectedPatientEmail = s.email || '';
+            this.selectedPatientSid = s.patient_id || '';
+            this.selectedPatientCourse = s.course || '';
+            this.selectedPatientYear = s.year_level || '';
+            this.patientQuery = '';
             this.searchResults = [];
             this.showResults = false;
             this.highlightedIdx = -1;
         },
 
-        clearStudent() {
-            if (this.studentLocked) return;
-            this.selectedStudentId = '';
-            this.selectedStudentName = '';
-            this.selectedStudentEmail = '';
-            this.selectedStudentSid = '';
-            this.selectedStudentCourse = '';
-            this.selectedStudentYear = '';
+        clearPatient() {
+            if (this.patientLocked) return;
+            this.selectedPatientId = '';
+            this.selectedPatientName = '';
+            this.selectedPatientEmail = '';
+            this.selectedPatientSid = '';
+            this.selectedPatientCourse = '';
+            this.selectedPatientYear = '';
         },
 
         validateWeekday(e) {
@@ -385,7 +385,7 @@ function scheduleForStudent(opts = {}) {
         },
 
         handleSubmit(e) {
-            if (!this.studentLocked && !this.hasSelectedStudent) {
+            if (!this.patientLocked && !this.hasSelectedStudent) {
                 e.preventDefault();
                 return;
             }

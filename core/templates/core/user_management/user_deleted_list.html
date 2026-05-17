@@ -60,7 +60,7 @@
                             <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Role</label>
                             <select name="role" id="role" class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 text-sm">
                                 <option value="">All Roles</option>
-                                <option value="student" {% if role_filter == 'student' %}selected{% endif %}>Student</option>
+                                <option value="patient" {% if role_filter == 'patient' or role_filter == 'student' %}selected{% endif %}>Patient</option>
                                 <option value="staff" {% if role_filter == 'staff' %}selected{% endif %}>Staff</option>
                                 <option value="doctor" {% if role_filter == 'doctor' %}selected{% endif %}>Doctor</option>
                                 <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>

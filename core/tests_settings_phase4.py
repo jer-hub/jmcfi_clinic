@@ -26,33 +26,33 @@ FEATURE_MIDDLEWARE = [
 class RoleFeatureAccessMiddlewareTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.student = User.objects.create_user(
-            email='student-feature@test.com',
+        self.patient = User.objects.create_user(
+            email='patient-feature@test.com',
             password='pw',
-            role='student',
+            role='patient',
         )
-        role = RoleSettings.objects.get(role='student')
+        role = RoleSettings.objects.get(role='patient')
         role.can_access_analytics = False
         role.save()
-        invalidate_settings_cache(role='student')
-        self.client.force_login(self.student)
+        invalidate_settings_cache(role='patient')
+        self.client.force_login(self.patient)
 
     def test_analytics_blocked_when_disabled(self):
         response = self.client.get(reverse('analytics:dashboard'))
         self.assertEqual(response.status_code, 302)
 
     def test_feedback_blocked_when_disabled(self):
-        role = RoleSettings.objects.get(role='student')
+        role = RoleSettings.objects.get(role='patient')
         role.can_submit_feedback = False
         role.save()
-        invalidate_settings_cache(role='student')
+        invalidate_settings_cache(role='patient')
         response = self.client.get(reverse('feedback:feedback_list'))
         self.assertEqual(response.status_code, 302)
 
 
 class NotificationPreferencesTests(TestCase):
     def test_create_notification_skipped_when_opted_out(self):
-        user = User.objects.create_user(email='noprefs@test.com', password='pw', role='student')
+        user = User.objects.create_user(email='noprefs@test.com', password='pw', role='patient')
         prefs = UserPreferences.objects.get(user=user)
         prefs.in_app_notifications = False
         prefs.save()
@@ -121,7 +121,7 @@ class SettingsAuditLogTests(TestCase):
     def test_audit_page_renders(self):
         SettingsChangeLog.objects.create(
             setting_type=SettingsChangeLog.SettingType.ROLE,
-            role='student',
+            role='patient',
             field_name='can_access_analytics',
             old_value='True',
             new_value='False',

@@ -64,8 +64,8 @@ class SettingsServiceCacheTests(TestCase):
         self.assertEqual(RoleSettings.objects.count(), 4)
         admin = get_role_settings('admin')
         self.assertEqual(admin.session_timeout_seconds, 43200)
-        student = get_role_settings('student')
-        self.assertTrue(student.can_book_appointments)
+        patient = get_role_settings('patient')
+        self.assertTrue(patient.can_book_appointments)
 
     def test_appointment_interval_from_clinic_settings(self):
         clinic = get_clinic_settings()
@@ -85,11 +85,11 @@ class SessionTimeoutServiceTests(TestCase):
         )
         self.assertEqual(get_effective_session_timeout(user), 43200)
 
-    def test_student_session_timeout(self):
+    def test_patient_session_timeout(self):
         user = User.objects.create_user(
-            email='student-settings@test.com',
+            email='patient-settings@test.com',
             password='x',
-            role='student',
+            role='patient',
         )
         self.assertEqual(get_effective_session_timeout(user), 86400)
 

@@ -34,7 +34,7 @@ class DocumentRequest(models.Model):
 
     REQUEST_ORIGINS = [
 
-        ('student', 'Student'),
+        ('patient', 'Patient'),
 
         ('doctor', 'Doctor/Admin'),
 
@@ -52,7 +52,7 @@ class DocumentRequest(models.Model):
 
 
 
-    student = models.ForeignKey(
+    patient = models.ForeignKey(
 
         User,
 
@@ -96,7 +96,7 @@ class DocumentRequest(models.Model):
 
     )
 
-    request_origin = models.CharField(max_length=20, choices=REQUEST_ORIGINS, default='student')
+    request_origin = models.CharField(max_length=20, choices=REQUEST_ORIGINS, default='patient')
 
     document_type = models.CharField(max_length=30, choices=DOCUMENT_TYPES, default='medical_certificate')
 
@@ -164,7 +164,7 @@ class DocumentRequest(models.Model):
 
             models.UniqueConstraint(
 
-                fields=['student', 'document_type'],
+                fields=['patient', 'document_type'],
 
                 condition=Q(status='pending_review'),
 
@@ -178,11 +178,11 @@ class DocumentRequest(models.Model):
 
     def __str__(self):
 
-        name = f"{self.student.first_name} {self.student.last_name}".strip()
+        name = f"{self.patient.first_name} {self.patient.last_name}".strip()
 
         if not name:
 
-            name = self.student.email or self.student.username
+            name = self.patient.email or self.patient.username
 
         return f"{name} - {self.get_document_type_display()}"
 

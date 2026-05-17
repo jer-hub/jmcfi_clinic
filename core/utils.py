@@ -7,6 +7,7 @@ from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
+from .roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, normalize_role, role_matches
 from .settings_service import get_profile_required_fields
 
 USER_PROFILE_FIELDS = frozenset({'first_name', 'last_name'})
@@ -86,14 +87,15 @@ def clean_philippine_phone(value):
 
 def get_user_profile(user):
     """Get user profile based on role"""
-    from .models import StudentProfile, StaffProfile
-    
-    if user.role == 'student':
+    from .models import PatientProfile, StaffProfile
+
+    role = normalize_role(user.role)
+    if role == ROLE_PATIENT:
         try:
-            return user.student_profile
-        except StudentProfile.DoesNotExist:
+            return user.patient_profile
+        except PatientProfile.DoesNotExist:
             return None
-    elif user.role in ['staff', 'doctor', 'admin']:
+    elif role in ['staff', 'doctor', 'admin']:
         try:
             return user.staff_profile
         except StaffProfile.DoesNotExist:
@@ -137,7 +139,8 @@ def is_profile_complete(user):
 FIELD_LABELS = {
     'first_name':        'First Name',
     'last_name':         'Last Name',
-    'student_id':        'Student ID',
+    'patient_id':        'Patient ID',
+    'student_id':        'Patient ID',  # legacy field name in settings JSON
     'middle_name':       'Middle Name',
     'gender':            'Gender',
     'civil_status':      'Civil Status',
@@ -182,9 +185,8 @@ def check_permission(user, obj, field='user'):
     if hasattr(obj, field):
         return getattr(obj, field) == user
     
-    # For appointments, check both student and doctor
-    if hasattr(obj, 'student') and hasattr(obj, 'doctor'):
-        return obj.student == user or obj.doctor == user
+    if hasattr(obj, 'patient') and hasattr(obj, 'doctor'):
+        return obj.patient == user or obj.doctor == user
     
     return False
 
@@ -206,10 +208,11 @@ def parse_date(date_string):
         return None
 
 
-def get_queryset_by_role(model, user, student_field='student', doctor_field='doctor'):
-    """Get queryset based on user role for models with student/doctor fields"""
-    if user.role == 'student':
-        return model.objects.filter(**{student_field: user})
+def get_queryset_by_role(model, user, patient_field='patient', doctor_field='doctor', student_field=None):
+    """Get queryset based on user role for models with patient/doctor fields."""
+    field = student_field or patient_field
+    if role_matches(user.role, ROLE_PATIENT):
+        return model.objects.filter(**{field: user})
     elif user.role == 'staff':
         if hasattr(model.objects.first(), doctor_field):
             return model.objects.filter(**{doctor_field: user})
@@ -330,12 +333,12 @@ def student_name_field_q(term: str) -> Q:
         Q(first_name__icontains=term)
         | Q(last_name__icontains=term)
         | Q(email__icontains=term)
-        | Q(student_profile__middle_name__icontains=term)
-        | Q(student_profile__student_id__icontains=term)
+        | Q(patient_profile__middle_name__icontains=term)
+        | Q(patient_profile__patient_id__icontains=term)
     )
 
 
-def student_search_q(query: str) -> Q:
+def patient_search_q(query: str) -> Q:
     """Support single-field and multi-word full-name searches (e.g. \"Jane Doe\")."""
     q = (query or '').strip()
     if not q:
@@ -352,9 +355,11 @@ def student_search_q(query: str) -> Q:
     return whole_phrase | multi_word
 
 
+
+
 def student_display_name(student):
-    """Full student display name (first, middle, last) in title case."""
-    profile = getattr(student, 'student_profile', None)
+    """Full patient display name (first, middle, last) in title case."""
+    profile = getattr(student, 'patient_profile', None)
     parts = []
     if student.first_name:
         parts.append(title_case_name(student.first_name))
@@ -421,12 +426,12 @@ def create_bulk_notifications(users, title, message, notification_type='general'
 
 
 def notify_all_students(title, message, notification_type='general', related_id=None, transaction_type=None):
-    """Send notification to all students (in-app and email per preferences)."""
+    """Send notification to all patients (in-app and email per preferences)."""
     from .notification_delivery import deliver_bulk_notifications
 
-    students = User.objects.filter(role='student')
+    patients = User.objects.filter(role__in=PATIENT_ROLE_VALUES)
     return deliver_bulk_notifications(
-        students, title, message, notification_type, related_id, transaction_type
+        patients, title, message, notification_type, related_id, transaction_type
     )
 
 
@@ -444,7 +449,7 @@ def notify_all_users(title, message, notification_type='general', related_id=Non
     """Send notification to all users (in-app and email per preferences)."""
     from .notification_delivery import deliver_bulk_notifications
 
-    users = User.objects.filter(role__in=['student', 'staff'])
+    users = User.objects.filter(role__in=[*PATIENT_ROLE_VALUES, 'staff'])
     return deliver_bulk_notifications(
         users, title, message, notification_type, related_id, transaction_type
     )
@@ -460,17 +465,17 @@ def get_dashboard_stats(user):
     
     stats = {}
     
-    if user.role == 'student':
+    if role_matches(user.role, ROLE_PATIENT):
         stats = {
             'upcoming_appointments': Appointment.objects.filter(
-                student=user, 
+                patient=user,
                 date__gte=timezone.now().date(),
                 status__in=['pending']
             ).count(),
-            'total_appointments': Appointment.objects.filter(student=user).count(),
-            'medical_records': MedicalRecord.objects.filter(student=user).count(),
+            'total_appointments': Appointment.objects.filter(patient=user).count(),
+            'medical_records': MedicalRecord.objects.filter(patient=user).count(),
             'pending_certificates': DocumentRequest.objects.filter(
-                student=user,
+                patient=user,
                 status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
             'unread_notifications': user.notifications.filter(is_read=False).count(),
@@ -489,7 +494,7 @@ def get_dashboard_stats(user):
             ).count(),
             'total_patients': MedicalRecord.objects.filter(
                 doctor=user
-            ).values('student').distinct().count(),
+            ).values('patient').distinct().count(),
             'pending_certificates': DocumentRequest.objects.filter(
                 status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
@@ -502,7 +507,8 @@ def get_dashboard_stats(user):
     elif user.role == 'admin':
         today = timezone.now().date()
         stats = {
-            'total_students': User.objects.filter(role='student').count(),
+            'total_patients': User.objects.filter(role__in=PATIENT_ROLE_VALUES).count(),
+            'total_patients': User.objects.filter(role__in=PATIENT_ROLE_VALUES).count(),
             'total_staff': User.objects.filter(role__in=['staff', 'doctor']).count(),
             'today_appointments': Appointment.objects.filter(date=today).count(),
             'pending_certificates': DocumentRequest.objects.filter(
@@ -529,16 +535,16 @@ def get_recent_activity(user, limit=5):
     
     activity = {}
     
-    if user.role == 'student':
+    if role_matches(user.role, ROLE_PATIENT):
         activity = {
             'appointments': Appointment.objects.filter(
-                student=user
+                patient=user
             ).order_by('-created_at')[:limit],
             'records': MedicalRecord.objects.filter(
-                student=user
+                patient=user
             ).order_by('-created_at')[:limit],
             'certificates': DocumentRequest.objects.filter(
-                student=user
+                patient=user
             ).order_by('-created_at')[:limit],
         }
     

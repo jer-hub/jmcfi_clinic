@@ -1,5 +1,5 @@
 {% comment %}
-  Services accordion (mobile). Expects: svc_role — student | doctor | staff; nav_active dict.
+  Services accordion (mobile). Expects: svc_role — patient | doctor | staff; nav_active dict.
 {% endcomment %}
 <button type="button"
   id="nav-mobile-services-trigger"
@@ -25,7 +25,7 @@
   class="overflow-hidden px-2 pb-2">
   <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">Appointments</a>
   {% if svc_role == 'staff' %}
-    <a href="{% url 'appointments:schedule_for_student' %}" class="mobile-link text-sm">Schedule for Student</a>
+    <a href="{% url 'appointments:schedule_for_patient' %}" class="mobile-link text-sm">Schedule for Patient</a>
   {% endif %}
   <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">Medical Records</a>
   <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>

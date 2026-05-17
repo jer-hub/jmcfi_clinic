@@ -21,6 +21,7 @@ from django.utils import timezone
 from django.contrib.auth import get_user_model
 
 from core.decorators import role_required, admin_required
+from core.roles import PATIENT_ROLE_VALUES, is_patient_role
 from core.utils import paginate_queryset, parse_date, apply_date_filters
 
 from .models import (
@@ -109,7 +110,7 @@ def _student_visit_history(user, months=6):
     month_starts.reverse()
 
     raw = (
-        Appointment.objects.filter(student=user)
+        Appointment.objects.filter(patient=user)
         .annotate(month=TruncMonth(Cast('date', output_field=models.DateTimeField())))
         .values('month')
         .annotate(count=Count('id'))
@@ -231,17 +232,17 @@ def _appointment_by_weekday(date_from, date_to):
 
 def _student_demographics():
     """Demographics breakdown from StudentProfile."""
-    from core.models import StudentProfile
+    from core.models import PatientProfile
     course = list(
-        StudentProfile.objects.exclude(course='').values('course')
+        PatientProfile.objects.exclude(course='').values('course')
         .annotate(count=Count('id')).order_by('-count')
     )
     year_level = list(
-        StudentProfile.objects.exclude(year_level='').values('year_level')
+        PatientProfile.objects.exclude(year_level='').values('year_level')
         .annotate(count=Count('id')).order_by('year_level')
     )
     gender = list(
-        StudentProfile.objects.exclude(gender='').values('gender')
+        PatientProfile.objects.exclude(gender='').values('gender')
         .annotate(count=Count('id')).order_by('-count')
     )
     return {'course': course, 'year_level': year_level, 'gender': gender}
@@ -298,13 +299,13 @@ def render_analytics_dashboard(request):
         'filter_form': DateRangeFilterForm(initial={'date_from': date_from, 'date_to': date_to}),
     }
 
-    if user.role == 'student':
+    if is_patient_role(user.role):
         # Personal health summary
         from medical_records.models import MedicalRecord
         from appointments.models import Appointment
 
-        records = MedicalRecord.objects.filter(student=user).order_by('-created_at')
-        appointments = Appointment.objects.filter(student=user)
+        records = MedicalRecord.objects.filter(patient=user).order_by('-created_at')
+        appointments = Appointment.objects.filter(patient=user)
         total_appointments = appointments.count()
         completed_appointments = appointments.filter(status='completed').count()
         appointment_history = _student_visit_history(user, months=6)
@@ -350,7 +351,7 @@ def render_analytics_dashboard(request):
             'max_diagnosis_count': max_diagnosis_count,
         })
 
-        return render(request, 'analytics/dashboard_student.html', context)
+        return render(request, 'analytics/dashboard_patient.html', context)
 
     elif user.role in ['staff', 'doctor']:
         from appointments.models import Appointment
@@ -358,7 +359,7 @@ def render_analytics_dashboard(request):
 
         my_appointments = Appointment.objects.filter(doctor=user, date__gte=date_from, date__lte=date_to)
         context.update({
-            'total_patients': my_appointments.values('student').distinct().count(),
+            'total_patients': my_appointments.values('patient').distinct().count(),
             'total_consultations': my_appointments.filter(status='completed').count(),
             'pending_appointments': my_appointments.filter(status='pending').count(),
             'appointment_trend': list(
@@ -376,7 +377,7 @@ def render_analytics_dashboard(request):
         from medical_records.models import MedicalRecord
         from feedback.models import Feedback
 
-        total_students = User.objects.filter(role='student').count()
+        total_patients = User.objects.filter(role__in=PATIENT_ROLE_VALUES).count()
         total_staff = User.objects.filter(role__in=['staff', 'doctor']).count()
         total_appointments = Appointment.objects.filter(date__gte=date_from, date__lte=date_to).count()
         total_records = MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to).count()
@@ -397,7 +398,7 @@ def render_analytics_dashboard(request):
         cal_selected = parse_date(request.GET.get('date', '')) or today
 
         context.update({
-            'total_students': total_students,
+            'total_patients': total_patients,
             'total_staff': total_staff,
             'total_appointments': total_appointments,
             'total_records': total_records,
@@ -676,7 +677,7 @@ def generate_compliance_report(request):
                 'total_records': MedicalRecord.objects.filter(
                     created_at__date__gte=date_from, created_at__date__lte=date_to
                 ).count(),
-                'total_students': User.objects.filter(role='student').count(),
+                'total_patients': User.objects.filter(role__in=PATIENT_ROLE_VALUES).count(),
                 'total_staff': User.objects.filter(role__in=['staff', 'doctor']).count(),
                 'top_diagnoses': _illness_stats(date_from, date_to)[:10],
                 'generated_at': timezone.now().isoformat(),
@@ -707,7 +708,7 @@ def compliance_report_detail(request, pk):
 @role_required('staff', 'doctor', 'admin')
 def population_health(request):
     """Population health dashboard by demographics."""
-    from core.models import StudentProfile
+    from core.models import PatientProfile
     from medical_records.models import MedicalRecord
     from appointments.models import Appointment
 
@@ -718,7 +719,7 @@ def population_health(request):
     # Health data by course
     health_by_course = list(
         MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to)
-        .values('student__student_profile__course')
+        .values('patient__patient_profile__course')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
@@ -726,22 +727,22 @@ def population_health(request):
     # Health data by year level
     health_by_year = list(
         MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to)
-        .values('student__student_profile__year_level')
+        .values('patient__patient_profile__year_level')
         .annotate(count=Count('id'))
-        .order_by('student__student_profile__year_level')
+        .order_by('patient__patient_profile__year_level')
     )
 
     # Appointments by course
     appt_by_course = list(
         Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
-        .values('student__student_profile__course')
+        .values('patient__patient_profile__course')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
 
     # Blood type distribution
     blood_types = list(
-        StudentProfile.objects.exclude(blood_type='')
+        PatientProfile.objects.exclude(blood_type='')
         .values('blood_type')
         .annotate(count=Count('id'))
         .order_by('-count')
@@ -749,7 +750,7 @@ def population_health(request):
 
     records_in_period = sum(item['count'] for item in health_by_course)
     appt_in_period = sum(item['count'] for item in appt_by_course)
-    total_students = sum(g['count'] for g in demographics['gender']) or StudentProfile.objects.count()
+    total_patients = sum(g['count'] for g in demographics['gender']) or PatientProfile.objects.count()
 
     context = {
         'demographics': demographics,
@@ -759,7 +760,7 @@ def population_health(request):
         'health_by_year_total': sum(item['count'] for item in health_by_year),
         'appt_by_course': appt_by_course,
         'blood_types': blood_types,
-        'total_students': total_students,
+        'total_patients': total_patients,
         'records_in_period': records_in_period,
         'appt_in_period': appt_in_period,
         'period_presets': _period_presets(date_from, date_to),
@@ -840,9 +841,9 @@ def academic_correlation(request):
     frequent_visitors = list(
         Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
         .values(
-            'student__id', 'student__first_name', 'student__last_name',
-            'student__email', 'student__student_profile__course',
-            'student__student_profile__year_level',
+            'patient__id', 'patient__first_name', 'patient__last_name',
+            'patient__email', 'patient__patient_profile__course',
+            'patient__patient_profile__year_level',
         )
         .annotate(visit_count=Count('id'))
         .order_by('-visit_count')[:20]
@@ -854,20 +855,20 @@ def academic_correlation(request):
             date__gte=date_from, date__lte=date_to,
             appointment_type='emergency',
         )
-        .values('student__student_profile__course')
+        .values('patient__patient_profile__course')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
 
     total_visits = sum(v['visit_count'] for v in frequent_visitors)
-    high_visit_students = sum(1 for v in frequent_visitors if v['visit_count'] >= 5)
+    high_visit_patients = sum(1 for v in frequent_visitors if v['visit_count'] >= 5)
     emergency_total = sum(item['count'] for item in emergency_visits)
 
     context = {
         'frequent_visitors': frequent_visitors,
         'emergency_visits': emergency_visits,
         'total_visits': total_visits,
-        'high_visit_students': high_visit_students,
+        'high_visit_patients': high_visit_patients,
         'emergency_total': emergency_total,
         'period_presets': _period_presets(date_from, date_to),
         'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
@@ -894,11 +895,11 @@ def export_report(request):
 
     if report_type == 'appointments':
         from appointments.models import Appointment
-        writer.writerow(['Date', 'Time', 'Student', 'Doctor', 'Type', 'Status'])
-        for a in Appointment.objects.filter(date__gte=date_from, date__lte=date_to).select_related('student', 'doctor').order_by('date', 'time'):
+        writer.writerow(['Date', 'Time', 'Patient', 'Doctor', 'Type', 'Status'])
+        for a in Appointment.objects.filter(date__gte=date_from, date__lte=date_to).select_related('patient', 'doctor').order_by('date', 'time'):
             writer.writerow([
                 a.date, a.time,
-                a.student.get_full_name() if a.student else '',
+                a.patient.get_full_name() if a.patient else '',
                 a.doctor.get_full_name() if a.doctor else '',
                 a.get_appointment_type_display(),
                 a.get_status_display(),
@@ -906,11 +907,11 @@ def export_report(request):
 
     elif report_type == 'medical_records':
         from medical_records.models import MedicalRecord
-        writer.writerow(['Date', 'Student', 'Doctor', 'Diagnosis', 'Treatment'])
-        for r in MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to).select_related('student', 'doctor').order_by('-created_at'):
+        writer.writerow(['Date', 'Patient', 'Doctor', 'Diagnosis', 'Treatment'])
+        for r in MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to).select_related('patient', 'doctor').order_by('-created_at'):
             writer.writerow([
                 r.created_at.strftime('%Y-%m-%d'),
-                r.student.get_full_name() if r.student else '',
+                r.patient.get_full_name() if r.patient else '',
                 r.doctor.get_full_name() if r.doctor else '',
                 r.diagnosis, r.treatment,
             ])
@@ -933,11 +934,11 @@ def export_report(request):
             ])
 
     elif report_type == 'demographics':
-        from core.models import StudentProfile
-        writer.writerow(['Student ID', 'Course', 'Year Level', 'Gender', 'Blood Type'])
-        for p in StudentProfile.objects.select_related('user').all():
+        from core.models import PatientProfile
+        writer.writerow(['Patient ID', 'Course', 'Year Level', 'Gender', 'Blood Type'])
+        for p in PatientProfile.objects.select_related('user').all():
             writer.writerow([
-                p.student_id, p.course, p.year_level, p.gender, p.blood_type,
+                p.patient_id, p.course, p.year_level, p.gender, p.blood_type,
             ])
 
     # Log the export

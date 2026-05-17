@@ -13,7 +13,7 @@ APPOINTMENT_TYPE_CHOICES = [
 
 
 class Appointment(models.Model):
-    """Appointment model for scheduling student appointments with doctors."""
+    """Appointment model for scheduling patient appointments with doctors."""
     
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -24,10 +24,10 @@ class Appointment(models.Model):
     
     APPOINTMENT_TYPE_CHOICES = APPOINTMENT_TYPE_CHOICES
 
-    student = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='student_appointments'
+    patient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='patient_appointments',
     )
     doctor = models.ForeignKey(
         User, 
@@ -48,9 +48,9 @@ class Appointment(models.Model):
         ordering = ['-date', '-time']
 
     def __str__(self):
-        name = f"{self.student.first_name} {self.student.last_name}".strip()
+        name = f"{self.patient.first_name} {self.patient.last_name}".strip()
         if not name:
-            name = self.student.email or self.student.username
+            name = self.patient.email or self.patient.username
         return f"{name} - {self.date} {self.time}"
     
     def has_conflict(self, interval_minutes=None):

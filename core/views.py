@@ -41,11 +41,12 @@ from .forms import (
     clean_strict_ph_number,
 )
 from .notification_delivery import notify_user
+from .roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, filter_users_by_role, normalize_role, role_matches
 from .settings_service import get_profile_required_fields
 from .utils import (
     get_user_profile, paginate_queryset,
     get_missing_profile_fields, get_client_ip,
-    resolve_notification_url, student_display_name, student_search_q,
+    resolve_notification_url, student_display_name, patient_search_q,
 )
 from .decorators import admin_required, role_required
 from .user_management_services import (
@@ -332,15 +333,10 @@ def dashboard(request):
 
     context = {}
     
-    if request.user.role == 'student':
+    if role_matches(request.user.role, ROLE_PATIENT):
         context.update({
-            'upcoming_appointments': Appointment.objects.filter(
-                student=request.user, 
-                date__gte=timezone.now().date(),
-                status__in=['pending', 'confirmed']
-            ).order_by('date', 'time')[:3],
             'recent_records': MedicalRecord.objects.filter(
-                student=request.user
+                patient=request.user
             ).order_by('-created_at')[:3],
             'unread_notifications': Notification.objects.filter(
                 user=request.user, 
@@ -349,14 +345,14 @@ def dashboard(request):
                 transaction_type__in=MESSAGE_NOTIFICATION_TYPES
             ).count(),
             'pending_certificates': DocumentRequest.objects.filter(
-                student=request.user,
+                patient=request.user,
                 status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
-            'total_appointments': Appointment.objects.filter(student=request.user).count(),
-            'total_records': MedicalRecord.objects.filter(student=request.user).count(),
+            'total_appointments': Appointment.objects.filter(patient=request.user).count(),
+            'total_records': MedicalRecord.objects.filter(patient=request.user).count(),
             'total_dental_records': DentalRecord.objects.filter(patient=request.user).count(),
             'approved_certificates': DocumentRequest.objects.filter(
-                student=request.user,
+                patient=request.user,
                 status=DocumentRequest.Status.COMPLETED,
             ).count(),
         })
@@ -377,7 +373,7 @@ def dashboard(request):
             ).count(),
             'total_patients': MedicalRecord.objects.filter(
                 doctor=request.user
-            ).values('student').distinct().count(),
+            ).values('patient').distinct().count(),
             'completed_appointments': Appointment.objects.filter(
                 doctor=request.user,
                 status='completed'
@@ -398,7 +394,7 @@ def dashboard(request):
             'pending_appointments': Appointment.objects.filter(
                 status='pending'
             ).count(),
-            'total_patients': MedicalRecord.objects.values('student').distinct().count(),
+            'total_patients': MedicalRecord.objects.values('patient').distinct().count(),
             'completed_appointments': Appointment.objects.filter(
                 status='completed'
             ).count(),
@@ -407,7 +403,7 @@ def dashboard(request):
             'appointment_list_pending_url': _appointment_list_url_status('pending'),
         })
 
-    if request.user.role in ('student', 'doctor', 'staff'):
+    if role_matches(request.user.role, ROLE_PATIENT, 'doctor', 'staff'):
         context.update(build_dashboard_calendar_context(request.user))
 
     return render(request, 'core/dashboard.html', context)
@@ -528,7 +524,7 @@ def create_system_notification(request):
         
         # Determine recipients
         if recipient_type == 'students':
-            recipients = User.objects.filter(role='student')
+            recipients = User.objects.filter(role__in=PATIENT_ROLE_VALUES)
         elif recipient_type == 'staff_only':
             recipients = User.objects.filter(role='staff')
         elif recipient_type == 'doctors':
@@ -540,7 +536,9 @@ def create_system_notification(request):
         elif recipient_type == 'non_students':
             recipients = User.objects.filter(role__in=['staff', 'doctor', 'admin'])
         else:  # all
-            recipients = User.objects.filter(role__in=['student', 'staff', 'doctor', 'admin'])
+            recipients = User.objects.filter(
+                role__in=[*PATIENT_ROLE_VALUES, 'staff', 'doctor', 'admin']
+            )
         
         # Create notifications
         from .notification_delivery import deliver_bulk_notifications
@@ -589,7 +587,7 @@ def profile_view(request):
         .values_list('name', flat=True)
     )
     year_level_options_by_college = _year_levels_by_college()
-    active_college = profile.department if profile and request.user.role == 'student' else ''
+    active_college = profile.department if profile and role_matches(request.user.role, ROLE_PATIENT) else ''
     year_level_options = year_level_options_by_college.get(active_college, [])
     course_options_by_college = {}
     for course in course_queryset:
@@ -634,10 +632,10 @@ def quick_edit_profile(request):
     selected_college = request.POST.get('selected_college', '').strip()
 
     if field_name == 'academic_bundle':
-        if request.user.role != 'student':
+        if not role_matches(request.user.role, ROLE_PATIENT):
             if is_ajax:
-                return JsonResponse({'success': False, 'error': 'Academic quick edit is only available for students.'}, status=400)
-            messages.error(request, 'Academic quick edit is only available for students.')
+                return JsonResponse({'success': False, 'error': 'Academic quick edit is only available for patients.'}, status=400)
+            messages.error(request, 'Academic quick edit is only available for patients.')
             return redirect('core:profile')
 
         department = request.POST.get('department', '').strip()
@@ -809,7 +807,7 @@ def quick_edit_profile(request):
             # Store as newline-delimited list for stable parsing/display.
             field_value = '\n'.join(clean_parts)
 
-        if request.user.role == 'student' and field_name in ['course', 'year_level', 'department']:
+        if role_matches(request.user.role, ROLE_PATIENT) and field_name in ['course', 'year_level', 'department']:
             selected_college_name = selected_college or profile.department
             course_is_optional = _is_course_optional_for_department(selected_college_name)
 
@@ -856,7 +854,7 @@ def quick_edit_profile(request):
                     raise ValueError('Invalid College selection.')
 
                 # Keep student course consistent with selected college.
-                if request.user.role == 'student' and profile.course:
+                if role_matches(request.user.role, ROLE_PATIENT) and profile.course:
                     valid_courses = set(
                         CourseProgram.objects.filter(
                             is_active=True,
@@ -867,7 +865,7 @@ def quick_edit_profile(request):
                         profile.course = ''
                         profile.save(update_fields=['course'])
 
-                if request.user.role == 'student' and profile.year_level:
+                if role_matches(request.user.role, ROLE_PATIENT) and profile.year_level:
                     valid_year_levels = set(
                         YearLevelOption.objects.filter(
                             is_active=True,
@@ -880,7 +878,7 @@ def quick_edit_profile(request):
 
         if field_name in ['phone', 'telephone_number', 'emergency_phone']:
             phone_required = field_name == 'phone' or (
-                field_name == 'emergency_phone' and request.user.role == 'student'
+                field_name == 'emergency_phone' and role_matches(request.user.role, ROLE_PATIENT)
             )
             field_value = clean_strict_ph_number(field_value, required=phone_required)
 
@@ -984,7 +982,7 @@ def edit_profile(request):
     profile = get_user_profile(request.user)
     is_first_time = profile is None
     
-    if request.user.role == 'student':
+    if role_matches(request.user.role, ROLE_PATIENT):
         form_class = StudentProfileForm
     elif request.user.role in ['staff', 'doctor', 'admin']:
         form_class = StaffProfileForm
@@ -1028,7 +1026,7 @@ def edit_profile(request):
             if dental_record.guardian_contact:
                 initial_data['emergency_phone'] = dental_record.guardian_contact
             if dental_record.department_college_office:
-                if request.user.role == 'student':
+                if role_matches(request.user.role, ROLE_PATIENT):
                     # Try to parse as course
                     initial_data['course'] = dental_record.department_college_office
                 else:
@@ -1124,7 +1122,7 @@ def edit_profile(request):
 
     year_level_options_by_college = _year_levels_by_college()
     selected_department = ''
-    if request.user.role == 'student' and 'department' in form.fields:
+    if role_matches(request.user.role, ROLE_PATIENT) and 'department' in form.fields:
         selected_department = (form['department'].value() or '').strip()
     initial_course_options = course_options_by_college.get(selected_department, [])
     initial_year_level_options = year_level_options_by_college.get(selected_department, [])
@@ -1172,7 +1170,7 @@ def user_management(request):
     
     # Apply filters
     if role_filter:
-        users = users.filter(role=role_filter)
+        users = filter_users_by_role(users, role_filter)
     
     if status_filter == 'active':
         users = users.filter(
@@ -1320,9 +1318,9 @@ def user_edit(request, user_id):
             user = form.save()
 
             if old_role != user.role:
-                if old_role == 'student' and user.role == 'staff':
-                    if hasattr(user, 'student_profile'):
-                        user.student_profile.delete()
+                if role_matches(old_role, ROLE_PATIENT) and not role_matches(user.role, ROLE_PATIENT):
+                    if hasattr(user, 'patient_profile'):
+                        user.patient_profile.delete()
                     if not hasattr(user, 'staff_profile'):
                         StaffProfile.objects.create(
                             user=user,
@@ -1330,13 +1328,13 @@ def user_edit(request, user_id):
                             phone='',
                             department='Pending',
                         )
-                elif old_role == 'staff' and user.role == 'student':
+                elif role_matches(old_role, 'staff', 'doctor') and role_matches(user.role, ROLE_PATIENT):
                     if hasattr(user, 'staff_profile'):
                         user.staff_profile.delete()
-                    if not hasattr(user, 'student_profile'):
+                    if not hasattr(user, 'patient_profile'):
                         StudentProfile.objects.create(
                             user=user,
-                            student_id=f'TEMP_{user.id}',
+                            patient_id=f'TEMP_{user.id}',
                             phone='',
                             emergency_contact='',
                             emergency_phone='',
@@ -1552,31 +1550,32 @@ def user_reset_password(request, user_id):
 
 @login_required
 @role_required('staff', 'doctor', 'admin')
-def search_students(request):
+def search_patients(request):
     """
-    AJAX endpoint to search for students by name or email.
-    Used in forms where staff/doctors need to select a student.
+    AJAX endpoint to search for patients by name or email.
+    Used in forms where staff/doctors need to select a patient.
     """
     query = request.GET.get('q', '').strip()
     if len(query) < 2:
         return JsonResponse([], safe=False)
 
-    students = (
-        User.objects.filter(Q(role='student') & student_search_q(query))
-        .select_related('student_profile')
+    patients = (
+        User.objects.filter(Q(role__in=PATIENT_ROLE_VALUES) & patient_search_q(query))
+        .select_related('patient_profile')
         .distinct()[:10]
     )
 
     results = []
-    for student in students:
-        profile = getattr(student, 'student_profile', None)
-        name = student_display_name(student)
+    for patient in patients:
+        profile = getattr(patient, 'patient_profile', None)
+        name = student_display_name(patient)
+        patient_id = getattr(profile, 'patient_id', '') if profile else ''
         results.append({
-            'id': student.id,
+            'id': patient.id,
             'name': name,
             'text': name,
-            'email': student.email,
-            'student_id': getattr(profile, 'student_id', '') if profile else '',
+            'email': patient.email,
+            'patient_id': patient_id,
             'course': getattr(profile, 'course', '') if profile else '',
             'year_level': getattr(profile, 'year_level', '') if profile else '',
         })

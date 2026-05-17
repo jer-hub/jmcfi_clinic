@@ -8,7 +8,7 @@ DoctorSignature = ClinicianSignature
 @admin.register(DocumentRequest)
 class DocumentRequestAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = [
-        'student',
+        'patient',
         'document_type',
         'request_origin',
         'created_by',
@@ -20,7 +20,7 @@ class DocumentRequestAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
         'processed_by',
     ]
     list_filter = ['status', 'document_type', 'request_origin', 'created_at']
-    search_fields = ['student__email', 'student__first_name', 'student__last_name', 'purpose']
+    search_fields = ['patient__email', 'patient__first_name', 'patient__last_name', 'purpose']
     readonly_fields = ['created_at', 'updated_at']
     ordering = ['-created_at']
     raw_id_fields = ['medical_certificate', 'assigned_to']
@@ -28,7 +28,7 @@ class DocumentRequestAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     fieldsets = (
         ('Request Information', {
             'fields': (
-                'student',
+                'patient',
                 'document_type',
                 'request_origin',
                 'created_by',
@@ -76,5 +76,5 @@ class ClinicianSignatureAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
 class DocumentRequestEventAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
     list_display = ['request', 'event_type', 'actor', 'created_at']
     list_filter = ['event_type', 'created_at']
-    search_fields = ['request__student__email', 'actor__email']
+    search_fields = ['request__patient__email', 'actor__email']
     readonly_fields = ['created_at']

@@ -1,4 +1,5 @@
 from .models import Notification
+from .roles import ROLE_PATIENT, role_matches
 from .settings_service import get_clinic_settings, get_role_features, get_user_preferences
 from .utils import is_profile_complete, get_missing_profile_fields
 
@@ -37,7 +38,9 @@ def notification_context(request):
 
 def profile_context(request):
     """Add profile completion status to context for authenticated users"""
-    if request.user.is_authenticated and request.user.role in ['student', 'staff', 'doctor', 'admin']:
+    if request.user.is_authenticated and role_matches(
+        request.user.role, ROLE_PATIENT, 'staff', 'doctor', 'admin'
+    ):
         profile_complete = is_profile_complete(request.user)
         missing_fields = get_missing_profile_fields(request.user) if not profile_complete else []
         

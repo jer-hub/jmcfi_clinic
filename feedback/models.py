@@ -26,10 +26,10 @@ class Feedback(models.Model):
         ('other', 'Other'),
     ]
 
-    student = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='feedback_submissions'
+    patient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='feedback_submissions',
     )
     appointment = models.ForeignKey(
         'appointments.Appointment', 
@@ -75,9 +75,9 @@ class Feedback(models.Model):
         verbose_name_plural = 'Feedbacks'
 
     def __str__(self):
-        name = f"{self.student.first_name} {self.student.last_name}".strip()
+        name = f"{self.patient.first_name} {self.patient.last_name}".strip()
         if not name:
-            name = self.student.email or self.student.username
+            name = self.patient.email or self.patient.username
         return f"Feedback from {name} - {self.rating}/5"
     
     @property

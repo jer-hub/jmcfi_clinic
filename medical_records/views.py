@@ -10,6 +10,7 @@ from django.utils import timezone
 from urllib.parse import urlparse
 
 from core.htmx_utils import is_htmx_request
+from core.roles import PATIENT_ROLE_VALUES, is_patient_role
 from core.utils import student_display_name
 from django.utils.dateparse import parse_date
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -97,7 +98,7 @@ def _build_prescription_initial(
 
     initial.setdefault('patient_name', student_display_name(student))
 
-    profile = getattr(student, 'student_profile', None)
+    profile = getattr(student, 'patient_profile', None)
     if profile and getattr(profile, 'date_of_birth', None):
         initial['age'] = today.year - profile.date_of_birth.year - (
             (today.month, today.day) < (profile.date_of_birth.month, profile.date_of_birth.day)
@@ -194,7 +195,7 @@ def _parse_vital_signs_from_post(post):
 
 
 def _student_age_years(student):
-    profile = getattr(student, 'student_profile', None) if student else None
+    profile = getattr(student, 'patient_profile', None) if student else None
     if not profile or not getattr(profile, 'date_of_birth', None):
         return None
     today = timezone.localdate()
@@ -227,7 +228,7 @@ def _prescription_form_for_request(
     if student:
         if not data.get('patient_name', '').strip():
             data['patient_name'] = student_display_name(student)
-        profile = getattr(student, 'student_profile', None)
+        profile = getattr(student, 'patient_profile', None)
         if profile:
             if not data.get('gender'):
                 data['gender'] = profile.gender or ''
@@ -246,12 +247,12 @@ def _build_create_medical_record_context(
     appointment=None,
     student=None,
     prescription_form=None,
-    is_direct_student_flow=False,
+    is_direct_patient_flow=False,
     vitals_errors=None,
     lab_errors=None,
 ):
     if appointment and not student:
-        student = appointment.student
+        student = appointment.patient
 
     if prescription_form is None:
         prescription_form = _prescription_form_for_request(
@@ -270,9 +271,9 @@ def _build_create_medical_record_context(
 
     context = {
         'appointment': appointment,
-        'student': student,
-        'student_age': _student_age_years(student),
-        'is_direct_student_flow': is_direct_student_flow,
+        'patient': student,
+        'patient_age': _student_age_years(student),
+        'is_direct_patient_flow': is_direct_patient_flow,
         'prescription_form': prescription_form,
         'form_state': _form_state_from_request(request),
         'medication_entries_json': json.dumps(medication_entries),
@@ -283,18 +284,20 @@ def _build_create_medical_record_context(
     return context
 
 
-def _render_create_for_student(request, student, *, prescription_form=None, vitals_errors=None):
+def _render_create_for_patient(request, student, *, prescription_form=None, vitals_errors=None):
     return render(
         request,
-        'medical_records/create_medical_record_for_student.html',
-        _direct_student_create_context(
+        'medical_records/create_medical_record_for_patient.html',
+        _direct_patient_create_context(
             request, student, prescription_form=prescription_form, vitals_errors=vitals_errors
         ),
     )
 
 
-def _direct_student_create_context(request, student, *, prescription_form=None, vitals_errors=None):
-    """Context for create-for-student: always a fresh prescription (no linked rx reuse)."""
+
+
+def _direct_patient_create_context(request, student, *, prescription_form=None, vitals_errors=None):
+    """Context for walk-in create (no appointment): always a fresh prescription."""
     if prescription_form is None:
         prescription_form = _prescription_form_for_request(
             request,
@@ -305,7 +308,7 @@ def _direct_student_create_context(request, student, *, prescription_form=None, 
         request,
         student=student,
         prescription_form=prescription_form,
-        is_direct_student_flow=True,
+        is_direct_patient_flow=True,
         vitals_errors=vitals_errors,
     )
 
@@ -315,7 +318,7 @@ def _appointment_create_context(request, appointment, *, prescription_form=None,
     if prescription_form is None:
         prescription_form = _prescription_form_for_request(
             request,
-            student=appointment.student,
+            student=appointment.patient,
             doctor=appointment.doctor,
             acting_user=request.user,
             appointment=appointment,
@@ -484,9 +487,9 @@ def _build_unpaginated_medical_timeline(request_user, get_params):
     Build timeline row dicts and status_totals (same rules as medical_records list), unpaginated.
     get_params: QueryDict-like (.get).
     """
-    if request_user.role == 'student':
-        records = MedicalRecord.objects.filter(student=request_user)
-        appointments = Appointment.objects.filter(student=request_user)
+    if is_patient_role(request_user.role):
+        records = MedicalRecord.objects.filter(patient=request_user)
+        appointments = Appointment.objects.filter(patient=request_user)
     elif request_user.role in ['staff', 'doctor']:
         records = MedicalRecord.objects.filter(doctor=request_user)
         appointments = Appointment.objects.filter(doctor=request_user)
@@ -495,18 +498,18 @@ def _build_unpaginated_medical_timeline(request_user, get_params):
         appointments = Appointment.objects.none()
 
     status_filter = (get_params.get('status') or '').strip()
-    student_search = (get_params.get('student_id') or '').strip()
+    patient_search = (get_params.get('patient_id') or '').strip()
     date_from = parse_date(get_params.get('date_from')) if get_params.get('date_from') else None
     date_to = parse_date(get_params.get('date_to')) if get_params.get('date_to') else None
 
-    if student_search and request_user.role in ['staff', 'doctor']:
-        student_q = (
-            Q(student__first_name__icontains=student_search)
-            | Q(student__last_name__icontains=student_search)
-            | Q(student__student_profile__student_id__icontains=student_search)
+    if patient_search and request_user.role in ['staff', 'doctor']:
+        patient_q = (
+            Q(patient__first_name__icontains=patient_search)
+            | Q(patient__last_name__icontains=patient_search)
+            | Q(patient__patient_profile__patient_id__icontains=patient_search)
         )
-        records = records.filter(student_q)
-        appointments = appointments.filter(student_q)
+        records = records.filter(patient_q)
+        appointments = appointments.filter(patient_q)
     if date_from:
         records = records.filter(created_at__date__gte=date_from)
         appointments = appointments.filter(date__gte=date_from)
@@ -523,13 +526,13 @@ def _build_unpaginated_medical_timeline(request_user, get_params):
     }
 
     records = (
-        records.select_related('student', 'doctor', 'appointment')
+        records.select_related('patient', 'doctor', 'appointment')
         .prefetch_related('prescription_record__items')
         .order_by('-created_at')
     )
     appointments = appointments.exclude(appointment_type='dental').exclude(
         medicalrecord__isnull=False
-    ).select_related('student', 'doctor').order_by('-date', '-time')
+    ).select_related('patient', 'doctor').order_by('-date', '-time')
 
     timeline_rows = []
 
@@ -605,8 +608,8 @@ def medical_record_detail_page(request, record_id):
     """View detailed medical record page - similar to dental record detail"""
     record = get_object_or_404(
         MedicalRecord.objects.select_related(
-            'student',
-            'student__student_profile',
+            'patient',
+            'patient__patient_profile',
             'doctor',
             'doctor__staff_profile',
             'appointment',
@@ -616,19 +619,19 @@ def medical_record_detail_page(request, record_id):
     )
 
     # Check permissions
-    if request.user.role == 'student' and record.student != request.user:
+    if is_patient_role(request.user.role) and record.patient != request.user:
         messages.error(request, 'Access denied')
         return redirect('medical_records:medical_records')
     elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user:
         messages.error(request, 'Access denied')
         return redirect('medical_records:medical_records')
 
-    bc_label = record.student.get_full_name()
+    bc_label = record.patient.get_full_name()
     bc_label += f' — {record.created_at.strftime("%b %d, %Y")}'
 
     context = {
         'record': record,
-        'title': f'Medical Record — {record.student.get_full_name()}',
+        'title': f'Medical Record — {record.patient.get_full_name()}',
         'breadcrumbs': [
             {'label': 'Medical Records', 'url': reverse('medical_records:medical_records')},
             {'label': bc_label},
@@ -646,7 +649,7 @@ def medical_record_detail(request, record_id):
     is_htmx = request.headers.get('HX-Request') == 'true'
     
     # Check permissions
-    if request.user.role == 'student' and record.student != request.user:
+    if is_patient_role(request.user.role) and record.patient != request.user:
         return JsonResponse({'error': 'Access denied'}, status=403) if not is_htmx else HttpResponse('Access denied', status=403)
     elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user:
         return JsonResponse({'error': 'Access denied'}, status=403) if not is_htmx else HttpResponse('Access denied', status=403)
@@ -669,8 +672,8 @@ def medical_record_detail(request, record_id):
             <div>
                 <h4 class="font-medium text-gray-900 mb-2">Patient Information</h4>
                 <div class="bg-gray-50 p-3 rounded-md space-y-1">
-                    <p><span class="font-medium">Name:</span> {record.student.get_full_name()}</p>
-                    <p><span class="font-medium">Student ID:</span> {getattr(record.student, 'student_profile', None) and record.student.student_profile.student_id or 'N/A'}</p>
+                    <p><span class="font-medium">Name:</span> {record.patient.get_full_name()}</p>
+                    <p><span class="font-medium">Patient ID:</span> {getattr(record.patient, 'patient_profile', None) and record.patient.patient_profile.patient_id or 'N/A'}</p>
                     <p><span class="font-medium">Date:</span> {record.created_at.strftime('%B %d, %Y at %I:%M %p')}</p>
                 </div>
             </div>
@@ -768,7 +771,7 @@ def create_medical_record(request, appointment_id):
     
     prescription_form = _prescription_form_for_request(
         request,
-        student=appointment.student,
+        student=appointment.patient,
         doctor=appointment.doctor,
         acting_user=request.user,
     )
@@ -809,7 +812,7 @@ def create_medical_record(request, appointment_id):
 
                 # Create medical record
                 medical_record = MedicalRecord.objects.create(
-                    student=locked_appointment.student,
+                    patient=locked_appointment.patient,
                     doctor=request.user,
                     appointment=locked_appointment,
                     diagnosis=diagnosis,
@@ -831,7 +834,7 @@ def create_medical_record(request, appointment_id):
             
             # Create notification for student
             notify_user(
-                appointment.student,
+                appointment.patient,
                 title='Medical Record Created',
                 message=f'Your medical record from your appointment on {appointment.date.strftime("%B %d, %Y")} is now available',
                 notification_type='general',
@@ -851,30 +854,30 @@ def create_medical_record(request, appointment_id):
 
 @login_required
 @role_required('staff', 'doctor')
-def create_medical_record_for_student(request):
-    """Create a medical record for a selected student without appointment context."""
+def create_medical_record_for_patient(request):
+    """Create a medical record for a selected patient without appointment context."""
     if request.method == 'POST':
-        student_id = request.POST.get('student_id')
+        patient_id = request.POST.get('patient_id')
         diagnosis = request.POST.get('diagnosis', '').strip()
         treatment = request.POST.get('treatment', '').strip()
         lab_results = request.POST.get('lab_results', '').strip()
-        if not student_id:
-            messages.error(request, 'Please select a student first.')
-            return _render_create_for_student(request, None)
+        if not patient_id:
+            messages.error(request, 'Please select a patient first.')
+            return _render_create_for_patient(request, None)
 
-        student = get_object_or_404(User, id=student_id, role='student')
+        patient = get_object_or_404(User, id=patient_id, role__in=PATIENT_ROLE_VALUES)
         prescription_form = _prescription_form_for_request(
             request,
-            student=student,
+            student=patient,
             acting_user=request.user,
         )
 
         vital_signs, vital_err = _parse_vital_signs_from_post(request.POST)
         if vital_err:
             fk, msg = vital_err
-            return _render_create_for_student(
+            return _render_create_for_patient(
                 request,
-                student,
+                patient,
                 prescription_form=prescription_form,
                 vitals_errors={fk: msg},
             )
@@ -884,12 +887,12 @@ def create_medical_record_for_student(request):
         if not treatment:
             prescription_form.add_error(None, 'Treatment rendered is required.')
         if prescription_form.errors:
-            return _render_create_for_student(request, student, prescription_form=prescription_form)
+            return _render_create_for_patient(request, patient, prescription_form=prescription_form)
 
         try:
             with transaction.atomic():
                 medical_record = MedicalRecord.objects.create(
-                    student=student,
+                    patient=patient,
                     doctor=request.user,
                     appointment=None,
                     diagnosis=diagnosis,
@@ -905,7 +908,7 @@ def create_medical_record_for_student(request):
                 )
 
             notify_user(
-                student,
+                patient,
                 title='Medical Record Created',
                 message='A new medical record has been created for you by the clinic.',
                 notification_type='general',
@@ -917,11 +920,11 @@ def create_medical_record_for_student(request):
             return redirect('medical_records:medical_record_detail_page', record_id=medical_record.id)
         except Exception:
             messages.error(request, 'An error occurred while creating the medical record. Please try again.')
-            return _render_create_for_student(request, student, prescription_form=prescription_form)
+            return _render_create_for_patient(request, patient, prescription_form=prescription_form)
 
-    selected_student = None
-    student_id = request.GET.get('student')
-    if student_id:
-        selected_student = get_object_or_404(User, id=student_id, role='student')
+    selected_patient = None
+    patient_pk = request.GET.get('patient')
+    if patient_pk:
+        selected_patient = get_object_or_404(User, id=patient_pk, role__in=PATIENT_ROLE_VALUES)
 
-    return _render_create_for_student(request, selected_student)
+    return _render_create_for_patient(request, selected_patient)

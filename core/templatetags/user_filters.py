@@ -11,7 +11,9 @@ def format_student_name(user):
         return ''
     from core.utils import student_display_name
 
-    if getattr(user, 'role', None) == 'student':
+    from core.roles import ROLE_PATIENT, role_matches
+
+    if role_matches(getattr(user, 'role', None), ROLE_PATIENT):
         return student_display_name(user)
     from core.utils import title_case_name
 

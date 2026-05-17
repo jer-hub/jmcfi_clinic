@@ -8,9 +8,10 @@ from django.core.cache import cache
 from .profile_policy import (
     ADMIN_PROFILE_REQUIRED_FIELDS,
     DOCTOR_PROFILE_REQUIRED_FIELDS,
+    PATIENT_PROFILE_REQUIRED_FIELDS,
     STAFF_PROFILE_REQUIRED_FIELDS,
-    STUDENT_PROFILE_REQUIRED_FIELDS,
 )
+from .roles import LEGACY_ROLE_STUDENT, ROLE_PATIENT, normalize_role
 
 CLINIC_SETTINGS_CACHE_KEY = 'core:clinic_settings'
 ROLE_SETTINGS_CACHE_KEY = 'core:role_settings:{role}'
@@ -21,7 +22,7 @@ DEFAULT_SESSION_TIMEOUTS = {
     'admin': 43200,
     'doctor': 86400,
     'staff': 86400,
-    'student': 86400,
+    ROLE_PATIENT: 86400,
 }
 
 ROLE_SETTINGS_DEFAULTS: dict[str, dict] = {
@@ -55,9 +56,9 @@ ROLE_SETTINGS_DEFAULTS: dict[str, dict] = {
         'block_clinical_namespaces': False,
         'show_health_tips_nav': False,
     },
-    'student': {
-        'session_timeout_seconds': DEFAULT_SESSION_TIMEOUTS['student'],
-        'profile_required_fields': list(STUDENT_PROFILE_REQUIRED_FIELDS),
+    ROLE_PATIENT: {
+        'session_timeout_seconds': DEFAULT_SESSION_TIMEOUTS[ROLE_PATIENT],
+        'profile_required_fields': list(PATIENT_PROFILE_REQUIRED_FIELDS),
         'can_access_analytics': True,
         'can_submit_feedback': True,
         'can_use_messaging': True,
@@ -111,7 +112,7 @@ def get_role_settings(role: str):
 def get_effective_session_timeout(user) -> int:
     """Session expiry in seconds for an authenticated user."""
     if user.is_authenticated:
-        role = getattr(user, 'role', None)
+        role = normalize_role(getattr(user, 'role', None))
         if role:
             try:
                 return get_role_settings(role).session_timeout_seconds
@@ -146,7 +147,7 @@ def get_google_allowed_domains() -> list[str]:
 
 def get_role_features(role: str) -> dict[str, bool]:
     """Feature flags for a role (cached via get_role_settings)."""
-    settings = get_role_settings(role)
+    settings = get_role_settings(normalize_role(role))
     return {
         'can_access_analytics': settings.can_access_analytics,
         'can_submit_feedback': settings.can_submit_feedback,
@@ -182,9 +183,10 @@ def get_profile_required_fields(role: str) -> list[str]:
     except ValueError:
         pass
     fallback = {
-        'student': STUDENT_PROFILE_REQUIRED_FIELDS,
+        ROLE_PATIENT: PATIENT_PROFILE_REQUIRED_FIELDS,
+        LEGACY_ROLE_STUDENT: PATIENT_PROFILE_REQUIRED_FIELDS,
         'staff': STAFF_PROFILE_REQUIRED_FIELDS,
         'doctor': DOCTOR_PROFILE_REQUIRED_FIELDS,
         'admin': ADMIN_PROFILE_REQUIRED_FIELDS,
     }
-    return list(fallback.get(role, []))
+    return list(fallback.get(normalize_role(role), []))

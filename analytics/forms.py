@@ -127,7 +127,7 @@ class ExportForm(forms.Form):
         ('medical_records', 'Medical Records'),
         ('financial', 'Financial Records'),
         ('health_trends', 'Health Trends'),
-        ('demographics', 'Student Demographics'),
+        ('demographics', 'Patient Demographics'),
     ]
     report = forms.ChoiceField(
         choices=REPORT_CHOICES,

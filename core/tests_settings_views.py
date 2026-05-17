@@ -26,14 +26,14 @@ class SettingsViewsAccessTests(TestCase):
             password='pw',
             role='admin',
         )
-        self.student = User.objects.create_user(
-            email='student-settings-views@test.com',
+        self.patient = User.objects.create_user(
+            email='patient-settings-views@test.com',
             password='pw',
-            role='student',
+            role='patient',
         )
 
     def test_hub_requires_admin(self):
-        self.client.force_login(self.student)
+        self.client.force_login(self.patient)
         response = self.client.get(reverse('core:settings_hub'))
         self.assertEqual(response.status_code, 302)
 
@@ -73,7 +73,7 @@ class SettingsViewsFormTests(TestCase):
                 'timezone': 'Asia/Manila',
                 'date_format': 'Y-m-d',
                 'google_allowed_domains': 'test.edu.ph',
-                'allow_student_self_signup': 'on',
+                'allow_patient_self_signup': 'on',
                 'default_session_hours': 24,
                 'appointment_interval_minutes': 45,
                 'max_advance_booking_days': 14,
@@ -131,5 +131,5 @@ class SettingsViewsFormTests(TestCase):
     def test_roles_list_shows_all_roles(self):
         response = self.client.get(reverse('core:settings_roles'))
         self.assertEqual(response.status_code, 200)
-        for label in ('Admin', 'Doctor', 'Staff', 'Student'):
+        for label in ('Admin', 'Doctor', 'Staff', 'Patient'):
             self.assertContains(response, label)

@@ -5,10 +5,10 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
-DIRECT_MESSAGE_ROLES = ["student", "staff", "doctor", "admin"]
+DIRECT_MESSAGE_ROLES = ["patient", "staff", "doctor"]
 ANNOUNCEMENT_AUDIENCE_CHOICES = [
     ("all_active", "All active users"),
-    ("students", "Students only"),
+    ("students", "Patients only"),
     ("staff", "Staff only"),
     ("doctors", "Doctors only"),
     ("clinical_staff", "Staff and doctors"),
@@ -38,12 +38,13 @@ class StartConversationForm(forms.Form):
         super().__init__(*args, **kwargs)
         user_role = getattr(user, "role", None)
         allowed_recipient_roles = []
-        if user_role == "student":
+        from core.roles import PATIENT_ROLE_VALUES, is_patient_role
+        if is_patient_role(user_role):
             allowed_recipient_roles = ["staff", "doctor", "admin"]
         elif user_role in {"staff", "doctor"}:
-            allowed_recipient_roles = ["student"]
+            allowed_recipient_roles = list(PATIENT_ROLE_VALUES)
         elif user_role == "admin":
-            allowed_recipient_roles = ["student", "staff", "doctor"]
+            allowed_recipient_roles = list(PATIENT_ROLE_VALUES) + ["staff", "doctor"]
 
         self.fields["recipient"].queryset = User.objects.filter(
             role__in=allowed_recipient_roles,

@@ -31,7 +31,7 @@ Always stack: `@login_required` first, then `@role_required()`.
 Never trust the URL alone. Always filter data by the requesting user's role:
 
 ```python
-if request.user.role == 'student':
+if role_matches(request.user.role, ROLE_PATIENT):  # from core.roles
     qs = qs.filter(user=request.user)
 ```
 
@@ -53,7 +53,7 @@ if request.user.role != 'admin' and obj.user != request.user:
 
 ## Data Exposure
 
-- Student data is never visible to other students
+- Patient data is never visible to other patients
 - Staff/doctor see only their assigned records (unless admin)
 - Sensitive fields (SSN, medical history) require explicit role checks
 - Export/download endpoints must verify permissions

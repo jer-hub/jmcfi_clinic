@@ -26,7 +26,8 @@ class FormAccessMixin:
         qs = qs.select_related('user', 'reviewed_by')
         
         # Staff/doctors can see all forms; students see only their own
-        if user.role == 'student':
+        from core.roles import is_patient_role
+        if is_patient_role(user.role):
             qs = qs.filter(user=user)
         
         return qs
@@ -37,7 +38,8 @@ class FormAccessMixin:
         user = self.request.user
         
         # Additional check: students can only view their own forms
-        if user.role == 'student' and obj.user != user:
+        from core.roles import is_patient_role
+        if is_patient_role(user.role) and obj.user != user:
             raise PermissionDenied("You don't have permission to access this form.")
         
         return obj

@@ -217,7 +217,7 @@ SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
 # Role-specific session timeouts (will be set in custom middleware)
 # Admin: 12 hours (43200 seconds)
 # Staff: 24 hours (86400 seconds) 
-# Student: 24 hours (86400 seconds) 
+# Patient: 24 hours (86400 seconds)
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/

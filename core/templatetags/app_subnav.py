@@ -3,6 +3,7 @@
 from django import template
 from django.urls import reverse
 
+from core.roles import ROLE_PATIENT, role_matches
 from core.settings_service import get_role_features
 from core.subnav_helpers import breadcrumb_subnav, enrich_subnav, is_active, nav_item, view_name
 from core.utils import analytics_home_url_name
@@ -15,7 +16,7 @@ def analytics_home_url(context):
     return reverse(analytics_home_url_name(context['request'].user))
 
 
-def _student_new_appointment_item(vn):
+def _patient_new_appointment_item(vn):
     return nav_item(
         'New Appointment',
         'appointments:schedule_appointment',
@@ -24,10 +25,10 @@ def _student_new_appointment_item(vn):
     )
 
 
-def _append_student_new_appointment(items, request):
+def _append_patient_new_appointment(items, request):
     role = request.user.role
-    if role == 'student' and get_role_features(role)['can_book_appointments']:
-        items.append(_student_new_appointment_item(view_name(request)))
+    if role_matches(role, ROLE_PATIENT) and get_role_features(role)['can_book_appointments']:
+        items.append(_patient_new_appointment_item(view_name(request)))
     return items
 
 
@@ -53,13 +54,13 @@ def appointments_subnav(context):
     if role in ('doctor', 'staff'):
         items.append(
             nav_item(
-                'Schedule for Student',
-                'appointments:schedule_for_student',
+                'Schedule for Patient',
+                'appointments:schedule_for_patient',
                 icon='fa-plus',
-                active=vn == 'appointments:schedule_for_student',
+                active=vn == 'appointments:schedule_for_patient',
             )
         )
-    _append_student_new_appointment(items, request)
+    _append_patient_new_appointment(items, request)
     return enrich_subnav(items, always_show_nav=True)
 
 
@@ -79,16 +80,16 @@ def medical_records_subnav(context):
         items.append(
             nav_item(
                 'New Record',
-                'medical_records:create_medical_record_for_student',
+                'medical_records:create_medical_record_for_patient',
                 icon='fa-plus',
                 active=is_active(
                     vn,
-                    'medical_records:create_medical_record_for_student',
+                    'medical_records:create_medical_record_for_patient',
                     'medical_records:create_medical_record',
                 ),
             )
         )
-    _append_student_new_appointment(items, context['request'])
+    _append_patient_new_appointment(items, context['request'])
     return enrich_subnav(items, always_show_nav=True, nav_mb='mb-4')
 
 
@@ -104,7 +105,7 @@ def dental_records_subnav(context):
             active=vn == 'dental_records:dental_record_list',
         ),
     ]
-    if role != 'student':
+    if not role_matches(role, ROLE_PATIENT):
         items.append(
             nav_item(
                 'New Record',
@@ -113,7 +114,7 @@ def dental_records_subnav(context):
                 active=vn == 'dental_records:dental_record_create',
             )
         )
-    _append_student_new_appointment(items, context['request'])
+    _append_patient_new_appointment(items, context['request'])
     return enrich_subnav(items, always_show_nav=True, nav_mb='mb-4')
 
 
@@ -176,7 +177,7 @@ def document_request_subnav(context):
             ),
         ),
     ]
-    if getattr(request.user, 'role', None) in ('student', 'doctor', 'staff', 'admin'):
+    if role_matches(getattr(request.user, 'role', None), ROLE_PATIENT, 'doctor', 'staff', 'admin'):
         items.append(
             nav_item(
                 'New Request',
@@ -395,7 +396,7 @@ def analytics_subnav(context):
                 ),
             ]
         )
-    if user.role == 'student':
+    if role_matches(user.role, ROLE_PATIENT):
         return enrich_subnav([], nav_mb='mb-4')
     return enrich_subnav(items, always_show_nav=True, nav_mb='mb-4')
 
@@ -443,7 +444,7 @@ def messaging_subnav(context):
             active=is_active(vn, 'messaging:inbox', 'messaging:conversation_detail'),
         )
     ]
-    if user.role in ('student', 'staff', 'doctor', 'admin'):
+    if role_matches(user.role, ROLE_PATIENT, 'staff', 'doctor', 'admin'):
         items.append(
             nav_item(
                 'New Message',

@@ -100,9 +100,9 @@
                                         {{ user.get_role_display }}
                                     </span>
                                     {% if profile %}
-                                        {% if user.role == 'student' and profile.student_id %}
+                                        {% if user|is_patient_role and profile.patient_id %}
                                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm font-mono">
-                                                ID: {{ profile.student_id }}
+                                                ID: {{ profile.patient_id }}
                                             </span>
                                         {% elif user.role == 'staff' or user.role == 'doctor' %}
                                             {% if profile.staff_id %}
@@ -156,7 +156,7 @@
                                 Medical
                             </button>
                             {% endif %}
-                            {% if user.role == 'student' %}
+                            {% if user|is_patient_role %}
                             <button @click="activeTab = 'academic'" 
                                     :class="activeTab === 'academic' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
                                     class="px-4 py-2 text-sm font-medium border-b-2 whitespace-nowrap transition-colors">
@@ -492,7 +492,7 @@
                         {% endif %}
 
                         <!-- Academic Information Tab (Students) -->
-                        {% if user.role == 'student' %}
+                        {% if user|is_patient_role %}
                         <div x-show="activeTab === 'academic'" x-cloak>
                             {% if profile %}
                             <div class="mb-3 flex justify-end">
@@ -1071,7 +1071,7 @@ function quickEditModal() {
             }
 
             if (['phone', 'telephone_number', 'emergency_phone'].includes(this.fieldName)) {
-                const requiredPhone = this.fieldName === 'phone' || (this.fieldName === 'emergency_phone' && this.currentUserRole === 'student');
+                const requiredPhone = this.fieldName === 'phone' || (this.fieldName === 'emergency_phone' && this.currentUserRole === 'patient' || this.currentUserRole === 'student');
                 if (requiredPhone && !value) {
                     this.validationError = 'This field is required.';
                     return false;

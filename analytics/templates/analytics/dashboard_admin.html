@@ -27,7 +27,7 @@
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
-      {% include "components/stat_card.html" with label="Students" value=total_students icon="fa-user-graduate" variant="primary" hint="Registered" %}
+      {% include "components/stat_card.html" with label="Patients" value=total_patients icon="fa-user-graduate" variant="primary" hint="Registered" %}
       {% include "components/stat_card.html" with label="Staff" value=total_staff icon="fa-user-doctor" variant="success" hint="Doctors & staff" %}
       {% include "components/stat_card.html" with label="Appointments" value=total_appointments icon="fa-calendar-days" variant="info" hint="In period" %}
       {% include "components/stat_card.html" with label="Med records" value=total_records icon="fa-file-medical" variant="warning" hint="In period" %}
@@ -128,12 +128,12 @@
       <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="chart-course-heading">
         <div class="flex items-center justify-between gap-3 mb-3">
           <h2 id="chart-course-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-            <i class="fas fa-graduation-cap text-primary-500"></i>Students by course
+            <i class="fas fa-graduation-cap text-primary-500"></i>Patients by course
           </h2>
           <a href="{% url 'analytics:academic_correlation' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Academic →</a>
         </div>
         <div class="h-52 sm:h-56">
-          <canvas id="courseChart" role="img" aria-label="Students by course"></canvas>
+          <canvas id="courseChart" role="img" aria-label="Patients by course"></canvas>
         </div>
       </section>
 
@@ -218,7 +218,7 @@ const courseData = [{% for item in demographics.course %}{{ item.count }}{% if n
 if (courseLabels.length) {
   mountChart('courseChart', {
     type: 'bar',
-    data: { labels: courseLabels, datasets: [{ label: 'Students', data: courseData, backgroundColor: COLORS, borderRadius: 4 }] },
+    data: { labels: courseLabels, datasets: [{ label: 'Patients', data: courseData, backgroundColor: COLORS, borderRadius: 4 }] },
     options: {
       ...chartDefaults,
       indexAxis: 'y',

@@ -23,7 +23,7 @@ class DentalRecordsListTotalsTests(TestCase):
         self.student = User.objects.create_user(
             email='dr-student@example.com',
             password='test-pass-123',
-            role='student',
+            role='patient',
             first_name='Student',
             last_name='One',
         )
@@ -33,7 +33,7 @@ class DentalRecordsListTotalsTests(TestCase):
 
     def _create_dental_appointment(self, status, appt_date, hour, appointment_type='dental'):
         return Appointment.objects.create(
-            student=self.student,
+            patient=self.student,
             doctor=self.staff,
             appointment_type=appointment_type,
             date=appt_date,

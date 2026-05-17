@@ -24,7 +24,7 @@ class ClinicSettingsForm(forms.ModelForm):
             'timezone',
             'date_format',
             'google_allowed_domains',
-            'allow_student_self_signup',
+            'allow_patient_self_signup',
             'default_session_hours',
             'appointment_interval_minutes',
             'max_advance_booking_days',
@@ -44,7 +44,7 @@ class ClinicSettingsForm(forms.ModelForm):
             'google_allowed_domains': forms.Textarea(
                 attrs={'class': TEXTAREA_CLASS, 'rows': 2, 'placeholder': 'jmc.edu.ph, jmcfi.edu.ph'},
             ),
-            'allow_student_self_signup': forms.CheckboxInput(attrs={'class': CHECKBOX_CLASS}),
+            'allow_patient_self_signup': forms.CheckboxInput(attrs={'class': CHECKBOX_CLASS}),
             'default_session_hours': forms.NumberInput(attrs={'class': INPUT_CLASS, 'min': 1, 'max': 168}),
             'appointment_interval_minutes': forms.NumberInput(attrs={'class': INPUT_CLASS, 'min': 15, 'max': 120}),
             'max_advance_booking_days': forms.NumberInput(attrs={'class': INPUT_CLASS, 'min': 1, 'max': 365}),

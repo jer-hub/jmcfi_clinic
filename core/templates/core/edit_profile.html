@@ -1,5 +1,5 @@
 {% extends 'core/base.html' %}
-{% load static %}
+{% load static role_tags %}
 
 {% block title %}Edit Profile - JMCFI Clinic{% endblock title %}
 
@@ -160,7 +160,7 @@
                         </div>
                     </div>
 
-                    {% if user.role == 'student' %}
+                    {% if user|is_patient_role %}
                         {% include 'core/partials/student_profile_fields.html' %}
                     {% elif user.role == 'staff' or user.role == 'doctor' or user.role == 'admin' %}
                         {% include 'core/partials/staff_profile_fields.html' %}

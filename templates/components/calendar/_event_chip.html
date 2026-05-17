@@ -13,7 +13,7 @@
    title="{{ event.title }}{% if event.event_kind != 'document' %} · {{ event.time_label }}{% endif %}">
   {% if event.event_kind == 'document' %}<i class="fas fa-file-circle-question text-[9px] mr-0.5" aria-hidden="true"></i>{% endif %}
   <span class="tabular-nums">{{ event.chip_label }}</span>
-  {% if calendar_viewer_role != 'student' %}
+  {% if calendar_viewer_role != 'patient' %}
   <span class="hidden sm:inline"> · {{ event.title|truncatechars:12 }}</span>
   {% endif %}
 </a>

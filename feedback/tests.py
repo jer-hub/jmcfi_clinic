@@ -16,7 +16,7 @@ STRIPPED_MIDDLEWARE = [
 ]
 
 
-def _make_user(role='student', email=None):
+def _make_user(role='patient', email=None):
 	from django.contrib.auth import get_user_model
 	User = get_user_model()
 	email = email or f'{role}@feedback.test'
@@ -26,7 +26,7 @@ def _make_user(role='student', email=None):
 @override_settings(MIDDLEWARE=STRIPPED_MIDDLEWARE)
 class FeedbackRoleAccessTests(TestCase):
 	def setUp(self):
-		self.student = _make_user(role='student', email='student@feedback.test')
+		self.student = _make_user(role='patient', email='student@feedback.test')
 		self.staff = _make_user(role='staff', email='staff@feedback.test')
 		self.doctor = _make_user(role='doctor', email='doctor@feedback.test')
 		self.admin_role = _make_user(role='admin', email='admin@feedback.test')

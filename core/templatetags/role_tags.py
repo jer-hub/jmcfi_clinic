@@ -2,11 +2,22 @@
 from django import template
 import re
 
+from core.roles import ROLE_PATIENT, role_matches
+
 register = template.Library()
+
 
 @register.filter
 def has_role(user, role):
     return getattr(user, 'role', None) == role
+
+
+@register.filter
+def is_patient_role(user):
+    """True when the user is a patient (includes legacy student role)."""
+    if not user or not getattr(user, 'is_authenticated', False):
+        return False
+    return role_matches(getattr(user, 'role', None), ROLE_PATIENT)
 
 
 @register.filter

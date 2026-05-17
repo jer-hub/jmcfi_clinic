@@ -5,29 +5,33 @@ from django.db import transaction
 from django.db.models import Count, F, Prefetch, Q, Subquery, OuterRef
 from django.utils import timezone
 
+from core.roles import normalize_role
+
 from .forms import ANNOUNCEMENT_AUDIENCE_CHOICES, DIRECT_MESSAGE_ROLES
 from .models import Conversation, ConversationParticipant, Message
 
 
 User = get_user_model()
 ANNOUNCEMENT_AUDIENCE_VALUES = {choice[0] for choice in ANNOUNCEMENT_AUDIENCE_CHOICES}
+_DIRECT_PAIR_ALLOWED = {
+    frozenset(["patient", "staff"]),
+    frozenset(["patient", "doctor"]),
+    frozenset(["patient", "admin"]),
+    frozenset(["staff", "admin"]),
+    frozenset(["doctor", "admin"]),
+}
 
 
 def can_start_direct_conversation(user):
-    return getattr(user, "role", None) in DIRECT_MESSAGE_ROLES
+    return normalize_role(getattr(user, "role", None)) in {
+        normalize_role(r) for r in DIRECT_MESSAGE_ROLES
+    }
 
 
 def is_direct_pair_allowed(user_a, user_b):
-    role_a = getattr(user_a, "role", None)
-    role_b = getattr(user_b, "role", None)
-    allowed = {
-        frozenset(["student", "staff"]),
-        frozenset(["student", "doctor"]),
-        frozenset(["student", "admin"]),
-        frozenset(["staff", "admin"]),
-        frozenset(["doctor", "admin"]),
-    }
-    return frozenset([role_a, role_b]) in allowed
+    role_a = normalize_role(getattr(user_a, "role", None))
+    role_b = normalize_role(getattr(user_b, "role", None))
+    return frozenset([role_a, role_b]) in _DIRECT_PAIR_ALLOWED
 
 
 def can_send_announcements(user):
@@ -36,7 +40,7 @@ def can_send_announcements(user):
 
 def get_or_create_direct_conversation(sender, recipient):
     if not is_direct_pair_allowed(sender, recipient):
-        raise PermissionError("Direct messaging is only allowed between students and staff/doctors.")
+        raise PermissionError("Direct messaging is only allowed between patients and staff/doctors.")
 
     conversation = (
         Conversation.objects.filter(
@@ -85,7 +89,8 @@ def get_announcement_recipients(audience):
         return User.objects.none()
 
     if audience == "students":
-        return User.objects.filter(role="student", is_active=True)
+        from core.roles import PATIENT_ROLE_VALUES
+        return User.objects.filter(role__in=PATIENT_ROLE_VALUES, is_active=True)
     if audience == "staff":
         return User.objects.filter(role="staff", is_active=True)
     if audience == "doctors":
@@ -247,7 +252,7 @@ def send_conversation_message(conversation, sender, body):
         first_user = direct_participants[0].user
         second_user = direct_participants[1].user
         if not is_direct_pair_allowed(first_user, second_user):
-            raise PermissionError("Direct messaging is only allowed between students, staff, doctors, and admins.")
+            raise PermissionError("Direct messaging is only allowed between patients, staff, doctors, and admins.")
 
     if (
         conversation.conversation_type == Conversation.ConversationType.ANNOUNCEMENT

@@ -35,7 +35,7 @@
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
     <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
       <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</dt>
-      <dd class="mt-1 text-sm font-semibold text-gray-900">{{ rx.patient_name|default:record.student.get_full_name }}</dd>
+      <dd class="mt-1 text-sm font-semibold text-gray-900">{{ rx.patient_name|default:record.patient.get_full_name }}</dd>
     </div>
     <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
       <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Physician</dt>

@@ -1,0 +1,12 @@
+{% comment %}
+  Calendar day-panel status filter chip.
+  Context: chip dict from build_calendar_filters_context (url, label, chip_class, active).
+{% endcomment %}
+<a href="{{ chip.url }}"
+   hx-get="{{ chip.url }}"
+   hx-target="#cal-calendar-main"
+   hx-swap="outerHTML"
+   class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors {{ chip.chip_class }}"
+   {% if chip.active %}aria-current="true"{% endif %}>
+  {{ chip.label }}
+</a>

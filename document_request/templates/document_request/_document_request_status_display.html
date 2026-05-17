@@ -1,0 +1,12 @@
+{% comment %}Document request status badge; optional size (default sm).{% endcomment %}
+{% load status_tags %}
+{% if cert_request.status == 'rejected' and cert_request.rejection_reason and cert_request.rejection_reason.strip %}
+  <button type="button"
+          data-rejection-reason="{{ cert_request.rejection_reason|escape }}"
+          onclick="window.__jmcfiDocRejectionReasonModal(this)"
+          class="cursor-pointer hover:opacity-80 transition-opacity">
+    {% document_request_status_badge cert_request=cert_request label="Rejected (view reason)" icon="fa-circle-info" size=size|default:"sm" %}
+  </button>
+{% else %}
+  {% document_request_status_badge cert_request=cert_request size=size|default:"sm" %}
+{% endif %}

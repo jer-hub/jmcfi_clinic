@@ -1,0 +1,35 @@
+{% comment %}
+  Week view — horizontal day picker; details live in #cal-day-panel.
+  Uses Alpine selectedDate for active state after HTMX day swaps.
+{% endcomment %}
+<div class="flex flex-col gap-2" role="group" aria-label="{{ calendar_period_label }}">
+  <div class="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 snap-x snap-mandatory">
+    {% for day in calendar_week_days %}
+    <button type="button"
+            class="snap-start flex-shrink-0 w-[4.75rem] sm:w-[5.5rem] rounded-xl border text-center transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1
+                   {% if day.is_weekend %}bg-gray-50/90{% else %}bg-white{% endif %}"
+            :class="{
+              'border-primary-500 ring-2 ring-primary-200 bg-primary-50/60 shadow-sm': selectedDate === '{{ day.iso }}',
+              'border-gray-200 hover:border-primary-200 hover:bg-primary-50/30': selectedDate !== '{{ day.iso }}'
+            }"
+            aria-label="{{ day.date|date:'l, F j' }}{% if day.event_count %}, {{ day.event_count }} item{{ day.event_count|pluralize }}{% endif %}"
+            :aria-pressed="selectedDate === '{{ day.iso }}' ? 'true' : 'false'"
+            @click="selectedDate = '{{ day.iso }}'"
+            hx-get="{{ day.day_fragment_url }}"
+            hx-target="#cal-day-panel"
+            hx-swap="innerHTML">
+      <span class="block pt-2 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">{{ day.weekday_label|slice:":3" }}</span>
+      <span class="block text-lg font-bold tabular-nums leading-none
+                   {% if day.is_today %}text-primary-700{% else %}text-gray-900{% endif %}">{{ day.day }}</span>
+      <div class="flex items-center justify-center gap-1 min-h-[1.25rem] px-1 pb-2 pt-1">
+        {% if day.event_count %}
+        <span class="inline-flex items-center justify-center min-w-[1.125rem] h-[1.125rem] px-1 rounded-full bg-primary-100 text-primary-800 text-[10px] font-bold tabular-nums">
+          {{ day.event_count }}
+        </span>
+        {% endif %}
+      </div>
+    </button>
+    {% endfor %}
+  </div>
+  <p class="text-[11px] text-gray-500 sm:hidden">Swipe days · tap for details</p>
+</div>

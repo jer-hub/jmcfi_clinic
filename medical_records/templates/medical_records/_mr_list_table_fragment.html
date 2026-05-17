@@ -78,14 +78,9 @@
                 <td class="px-4 py-3 whitespace-nowrap">
                   {% if row.missed_slot %}
                     {% include "components/status_badge.html" with label="Missed" variant="danger" icon="fa-calendar-xmark" size="sm" %}
-                  {% elif appointment.status == 'completed' %}
-                    {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-check-double" size="sm" %}
-                  {% elif appointment.status == 'cancelled' %}
-                    {% include "components/status_badge.html" with label="Cancelled" variant="danger" icon="fa-ban" size="sm" %}
-                  {% elif appointment.status == 'confirmed' %}
-                    {% include "components/status_badge.html" with label="Confirmed" variant="info" icon="fa-circle-check" size="sm" %}
                   {% else %}
-                    {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" size="sm" %}
+                    {% load status_tags %}
+                    {% appointment_status_badge appointment=appointment size="sm" %}
                   {% endif %}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-right text-sm">

@@ -1,0 +1,53 @@
+{% comment %}Month grid cells only (no wrapper ids).{% endcomment %}
+<div class="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden border border-gray-200" role="grid" aria-label="{{ calendar_month_label }}">
+  {% for label in calendar_weekday_labels %}
+  <div class="bg-gray-50 text-center py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500" role="columnheader">
+    <span class="hidden sm:inline">{{ label }}</span>
+    <span class="sm:hidden">{{ label|slice:":1" }}</span>
+  </div>
+  {% endfor %}
+  {% for week in calendar_weeks %}
+    {% for cell in week %}
+    <div role="gridcell"
+         class="bg-white min-h-[4.5rem] sm:min-h-[5.5rem] p-1 sm:p-1.5 flex flex-col transition-shadow
+                {% if not cell.in_month %}opacity-40{% endif %}
+                {% if cell.is_weekend %}bg-gray-50/80{% endif %}
+                {% if cell.is_today %}ring-1 ring-inset ring-primary-300{% endif %}"
+         :class="selectedDate === '{{ cell.iso }}' ? 'ring-2 ring-inset ring-primary-500 bg-primary-50/50' : ''">
+      <button type="button"
+              class="w-full text-left flex items-start justify-between gap-0.5 mb-0.5 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              aria-label="{{ cell.date|date:'F j, Y' }}{% if cell.event_count %}, {{ cell.event_count }} appointment{{ cell.event_count|pluralize }}{% endif %}"
+              aria-pressed="{% if cell.is_selected %}true{% else %}false{% endif %}"
+              @click="selectedDate = '{{ cell.iso }}'"
+              hx-get="{{ cell.day_fragment_url }}"
+              hx-target="#cal-day-panel"
+              hx-swap="innerHTML">
+        <span class="text-xs font-semibold tabular-nums leading-none
+                     {% if cell.is_today %}text-primary-700{% elif not cell.in_month %}text-gray-400{% else %}text-gray-900{% endif %}">
+          {{ cell.day }}
+        </span>
+        <span class="flex-shrink-0 flex items-center gap-0.5">
+          {% if cell.event_count %}
+          <span class="min-w-[1rem] h-4 px-1 rounded-full bg-primary-100 text-primary-700 text-[9px] font-bold leading-4 text-center tabular-nums">
+            {{ cell.event_count }}
+          </span>
+          {% endif %}
+          {% if cell.document_count %}
+          <span class="h-4 w-4 rounded-full bg-info-100 text-info-700 text-[9px] flex items-center justify-center" title="{{ cell.document_count }} document request{{ cell.document_count|pluralize }}">
+            <i class="fas fa-file-alt" aria-hidden="true"></i>
+          </span>
+          {% endif %}
+        </span>
+      </button>
+      <div class="flex-1 space-y-0.5 overflow-hidden hidden sm:block">
+        {% for event in cell.visible_events %}
+          {% include "components/calendar/_event_chip.html" with event=event %}
+        {% endfor %}
+        {% if cell.overflow_count %}
+        <p class="text-[9px] text-gray-500 font-medium px-0.5">+{{ cell.overflow_count }} more</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  {% endfor %}
+</div>

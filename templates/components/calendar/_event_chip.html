@@ -1,0 +1,19 @@
+{% comment %}
+  Calendar event chip (month grid).
+  Context: event dict from calendar_service.serialize_appointment
+{% endcomment %}
+<a href="{{ event.detail_url }}"
+   class="block truncate rounded px-1 py-0.5 text-[10px] font-medium leading-tight border
+          {% if event.event_kind == 'document' %}bg-info-50 text-info-800 border-info-200
+          {% elif event.variant == 'warning' %}bg-warning-50 text-warning-800 border-warning-200
+          {% elif event.variant == 'success' %}bg-success-50 text-success-800 border-success-200
+          {% elif event.variant == 'danger' %}bg-danger-50 text-danger-700 border-danger-200 opacity-75
+          {% else %}bg-muted-100 text-muted-700 border-muted-200{% endif %}
+          hover:opacity-90 transition-opacity"
+   title="{{ event.title }}{% if event.event_kind != 'document' %} · {{ event.time_label }}{% endif %}">
+  {% if event.event_kind == 'document' %}<i class="fas fa-file-circle-question text-[9px] mr-0.5" aria-hidden="true"></i>{% endif %}
+  <span class="tabular-nums">{{ event.chip_label }}</span>
+  {% if calendar_viewer_role != 'student' %}
+  <span class="hidden sm:inline"> · {{ event.title|truncatechars:12 }}</span>
+  {% endif %}
+</a>

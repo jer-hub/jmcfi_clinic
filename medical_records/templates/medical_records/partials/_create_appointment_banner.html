@@ -11,15 +11,8 @@
       </div>
     </div>
     <div class="flex items-center gap-2 flex-wrap">
-      {% if appointment.status == 'confirmed' %}
-        {% include "components/status_badge.html" with label=appointment.get_status_display variant="success" size="sm" %}
-      {% elif appointment.status == 'completed' %}
-        {% include "components/status_badge.html" with label=appointment.get_status_display variant="info" size="sm" %}
-      {% elif appointment.status == 'cancelled' %}
-        {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" size="sm" %}
-      {% else %}
-        {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" size="sm" %}
-      {% endif %}
+      {% load status_tags %}
+      {% appointment_status_badge appointment=appointment size="sm" %}
       <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
         {{ appointment.get_appointment_type_display }}
       </span>

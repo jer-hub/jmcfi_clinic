@@ -4,8 +4,10 @@
   {% include "components/stat_card.html" with label="Today's Appointments" value=today_appointments.count icon="fa-calendar-day" variant="primary" hint="Scheduled today" href=appointment_list_today_url %}
   {% include "components/stat_card.html" with label="Pending Appointments" value=pending_appointments icon="fa-clock" variant="warning" hint="Awaiting confirmation" href=appointment_list_pending_url %}
   {% include "components/stat_card.html" with label="Total Patients" value=total_patients icon="fa-users" variant="success" hint="Registered patients" %}
-  {% include "components/stat_card.html" with label="Completed Appointments" value=completed_appointments icon="fa-circle-check" variant="info" hint="Lifetime" %}
+  {% include "components/stat_card.html" with label="Completed Appointments" value=completed_appointments icon="fa-circle-check" variant="muted" hint="Lifetime" %}
 </div>
+
+{% include "core/partials/_dashboard_calendar.html" %}
 
 <div class="bg-white rounded-card shadow-sm border border-gray-200 mb-6">
   <div class="px-5 py-4 border-b border-gray-100">
@@ -52,45 +54,4 @@
   </div>
 </div>
 
-<div class="bg-white rounded-card shadow-sm border border-gray-200">
-  <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-    <div>
-      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-        <i class="fas fa-calendar-day text-primary-500"></i>Today's Appointments
-      </h3>
-      <p class="text-xs text-gray-500 mt-0.5">{{ today_appointments.count }} scheduled</p>
-    </div>
-    <a href="{% url 'appointments:appointment_list' %}" class="text-sm text-primary-600 hover:text-primary-700 font-medium inline-flex items-center gap-1">
-      View all <i class="fas fa-arrow-right text-xs"></i>
-    </a>
-  </div>
-  <div class="p-5">
-    {% if today_appointments %}
-      <ul class="divide-y divide-gray-100">
-        {% for appointment in today_appointments %}
-          <li class="flex items-center justify-between py-3 gap-3">
-            <div class="flex items-center gap-3 min-w-0">
-              {% include "components/avatar.html" with user=appointment.student size="sm" %}
-              <div class="min-w-0">
-                <p class="text-sm font-medium text-gray-900 truncate">{{ appointment.student.get_full_name }}</p>
-                <p class="text-xs text-gray-500 truncate">{{ appointment.get_appointment_type_display }} · {{ appointment.time }}</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-              {% if appointment.status == 'pending' %}
-                {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" size="sm" %}
-              {% elif appointment.status == 'cancelled' %}
-                {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" size="sm" %}
-              {% else %}
-                {% include "components/status_badge.html" with label=appointment.get_status_display variant="success" size="sm" %}
-              {% endif %}
-              <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="text-primary-600 text-sm font-medium hover:text-primary-700">View</a>
-            </div>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      {% include "components/empty_state.html" with icon="fa-calendar-xmark" title="No appointments today" description="A quiet day. Check back later." %}
-    {% endif %}
-  </div>
-</div>
+{% include "core/partials/_dashboard_today_appointments_collapsible.html" %}

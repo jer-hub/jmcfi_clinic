@@ -5,12 +5,13 @@
         {% elif not record.is_documentation_complete %}
           {% include "components/status_badge.html" with label="Incomplete documentation" variant="warning" icon="fa-file-circle-exclamation" %}
         {% endif %}
+        {% load status_tags %}
         {% if record.appointment.status == 'completed' %}
-          {% include "components/status_badge.html" with label="Appointment completed" variant="success" icon="fa-calendar-check" %}
+          {% appointment_status_badge appointment=record.appointment label="Appointment completed" icon="fa-calendar-check" %}
         {% elif record.appointment.status == 'confirmed' %}
-          {% include "components/status_badge.html" with label="Appointment confirmed" variant="info" icon="fa-circle-check" %}
+          {% appointment_status_badge appointment=record.appointment label="Appointment confirmed" %}
         {% elif record.appointment.status == 'cancelled' %}
-          {% include "components/status_badge.html" with label="Appointment cancelled" variant="danger" icon="fa-ban" %}
+          {% appointment_status_badge appointment=record.appointment label="Appointment cancelled" %}
         {% endif %}
       {% else %}
         {% if not record.is_documentation_complete %}

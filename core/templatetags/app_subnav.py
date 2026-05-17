@@ -43,6 +43,12 @@ def appointments_subnav(context):
             icon='fa-calendar-days',
             active=vn == 'appointments:appointment_list',
         ),
+        nav_item(
+            'Calendar',
+            'appointments:appointment_calendar',
+            icon='fa-calendar-days',
+            active=vn == 'appointments:appointment_calendar',
+        ),
     ]
     if role in ('doctor', 'staff'):
         items.append(

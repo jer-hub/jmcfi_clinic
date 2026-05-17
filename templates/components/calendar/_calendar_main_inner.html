@@ -1,0 +1,22 @@
+{% comment %}Inner layout for #cal-calendar-main (month grid + day panel, or week strip + day panel).{% endcomment %}
+{% if calendar_show_doctor_filter %}
+<div id="cal-doctor-filter-wrap" class="{% if calendar_view_mode != 'week' or not calendar_show_week_view %}lg:col-span-2 {% endif %}-mx-1">
+  {% include "components/calendar/_calendar_filters.html" %}
+</div>
+{% endif %}
+<div class="min-w-0 {% if calendar_view_mode == 'week' and calendar_show_week_view %}order-1{% else %}order-2 lg:order-1{% endif %}">
+  {% if calendar_view_mode == 'week' and calendar_show_week_view %}
+    {% include "components/calendar/_week_view.html" %}
+  {% else %}
+    {% include "components/calendar/_month_grid_inner.html" %}
+  {% endif %}
+</div>
+<div id="cal-day-panel"
+     class="min-w-0 flex flex-col
+            {% if calendar_view_mode == 'week' and calendar_show_week_view %}
+            order-2 rounded-xl border border-gray-200 bg-gray-50/50 p-4 sm:p-5
+            {% else %}
+            order-1 lg:order-2
+            {% endif %}">
+  {% include "components/calendar/_day_agenda.html" %}
+</div>

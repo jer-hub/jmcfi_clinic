@@ -58,13 +58,8 @@
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Request Status</label>
                                 <div class="mt-1">
-                                    {% if cert_request.status == 'pending_review' %}
-                                        {% include "components/status_badge.html" with label="Pending review" variant="warning" icon="fa-clock" %}
-                                    {% elif cert_request.status == 'completed' %}
-                                        {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" %}
-                                    {% elif cert_request.status == 'rejected' %}
-                                        {% include "components/status_badge.html" with label="Rejected" variant="danger" icon="fa-ban" %}
-                                    {% endif %}
+                                    {% load status_tags %}
+                                    {% document_request_status_badge cert_request=cert_request %}
                                 </div>
                             </div>
                         </div>

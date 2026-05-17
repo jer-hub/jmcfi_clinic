@@ -1,0 +1,5 @@
+{% comment %}
+  Appointment status pill — uses core.status_styles mappings.
+  Pass appointment= or status=; optional label, size, icon overrides.
+{% endcomment %}
+{% include "components/status_badge.html" with label=badge_label variant=badge_variant icon=badge_icon size=size %}

@@ -10,7 +10,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
       {% include "components/stat_card.html" with label="Medical Records" value=total_records icon="fa-file-medical" variant="primary" hint="Visits documented in your chart" %}
       {% include "components/stat_card.html" with label="Total Appointments" value=total_appointments icon="fa-calendar-days" variant="info" hint="All time clinic visits" %}
-      {% include "components/stat_card.html" with label="Completed" value=completed_appointments icon="fa-circle-check" variant="success" hint=completion_hint %}
+      {% include "components/stat_card.html" with label="Completed" value=completed_appointments icon="fa-circle-check" variant="muted" hint=completion_hint %}
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">

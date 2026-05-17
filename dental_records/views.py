@@ -31,6 +31,7 @@ from .forms import (
 import json
 from core.decorators import role_required
 from core.htmx_utils import htmx_add_toast, htmx_add_trigger, is_htmx_request
+from core.roles import is_patient_role
 from appointments.models import Appointment
 from medical_records.models import MedicalRecord
 
@@ -86,7 +87,7 @@ def _dental_patient_search_q(field_prefix: str, search_query: str) -> models.Q:
         models.Q(**{f'{field_prefix}__first_name__icontains': search_query})
         | models.Q(**{f'{field_prefix}__last_name__icontains': search_query})
         | models.Q(**{f'{field_prefix}__email__icontains': search_query})
-        | models.Q(**{f'{field_prefix}__student_profile__student_id__icontains': search_query})
+        | models.Q(**{f'{field_prefix}__patient_profile__patient_id__icontains': search_query})
     )
 
 
@@ -134,7 +135,7 @@ def _build_unpaginated_dental_table_data(request_user, get_params: QueryDict):
     Same filtered timeline as dental_record_list, unpaginated.
     Returns dict with table_rows, status_totals, search_query, date_from, date_to.
     """
-    if request_user.role == 'student':
+    if is_patient_role(request_user.role):
         dental_records = DentalRecord.objects.filter(
             patient=request_user
         ).select_related('patient', 'examined_by', 'appointment')
@@ -157,14 +158,14 @@ def _build_unpaginated_dental_table_data(request_user, get_params: QueryDict):
         status__in=['pending', 'cancelled'],
     ).exclude(
         dental_records__isnull=False,
-    ).select_related('student', 'doctor').distinct()
+    ).select_related('patient', 'doctor').distinct()
 
-    if request_user.role == 'student':
-        pending_dental_appointments = pending_dental_appointments.filter(student=request_user)
+    if is_patient_role(request_user.role):
+        pending_dental_appointments = pending_dental_appointments.filter(patient=request_user)
 
     if search_query:
         pending_dental_appointments = pending_dental_appointments.filter(
-            _dental_patient_search_q('student', search_query)
+            _dental_patient_search_q('patient', search_query)
         )
 
     if date_from:
@@ -265,11 +266,11 @@ def dental_record_detail(request, record_id):
     
     # Check if user has permission to view this record
     # Students can only view their own records
-    if request.user.role == 'student' and dental_record.patient != request.user:
+    if is_patient_role(request.user.role) and dental_record.patient != request.user:
         return HttpResponseForbidden("You do not have permission to view this dental record.")
     
     # Students cannot view pending records
-    if request.user.role == 'student' and dental_record.status != 'completed':
+    if is_patient_role(request.user.role) and dental_record.status != 'completed':
         messages.warning(request, 'This dental record is still being processed. You will be able to view it once it is marked as completed by the clinic staff.')
         return redirect('dental_records:dental_record_list')
     
@@ -378,7 +379,7 @@ def dental_record_create(request):
         try:
             appointment = Appointment.objects.get(id=appointment_id)
             # If we have an appointment, use its patient
-            preselected_patient = appointment.student
+            preselected_patient = appointment.patient
         except:
             appointment = None
 
@@ -443,8 +444,8 @@ def dental_record_create(request):
         if preselected_patient:
             initial_data['patient'] = preselected_patient
             # Pre-fill patient data if available
-            if hasattr(preselected_patient, 'student_profile') and preselected_patient.student_profile:
-                profile = preselected_patient.student_profile
+            if hasattr(preselected_patient, 'patient_profile') and preselected_patient.patient_profile:
+                profile = preselected_patient.patient_profile
                 initial_data.update({
                     'middle_name': profile.middle_name or '',
                     'age': profile.age,
@@ -853,7 +854,7 @@ def student_dental_intake(request, appointment_id):
     appointment = get_object_or_404(
         Appointment,
         pk=appointment_id,
-        student=request.user,
+        patient=request.user,
         appointment_type='dental',
     )
 
@@ -894,7 +895,7 @@ def student_dental_intake(request, appointment_id):
                     # Re-verify inside the transaction to prevent race conditions
                     locked_appointment = Appointment.objects.select_for_update().get(
                         pk=appointment.pk,
-                        student=request.user,
+                        patient=request.user,
                         status='confirmed',
                     )
                     if DentalRecord.objects.filter(appointment=locked_appointment).exists():
@@ -937,8 +938,8 @@ def student_dental_intake(request, appointment_id):
             'designation': 'student',
         }
         try:
-            if hasattr(request.user, 'student_profile') and request.user.student_profile:
-                profile = request.user.student_profile
+            if hasattr(request.user, 'patient_profile') and request.user.patient_profile:
+                profile = request.user.patient_profile
                 from datetime import date
                 initial_data.update({
                     'middle_name': profile.middle_name or '',
@@ -1256,10 +1257,10 @@ def get_patient_profile(request, patient_id):
     
     # Get profile data based on user role
     try:
-        if hasattr(patient, 'student_profile'):
-            profile = patient.student_profile
+        if hasattr(patient, 'patient_profile'):
+            profile = patient.patient_profile
             data.update({
-                'student_id': profile.student_id or '',
+                'student_id': profile.patient_id or '',
                 'middle_name': profile.middle_name or '',
                 'gender': profile.gender or '',
                 'civil_status': profile.civil_status or '',

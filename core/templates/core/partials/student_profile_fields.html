@@ -1,4 +1,4 @@
-<!-- Student Profile Fields -->
+<!-- Patient profile fields -->
 <div class="space-y-8"
      x-data="studentAcademicEditForm(
          '{{ form.department.value|default_if_none:""|escapejs }}',
@@ -21,14 +21,14 @@
         </h3>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- Student ID -->
+            <!-- Patient ID -->
             <div class="form-group lg:col-span-1">
-                <label for="{{ form.student_id.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Student ID <span class="text-red-600">*</span>
+                <label for="{{ form.patient_id.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Patient ID <span class="text-red-600">*</span>
                 </label>
-                {{ form.student_id }}
-                {% if form.student_id.errors %}
-                    {% for error in form.student_id.errors %}
+                {{ form.patient_id }}
+                {% if form.patient_id.errors %}
+                    {% for error in form.patient_id.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">
                             <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>

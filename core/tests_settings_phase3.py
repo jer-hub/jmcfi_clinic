@@ -23,10 +23,10 @@ MIDDLEWARE_WITH_MAINTENANCE = [
 class MaintenanceModeMiddlewareTests(TestCase):
     def setUp(self):
         self.client = Client()
-        self.student = User.objects.create_user(
-            email='student-maint@test.com',
+        self.patient = User.objects.create_user(
+            email='patient-maint@test.com',
             password='pw',
-            role='student',
+            role='patient',
         )
         self.admin = User.objects.create_user(
             email='admin-maint@test.com',
@@ -39,8 +39,8 @@ class MaintenanceModeMiddlewareTests(TestCase):
         clinic.save()
         invalidate_settings_cache()
 
-    def test_student_sees_maintenance_page(self):
-        self.client.force_login(self.student)
+    def test_patient_sees_maintenance_page(self):
+        self.client.force_login(self.patient)
         response = self.client.get(reverse('core:dashboard'))
         self.assertEqual(response.status_code, 503)
         self.assertIn(b'Scheduled downtime', response.content)
@@ -107,7 +107,7 @@ class ProfilePreferencesViewTests(TestCase):
         self.user = User.objects.create_user(
             email='prefs@test.com',
             password='pw',
-            role='student',
+            role='patient',
         )
         self.client.force_login(self.user)
 

@@ -16,7 +16,7 @@ def build_certificate_form_initial(certificate: MedicalCertificate, user) -> dic
     """Prefill empty certificate fields from student profile and clinician profile."""
     initial: dict = {}
     student = certificate.user
-    profile = getattr(student, 'student_profile', None)
+    profile = getattr(student, 'patient_profile', None)
     if profile:
         if not certificate.age and profile.age:
             initial['age'] = profile.age

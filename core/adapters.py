@@ -76,7 +76,7 @@ class GoogleOnlyAdapter(DefaultSocialAccountAdapter):
             return False
         if sociallogin.is_existing:
             return True
-        return get_clinic_settings().allow_student_self_signup
+        return get_clinic_settings().allow_patient_self_signup
     
     def populate_user(self, request, sociallogin, data):
         """
@@ -98,9 +98,10 @@ class GoogleOnlyAdapter(DefaultSocialAccountAdapter):
         """
         user = super().save_user(request, sociallogin, form)
         
-        # Ensure user has a role set (default to student if not set)
+        # Ensure user has a role set (default to patient if not set)
         if not user.role or user.role == '':
-            user.role = 'student'
+            from .roles import ROLE_PATIENT
+            user.role = ROLE_PATIENT
             user.save()
 
         return user

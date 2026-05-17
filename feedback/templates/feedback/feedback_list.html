@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load role_tags %}
 
 {% block title %}Patient Feedback - JMCFI Clinic{% endblock %}
 
@@ -6,7 +7,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
     {% include 'feedback/_subnav.html' %}
 
-    {% if user.role != 'student' %}
+    {% if not user|is_patient_role %}
     {% include "components/page_header.html" with title="Patient Feedback" subtitle="View patient experiences and feedback about our healthcare services" icon="fa-comments" actions_include="feedback/_feedback_list_header_actions.html" header_mb="mb-4" %}
     {% else %}
     {% include "components/page_header.html" with title="Patient Feedback" subtitle="View patient experiences and feedback about our healthcare services" icon="fa-comments" header_mb="mb-4" %}
@@ -21,7 +22,7 @@
             </div>
             {% include "components/pagination.html" with page_obj=feedbacks %}
         {% else %}
-            {% if user.role == 'student' %}
+            {% if user|is_patient_role %}
                 {% include "components/empty_state.html" with icon="fa-comment-dots" title="No feedback yet" description="Share your experience with us." action_label="Share Your Feedback" action_url='/feedback/submit/' %}
             {% else %}
                 {% include "components/empty_state.html" with icon="fa-comment-dots" title="No feedback found" description="No patient feedback available at this time." %}

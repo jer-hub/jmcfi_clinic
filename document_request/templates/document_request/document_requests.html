@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load role_tags %}
 
 {% block title %}Document Requests - JMCFI Clinic{% endblock title %}
 
@@ -6,7 +7,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
   {% include 'document_request/_subnav.html' %}
 
-  {% if user.role == 'student' %}
+  {% if user|is_patient_role %}
     {% include "components/page_header.html" with title="Document Requests" subtitle="Manage your certificate requests and track their status" icon="fa-file-medical" actions_include="document_request/_document_requests_header_actions.html" header_mb="mb-4" %}
   {% else %}
     {% include "components/page_header.html" with title="Document Requests" subtitle="Review and process student certificate requests" icon="fa-file-medical" actions_include="document_request/_document_requests_header_actions.html" header_mb="mb-4" %}

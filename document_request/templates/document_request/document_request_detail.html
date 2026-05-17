@@ -19,34 +19,34 @@
                     <div class="p-6 space-y-6">
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Student Name</label>
-                                <div class="mt-1 text-sm text-gray-900 font-medium">{{ cert_request.student|format_student_name }}</div>
+                                <label class="block text-sm font-medium text-gray-700">Patient Name</label>
+                                <div class="mt-1 text-sm text-gray-900 font-medium">{{ cert_request.patient|format_student_name }}</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Email</label>
-                                <div class="mt-1 text-sm text-gray-900">{{ cert_request.student.email }}</div>
+                                <div class="mt-1 text-sm text-gray-900">{{ cert_request.patient.email }}</div>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Age</label>
-                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.age %}{{ cert_request.student.student_profile.age }}{% else %}-{% endif %}</div>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.patient.patient_profile and cert_request.patient.patient_profile.age %}{{ cert_request.patient.patient_profile.age }}{% else %}-{% endif %}</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Gender</label>
-                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.gender %}{{ cert_request.student.student_profile.get_gender_display|default:cert_request.student.student_profile.gender }}{% else %}-{% endif %}</div>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.patient.patient_profile and cert_request.patient.patient_profile.gender %}{{ cert_request.patient.patient_profile.get_gender_display|default:cert_request.patient.patient_profile.gender }}{% else %}-{% endif %}</div>
                             </div>
                         </div>
 
                         <div class="grid grid-cols-1 gap-6">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Date of Birth</label>
-                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.date_of_birth %}{{ cert_request.student.student_profile.date_of_birth|date:"M d, Y" }}{% else %}-{% endif %}</div>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.patient.patient_profile and cert_request.patient.patient_profile.date_of_birth %}{{ cert_request.patient.patient_profile.date_of_birth|date:"M d, Y" }}{% else %}-{% endif %}</div>
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-gray-700">Address</label>
-                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.student.student_profile and cert_request.student.student_profile.address %}{{ cert_request.student.student_profile.address }}{% else %}-{% endif %}</div>
+                                <div class="mt-1 text-sm text-gray-900">{% if cert_request.patient.patient_profile and cert_request.patient.patient_profile.address %}{{ cert_request.patient.patient_profile.address }}{% else %}-{% endif %}</div>
                             </div>
                         </div>
 

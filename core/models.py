@@ -54,8 +54,7 @@ class User(AbstractUser):
         ADMIN = 'admin', 'Admin'
         DOCTOR = 'doctor', 'Doctor'
         STAFF = 'staff', 'Staff'
-        STUDENT = 'student', 'Student'
-        # Add any additional fields you want for your user model
+        PATIENT = 'patient', 'Patient'
 
     class ONBOARDING_STATUS(models.TextChoices):
         PENDING_ACTIVATION = 'pending_activation', 'Pending Activation'
@@ -65,7 +64,7 @@ class User(AbstractUser):
     role = models.CharField(
         max_length=10,
         choices=ROLE.choices,
-        default=ROLE.STUDENT,)
+        default=ROLE.PATIENT,)
 
     onboarding_status = models.CharField(
         max_length=20,
@@ -106,8 +105,13 @@ class User(AbstractUser):
     def is_staff_member(self):
         return self.role == self.ROLE.STAFF
     
+    def is_patient(self):
+        from .roles import normalize_role, ROLE_PATIENT
+        return normalize_role(self.role) == ROLE_PATIENT
+
     def is_student(self):
-        return self.role == self.ROLE.STUDENT
+        """Deprecated: use is_patient()."""
+        return self.is_patient()
 
     def sync_onboarding_status(self):
         """Synchronize onboarding_status with is_active to keep them in sync."""
@@ -146,15 +150,15 @@ class User(AbstractUser):
         # If is_staff is being set and role is not explicitly set, 
         # update role accordingly
         if hasattr(self, '_state') and self._state.adding and self.is_staff:
-            if self.role == self.ROLE.STUDENT:
+            if self.role == self.ROLE.PATIENT:
                 self.role = self.ROLE.STAFF
         # Sync onboarding_status with is_active
         self.sync_onboarding_status()
         super().save(*args, **kwargs)
 
 
-# Student Profile Model
-class StudentProfile(models.Model):
+# Patient profile (formerly StudentProfile)
+class PatientProfile(models.Model):
     GENDER_CHOICES = [
         ('male', 'Male'),
         ('female', 'Female'),
@@ -168,9 +172,9 @@ class StudentProfile(models.Model):
         ('separated', 'Separated'),
     ]
     
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
-    student_id = models.CharField(max_length=20, unique=True)
-    profile_image = models.ImageField(upload_to='profiles/students/', blank=True, null=True, help_text="Profile photo")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='patient_profile')
+    patient_id = models.CharField(max_length=20, unique=True)
+    profile_image = models.ImageField(upload_to='profiles/patients/', blank=True, null=True, help_text="Profile photo")
     
     # Demographics
     middle_name = models.CharField(max_length=100, blank=True, default='')
@@ -210,13 +214,17 @@ class StudentProfile(models.Model):
         name = f"{self.user.first_name} {self.user.last_name}".strip()
         if not name:
             name = self.user.email or self.user.username
-        return f"{name} - {self.student_id}"
+        return f"{name} - {self.patient_id}"
 
     def get_profile_image_url(self):
         """Return profile image URL or None if no image"""
         if self.profile_image:
             return self.profile_image.url
         return None
+
+
+# Backward-compatible alias (deprecated)
+StudentProfile = PatientProfile
 
 
 # Staff Profile Model
@@ -489,9 +497,9 @@ class ClinicSettings(models.Model):
         default='',
         help_text='Comma-separated email domains allowed for Google sign-in. Empty uses env GOOGLE_ALLOWED_DOMAINS.',
     )
-    allow_student_self_signup = models.BooleanField(
+    allow_patient_self_signup = models.BooleanField(
         default=True,
-        help_text='Allow new students to register via Google OAuth.',
+        help_text='Allow new patients to register via Google OAuth.',
     )
 
     default_session_hours = models.PositiveSmallIntegerField(
@@ -504,7 +512,7 @@ class ClinicSettings(models.Model):
     )
     max_advance_booking_days = models.PositiveSmallIntegerField(
         default=30,
-        help_text='How far ahead students may book appointments.',
+        help_text='How far ahead patients may book appointments.',
     )
     cancellation_cutoff_hours = models.PositiveSmallIntegerField(
         default=24,

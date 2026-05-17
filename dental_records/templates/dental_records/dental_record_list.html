@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load role_tags %}
 
 {% block title %}Dental Records - JMCFI Clinic{% endblock %}
 
@@ -6,7 +7,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
   {% include 'dental_records/_subnav.html' %}
 
-  {% if user.role == 'student' %}
+  {% if user|is_patient_role %}
     {% include "components/page_header.html" with title="My Dental Records" subtitle="View your complete dental health history" icon="fa-tooth" actions_include="dental_records/_dr_list_header_actions.html" header_mb="mb-4" %}
   {% elif user.role == 'staff' or user.role == 'doctor' %}
     {% include "components/page_header.html" with title="Patient Dental Records" subtitle="Manage and review patient dental records" icon="fa-tooth" actions_include="dental_records/_dr_list_header_actions.html" header_mb="mb-4" %}

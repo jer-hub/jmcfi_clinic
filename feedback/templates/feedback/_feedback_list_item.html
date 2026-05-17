@@ -10,7 +10,7 @@
           <i class="fas fa-user-secret text-sm"></i>
         </span>
       {% else %}
-        {% include "components/avatar.html" with user=fb.student size="md" %}
+        {% include "components/avatar.html" with user=fb.patient size="md" %}
       {% endif %}
     </div>
 
@@ -18,7 +18,7 @@
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div class="min-w-0">
           <h3 id="feedback-{{ fb.pk }}-author" class="text-sm font-semibold text-gray-900 truncate">
-            {% if fb.is_anonymous %}Anonymous Patient{% else %}{{ fb.student.get_full_name }}{% endif %}
+            {% if fb.is_anonymous %}Anonymous Patient{% else %}{{ fb.patient.get_full_name }}{% endif %}
           </h3>
           <p class="mt-0.5 text-xs text-gray-500">
             Submitted {{ fb.created_at|date:"M j, Y" }} at {{ fb.created_at|time:"g:i A" }}

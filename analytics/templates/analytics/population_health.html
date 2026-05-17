@@ -49,15 +49,15 @@
     </div>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-      {% include "components/stat_card.html" with label="Students" value=total_students icon="fa-user-graduate" variant="primary" hint="Registered profiles" %}
+      {% include "components/stat_card.html" with label="Patients" value=total_patients icon="fa-user-graduate" variant="primary" hint="Registered profiles" %}
       {% include "components/stat_card.html" with label="Med records" value=records_in_period icon="fa-file-medical" variant="warning" hint="In period" %}
       {% include "components/stat_card.html" with label="Appointments" value=appt_in_period icon="fa-calendar-days" variant="info" hint=period_hint %}
     </div>
 
-    <section class="mb-6" aria-labelledby="student-profile-heading">
-      <h2 id="student-profile-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-        <i class="fas fa-id-card text-primary-500"></i>Student profile snapshot
-        <span class="text-xs font-normal text-gray-400">(all enrolled students)</span>
+    <section class="mb-6" aria-labelledby="patient-profile-heading">
+      <h2 id="patient-profile-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <i class="fas fa-id-card text-primary-500"></i>Patient profile snapshot
+        <span class="text-xs font-normal text-gray-400">(all enrolled patients)</span>
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5">
@@ -116,8 +116,8 @@
           {% for item in health_by_course %}
           <li>
             <div class="flex items-baseline justify-between gap-2 mb-1">
-              <span class="text-sm text-gray-800 truncate min-w-0" title="{{ item.student__student_profile__course|default:'Unknown' }}">
-                {{ item.student__student_profile__course|default:"Unknown" }}
+              <span class="text-sm text-gray-800 truncate min-w-0" title="{{ item.patient__patient_profile__course|default:'Unknown' }}">
+                {{ item.patient__patient_profile__course|default:"Unknown" }}
               </span>
               <span class="text-sm font-bold text-gray-900 tabular-nums shrink-0">{{ item.count }}</span>
             </div>
@@ -147,7 +147,7 @@
           {% for item in health_by_year %}
           <li>
             <div class="flex items-baseline justify-between gap-2 mb-1">
-              <span class="text-sm text-gray-800">{{ item.student__student_profile__year_level|default:"Unknown" }}</span>
+              <span class="text-sm text-gray-800">{{ item.patient__patient_profile__year_level|default:"Unknown" }}</span>
               <span class="text-sm font-bold text-gray-900 tabular-nums shrink-0">{{ item.count }}</span>
             </div>
             <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -219,7 +219,7 @@ new Chart(document.getElementById('yearChart'), {
   type: 'bar',
   data: {
     labels: [{% for y in demographics.year_level %}"{{ y.year_level }}"{% if not forloop.last %},{% endif %}{% endfor %}],
-    datasets: [{ label: 'Students', data: [{% for y in demographics.year_level %}{{ y.count }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: '#c4b5fd', borderRadius: 4 }],
+    datasets: [{ label: 'Patients', data: [{% for y in demographics.year_level %}{{ y.count }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: '#c4b5fd', borderRadius: 4 }],
   },
   options: barOpts,
 });
@@ -240,7 +240,7 @@ new Chart(document.getElementById('bloodChart'), {
 new Chart(document.getElementById('apptCourseChart'), {
   type: 'bar',
   data: {
-    labels: [{% for c in appt_by_course %}"{{ c.student__student_profile__course|default:'Unknown' }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+    labels: [{% for c in appt_by_course %}"{{ c.patient__patient_profile__course|default:'Unknown' }}"{% if not forloop.last %},{% endif %}{% endfor %}],
     datasets: [{ label: 'Appointments', data: [{% for c in appt_by_course %}{{ c.count }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: COLORS, borderRadius: 4 }],
   },
   options: {

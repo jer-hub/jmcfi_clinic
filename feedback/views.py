@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 from core.decorators import role_required
 from core.htmx_utils import is_htmx_request
+from core.roles import is_patient_role
 
 from .models import Feedback
 from appointments.models import Appointment
@@ -17,13 +18,13 @@ from appointments.models import Appointment
 @role_required('student', 'staff', 'doctor')
 def feedback_list(request):
     """Display list of feedback."""
-    if request.user.role == 'student':
-        feedbacks_qs = Feedback.objects.filter(student=request.user).select_related(
+    if is_patient_role(request.user.role):
+        feedbacks_qs = Feedback.objects.filter(patient=request.user).select_related(
             'appointment', 'appointment__doctor',
         )
     else:
         feedbacks_qs = Feedback.objects.all().select_related(
-            'student', 'appointment', 'appointment__doctor',
+            'patient', 'appointment', 'appointment__doctor',
         )
 
     paginator = Paginator(feedbacks_qs.order_by('-created_at'), 10)
@@ -39,11 +40,11 @@ def submit_feedback(request, appointment_id=None):
     """Submit new feedback with enhanced form."""
     appointment = None
     if appointment_id:
-        appointment = get_object_or_404(Appointment, id=appointment_id, student=request.user)
+        appointment = get_object_or_404(Appointment, id=appointment_id, patient=request.user)
     
     # Get recent completed appointments for selection
     recent_appointments = Appointment.objects.filter(
-        student=request.user,
+        patient=request.user,
         status='completed'
     ).order_by('-date')[:10]
     
@@ -75,14 +76,14 @@ def submit_feedback(request, appointment_id=None):
             if selected_appointment_id and not appointment:
                 try:
                     selected_appointment = Appointment.objects.get(
-                        id=selected_appointment_id, 
-                        student=request.user
+                        id=selected_appointment_id,
+                        patient=request.user,
                     )
                 except Appointment.DoesNotExist:
                     selected_appointment = None
             
             Feedback.objects.create(
-                student=request.user,
+                patient=request.user,
                 appointment=selected_appointment,
                 feedback_type=feedback_type,
                 rating=int(rating),
@@ -185,10 +186,10 @@ def feedback_stats(request):
     ).order_by('month')
     
     # Recent feedback (last 5)
-    recent_feedbacks = all_feedback.select_related('student', 'appointment').order_by('-created_at')[:5]
+    recent_feedbacks = all_feedback.select_related('patient', 'appointment').order_by('-created_at')[:5]
     
     # Feedback needing attention (low ratings)
-    low_rated_feedback = all_feedback.filter(rating__lte=2).select_related('student', 'appointment').order_by('-created_at')[:10]
+    low_rated_feedback = all_feedback.filter(rating__lte=2).select_related('patient', 'appointment').order_by('-created_at')[:10]
     
     # Weekly summary
     this_week = all_feedback.filter(created_at__date__gte=last_7_days)

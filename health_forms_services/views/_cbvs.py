@@ -221,7 +221,8 @@ class PrescriptionDetailView(BaseFormDetailView):
         qs = Prescription.objects.select_related('medical_record')
         pk = self.kwargs.get('pk')
         user = self.request.user
-        if user.role == 'student':
+        from core.roles import is_patient_role
+        if is_patient_role(user.role):
             obj = get_object_or_404(qs, pk=pk, user=user)
         else:
             obj = get_object_or_404(qs, pk=pk)

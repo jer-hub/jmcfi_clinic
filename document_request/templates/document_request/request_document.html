@@ -7,7 +7,7 @@
     {% include 'document_request/_subnav.html' %}
 
     {% if is_doctor_flow %}
-      {% include "components/page_header.html" with title="Create Request for Student" subtitle="Create a medical certificate request on behalf of a student" icon="fa-file-medical" %}
+      {% include "components/page_header.html" with title="Create Request for Patient" subtitle="Create a medical certificate request on behalf of a patient" icon="fa-file-medical" %}
     {% else %}
       {% include "components/page_header.html" with title="Request Clinic Document" subtitle="Submit a request for a medical certificate" icon="fa-file-medical" %}
     {% endif %}
@@ -43,8 +43,8 @@
                 {% endif %}
 
                 {% if is_doctor_flow %}
-                {# Matches appointments/schedule_for_student.html student block #}
-                <div id="doc-req-field-student" data-doc-req-field="student_id" class="rounded-xl border shadow-sm {% if field_errors.student_id %}border-danger-300 ring-1 ring-danger-200{% else %}border-gray-200{% endif %}">
+                {# Matches appointments/schedule_for_patient.html patient block #}
+                <div id="doc-req-field-patient" data-doc-req-field="patient_id" class="rounded-xl border shadow-sm {% if field_errors.patient_id %}border-danger-300 ring-1 ring-danger-200{% else %}border-gray-200{% endif %}">
                     <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/60 rounded-t-xl">
                         <div class="flex items-center gap-2">
                             <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary-100 text-primary-600">
@@ -52,32 +52,32 @@
                             </span>
                             <div class="min-w-0 flex-1">
                                 <h2 class="text-sm font-semibold text-gray-800">
-                                    Student <span class="text-red-500">*</span>
+                                    Patient <span class="text-red-500">*</span>
                                 </h2>
-                                <p id="student_selected_hint" class="text-xs text-gray-500 mt-0.5">
-                                    Search and select a student to continue.
+                                <p id="patient_selected_hint" class="text-xs text-gray-500 mt-0.5">
+                                    Search and select a patient to continue.
                                 </p>
                             </div>
                         </div>
                     </div>
                     <div class="p-5 space-y-4 bg-white rounded-b-xl">
-                        <input type="hidden" id="student_id" name="student_id" value="{{ form_data.student_id }}">
+                        <input type="hidden" id="patient_id" name="patient_id" value="{{ form_data.patient_id }}">
 
-                        {# Selected student — matches appointments/schedule_for_student selected card #}
-                        <div id="student_selected_card" class="hidden">
+                        {# Selected patient — matches appointments/schedule_for_patient selected card #}
+                        <div id="patient_selected_card" class="hidden">
                             <div class="relative p-4 bg-gradient-to-r from-primary-50 to-primary-50/50 border border-primary-200 rounded-xl">
                                 <div class="flex items-center gap-3.5 pr-24">
-                                    <span id="student_selected_initial"
+                                    <span id="patient_selected_initial"
                                           class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-base font-semibold flex-shrink-0 shadow-md ring-2 ring-white"
                                           aria-hidden="true">?</span>
                                     <div class="min-w-0 flex-1">
-                                        <p id="student_selected_display_name" class="text-sm font-bold text-gray-900 truncate"></p>
-                                        <p id="student_selected_display_email" class="text-xs text-gray-500 truncate mt-0.5"></p>
-                                        <p id="student_selected_display_sid" class="text-xs text-primary-700 font-mono mt-0.5 hidden"></p>
+                                        <p id="patient_selected_display_name" class="text-sm font-bold text-gray-900 truncate"></p>
+                                        <p id="patient_selected_display_email" class="text-xs text-gray-500 truncate mt-0.5"></p>
+                                        <p id="patient_selected_display_sid" class="text-xs text-primary-700 font-mono mt-0.5 hidden"></p>
                                     </div>
                                 </div>
                                 <button type="button"
-                                        id="student_change_btn"
+                                        id="patient_change_btn"
                                         class="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 bg-white/80 border border-gray-200 hover:text-danger-600 hover:border-danger-200 hover:bg-danger-50 transition-colors">
                                     <i class="fas fa-xmark text-[10px]" aria-hidden="true"></i>
                                     Change
@@ -85,63 +85,63 @@
                             </div>
                         </div>
 
-                        <div id="student_search_shell">
-                        <label for="student_search" class="sr-only">Search students</label>
+                        <div id="patient_search_shell">
+                        <label for="patient_search" class="sr-only">Search patients</label>
                         <div class="relative isolate">
                             <span class="pointer-events-none absolute inset-y-0 left-0 z-10 flex w-10 items-center justify-center text-gray-500" aria-hidden="true">
                                 <i class="fas fa-magnifying-glass text-sm leading-none"></i>
                             </span>
                             <input type="text"
-                                   id="student_search"
+                                   id="patient_search"
                                    autocomplete="off"
-                                   placeholder="Search by name, email, or student ID…"
-                                   aria-describedby="student_search_helper"
-                                   {% if field_errors.student_id %}aria-invalid="true"{% endif %}
-                                   class="w-full pl-10 pr-10 py-3 border rounded-xl text-sm text-gray-900 shadow-sm bg-white placeholder:text-gray-500 transition-[border-color,box-shadow] focus:outline-none focus:ring-2 focus:ring-primary-500/35 focus:ring-offset-0 focus:border-primary-500 {% if field_errors.student_id %}border-danger-500 ring-1 ring-danger-200{% else %}border-gray-300{% endif %}">
+                                   placeholder="Search by name, email, or patient ID…"
+                                   aria-describedby="patient_search_helper"
+                                   {% if field_errors.patient_id %}aria-invalid="true"{% endif %}
+                                   class="w-full pl-10 pr-10 py-3 border rounded-xl text-sm text-gray-900 shadow-sm bg-white placeholder:text-gray-500 transition-[border-color,box-shadow] focus:outline-none focus:ring-2 focus:ring-primary-500/35 focus:ring-offset-0 focus:border-primary-500 {% if field_errors.patient_id %}border-danger-500 ring-1 ring-danger-200{% else %}border-gray-300{% endif %}">
                             <button type="button"
-                                    id="student_search_clear"
+                                    id="patient_search_clear"
                                     class="hidden absolute inset-y-0 right-0 z-10 flex w-10 items-center justify-center text-gray-400 hover:text-gray-600 min-h-[2.75rem]"
                                     aria-label="Clear search">
                                 <span class="flex h-8 w-8 items-center justify-center rounded-full hover:bg-gray-100"><i class="fas fa-circle-xmark text-sm leading-none"></i></span>
                             </button>
 
-                            <div id="student_search_results"
+                            <div id="patient_search_results"
                                  class="hidden absolute left-0 right-0 top-full z-[100] mt-1.5 bg-white border border-gray-200 rounded-xl shadow-xl max-h-72 overflow-y-auto ring-1 ring-black/5">
-                                <div id="student_results_inner" class="p-1.5 hidden">
-                                    {% for student in students %}
-                                    {% with label=student.get_full_name|default:student.email %}
+                                <div id="patient_results_inner" class="p-1.5 hidden">
+                                    {% for patient in patients %}
+                                    {% with label=patient.get_full_name|default:patient.email %}
                                     <button type="button"
-                                            class="student-option hidden w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left border border-transparent hover:bg-primary-50 focus:outline-none focus:bg-primary-50 focus-visible:ring-2 focus-visible:ring-primary-500/30"
-                                            data-student-id="{{ student.id }}"
-                                            data-student-label="{{ label }}"
-                                            data-student-email="{{ student.email }}"
-                                            data-student-sid="{% if student.student_profile and student.student_profile.student_id %}{{ student.student_profile.student_id }}{% endif %}"
-                                            data-student-search="{{ label|lower }} {{ student.email|lower }}{% if student.student_profile %}{% if student.student_profile.student_id %} {{ student.student_profile.student_id|lower }}{% endif %}{% endif %}">
+                                            class="patient-option hidden w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left border border-transparent hover:bg-primary-50 focus:outline-none focus:bg-primary-50 focus-visible:ring-2 focus-visible:ring-primary-500/30"
+                                            data-patient-id="{{ patient.id }}"
+                                            data-patient-label="{{ label }}"
+                                            data-patient-email="{{ patient.email }}"
+                                            data-patient-sid="{% if patient.patient_profile and patient.patient_profile.patient_id %}{{ patient.patient_profile.patient_id }}{% endif %}"
+                                            data-patient-search="{{ label|lower }} {{ patient.email|lower }}{% if patient.patient_profile %}{% if patient.patient_profile.patient_id %} {{ patient.patient_profile.patient_id|lower }}{% endif %}{% endif %}">
                                         <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-sm font-semibold flex-shrink-0"
                                               aria-hidden="true">{{ label|slice:":1"|upper }}</span>
                                         <div class="min-w-0 flex-1">
                                             <span class="font-semibold text-gray-900 truncate block">{{ label }}</span>
-                                            <span class="text-xs text-gray-500 truncate block">{{ student.email }}</span>
-                                            {% if student.student_profile and student.student_profile.student_id %}
-                                            <span class="text-xs text-gray-400 truncate block">ID: {{ student.student_profile.student_id }}</span>
+                                            <span class="text-xs text-gray-500 truncate block">{{ patient.email }}</span>
+                                            {% if patient.patient_profile and patient.patient_profile.patient_id %}
+                                            <span class="text-xs text-gray-400 truncate block">ID: {{ patient.patient_profile.patient_id }}</span>
                                             {% endif %}
                                         </div>
                                     </button>
                                     {% endwith %}
                                     {% endfor %}
                                 </div>
-                                <div id="student_no_results" class="hidden px-4 py-8 text-center text-sm text-gray-500">
-                                    No students found.
+                                <div id="patient_no_results" class="hidden px-4 py-8 text-center text-sm text-gray-500">
+                                    No patients found.
                                 </div>
                             </div>
                         </div>
 
-                        <p id="student_search_helper" class="pl-10 text-xs text-gray-600 leading-snug">
+                        <p id="patient_search_helper" class="pl-10 text-xs text-gray-600 leading-snug">
                             Type at least 2 characters to search.
                         </p>
-                        <p id="doc-req-inline-error-student_id"
-                           class="text-sm text-danger-600 {% if not field_errors.student_id %}hidden{% endif %}"
-                           role="alert">{% if field_errors.student_id %}{{ field_errors.student_id.0 }}{% endif %}</p>
+                        <p id="doc-req-inline-error-patient_id"
+                           class="text-sm text-danger-600 {% if not field_errors.patient_id %}hidden{% endif %}"
+                           role="alert">{% if field_errors.patient_id %}{{ field_errors.patient_id.0 }}{% endif %}</p>
                                                 </div>
                     </div>
                 </div>
@@ -214,8 +214,8 @@
         </div>
 </div>
 
-{% if selected_student %}
-{{ selected_student|json_script:"doc-request-selected-student" }}
+{% if selected_patient %}
+{{ selected_patient|json_script:"doc-request-selected-patient" }}
 {% endif %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -225,8 +225,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const submitLabel = document.getElementById('doc-request-submit-label');
     const isDoctorFlow = form && form.dataset.doctorFlow === 'true';
     const warningsSummary = document.getElementById('doc-request-warnings-summary');
-    const INLINE_ERROR_IDS = ['student_id', 'document_type', 'purpose', 'form'];
-    const FIELD_FOCUS_ORDER = ['student_id', 'document_type', 'purpose', 'form'];
+    const INLINE_ERROR_IDS = ['patient_id', 'document_type', 'purpose', 'form'];
+    const FIELD_FOCUS_ORDER = ['patient_id', 'document_type', 'purpose', 'form'];
 
     function getInlineErrorEl(fieldKey) {
         return document.getElementById('doc-req-inline-error-' + fieldKey);
@@ -255,9 +255,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function setFieldHighlight(fieldKey, on) {
-        if (fieldKey === 'student_id') {
-            const wrap = document.getElementById('doc-req-field-student');
-            const searchInput = document.getElementById('student_search');
+        if (fieldKey === 'patient_id') {
+            const wrap = document.getElementById('doc-req-field-patient');
+            const searchInput = document.getElementById('patient_search');
             if (wrap) {
                 wrap.classList.toggle('border-danger-300', on);
                 wrap.classList.toggle('ring-1', on);
@@ -296,17 +296,19 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function clearFieldHighlights() {
-        ['student_id', 'document_type', 'purpose'].forEach(function (key) {
+        ['patient_id', 'document_type', 'purpose'].forEach(function (key) {
             setFieldHighlight(key, false);
         });
     }
 
     function focusInvalidField(fieldKey) {
-        if (fieldKey === 'student_id') {
-            if (typeof window.jmcfiDocReqShowStudentSearch === 'function') {
-                window.jmcfiDocReqShowStudentSearch();
+        if (fieldKey === 'patient_id') {
+            if (typeof window.jmcfiDocReqShowPatientSearch === 'function') {
+                window.jmcfiDocReqShowPatientSearch();
+            } else if (typeof window.jmcfiDocReqShowPatientSearch === 'function') {
+                window.jmcfiDocReqShowPatientSearch();
             }
-            const searchInput = document.getElementById('student_search');
+            const searchInput = document.getElementById('patient_search');
             if (searchInput) {
                 searchInput.focus();
                 searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -369,22 +371,22 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
     const MIN_QUERY = 2;
-    const searchInput = document.getElementById('student_search');
-    const hiddenStudentId = document.getElementById('student_id');
-    const resultsPanel = document.getElementById('student_search_results');
-    const resultsInner = document.getElementById('student_results_inner');
-    const noResults = document.getElementById('student_no_results');
-    const selectedHint = document.getElementById('student_selected_hint');
-    const helperEl = document.getElementById('student_search_helper');
-    const clearBtn = document.getElementById('student_search_clear');
-    const studentSelectedCard = document.getElementById('student_selected_card');
-    const studentSearchShell = document.getElementById('student_search_shell');
-    const studentSelectedInitial = document.getElementById('student_selected_initial');
-    const studentSelectedDisplayName = document.getElementById('student_selected_display_name');
-    const studentSelectedDisplayEmail = document.getElementById('student_selected_display_email');
-    const studentSelectedDisplaySid = document.getElementById('student_selected_display_sid');
-    const studentChangeBtn = document.getElementById('student_change_btn');
-    const options = Array.from(document.querySelectorAll('.student-option'));
+    const searchInput = document.getElementById('patient_search');
+    const hiddenPatientId = document.getElementById('patient_id');
+    const resultsPanel = document.getElementById('patient_search_results');
+    const resultsInner = document.getElementById('patient_results_inner');
+    const noResults = document.getElementById('patient_no_results');
+    const selectedHint = document.getElementById('patient_selected_hint');
+    const helperEl = document.getElementById('patient_search_helper');
+    const clearBtn = document.getElementById('patient_search_clear');
+    const patientSelectedCard = document.getElementById('patient_selected_card');
+    const patientSearchShell = document.getElementById('patient_search_shell');
+    const patientSelectedInitial = document.getElementById('patient_selected_initial');
+    const patientSelectedDisplayName = document.getElementById('patient_selected_display_name');
+    const patientSelectedDisplayEmail = document.getElementById('patient_selected_display_email');
+    const patientSelectedDisplaySid = document.getElementById('patient_selected_display_sid');
+    const patientChangeBtn = document.getElementById('patient_change_btn');
+    const options = Array.from(document.querySelectorAll('.patient-option'));
 
     function normalize(value) {
         return (value || '').toLowerCase().trim();
@@ -394,23 +396,23 @@ document.addEventListener('DOMContentLoaded', function () {
         resultsPanel.classList.add('hidden');
     }
 
-    function showStudentSearchPanel() {
-        hiddenStudentId.value = '';
-        studentSelectedCard.classList.add('hidden');
-        studentSearchShell.classList.remove('hidden');
+    function showPatientSearchPanel() {
+        hiddenPatientId.value = '';
+        patientSelectedCard.classList.add('hidden');
+        patientSearchShell.classList.remove('hidden');
         searchInput.value = '';
         clearBtn.classList.add('hidden');
         closeResults();
         helperEl.classList.remove('hidden');
         helperEl.textContent = 'Type at least 2 characters to search.';
-        selectedHint.textContent = 'Search and select a student to continue.';
+        selectedHint.textContent = 'Search and select a patient to continue.';
         selectedHint.classList.remove('text-red-600');
         searchInput.setCustomValidity('');
         options.forEach(function (opt) {
             opt.classList.add('hidden');
         });
     }
-    window.jmcfiDocReqShowStudentSearch = showStudentSearchPanel;
+    window.jmcfiDocReqShowPatientSearch = showPatientSearchPanel;
 
     function initialLetter(label) {
         const s = (label || '').trim();
@@ -438,7 +440,7 @@ document.addEventListener('DOMContentLoaded', function () {
         let visibleCount = 0;
 
         options.forEach(function (option) {
-            const haystack = option.getAttribute('data-student-search') || '';
+            const haystack = option.getAttribute('data-patient-search') || '';
             const isMatch = haystack.includes(query);
             option.classList.toggle('hidden', !isMatch);
             if (isMatch) {
@@ -451,81 +453,81 @@ document.addEventListener('DOMContentLoaded', function () {
         noResults.classList.toggle('hidden', visibleCount > 0);
     }
 
-    function showSelectedStudentCard(data) {
-        hiddenStudentId.value = String(data.id || '');
-        studentSelectedInitial.textContent = initialLetter(data.label);
-        studentSelectedDisplayName.textContent = data.label || '';
-        studentSelectedDisplayEmail.textContent = data.email || '';
+    function showSelectedPatientCard(data) {
+        hiddenPatientId.value = String(data.id || '');
+        patientSelectedInitial.textContent = initialLetter(data.label);
+        patientSelectedDisplayName.textContent = data.label || '';
+        patientSelectedDisplayEmail.textContent = data.email || '';
         const sid = (data.sid || '').trim();
         if (sid) {
-            studentSelectedDisplaySid.textContent = sid;
-            studentSelectedDisplaySid.classList.remove('hidden');
+            patientSelectedDisplaySid.textContent = sid;
+            patientSelectedDisplaySid.classList.remove('hidden');
         } else {
-            studentSelectedDisplaySid.textContent = '';
-            studentSelectedDisplaySid.classList.add('hidden');
+            patientSelectedDisplaySid.textContent = '';
+            patientSelectedDisplaySid.classList.add('hidden');
         }
-        studentSearchShell.classList.add('hidden');
-        studentSelectedCard.classList.remove('hidden');
-        selectedHint.textContent = 'Student confirmed — continue below or tap Change.';
+        patientSearchShell.classList.add('hidden');
+        patientSelectedCard.classList.remove('hidden');
+        selectedHint.textContent = 'Patient confirmed — continue below or tap Change.';
         selectedHint.classList.remove('text-red-600');
     }
 
-    function selectStudent(option) {
-        const studentId = option.getAttribute('data-student-id') || '';
-        const studentLabel = option.getAttribute('data-student-label') || '';
-        const studentEmail = option.getAttribute('data-student-email') || '';
-        const studentSid = (option.getAttribute('data-student-sid') || '').trim();
+    function selectPatient(option) {
+        const patientId = option.getAttribute('data-patient-id') || '';
+        const patientLabel = option.getAttribute('data-patient-label') || '';
+        const patientEmail = option.getAttribute('data-patient-email') || '';
+        const patientSid = (option.getAttribute('data-patient-sid') || '').trim();
 
         searchInput.value = '';
         searchInput.setCustomValidity('');
         clearBtn.classList.add('hidden');
         closeResults();
-        showSelectedStudentCard({
-            id: studentId,
-            label: studentLabel,
-            email: studentEmail,
-            sid: studentSid,
+        showSelectedPatientCard({
+            id: patientId,
+            label: patientLabel,
+            email: patientEmail,
+            sid: patientSid,
         });
-        hideInlineError('student_id');
-        setFieldHighlight('student_id', false);
+        hideInlineError('patient_id');
+        setFieldHighlight('patient_id', false);
     }
 
-    const prefillNode = document.getElementById('doc-request-selected-student');
+    const prefillNode = document.getElementById('doc-request-selected-patient');
     if (prefillNode && prefillNode.textContent) {
         try {
             const prefill = JSON.parse(prefillNode.textContent);
             const match = options.find(function (opt) {
-                return opt.getAttribute('data-student-id') === String(prefill.id);
+                return opt.getAttribute('data-patient-id') === String(prefill.id);
             });
             if (match) {
-                selectStudent(match);
+                selectPatient(match);
             } else {
-                showSelectedStudentCard(prefill);
+                showSelectedPatientCard(prefill);
             }
         } catch (e) {
             /* ignore malformed prefill */
         }
     }
 
-    studentChangeBtn.addEventListener('click', function () {
-        showStudentSearchPanel();
+    patientChangeBtn.addEventListener('click', function () {
+        showPatientSearchPanel();
         searchInput.focus();
     });
 
     clearBtn.addEventListener('click', function () {
-        showStudentSearchPanel();
+        showPatientSearchPanel();
         searchInput.focus();
     });
 
     options.forEach(function (option) {
         option.addEventListener('click', function () {
-            selectStudent(option);
+            selectPatient(option);
         });
     });
 
     searchInput.addEventListener('input', function () {
-        hiddenStudentId.value = '';
-        selectedHint.textContent = 'Search and select a student to continue.';
+        hiddenPatientId.value = '';
+        selectedHint.textContent = 'Search and select a patient to continue.';
         filterResults();
         searchInput.setCustomValidity('');
     });
@@ -544,7 +546,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 return !opt.classList.contains('hidden');
             });
             if (firstVisible) {
-                selectStudent(firstVisible);
+                selectPatient(firstVisible);
             }
         }
     });
@@ -556,8 +558,8 @@ document.addEventListener('DOMContentLoaded', function () {
             || t === searchInput
             || t === clearBtn
             || (clearBtn && clearBtn.contains(t))
-            || t === studentChangeBtn
-            || (studentChangeBtn && studentChangeBtn.contains(t))
+            || t === patientChangeBtn
+            || (patientChangeBtn && patientChangeBtn.contains(t))
         ) {
             return;
         }
@@ -570,9 +572,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const invalidFields = {};
 
         if (isDoctorFlow) {
-            const studentId = document.getElementById('student_id');
-            if (!studentId || !(studentId.value || '').trim()) {
-                invalidFields.student_id = 'Please select a student from the search results.';
+            const patientIdEl = document.getElementById('patient_id');
+            if (!patientIdEl || !(patientIdEl.value || '').trim()) {
+                invalidFields.patient_id = 'Please select a patient from the search results.';
             }
         }
 
@@ -673,9 +675,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     hideInlineError('document_type');
                     setFieldHighlight('document_type', false);
                 }
-                if (event.target.id === 'student_search') {
-                    hideInlineError('student_id');
-                    setFieldHighlight('student_id', false);
+                if (event.target.id === 'patient_search') {
+                    hideInlineError('patient_id');
+                    setFieldHighlight('patient_id', false);
                 }
             });
         });

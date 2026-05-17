@@ -25,6 +25,8 @@ from .notifications import (
 )
 from .pdf import generate_and_store_certificate_pdf
 from .policies import CLINICAL_INITIATOR_ROLES, assert_can_approve, assert_can_reject
+from core.roles import PATIENT_ROLE_VALUES, is_patient_role
+
 from .selectors import get_assigned_doctors_for_student
 from .signatures import apply_signature_to_certificate, mark_certificate_reviewed
 
@@ -50,7 +52,7 @@ def _profile_data_from_student(student, post) -> dict:
     data = _profile_data_from_post(post)
     if data:
         return data
-    profile = getattr(student, 'student_profile', None)
+    profile = getattr(student, 'patient_profile', None)
     if profile:
         return {
             'age': profile.age,
@@ -64,15 +66,15 @@ def _profile_data_from_student(student, post) -> dict:
 def create_document_request(*, actor, student, document_type: str, purpose: str, additional_info: str = '', post=None):
     """Create request + linked medical certificate and notify assigned clinician(s)."""
     post = post or {}
-    origin = 'student'
-    if actor.role in CLINICAL_INITIATOR_ROLES and actor.role != 'student':
+    origin = 'patient'
+    if actor.role in CLINICAL_INITIATOR_ROLES and not is_patient_role(actor.role):
         origin = 'doctor'
 
     assigned = get_assigned_doctors_for_student(student)
     assigned_to = assigned[0] if assigned else None
 
     doc_request = DocumentRequest.objects.create(
-        student=student,
+        patient=student,
         created_by=actor,
         assigned_to=assigned_to,
         request_origin=origin,

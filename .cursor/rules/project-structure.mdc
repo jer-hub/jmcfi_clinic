@@ -27,7 +27,7 @@ Django 5.2 · Channels 4.3 · django-allauth (Google OAuth) · HTMX 1.9 · Alpin
 
 ## Roles
 
-`admin` · `doctor` · `staff` · `student` — defined in `core/models.py User.ROLE`
+`admin` · `doctor` · `staff` · `patient` — defined in `core/models.py User.ROLE`
 
 ## File Navigation
 
@@ -58,6 +58,6 @@ Django 5.2 · Channels 4.3 · django-allauth (Google OAuth) · HTMX 1.9 · Alpin
 ## Key Architecture
 
 - **Auth**: Google OAuth only, no passwords. `NoPasswordAdapter` + `GoogleOnlyAdapter` in `core/adapters.py`
-- **Profiles**: `StudentProfile` / `StaffProfile` with completion enforcement via `ProfileCompleteMiddleware`
+- **Profiles**: `PatientProfile` (`StudentProfile` alias) / `StaffProfile` with completion enforcement via `ProfileCompleteMiddleware`
 - **Middleware chain**: `UserActivityMiddleware` → `SessionTimeoutMiddleware` → `RoleMiddleware` → `ProfileCompleteMiddleware`
 - **Frontend**: HTMX for server communication, Alpine.js for local state, Tailwind CDN for styling

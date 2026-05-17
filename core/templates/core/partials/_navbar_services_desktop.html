@@ -1,5 +1,5 @@
 {% comment %}
-  Services dropdown (lg+). Expects: svc_role — student | doctor | staff; nav_active dict.
+  Services dropdown (lg+). Expects: svc_role — patient | doctor | staff; nav_active dict.
 {% endcomment %}
 <div class="relative site-nav-dropdown-host" x-data="{ open: false, routeActive: {% if nav_active.services %}true{% else %}false{% endif %} }" @click.outside="open = false" @keydown.escape.window="open && (open = false)">
   <button type="button"
@@ -27,7 +27,7 @@
     class="absolute left-0 top-full z-50 mt-2 w-72 origin-top-left rounded-xl border border-gray-200 bg-white shadow-lg p-2">
     <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">Appointments</a>
     {% if svc_role == 'staff' %}
-      <a href="{% url 'appointments:schedule_for_student' %}" class="dropdown-item">Schedule for Student</a>
+      <a href="{% url 'appointments:schedule_for_patient' %}" class="dropdown-item">Schedule for Patient</a>
     {% endif %}
     <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
     <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item">Dental Records</a>

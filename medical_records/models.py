@@ -15,10 +15,10 @@ class MedicalRecord(models.Model):
         (STATUS_COMPLETED, 'Completed'),
     ]
 
-    student = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='patient_medical_records'
+    patient = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='patient_medical_records',
     )
     doctor = models.ForeignKey(
         User, 
@@ -146,7 +146,7 @@ class MedicalRecord(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        name = f"{self.student.first_name} {self.student.last_name}".strip()
+        name = f"{self.patient.first_name} {self.patient.last_name}".strip()
         if not name:
-            name = self.student.email or self.student.username
+            name = self.patient.email or self.patient.username
         return f"{name} - {self.created_at.date()}"

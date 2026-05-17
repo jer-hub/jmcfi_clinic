@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, JsonResponse
+from django.http import Http404, HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
@@ -51,6 +51,9 @@ def inbox(request):
 @login_required
 @role_required("student", "staff", "doctor", "admin")
 def start_conversation(request):
+    if not can_start_direct_conversation(request.user):
+        return HttpResponseForbidden("Direct messaging is not available for your role.")
+
     if request.method == "POST":
         form = StartConversationForm(request.POST, user=request.user)
         if form.is_valid():

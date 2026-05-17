@@ -9,7 +9,7 @@ from .models import (
     RoleSettings,
     SettingsChangeLog,
     StaffProfile,
-    StudentProfile,
+    PatientProfile,
     UserInvite,
     UserPreferences,
     YearLevelOption,
@@ -25,13 +25,13 @@ class UserAdmin(admin.ModelAdmin):
     list_filter = ('role', 'is_staff', 'is_superuser', 'onboarding_status', 'is_active')
 
 
-@admin.register(StudentProfile)
-class StudentProfileAdmin(admin.ModelAdmin):
-    list_display = ('student_id', 'user', 'phone', 'blood_type', 'has_profile_image', 'created_at')
-    search_fields = ('student_id', 'user__username', 'user__email', 'user__first_name', 'user__last_name')
+@admin.register(PatientProfile)
+class PatientProfileAdmin(admin.ModelAdmin):
+    list_display = ('patient_id', 'user', 'phone', 'blood_type', 'has_profile_image', 'created_at')
+    search_fields = ('patient_id', 'user__username', 'user__email', 'user__first_name', 'user__last_name')
     list_filter = ('blood_type', 'created_at')
     readonly_fields = ('created_at', 'updated_at')
-    fields = ('user', 'student_id', 'profile_image', 'date_of_birth', 'phone', 
+    fields = ('user', 'patient_id', 'profile_image', 'date_of_birth', 'phone', 
              'emergency_contact', 'emergency_phone', 'blood_type', 'allergies', 
              'medical_conditions', 'created_at', 'updated_at')
 

@@ -4,9 +4,9 @@ from .models import Appointment, AppointmentTypeDefault
 
 @admin.register(Appointment)
 class AppointmentAdmin(admin.ModelAdmin):
-    list_display = ['id', 'student', 'doctor', 'appointment_type', 'date', 'time', 'status', 'has_scheduling_conflict', 'created_at']
+    list_display = ['id', 'patient', 'doctor', 'appointment_type', 'date', 'time', 'status', 'has_scheduling_conflict', 'created_at']
     list_filter = ['status', 'appointment_type', 'date']
-    search_fields = ['student__first_name', 'student__last_name', 'student__email', 
+    search_fields = ['patient__first_name', 'patient__last_name', 'patient__email', 
                      'doctor__first_name', 'doctor__last_name', 'reason']
     ordering = ['-date', '-time']
     date_hierarchy = 'date'

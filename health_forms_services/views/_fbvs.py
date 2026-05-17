@@ -69,7 +69,8 @@ def get_form_or_404(model, pk, user, select_related_fields=None):
     queryset = model.objects.all()
     if select_related_fields:
         queryset = queryset.select_related(*select_related_fields)
-    if user.role == 'student':
+    from core.roles import is_patient_role
+    if is_patient_role(user.role):
         queryset = queryset.filter(user=user)
     return get_object_or_404(queryset, pk=pk)
 

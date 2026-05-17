@@ -3,7 +3,8 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from allauth.socialaccount.signals import social_account_added, pre_social_login
-from .models import StudentProfile, StaffProfile, UserPreferences
+from .models import PatientProfile, StaffProfile, UserPreferences
+from .roles import ROLE_PATIENT, normalize_role
 import requests
 from django.core.files.base import ContentFile
 import logging
@@ -67,13 +68,13 @@ def create_profile_from_google(sender, request, sociallogin, **kwargs):
         # Generate better ID from email username
         generated_id = email_username.upper().replace('.', '_') if email_username else f'TEMP_{user.id}'
         
-        # Create profile based on user role
-        if user.role == 'student':
+        role = normalize_role(user.role)
+        if role == ROLE_PATIENT:
             try:
-                profile, created = StudentProfile.objects.get_or_create(
+                profile, created = PatientProfile.objects.get_or_create(
                     user=user,
                     defaults={
-                        'student_id': generated_id,
+                        'patient_id': generated_id,
                         'date_of_birth': None,
                         'phone': '',
                         'emergency_contact': '',
@@ -85,19 +86,18 @@ def create_profile_from_google(sender, request, sociallogin, **kwargs):
                 )
                 
                 if created:
-                    logger.info(f"Created StudentProfile with ID: {profile.student_id}")
+                    logger.info(f"Created PatientProfile with ID: {profile.patient_id}")
                     
-                    # Download and save profile picture
                     if picture_url:
                         image_content, filename = download_google_profile_picture(picture_url, user.id)
                         if image_content and filename:
                             profile.profile_image.save(filename, image_content, save=True)
-                            logger.info(f"Saved profile picture for student {user.email}")
+                            logger.info(f"Saved profile picture for patient {user.email}")
                         
             except Exception as e:
-                logger.error(f"Error creating StudentProfile for {user.email}: {e}")
+                logger.error(f"Error creating PatientProfile for {user.email}: {e}")
                 
-        elif user.role in ['staff', 'doctor']:
+        elif role in ['staff', 'doctor']:
             try:
                 profile, created = StaffProfile.objects.get_or_create(
                     user=user,
@@ -119,7 +119,6 @@ def create_profile_from_google(sender, request, sociallogin, **kwargs):
                 if created:
                     logger.info(f"Created StaffProfile with ID: {profile.staff_id}")
                     
-                    # Download and save profile picture
                     if picture_url:
                         image_content, filename = download_google_profile_picture(picture_url, user.id)
                         if image_content and filename:
@@ -140,38 +139,40 @@ def create_user_preferences(sender, instance, created, **kwargs):
 def create_user_profile(sender, instance, created, **kwargs):
     """
     Fallback: Create profile when user is created (for non-Google signups).
-    This ensures profiles are created even if social_account_added doesn't fire.
     """
-    if created and instance.role in ['student', 'staff', 'doctor', 'admin']:
-        if instance.role == 'student':
-            if not hasattr(instance, 'student_profile'):
-                StudentProfile.objects.get_or_create(
-                    user=instance,
-                    defaults={
-                        'student_id': f'TEMP_{instance.id}',
-                        'date_of_birth': None,
-                        'phone': '',
-                        'emergency_contact': '',
-                        'emergency_phone': '',
-                        'blood_type': None,
-                    }
-                )
-        elif instance.role in ['staff', 'doctor', 'admin']:
-            if not hasattr(instance, 'staff_profile'):
-                StaffProfile.objects.get_or_create(
-                    user=instance,
-                    defaults={
-                        'staff_id': f'TEMP_{instance.id}',
-                        'department': '',
-                        'phone': '',
-                    }
-                )
+    if not created:
+        return
+    role = normalize_role(instance.role)
+    if role == ROLE_PATIENT:
+        if not hasattr(instance, 'patient_profile'):
+            PatientProfile.objects.get_or_create(
+                user=instance,
+                defaults={
+                    'patient_id': f'TEMP_{instance.id}',
+                    'date_of_birth': None,
+                    'phone': '',
+                    'emergency_contact': '',
+                    'emergency_phone': '',
+                    'blood_type': None,
+                }
+            )
+    elif role in ['staff', 'doctor', 'admin']:
+        if not hasattr(instance, 'staff_profile'):
+            StaffProfile.objects.get_or_create(
+                user=instance,
+                defaults={
+                    'staff_id': f'TEMP_{instance.id}',
+                    'department': '',
+                    'phone': '',
+                }
+            )
 
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
     """Save profile when user is saved"""
-    if instance.role == 'student' and hasattr(instance, 'student_profile'):
-        instance.student_profile.save()
-    elif instance.role in ['staff', 'doctor'] and hasattr(instance, 'staff_profile'):
+    role = normalize_role(instance.role)
+    if role == ROLE_PATIENT and hasattr(instance, 'patient_profile'):
+        instance.patient_profile.save()
+    elif role in ['staff', 'doctor'] and hasattr(instance, 'staff_profile'):
         instance.staff_profile.save()

@@ -12,6 +12,7 @@ from appointments.calendar_service import (
     ALL_STATUS_CHOICES,
     CalendarFilters,
     build_admin_calendar_context,
+    build_calendar_body_context,
     build_calendar_context,
     build_calendar_day_context,
     build_calendar_filters_context,
@@ -39,8 +40,8 @@ def _complete_student_profile(user):
     user.first_name = user.first_name or 'Test'
     user.last_name = user.last_name or 'Student'
     user.save(update_fields=['first_name', 'last_name'])
-    profile, _ = StudentProfile.objects.get_or_create(user=user)
-    profile.student_id = 'STU-CAL-001'
+    profile = user.patient_profile
+    profile.patient_id = f'STU-CAL-{user.pk}'
     profile.middle_name = 'M'
     profile.gender = 'male'
     profile.civil_status = 'single'
@@ -48,14 +49,16 @@ def _complete_student_profile(user):
     profile.place_of_birth = 'City'
     profile.age = 24
     profile.address = '123 St'
-    profile.phone = '09123456789'
+    profile.phone = '+639171234567'
     profile.emergency_contact = 'Parent'
-    profile.emergency_phone = '09111111111'
+    profile.emergency_phone = '+639181234567'
     profile.department = 'College'
+    profile.course = 'BS Test'
+    profile.year_level = '1st Year'
     profile.blood_type = 'O+'
     profile.save()
-    user.__dict__.pop('student_profile', None)
-    user._state.fields_cache.pop('student_profile', None)
+    user.__dict__.pop('patient_profile', None)
+    user._state.fields_cache.pop('patient_profile', None)
 
 
 class CalendarServiceTests(TestCase):
@@ -63,7 +66,7 @@ class CalendarServiceTests(TestCase):
         self.student = User.objects.create_user(
             email='cal-student@jmcfi.edu.ph',
             password='pass',
-            role='student',
+            role='patient',
             first_name='Cal',
             last_name='Student',
         )
@@ -91,13 +94,13 @@ class CalendarServiceTests(TestCase):
         self.other_student = User.objects.create_user(
             email='cal-student2@jmcfi.edu.ph',
             password='pass',
-            role='student',
+            role='patient',
             first_name='Other',
             last_name='Student',
         )
         self.appt_date = date(2026, 5, 15)
         self.student_appt = Appointment.objects.create(
-            student=self.student,
+            patient=self.student,
             doctor=self.doctor,
             appointment_type='consultation',
             date=self.appt_date,
@@ -106,7 +109,7 @@ class CalendarServiceTests(TestCase):
             status='confirmed',
         )
         Appointment.objects.create(
-            student=self.other_student,
+            patient=self.other_student,
             doctor=self.other_doctor,
             appointment_type='dental',
             date=self.appt_date,
@@ -159,7 +162,7 @@ class CalendarServiceTests(TestCase):
     def test_all_filter_includes_cancelled_appointments(self):
         cancelled_date = date(2026, 5, 16)
         Appointment.objects.create(
-            student=self.student,
+            patient=self.student,
             doctor=self.doctor,
             appointment_type='consultation',
             date=cancelled_date,
@@ -191,7 +194,7 @@ class CalendarServiceTests(TestCase):
     def test_default_day_panel_includes_cancelled(self):
         cancelled_date = date(2026, 5, 16)
         Appointment.objects.create(
-            student=self.student,
+            patient=self.student,
             doctor=self.doctor,
             appointment_type='consultation',
             date=cancelled_date,
@@ -210,7 +213,7 @@ class CalendarServiceTests(TestCase):
         cancelled_date = date(2026, 5, 18)
         for hour in (9, 10, 11):
             Appointment.objects.create(
-                student=self.other_student,
+                patient=self.other_student,
                 doctor=self.doctor,
                 appointment_type='consultation',
                 date=cancelled_date,
@@ -244,7 +247,7 @@ class CalendarServiceTests(TestCase):
     def test_cancelled_appears_in_month_grid_without_status_filter(self):
         cancelled_date = date(2026, 5, 17)
         Appointment.objects.create(
-            student=self.student,
+            patient=self.student,
             doctor=self.doctor,
             appointment_type='consultation',
             date=cancelled_date,
@@ -266,7 +269,7 @@ class CalendarServiceTests(TestCase):
     def test_cancelled_appears_in_week_grid_without_status_filter(self):
         cancelled_date = date(2026, 5, 18)
         Appointment.objects.create(
-            student=self.student,
+            patient=self.student,
             doctor=self.doctor,
             appointment_type='consultation',
             date=cancelled_date,
@@ -299,7 +302,7 @@ class CalendarServiceTests(TestCase):
 
     def test_admin_heatmap_excludes_cancelled(self):
         Appointment.objects.create(
-            student=self.student,
+            patient=self.student,
             doctor=self.doctor,
             appointment_type='consultation',
             date=self.appt_date,
@@ -334,6 +337,18 @@ class CalendarServiceTests(TestCase):
         self.assertEqual(len(ctx['calendar_week_days']), 7)
         self.assertIn('–', ctx['calendar_period_label'])
 
+    def test_patient_sees_week_view_toggle(self):
+        filters = self._filters(self.student)
+        ctx = build_calendar_filters_context(self.student, filters)
+        self.assertTrue(ctx['calendar_show_week_view'])
+        self.assertIn('view=week', ctx['calendar_view_week_url'])
+
+    def test_week_body_context_for_patient(self):
+        filters = self._filters(self.student, view_mode='week')
+        ctx = build_calendar_body_context(self.student, filters)
+        self.assertEqual(ctx['calendar_view_mode'], 'week')
+        self.assertEqual(len(ctx['calendar_week_days']), 7)
+
     def test_month_nav_today_uses_today_date(self):
         filters = self._filters(self.doctor, selected_date=date(2026, 5, 15))
         today = timezone.localdate()
@@ -359,7 +374,7 @@ class CalendarServiceTests(TestCase):
 
     def test_document_events_merged_for_student(self):
         DocumentRequest.objects.create(
-            student=self.student,
+            patient=self.student,
             document_type='dental_record',
             purpose='Need copy',
             status=DocumentRequest.Status.PENDING_REVIEW,
@@ -386,7 +401,7 @@ class CalendarViewTests(TestCase):
         self.student = User.objects.create_user(
             email='cal-view-student@jmcfi.edu.ph',
             password='pass',
-            role='student',
+            role='patient',
         )
         _complete_student_profile(self.student)
         self.doctor = User.objects.create_user(
@@ -481,6 +496,18 @@ class CalendarViewTests(TestCase):
             HTTP_HX_REQUEST='true',
         )
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'components/calendar/_week_view.html')
+
+    def test_week_fragment_for_patient(self):
+        self.client.force_login(self.student)
+        url = reverse('appointments:calendar_body_fragment')
+        response = self.client.get(
+            url,
+            {'year': 2026, 'month': 5, 'date': '2026-05-15', 'view': 'week'},
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="cal-view-mode-toggle"')
         self.assertTemplateUsed(response, 'components/calendar/_week_view.html')
 
     def test_body_fragment_oob_updates_period_nav(self):

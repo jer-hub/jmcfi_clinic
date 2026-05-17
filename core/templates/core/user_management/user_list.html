@@ -13,7 +13,7 @@
       </span>
       <div>
         <h1 class="text-2xl font-bold text-gray-900">User Management</h1>
-        <p class="text-sm text-gray-500">Manage students, staff, doctors, and admins.</p>
+        <p class="text-sm text-gray-500">Manage patients, staff, doctors, and admins.</p>
       </div>
     </div>
     <div class="flex flex-wrap items-center gap-2">
@@ -74,7 +74,7 @@
                   hx-include="closest form"
                   class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm">
             <option value="">All Roles</option>
-            <option value="student" {% if role_filter == 'student' %}selected{% endif %}>Student</option>
+            <option value="patient" {% if role_filter == 'patient' or role_filter == 'student' %}selected{% endif %}>Patient</option>
             <option value="staff" {% if role_filter == 'staff' %}selected{% endif %}>Staff</option>
             <option value="doctor" {% if role_filter == 'doctor' %}selected{% endif %}>Doctor</option>
             <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>

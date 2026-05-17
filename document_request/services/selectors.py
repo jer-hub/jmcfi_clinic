@@ -6,7 +6,8 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q, QuerySet
 
 from appointments.models import Appointment, AppointmentTypeDefault
-from core.utils import student_search_q
+from core.roles import PATIENT_ROLE_VALUES, is_patient_role
+from core.utils import patient_search_q
 
 from document_request.models import ClinicianSignature, DocumentRequest, MedicalCertificate
 
@@ -18,15 +19,15 @@ User = get_user_model()
 def get_document_requests_queryset(user) -> QuerySet:
     """Role-scoped base queryset for list views."""
     qs = DocumentRequest.objects.select_related(
-        'student',
+        'patient',
         'medical_certificate',
         'processed_by',
         'created_by',
         'assigned_to',
     )
     role = getattr(user, 'role', None)
-    if role == 'student':
-        return qs.filter(student=user)
+    if is_patient_role(role):
+        return qs.filter(patient=user)
     if role in PROCESSOR_ROLES:
         return qs.all()
     return qs.none()
@@ -52,10 +53,10 @@ def apply_list_filters(
         qs = qs.filter(status=status)
     search = (search or '').strip()
     if search:
-        matching_students = User.objects.filter(role='student').filter(student_search_q(search))
+        matching_patients = User.objects.filter(role__in=PATIENT_ROLE_VALUES).filter(patient_search_q(search))
         qs = qs.filter(
             Q(purpose__icontains=search)
-            | Q(student__in=matching_students)
+            | Q(patient__in=matching_patients)
         )
     return qs.order_by('-created_at')
 
@@ -83,7 +84,7 @@ def get_assigned_doctors_for_student(student) -> list:
     2. Doctors assigned to the active consultation appointment type default
     """
     appt = (
-        Appointment.objects.filter(student=student)
+        Appointment.objects.filter(patient=student)
         .exclude(status='cancelled')
         .select_related('doctor')
         .order_by('-date', '-time')
@@ -130,7 +131,7 @@ def get_certificate_signature_display(certificate: MedicalCertificate) -> Clinic
 
 def get_document_request_for_detail(request_id: int) -> DocumentRequest:
     return DocumentRequest.objects.select_related(
-        'student',
+        'patient',
         'medical_certificate',
         'processed_by',
         'created_by',

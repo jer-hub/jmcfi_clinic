@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 
 from appointments.models import Appointment, AppointmentTypeDefault
-from core.models import Notification, StaffProfile, StudentProfile, User
+from core.models import Notification, PatientProfile, StaffProfile, User
 from document_request.models import ClinicianSignature, DocumentRequest, MedicalCertificate
 
 DoctorSignature = ClinicianSignature
@@ -27,12 +27,12 @@ class DocumentRequestFlowTests(TestCase):
         self.student = User.objects.create_user(
             email='student@example.com',
             password='pass1234',
-            role='student',
+            role='patient',
             first_name='Test',
             last_name='Student',
         )
-        student_profile, _ = StudentProfile.objects.get_or_create(user=self.student)
-        student_profile.student_id = 'S-1001'
+        student_profile, _ = PatientProfile.objects.get_or_create(user=self.student)
+        student_profile.patient_id = 'S-1001'
         student_profile.date_of_birth = '2004-01-01'
         student_profile.phone = '09123456789'
         student_profile.emergency_contact = 'Parent'
@@ -86,7 +86,7 @@ class DocumentRequestFlowTests(TestCase):
         self.assertEqual(response.request['PATH_INFO'], reverse('document_request:request_document'))
         self.assertFalse(
             DocumentRequest.objects.filter(
-                student=self.student,
+                patient=self.student,
                 document_type='medical_record',
             ).exists()
         )
@@ -101,16 +101,16 @@ class DocumentRequestFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.request['PATH_INFO'], reverse('document_request:document_requests'))
         created = DocumentRequest.objects.filter(
-            student=self.student,
+            patient=self.student,
             document_type='medical_certificate',
         ).first()
         self.assertIsNotNone(created)
-        self.assertEqual(created.request_origin, 'student')
+        self.assertEqual(created.request_origin, 'patient')
         self.assertEqual(created.created_by, self.student)
 
     def test_new_request_notifies_assigned_appointment_doctor(self):
         Appointment.objects.create(
-            student=self.student,
+            patient=self.student,
             doctor=self.doctor,
             appointment_type='consultation',
             date=date.today(),
@@ -167,13 +167,13 @@ class DocumentRequestFlowTests(TestCase):
                 'source': 'doctor_on_behalf',
                 'document_type': 'medical_certificate',
                 'purpose': '',
-                'student_id': '',
+                'patient_id': '',
             },
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="doc-req-inline-error-student_id"')
+        self.assertContains(response, 'id="doc-req-inline-error-patient_id"')
         self.assertContains(response, 'id="doc-req-inline-error-purpose"')
-        self.assertContains(response, 'Please select a student from the search results.')
+        self.assertContains(response, 'Please select a patient from the search results.')
         self.assertContains(response, 'Purpose is required.')
         self.assertNotContains(response, 'id="doc-request-errors-summary"')
         self.assertFalse(DocumentRequest.objects.exists())
@@ -187,7 +187,7 @@ class DocumentRequestFlowTests(TestCase):
                 'source': 'doctor_on_behalf',
                 'document_type': 'medical_certificate',
                 'purpose': 'Another reason',
-                'student_id': str(self.student.pk),
+                'patient_id': str(self.student.pk),
             },
         )
         self.assertEqual(response.status_code, 200)
@@ -198,7 +198,7 @@ class DocumentRequestFlowTests(TestCase):
         self.assertNotContains(response, 'id="doc-request-errors-summary"')
         self.assertEqual(
             DocumentRequest.objects.filter(
-                student=self.student,
+                patient=self.student,
                 document_type='medical_certificate',
                 status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
@@ -213,7 +213,7 @@ class DocumentRequestFlowTests(TestCase):
             follow=True,
         )
         created = DocumentRequest.objects.get(
-            student=self.student,
+            patient=self.student,
             document_type='medical_certificate',
         )
         self.assertEqual(created.medical_certificate.physician_name, '')
@@ -231,12 +231,12 @@ class DocumentRequestFlowTests(TestCase):
         other = User.objects.create_user(
             email='other@example.com',
             password='pass1234',
-            role='student',
+            role='patient',
             first_name='Other',
             last_name='Person',
         )
         DocumentRequest.objects.create(
-            student=other,
+            patient=other,
             created_by=other,
             document_type='medical_certificate',
             purpose='Other',
@@ -342,7 +342,7 @@ class DocumentRequestFlowTests(TestCase):
             status=MedicalCertificate.Status.DRAFT,
         )
         doc_request = DocumentRequest.objects.create(
-            student=self.student,
+            patient=self.student,
             created_by=self.student,
             document_type='medical_certificate',
             purpose='Test',

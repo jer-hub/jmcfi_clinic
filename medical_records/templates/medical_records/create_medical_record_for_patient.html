@@ -6,17 +6,17 @@
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
   {% include 'medical_records/_subnav.html' %}
 
-  {% include "components/page_header.html" with title="New Medical Record" subtitle="Create a walk-in record for a student without an appointment" icon="fa-file-medical" %}
+  {% include "components/page_header.html" with title="New Medical Record" subtitle="Create a walk-in record for a patient without an appointment" icon="fa-file-medical" %}
 
-  {% if not student %}
-    {% include "medical_records/partials/_create_student_picker.html" %}
+  {% if not patient %}
+    {% include "medical_records/partials/_create_patient_picker.html" %}
   {% else %}
-    {% include "medical_records/partials/_create_selected_student_banner.html" %}
+    {% include "medical_records/partials/_create_selected_patient_banner.html" %}
 
     <div class="bg-white rounded-card shadow-sm border border-gray-200">
       <form method="post" id="medical-record-form" class="p-5 sm:p-8 space-y-8">
         {% csrf_token %}
-        <input type="hidden" name="student_id" value="{{ student.id }}">
+        <input type="hidden" name="patient_id" value="{{ patient.id }}">
 
         {% include "medical_records/partials/_create_medical_record_form_fields.html" %}
 
@@ -30,18 +30,18 @@
 
 {% block scripts %}
 <script>
-function medicalRecordStudentPicker() {
+function medicalRecordPatientPicker() {
   return {
     query: '',
     results: [],
     showResults: false,
     loading: false,
-    searchUrl: '{% url "core:search_students" %}',
-    createUrl: '{% url "medical_records:create_medical_record_for_student" %}',
+    searchUrl: '{% url "core:search_patients" %}',
+    createUrl: '{% url "medical_records:create_medical_record_for_patient" %}',
 
     initFromDom() {},
 
-    async searchStudents() {
+    async searchPatients() {
       const q = this.query.trim();
       if (q.length < 2) {
         this.results = [];
@@ -58,9 +58,9 @@ function medicalRecordStudentPicker() {
         this.results = Array.isArray(data)
           ? data.map((s) => ({
               id: s.id,
-              name: (s.name || s.text || '').trim() || s.email || 'Student',
+              name: (s.name || s.text || '').trim() || s.email || 'Patient',
               email: s.email || '',
-              studentId: s.student_id || '',
+              patientId: s.patient_id || '',
             }))
           : [];
         this.showResults = true;
@@ -72,8 +72,8 @@ function medicalRecordStudentPicker() {
       }
     },
 
-    selectStudent(row) {
-      window.location.href = `${this.createUrl}?student=${encodeURIComponent(row.id)}`;
+    selectPatient(row) {
+      window.location.href = `${this.createUrl}?patient=${encodeURIComponent(row.id)}`;
     },
   };
 }

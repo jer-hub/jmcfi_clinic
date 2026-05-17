@@ -55,7 +55,7 @@ def _complete_student_profile(user, student_id):
     user.save(update_fields=['first_name', 'last_name'])
 
     profile, _ = StudentProfile.objects.get_or_create(user=user)
-    profile.student_id = student_id
+    profile.patient_id = student_id
     profile.phone = '+639123456789'
     profile.emergency_contact = 'Emergency Contact'
     profile.emergency_phone = '+639987654321'
@@ -72,8 +72,8 @@ def _complete_student_profile(user, student_id):
     profile.save()
     profile.refresh_from_db()
 
-    user.__dict__.pop('student_profile', None)
-    user._state.fields_cache.pop('student_profile', None)
+    user.__dict__.pop('patient_profile', None)
+    user._state.fields_cache.pop('patient_profile', None)
 
 
 # ============================================================================
@@ -87,7 +87,7 @@ class UserModelSoftDeleteTests(TestCase):
         self.user = User.objects.create_user(
             email='softdelete@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
             is_active=True,
         )
 
@@ -126,7 +126,7 @@ class UserModelOnboardingSyncTests(TestCase):
         self.user = User.objects.create_user(
             email='sync-test@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
         )
 
     def test_pending_activation_with_active_sets_active(self):
@@ -178,7 +178,7 @@ class AdminBulkActionTests(TestCase):
             user = User.objects.create_user(
                 email=f'bulk-target-{i}@test.com',
                 password='TestPass123!',
-                role='student',
+                role='patient',
                 is_active=True,
             )
             self.target_users.append(user)
@@ -325,7 +325,7 @@ class AdminUserToggleStatusTests(TestCase):
         self.target_user = User.objects.create_user(
             email='target-toggle@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
             is_active=True,
         )
         self.client.force_login(self.admin_user)
@@ -360,7 +360,7 @@ class AdminUserRestoreTests(TestCase):
         self.target_user = User.objects.create_user(
             email='target-restore@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
             is_active=True,
         )
         self.target_user.soft_delete()
@@ -422,7 +422,7 @@ class AdminUserDeleteTests(TestCase):
         self.target_user = User.objects.create_user(
             email='target-delete@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
             is_active=True,
         )
         self.client.force_login(self.admin_user)
@@ -464,7 +464,7 @@ class AdminDeletedUsersBulkActionTests(TestCase):
             user = User.objects.create_user(
                 email=f'bulk-restore-{idx}@test.com',
                 password='TestPass123!',
-                role='student',
+                role='patient',
                 is_active=True,
             )
             user.soft_delete()
@@ -475,7 +475,7 @@ class AdminDeletedUsersBulkActionTests(TestCase):
             user = User.objects.create_user(
                 email=f'bulk-delete-{idx}@test.com',
                 password='TestPass123!',
-                role='student',
+                role='patient',
                 is_active=True,
             )
             user.soft_delete()
@@ -542,7 +542,7 @@ class AdminDeletedUserPermanentDeleteTests(TestCase):
         self.target_user = User.objects.create_user(
             email='target-permanent-delete@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
             is_active=True,
         )
         self.target_user.soft_delete()
@@ -608,7 +608,7 @@ class AdminUserAuditLogTests(TestCase):
         self.target_user = User.objects.create_user(
             email='target-auditlog@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
             is_active=True,
         )
 
@@ -667,7 +667,7 @@ class AdminUserExportCSVTests(TestCase):
             user = User.objects.create_user(
                 email=f'export-user-{i}@test.com',
                 password='TestPass123!',
-                role='student' if i % 2 == 0 else 'staff',
+                role='patient' if i % 2 == 0 else 'staff',
                 is_active=True,
             )
 
@@ -724,7 +724,7 @@ class AdminStaleUserCleanupTests(TestCase):
         self.stale_pending = User.objects.create_user(
             email='stale-pending@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
             is_active=False,
             onboarding_status=User.ONBOARDING_STATUS.PENDING_ACTIVATION,
         )
@@ -737,7 +737,7 @@ class AdminStaleUserCleanupTests(TestCase):
         self.stale_inactive = User.objects.create_user(
             email='stale-inactive@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
             is_active=True,
         )
         User.objects.filter(id=self.stale_inactive.id).update(
@@ -890,7 +890,7 @@ class UserManagementSoftDeleteIntegrationTests(TestCase):
         self.target_user = User.objects.create_user(
             email='target-int@test.com',
             password='TestPass123!',
-            role='student',
+            role='patient',
             is_active=True,
         )
 

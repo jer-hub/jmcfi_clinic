@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 
+from .roles import role_matches
 from .settings_service import admin_blocks_clinical_namespaces
 from .utils import is_profile_complete, role_home_url_name
 
@@ -52,7 +53,7 @@ def role_required(*roles):
                 )
                 return redirect(role_home_url_name(request.user))
 
-            if request.user.role not in roles:
+            if not role_matches(request.user.role, *roles):
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse(
                         {

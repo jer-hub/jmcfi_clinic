@@ -91,7 +91,7 @@ class AdminLoginForm(forms.Form):
 
 
 class StudentProfileForm(forms.ModelForm):
-    """Form for updating student profile including profile image"""
+    """Form for updating patient profile including profile image"""
     
     # Override phone fields with enhanced widget (validation handled in clean methods)
     phone = forms.CharField(
@@ -107,7 +107,7 @@ class StudentProfileForm(forms.ModelForm):
     class Meta:
         model = StudentProfile
         fields = [
-            'student_id', 'profile_image', 
+            'patient_id', 'profile_image', 
             # Demographics
             'middle_name', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth', 'age',
             # Contact Information
@@ -118,9 +118,9 @@ class StudentProfileForm(forms.ModelForm):
             'blood_type', 'allergies', 'medical_conditions'
         ]
         widgets = {
-            'student_id': forms.TextInput(attrs={
+            'patient_id': forms.TextInput(attrs={
                 'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-mono',
-                'placeholder': 'Enter your student ID',
+                'placeholder': 'Enter your patient ID',
                 'required': True
             }),
             'profile_image': forms.FileInput(attrs={
@@ -214,7 +214,7 @@ class StudentProfileForm(forms.ModelForm):
         
         # Set required fields
         required_fields = [
-            'student_id', 'middle_name', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth', 'age',
+            'patient_id', 'middle_name', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth', 'age',
             'address', 'phone', 'emergency_contact', 'emergency_phone',
             'year_level', 'department', 'blood_type'
         ]
@@ -273,11 +273,11 @@ class StudentProfileForm(forms.ModelForm):
     def clean_emergency_phone(self):
         return clean_strict_ph_number(self.cleaned_data.get('emergency_phone'), required=True)
 
-    def clean_student_id(self):
-        student_id = self.cleaned_data.get('student_id')
-        if not student_id or student_id.startswith('TEMP_'):
-            raise forms.ValidationError('Please provide a valid student ID.')
-        return student_id
+    def clean_patient_id(self):
+        patient_id = self.cleaned_data.get('patient_id')
+        if not patient_id or patient_id.startswith('TEMP_'):
+            raise forms.ValidationError('Please provide a valid patient ID.')
+        return patient_id
 
 
 class StaffProfileForm(forms.ModelForm):
@@ -489,7 +489,7 @@ class StaffProfileForm(forms.ModelForm):
 
 
 class UserCreationForm(forms.ModelForm):
-    """Form for creating new users (students or staff)"""
+    """Form for creating new users (patients or staff)"""
 
     activate_now = forms.BooleanField(
         required=False,
@@ -542,10 +542,10 @@ class UserCreationForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Limit role choices to student, staff, and doctor only
+        # Limit role choices to patient, staff, and doctor only
         self.fields['role'].choices = [
             ('admin', 'Admin'),
-            ('student', 'Student'),
+            ('patient', 'Patient'),
             ('staff', 'Staff'),
             ('doctor', 'Doctor'),
         ]
@@ -567,7 +567,7 @@ class UserCreationForm(forms.ModelForm):
                 username=self.cleaned_data.get('username') or None,
                 first_name=(self.cleaned_data.get('first_name') or '').strip(),
                 last_name=(self.cleaned_data.get('last_name') or '').strip(),
-                role=self.cleaned_data.get('role') or User.ROLE.STUDENT,
+                role=self.cleaned_data.get('role') or User.ROLE.PATIENT,
             )
             try:
                 validate_password(password1, user=user_for_validation)
@@ -576,6 +576,12 @@ class UserCreationForm(forms.ModelForm):
         
         return password2
     
+    def clean_role(self):
+        role = self.cleaned_data.get('role')
+        if role == 'student':
+            return 'patient'
+        return role
+
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip().lower()
         if User.objects.filter(email__iexact=email).exists():
@@ -604,11 +610,11 @@ class UserCreationForm(forms.ModelForm):
         if commit:
             user.save()
             # Create profile based on role
-            if user.role == 'student':
+            if user.role in ('patient', 'student'):
                 StudentProfile.objects.get_or_create(
                     user=user,
                     defaults={
-                        'student_id': f'TEMP_{user.id}',
+                        'patient_id': f'TEMP_{user.id}',
                         'phone': '',
                         'emergency_contact': '',
                         'emergency_phone': '',
@@ -663,13 +669,19 @@ class UserEditForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['role'].choices = [
             ('admin', 'Admin'),
-            ('student', 'Student'),
+            ('patient', 'Patient'),
             ('staff', 'Staff'),
             ('doctor', 'Doctor'),
         ]
         for field_name in ['email', 'first_name', 'last_name', 'role']:
             self.fields[field_name].required = True
         self.fields['username'].required = False
+
+    def clean_role(self):
+        role = self.cleaned_data.get('role')
+        if role == 'student':
+            return 'patient'
+        return role
     
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip().lower()
@@ -776,7 +788,7 @@ class UserExportForm(forms.Form):
 
     role = forms.ChoiceField(
         required=False,
-        choices=[('', 'All Roles'), ('student', 'Student'), ('staff', 'Staff'), ('doctor', 'Doctor'), ('admin', 'Admin')],
+        choices=[('', 'All Roles'), ('patient', 'Patient'), ('student', 'Patient'), ('staff', 'Staff'), ('doctor', 'Doctor'), ('admin', 'Admin')],
         widget=forms.Select(attrs={
             'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
         })

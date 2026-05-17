@@ -1,10 +1,10 @@
 """Central profile-completion policy used across signup/login/profile guards."""
 
-# Student profile fields required after Google signup before service access.
-STUDENT_PROFILE_REQUIRED_FIELDS = [
+# Patient profile fields required after Google signup before service access.
+PATIENT_PROFILE_REQUIRED_FIELDS = [
     'first_name',
     'last_name',
-    'student_id',
+    'patient_id',
     'middle_name',
     'gender',
     'civil_status',
@@ -18,6 +18,9 @@ STUDENT_PROFILE_REQUIRED_FIELDS = [
     'department',
     'blood_type',
 ]
+
+# Deprecated alias — settings JSON may still list student_id until migrated
+STUDENT_PROFILE_REQUIRED_FIELDS = PATIENT_PROFILE_REQUIRED_FIELDS
 
 # Staff profile fields required before service access.
 STAFF_PROFILE_REQUIRED_FIELDS = [

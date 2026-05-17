@@ -5,6 +5,7 @@ from document_request.models import DocumentRequest
 from medical_records.models import MedicalRecord
 
 from .models import AccountProvisioningAudit
+from .roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, role_matches
 from .utils import get_user_profile, get_client_ip
 
 User = get_user_model()
@@ -26,7 +27,8 @@ def get_user_management_stats():
             status=DocumentRequest.Status.PENDING_REVIEW,
         ).count(),
         'active_doctors': User.objects.filter(role='doctor', is_deleted=False).count(),
-        'total_students': User.objects.filter(role='student', is_deleted=False).count(),
+        'total_patients': User.objects.filter(role__in=PATIENT_ROLE_VALUES, is_deleted=False).count(),
+        'total_patients': User.objects.filter(role__in=PATIENT_ROLE_VALUES, is_deleted=False).count(),
         'total_staff': User.objects.filter(role='staff', is_deleted=False).count(),
         'total_admins': User.objects.filter(role='admin', is_deleted=False).count(),
         'active_users': User.objects.filter(is_active=True, is_deleted=False).count(),
@@ -39,17 +41,17 @@ def get_user_management_stats():
 def get_user_detail_summary(user):
     profile = get_user_profile(user)
 
-    if user.role == 'student':
+    if role_matches(user.role, ROLE_PATIENT):
         stats = {
-            'Total Appointments': Appointment.objects.filter(student=user).count(),
-            'Completed Appointments': Appointment.objects.filter(student=user, status='completed').count(),
-            'Pending Appointments': Appointment.objects.filter(student=user, status='pending').count(),
-            'Medical Records': MedicalRecord.objects.filter(student=user).count(),
-            'Certificate Requests': DocumentRequest.objects.filter(student=user).count(),
+            'Total Appointments': Appointment.objects.filter(patient=user).count(),
+            'Completed Appointments': Appointment.objects.filter(patient=user, status='completed').count(),
+            'Pending Appointments': Appointment.objects.filter(patient=user, status='pending').count(),
+            'Medical Records': MedicalRecord.objects.filter(patient=user).count(),
+            'Certificate Requests': DocumentRequest.objects.filter(patient=user).count(),
         }
         recent_activity = {
-            'appointments': Appointment.objects.filter(student=user).order_by('-created_at')[:5],
-            'medical_records': MedicalRecord.objects.filter(student=user).order_by('-created_at')[:5],
+            'appointments': Appointment.objects.filter(patient=user).order_by('-created_at')[:5],
+            'medical_records': MedicalRecord.objects.filter(patient=user).order_by('-created_at')[:5],
         }
     elif user.role in {'staff', 'doctor'}:
         stats = {

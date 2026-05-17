@@ -18,7 +18,8 @@ def get_forms_for_user(user, model_class):
     if hasattr(model_class, 'reviewed_by'):
         qs = qs.select_related('reviewed_by')
 
-    if user.role == 'student':
+    from core.roles import is_patient_role
+    if is_patient_role(user.role):
         qs = qs.filter(user=user)
 
     return qs
@@ -39,7 +40,8 @@ def get_form_or_403(user, model_class, pk, extra_select_related=None):
     if selects:
         qs = qs.select_related(*selects)
 
-    if user.role == 'student':
+    from core.roles import is_patient_role
+    if is_patient_role(user.role):
         return get_object_or_404(qs, pk=pk, user=user)
     return get_object_or_404(qs, pk=pk)
 

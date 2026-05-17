@@ -14,6 +14,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 
+from core.roles import ROLE_PATIENT, normalize_role, role_matches
 from core.status_styles import (
     APPOINTMENT_STATUS_VARIANTS as STATUS_VARIANTS,
     CALENDAR_FILTER_CHIP_TONES as STATUS_FILTER_CHIP_TONES,
@@ -178,10 +179,10 @@ def schedule_appointment_url_for_date(d: date) -> str:
 
 def calendar_queryset(user, *, doctor_id: int | None = None):
     """Role-scoped appointments queryset (staff sees clinic-wide)."""
-    qs = Appointment.objects.select_related('student', 'doctor')
-    role = user.role
-    if role == 'student':
-        qs = qs.filter(student=user)
+    qs = Appointment.objects.select_related('patient', 'doctor')
+    role = normalize_role(user.role)
+    if role == ROLE_PATIENT:
+        qs = qs.filter(patient=user)
     elif role == 'doctor':
         qs = qs.filter(doctor=user)
     elif role == 'staff':
@@ -221,15 +222,16 @@ def serialize_appointment(appt: Appointment, viewer_role: str) -> dict[str, Any]
     detail_url = reverse('appointments:appointment_detail', args=[appt.pk])
 
     type_label = appt.get_appointment_type_display()
-    if viewer_role == 'student':
+    viewer_role = normalize_role(viewer_role)
+    if viewer_role == ROLE_PATIENT:
         chip_label = time_label
         title = type_label
         meta_line = appt.doctor.get_full_name() or appt.doctor.email or 'Doctor'
         meta_prefix = 'Dr.'
     else:
-        student_name = appt.student.get_full_name() or appt.student.email or 'Patient'
+        patient_name = appt.patient.get_full_name() or appt.patient.email or 'Patient'
         chip_label = time_label
-        title = student_name
+        title = patient_name
         meta_line = type_label
         meta_prefix = ''
 
@@ -263,12 +265,13 @@ def serialize_document_request(doc_req, viewer_role: str) -> dict[str, Any]:
     type_label = doc_req.get_document_type_display()
     detail_url = reverse('document_request:document_request_detail', args=[doc_req.pk])
 
-    if viewer_role == 'student':
+    viewer_role = normalize_role(viewer_role)
+    if viewer_role == ROLE_PATIENT:
         title = type_label
         meta_line = 'Pending review'
     else:
-        student_name = doc_req.student.get_full_name() or doc_req.student.email or 'Student'
-        title = student_name
+        patient_name = doc_req.patient.get_full_name() or doc_req.patient.email or 'Patient'
+        title = patient_name
         meta_line = type_label
 
     return {
@@ -298,9 +301,9 @@ def document_requests_queryset(user):
 
     qs = DocumentRequest.objects.filter(
         status=DocumentRequest.Status.PENDING_REVIEW,
-    ).select_related('student', 'assigned_to')
-    if user.role == 'student':
-        return qs.filter(student=user)
+    ).select_related('patient', 'assigned_to')
+    if role_matches(user.role, ROLE_PATIENT):
+        return qs.filter(patient=user)
     if user.role in ('doctor', 'staff'):
         return qs
     return DocumentRequest.objects.none()
@@ -308,13 +311,14 @@ def document_requests_queryset(user):
 
 def get_document_events_by_date(user, start: date, end: date) -> dict[date, list[dict[str, Any]]]:
     """Map submitted-on date to pending document requests."""
-    if user.role not in ('student', 'staff', 'doctor'):
+    if not role_matches(user.role, ROLE_PATIENT, 'staff', 'doctor'):
         return {}
     by_date: dict[date, list[dict[str, Any]]] = defaultdict(list)
+    viewer_role = normalize_role(user.role)
     for doc_req in document_requests_queryset(user):
         submitted = timezone.localtime(doc_req.created_at).date()
         if start <= submitted <= end:
-            by_date[submitted].append(serialize_document_request(doc_req, user.role))
+            by_date[submitted].append(serialize_document_request(doc_req, viewer_role))
     return dict(by_date)
 
 
@@ -365,7 +369,7 @@ def get_events_by_date(
     )
     by_date: dict[date, list[dict[str, Any]]] = defaultdict(list)
     for appt in qs:
-        by_date[appt.date].append(serialize_appointment(appt, user.role))
+        by_date[appt.date].append(serialize_appointment(appt, normalize_role(user.role)))
     return dict(by_date)
 
 
@@ -574,7 +578,7 @@ def build_calendar_filters_context(user, filters: CalendarFilters) -> dict[str, 
         'calendar_view_mode': filters.view_mode,
         'calendar_view_month_url': view_url('month'),
         'calendar_view_week_url': view_url('week'),
-        'calendar_show_week_view': user.role in ('staff', 'doctor'),
+        'calendar_show_week_view': True,
         'calendar_export_ics_url': _build_calendar_url(
             'appointments:calendar_export_ics',
             _calendar_url_params(filters),
@@ -646,7 +650,7 @@ def build_calendar_month_context(
         'calendar_nav_next_page_url': nav.get('next_page', ''),
         'calendar_nav_today_page_url': nav.get('today_page', ''),
         'calendar_day_fragment_url': build_calendar_day_url(filters),
-        'calendar_viewer_role': user.role,
+        'calendar_viewer_role': normalize_role(user.role),
         'calendar_has_events': bool(events_by_date),
         'calendar_full_page': filters.full_page,
         'calendar_page_url': build_calendar_page_url(filters) if filters.full_page else '',
@@ -658,7 +662,7 @@ def build_calendar_week_context(
     user,
     filters: CalendarFilters,
 ) -> dict[str, Any]:
-    """Context for week view (doctor/staff oriented)."""
+    """Context for week view (horizontal day strip + day panel)."""
     today = timezone.localdate()
     selected = filters.selected_date
     week_start, week_end = week_bounds(selected)
@@ -710,7 +714,7 @@ def build_calendar_week_context(
         'calendar_nav_prev_url': nav['prev'],
         'calendar_nav_next_url': nav['next'],
         'calendar_nav_today_url': nav['today'],
-        'calendar_viewer_role': user.role,
+        'calendar_viewer_role': normalize_role(user.role),
         'calendar_view_mode': 'week',
     }
 
@@ -739,18 +743,11 @@ def build_calendar_day_context(
             statuses=statuses,
         ).get(selected, [])
 
-    show_book = user.role == 'student'
     return {
         'calendar_selected_date': selected,
         'calendar_selected_label': f"{selected.strftime('%A, %B')} {selected.day}",
         'calendar_day_events': events,
-        'calendar_day_list_url': appointment_list_url_for_date(
-            selected,
-            status=filters.status_filter,
-        ),
-        'calendar_book_url': schedule_appointment_url_for_date(selected) if show_book else '',
-        'calendar_show_book_action': show_book,
-        'calendar_viewer_role': user.role,
+        'calendar_viewer_role': normalize_role(user.role),
         'calendar_is_today': selected == timezone.localdate(),
         'calendar_status_filter': filters.status_filter or '',
     }
@@ -758,7 +755,7 @@ def build_calendar_day_context(
 
 def build_calendar_body_context(user, filters: CalendarFilters) -> dict[str, Any]:
     """Month or week grid context for the main calendar pane."""
-    if filters.view_mode == 'week' and user.role in ('staff', 'doctor'):
+    if filters.view_mode == 'week':
         return build_calendar_week_context(user, filters)
     return build_calendar_month_context(user, filters)
 
@@ -793,7 +790,7 @@ def _ics_datetime(d: date, t) -> str:
 
 def build_ics_calendar(user, filters: CalendarFilters) -> str:
     """Generate ICS for appointments in the current calendar range."""
-    if filters.view_mode == 'week' and user.role in ('staff', 'doctor'):
+    if filters.view_mode == 'week':
         start, end = week_bounds(filters.selected_date)
     else:
         start, end = month_bounds(filters.year, filters.month)

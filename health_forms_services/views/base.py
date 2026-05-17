@@ -75,7 +75,8 @@ class BaseFormListView(View):
             qs = qs.select_related('reviewed_by')
 
         user = self.request.user
-        if user.role == 'student':
+        from core.roles import is_patient_role
+        if is_patient_role(user.role):
             qs = qs.filter(user=user)
         return qs
 
@@ -165,7 +166,8 @@ class BaseFormDetailView(View):
             qs = qs.select_related('reviewed_by')
 
         user = self.request.user
-        if user.role == 'student':
+        from core.roles import is_patient_role
+        if is_patient_role(user.role):
             obj = get_object_or_404(qs, pk=pk, user=user)
         else:
             obj = get_object_or_404(qs, pk=pk)
@@ -230,7 +232,8 @@ class BaseFormEditView(View):
             qs = qs.select_related('user', 'reviewed_by')
 
         user = self.request.user
-        if user.role == 'student':
+        from core.roles import is_patient_role
+        if is_patient_role(user.role):
             return get_object_or_404(qs, pk=pk, user=user)
         return get_object_or_404(qs, pk=pk)
 

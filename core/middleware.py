@@ -15,6 +15,7 @@ from .settings_service import (
     get_clinic_settings,
     get_effective_session_timeout,
 )
+from .roles import role_matches
 from .utils import is_profile_complete
 
 
@@ -143,7 +144,7 @@ class RoleMiddleware:
         if hasattr(view_func, 'required_roles'):
             if not request.user.is_authenticated:
                 return HttpResponseForbidden()
-            if request.user.role not in view_func.required_roles:
+            if not role_matches(request.user.role, *view_func.required_roles):
                 return HttpResponseForbidden()
 
 

@@ -33,10 +33,10 @@ Always filter by role. Use this pattern consistently:
 
 ```python
 @login_required
-@role_required('student', 'staff', 'doctor', 'admin')
+@role_required('patient', 'staff', 'doctor', 'admin')  # legacy 'student' still accepted via core.roles
 def record_list(request):
     qs = MyModel.objects.all()
-    if request.user.role == 'student':
+    if role_matches(request.user.role, ROLE_PATIENT):
         qs = qs.filter(user=request.user)
     elif request.user.role in ('staff', 'doctor'):
         qs = qs.filter(doctor=request.user)

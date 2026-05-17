@@ -25,6 +25,7 @@ from .calendar_service import (
     parse_calendar_filters,
 )
 from core.decorators import role_required, admin_required
+from core.roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, role_matches
 from core.settings_service import get_clinic_settings
 from core.notification_delivery import notify_user
 from core.htmx_utils import is_htmx_request, htmx_add_toast, htmx_add_trigger
@@ -122,8 +123,8 @@ def _appointment_list_stat_filter_urls(get_params: QueryDict) -> dict[str, str]:
 
 
 def _appointment_list_base_queryset(user):
-    if user.role == 'student':
-        return Appointment.objects.filter(student=user)
+    if role_matches(user.role, ROLE_PATIENT):
+        return Appointment.objects.filter(patient=user)
     if user.role in ['staff', 'doctor']:
         return Appointment.objects.filter(doctor=user)
     if user.role == 'admin':
@@ -137,7 +138,7 @@ def _apply_appointment_list_filters(queryset, get_params, user, *, apply_status_
     date_to_str = get_params.get('date_to')
     doctor_id = get_params.get('doctor')
     appointment_type = get_params.get('appointment_type')
-    student_search = get_params.get('student_search')
+    patient_search = (get_params.get('patient_search') or '').strip()
 
     if apply_status_filter and status:
         queryset = queryset.filter(status=status)
@@ -153,11 +154,11 @@ def _apply_appointment_list_filters(queryset, get_params, user, *, apply_status_
         queryset = queryset.filter(doctor_id=doctor_id)
     if appointment_type:
         queryset = queryset.filter(appointment_type=appointment_type)
-    if student_search and user.role in ['doctor', 'staff']:
+    if patient_search and user.role in ['doctor', 'staff']:
         queryset = queryset.filter(
-            Q(student__first_name__icontains=student_search)
-            | Q(student__last_name__icontains=student_search)
-            | Q(student__student_profile__student_id__icontains=student_search)
+            Q(patient__first_name__icontains=patient_search)
+            | Q(patient__last_name__icontains=patient_search)
+            | Q(patient__patient_profile__patient_id__icontains=patient_search)
         )
 
     current_filters = {
@@ -166,7 +167,7 @@ def _apply_appointment_list_filters(queryset, get_params, user, *, apply_status_
         'date_to': date_to_str,
         'doctor': int(doctor_id) if doctor_id else None,
         'appointment_type': appointment_type,
-        'student_search': student_search,
+        'patient_search': patient_search,
     }
     return queryset, current_filters
 
@@ -190,7 +191,7 @@ def _build_appointment_list_context(user, get_params, list_request):
         base_qs, get_params, user, apply_status_filter=True
     )
     appointments_qs = (
-        appointments_qs.select_related('student', 'doctor', 'student__student_profile')
+        appointments_qs.select_related('patient', 'doctor', 'patient__patient_profile')
         .prefetch_related('dental_records', 'medicalrecord_set')
         .order_by('-created_at')
     )
@@ -233,7 +234,7 @@ def _appointment_list_htmx_oob_response(request, message, toast_type='success'):
 
 
 @login_required
-@role_required('student', 'staff', 'doctor', 'admin')
+@role_required('student', 'staff', 'doctor')
 def appointment_list(request):
     """Display list of appointments based on user role"""
     context = _build_appointment_list_context(request.user, request.GET, request)
@@ -319,8 +320,8 @@ def calendar_day_fragment(request):
 
 @login_required
 def schedule_appointment(request):
-    if request.user.role != 'student':
-        messages.error(request, 'Only students can schedule appointments')
+    if not role_matches(request.user.role, ROLE_PATIENT):
+        messages.error(request, 'Only patients can schedule appointments')
         return redirect('core:dashboard')
 
     form_data = {}
@@ -393,7 +394,7 @@ def schedule_appointment(request):
                               _get_schedule_context(form_data=form_data))
 
             appointment = Appointment.objects.create(
-                student=request.user,
+                patient=request.user,
                 doctor=doctor,
                 appointment_type=appointment_type,
                 date=appointment_date,
@@ -502,12 +503,12 @@ def _get_schedule_context(form_data=None):
 @role_required('student', 'staff', 'doctor', 'admin')
 def appointment_detail(request, appointment_id):
     appointment = get_object_or_404(
-        Appointment.objects.select_related('student', 'doctor').prefetch_related('dental_records', 'medicalrecord_set'),
+        Appointment.objects.select_related('patient', 'doctor').prefetch_related('dental_records', 'medicalrecord_set'),
         id=appointment_id,
     )
     
     # Check permissions (admin can view all)
-    if request.user.role == 'student' and appointment.student != request.user:
+    if role_matches(request.user.role, ROLE_PATIENT) and appointment.patient != request.user:
         messages.error(request, 'Access denied')
         return redirect('appointments:appointment_list')
     elif request.user.role in ['staff', 'doctor'] and appointment.doctor != request.user:
@@ -562,7 +563,7 @@ def appointment_detail(request, appointment_id):
                         'cancelled': 'appointment_cancelled',
                     }
                     notify_user(
-                        appointment.student,
+                        appointment.patient,
                         title='Appointment Update',
                         message=f'Your appointment status has been updated to {appointment.get_status_display()}',
                         notification_type='appointment',
@@ -572,7 +573,7 @@ def appointment_detail(request, appointment_id):
 
                 success_message = f'Appointment updated to {appointment.get_status_display()}.'
 
-        elif request.user.role == 'student' and appointment.student == request.user:
+        elif role_matches(request.user.role, ROLE_PATIENT) and appointment.patient == request.user:
             status = request.POST.get('status')
             if status == 'cancelled' and appointment.status in ['pending']:
                 from datetime import datetime as dt
@@ -627,7 +628,7 @@ def appointment_detail(request, appointment_id):
     from django.urls import reverse
     breadcrumbs = [
         {'label': 'Appointments', 'url': reverse('appointments:appointment_list')},
-        {'label': f'{appointment.student.get_full_name()} — {appointment.date.strftime("%b %d, %Y")}'},
+        {'label': f'{appointment.patient.get_full_name()} — {appointment.date.strftime("%b %d, %Y")}'},
     ]
     return render(request, 'appointments/appointment_detail.html', {
         'appointment': appointment,
@@ -796,29 +797,30 @@ def toggle_appointment_type_default(request, default_id):
     return redirect('appointments:appointment_type_settings')
 
 
-def _student_prefill_payload(student):
-    """JSON-serializable student row for schedule-for-student Alpine prefill."""
+def _patient_prefill_payload(patient):
+    """JSON-serializable patient row for schedule-for-patient Alpine prefill."""
     from core.utils import student_display_name
 
-    profile = getattr(student, 'student_profile', None)
+    profile = getattr(patient, 'patient_profile', None)
+    patient_id = getattr(profile, 'patient_id', '') or ''
     return {
-        'id': student.id,
-        'name': student_display_name(student),
-        'email': student.email or '',
-        'student_id': getattr(profile, 'student_id', '') or '',
+        'id': patient.id,
+        'name': student_display_name(patient),
+        'email': patient.email or '',
+        'patient_id': patient_id,
         'course': getattr(profile, 'course', '') or '',
         'year_level': str(getattr(profile, 'year_level', '') or ''),
     }
 
 
-def _schedule_for_student_redirect(student_id=None):
-    base = reverse('appointments:schedule_for_student')
-    if student_id:
-        return redirect(f'{base}?{urlencode({"student": student_id})}')
+def _schedule_for_patient_redirect(patient_id=None):
+    base = reverse('appointments:schedule_for_patient')
+    if patient_id:
+        return redirect(f'{base}?{urlencode({"patient": patient_id})}')
     return redirect(base)
 
 
-def _schedule_for_student_get_context(request, student_id_hint=None):
+def _schedule_for_patient_get_context(request, patient_id_hint=None):
     active_type_keys = set(
         AppointmentTypeDefault.objects
         .filter(is_active=True)
@@ -833,46 +835,44 @@ def _schedule_for_student_get_context(request, student_id_hint=None):
     else:
         appointment_types = Appointment.APPOINTMENT_TYPE_CHOICES
 
-    prefill_student = None
+    prefill_patient = None
     prefill_invalid = False
-    param = student_id_hint if student_id_hint is not None else request.GET.get('student')
+    param = patient_id_hint if patient_id_hint is not None else request.GET.get('patient')
     if param:
         try:
-            student = User.objects.select_related('student_profile').get(
+            patient = User.objects.select_related('patient_profile').get(
                 pk=int(param),
-                role='student',
+                role__in=PATIENT_ROLE_VALUES,
             )
-            prefill_student = _student_prefill_payload(student)
+            prefill_patient = _patient_prefill_payload(patient)
         except (User.DoesNotExist, ValueError, TypeError):
             prefill_invalid = True
 
     return {
         'appointment_types': appointment_types,
-        'prefill_student': prefill_student,
+        'prefill_patient': prefill_patient,
         'prefill_invalid': prefill_invalid,
-        'student_locked': prefill_student is not None,
+        'patient_locked': prefill_patient is not None,
     }
 
 
 @login_required
 @role_required('doctor', 'staff', 'admin')
-def schedule_for_student(request):
-    """
-    Allows staff and doctors to schedule an appointment for a student.
-    """
+def schedule_for_patient(request):
+    """Allows staff and doctors to schedule an appointment for a patient."""
     if request.method == 'POST':
-        student_id = request.POST.get('student')
+        patient_id = request.POST.get('patient')
         appointment_type = request.POST.get('appointment_type')
         date_str = request.POST.get('date')
         time_str = request.POST.get('time')
         reason = request.POST.get('reason')
 
-        if not all([student_id, appointment_type, date_str, time_str, reason]):
+        if not all([patient_id, appointment_type, date_str, time_str, reason]):
             messages.error(request, 'All fields are required.')
-            return _schedule_for_student_redirect(student_id)
+            return _schedule_for_patient_redirect(patient_id)
 
         try:
-            student = User.objects.get(id=student_id, role='student')
+            patient = User.objects.get(id=patient_id, role__in=PATIENT_ROLE_VALUES)
             doctor = request.user
             from datetime import datetime
             appointment_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -880,11 +880,11 @@ def schedule_for_student(request):
 
             if appointment_date < timezone.now().date():
                 messages.error(request, 'Cannot schedule appointments for past dates.')
-                return _schedule_for_student_redirect(student_id)
+                return _schedule_for_patient_redirect(patient_id)
 
             if appointment_date.weekday() >= 5:
                 messages.error(request, 'Appointments are not available on weekends.')
-                return _schedule_for_student_redirect(student_id)
+                return _schedule_for_patient_redirect(patient_id)
 
             # Validate appointment type is active
             type_default = AppointmentTypeDefault.objects.filter(
@@ -892,28 +892,28 @@ def schedule_for_student(request):
             ).first()
             if not type_default and AppointmentTypeDefault.objects.filter(appointment_type=appointment_type).exists():
                 messages.error(request, 'This appointment type is currently inactive.')
-                return _schedule_for_student_redirect(student_id)
+                return _schedule_for_patient_redirect(patient_id)
 
             # Interval-based conflict check for doctor (30-min buffer)
             is_available, conflicts = check_appointment_availability(doctor, appointment_date, appointment_time)
             if not is_available:
                 conflict_msg = format_conflict_message(doctor, conflicts)
                 messages.error(request, conflict_msg)
-                return _schedule_for_student_redirect(student_id)
+                return _schedule_for_patient_redirect(patient_id)
 
-            # Check for student conflict at same time
-            student_conflict = Appointment.objects.filter(
-                student=student,
+            # Check for patient conflict at same time
+            patient_conflict = Appointment.objects.filter(
+                patient=patient,
                 date=appointment_date,
                 time=appointment_time,
                 status__in=['pending', 'confirmed']
             ).exists()
-            if student_conflict:
-                messages.error(request, f'{student.get_full_name()} already has a pending or confirmed appointment at this time.')
-                return _schedule_for_student_redirect(student_id)
+            if patient_conflict:
+                messages.error(request, f'{patient.get_full_name()} already has a pending or confirmed appointment at this time.')
+                return _schedule_for_patient_redirect(patient_id)
 
             appointment = Appointment.objects.create(
-                student=student,
+                patient=patient,
                 doctor=doctor,
                 appointment_type=appointment_type,
                 date=appointment_date,
@@ -922,9 +922,8 @@ def schedule_for_student(request):
                 status='confirmed'  # Automatically confirmed
             )
 
-            # --- Create Notification for Student ---
             notify_user(
-                student,
+                patient,
                 title='Appointment Scheduled for You',
                 message=(
                     f'Dr. {doctor.get_full_name()} has scheduled a new appointment for you on '
@@ -935,17 +934,17 @@ def schedule_for_student(request):
                 related_id=appointment.id,
             )
 
-            messages.success(request, f'Appointment successfully scheduled for {student.get_full_name()}.')
+            messages.success(request, f'Appointment successfully scheduled for {patient.get_full_name()}.')
             return redirect('appointments:appointment_list')
 
         except User.DoesNotExist:
-            messages.error(request, 'Invalid student selected.')
+            messages.error(request, 'Invalid patient selected.')
         except ValueError:
             messages.error(request, 'Invalid date or time format.')
         except Exception as e:
             messages.error(request, f'An error occurred: {e}')
         
-        return _schedule_for_student_redirect(request.POST.get('student'))
+        return _schedule_for_patient_redirect(request.POST.get('patient'))
 
-    context = _schedule_for_student_get_context(request)
-    return render(request, 'appointments/schedule_for_student.html', context)
+    context = _schedule_for_patient_get_context(request)
+    return render(request, 'appointments/schedule_for_patient.html', context)

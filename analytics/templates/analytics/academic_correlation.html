@@ -43,7 +43,7 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
       {% include "components/stat_card.html" with label="Total visits" value=total_visits icon="fa-calendar-check" variant="primary" hint=period_hint %}
-      {% include "components/stat_card.html" with label="Students (5+ visits)" value=high_visit_students icon="fa-user-clock" variant="warning" hint="Possible absenteeism risk" %}
+      {% include "components/stat_card.html" with label="Patients (5+ visits)" value=high_visit_patients icon="fa-user-clock" variant="warning" hint="Possible absenteeism risk" %}
       {% include "components/stat_card.html" with label="Emergency visits" value=emergency_total icon="fa-truck-medical" variant="danger" hint="In period" %}
     </div>
 
@@ -53,7 +53,7 @@
           <h2 id="visitors-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
             <i class="fas fa-user-clock text-primary-500"></i>Frequent clinic visitors
           </h2>
-          <p class="mt-0.5 text-xs text-gray-500">Top students by appointment count — may indicate health-related absenteeism</p>
+          <p class="mt-0.5 text-xs text-gray-500">Top patients by appointment count — may indicate health-related absenteeism</p>
         </div>
         <a href="{% url 'analytics:population_health' %}?date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
           class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap shrink-0">Population →</a>
@@ -64,7 +64,7 @@
         <table class="min-w-full text-sm">
           <thead>
             <tr class="border-b border-gray-200">
-              <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Student</th>
+              <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Patient</th>
               <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Email</th>
               <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Course</th>
               <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Year</th>
@@ -75,11 +75,11 @@
             {% for v in frequent_visitors %}
             <tr class="hover:bg-gray-50/80">
               <td class="px-3 py-2.5 text-gray-900 font-medium whitespace-nowrap">
-                {{ v.student__first_name }} {{ v.student__last_name }}
+                {{ v.patient__first_name }} {{ v.patient__last_name }}
               </td>
-              <td class="px-3 py-2.5 text-gray-500 hidden md:table-cell truncate max-w-[12rem]">{{ v.student__email }}</td>
-              <td class="px-3 py-2.5 text-gray-700">{{ v.student__student_profile__course|default:"—" }}</td>
-              <td class="px-3 py-2.5 text-gray-700 whitespace-nowrap">{{ v.student__student_profile__year_level|default:"—" }}</td>
+              <td class="px-3 py-2.5 text-gray-500 hidden md:table-cell truncate max-w-[12rem]">{{ v.patient__email }}</td>
+              <td class="px-3 py-2.5 text-gray-700">{{ v.patient__patient_profile__course|default:"—" }}</td>
+              <td class="px-3 py-2.5 text-gray-700 whitespace-nowrap">{{ v.patient__patient_profile__year_level|default:"—" }}</td>
               <td class="px-3 py-2.5 text-right">
                 {% if v.visit_count >= 10 %}{% include "components/status_badge.html" with label=v.visit_count variant="danger" %}
                 {% elif v.visit_count >= 5 %}{% include "components/status_badge.html" with label=v.visit_count variant="warning" %}
@@ -106,7 +106,7 @@
       <ol class="space-y-2.5">
         {% for item in emergency_visits %}
         <li class="flex items-center justify-between gap-3 text-sm">
-          <span class="text-gray-800 truncate">{{ item.student__student_profile__course|default:"Unknown" }}</span>
+          <span class="text-gray-800 truncate">{{ item.patient__patient_profile__course|default:"Unknown" }}</span>
           {% include "components/status_badge.html" with label=item.count variant="danger" %}
         </li>
         {% endfor %}

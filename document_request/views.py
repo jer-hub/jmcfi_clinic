@@ -11,6 +11,7 @@ from django.utils.dateparse import parse_date
 
 from core.decorators import role_required
 from core.htmx_utils import is_htmx_request
+from core.roles import PATIENT_ROLE_VALUES, is_patient_role
 
 from .forms import ClinicianSignatureForm, MedicalCertificateForm, ProcessDocumentForm
 from .models import DocumentRequest, MedicalCertificate
@@ -43,6 +44,7 @@ from .services.policies import assert_can_download_pdf, assert_certificate_acces
 User = get_user_model()
 
 _DOCUMENT_REQUEST_ACCESS_ROLES = ('student', 'doctor', 'staff', 'admin')
+_DOCUMENT_REQUEST_LIST_ROLES = ('student', 'doctor', 'staff')
 _CLINICIAN_SIGNATURE_ROLES = ('doctor', 'staff', 'admin')
 _DOCUMENT_REQUEST_STATUS_KEYS = ('pending_review', 'completed', 'rejected')
 
@@ -78,23 +80,23 @@ def _service_error_message(exc: DocumentRequestServiceError) -> str:
 def _build_request_form_context(user, extra_context=None):
     context = {
         'certificate_types': ALLOWED_DOCUMENT_TYPES,
-        'is_doctor_flow': user_can_initiate_on_behalf(user) and user.role != 'student',
-        'students': (
-            User.objects.filter(role='student')
-            .select_related('student_profile')
+        'is_doctor_flow': user_can_initiate_on_behalf(user) and not is_patient_role(user.role),
+        'patients': (
+            User.objects.filter(role__in=PATIENT_ROLE_VALUES)
+            .select_related('patient_profile')
             .order_by('last_name', 'first_name')
-            if user_can_initiate_on_behalf(user) and user.role != 'student'
+            if user_can_initiate_on_behalf(user) and not is_patient_role(user.role)
             else None
         ),
     }
-    if hasattr(user, 'student_profile') and user.student_profile:
-        context['student_profile'] = user.student_profile
+    if hasattr(user, 'patient_profile') and user.patient_profile:
+        context['patient_profile'] = user.patient_profile
     if extra_context:
         context.update(extra_context)
     return context
 
 
-_REQUEST_DOCUMENT_ERROR_FIELD_ORDER = ('student_id', 'document_type', 'purpose', '__all__')
+_REQUEST_DOCUMENT_ERROR_FIELD_ORDER = ('patient_id', 'document_type', 'purpose', '__all__')
 
 
 def _request_document_form_message_list(messages_by_field: dict) -> list[str]:
@@ -126,23 +128,23 @@ def _request_document_page_context(
         'document_type': post.get('document_type') or post.get('certificate_type') or 'medical_certificate',
         'purpose': post.get('purpose', ''),
         'additional_info': post.get('additional_info', ''),
-        'student_id': post.get('student_id', ''),
+        'patient_id': post.get('patient_id', ''),
     }
-    if user_can_initiate_on_behalf(user) and user.role != 'student' and post.get('student_id'):
+    if user_can_initiate_on_behalf(user) and not is_patient_role(user.role) and post.get('patient_id'):
         try:
-            student = User.objects.select_related('student_profile').get(
-                pk=post['student_id'],
-                role='student',
+            patient = User.objects.select_related('patient_profile').get(
+                pk=post['patient_id'],
+                role__in=PATIENT_ROLE_VALUES,
             )
-            label = student.get_full_name() or student.email
-            sid = ''
-            if hasattr(student, 'student_profile') and student.student_profile:
-                sid = student.student_profile.student_id or ''
-            ctx['selected_student'] = {
-                'id': student.id,
+            label = patient.get_full_name() or patient.email
+            pid = ''
+            if hasattr(patient, 'patient_profile') and patient.patient_profile:
+                pid = patient.patient_profile.patient_id or ''
+            ctx['selected_patient'] = {
+                'id': patient.id,
                 'label': label,
-                'email': student.email,
-                'sid': sid,
+                'email': patient.email,
+                'pid': pid,
             }
         except User.DoesNotExist:
             pass
@@ -167,12 +169,12 @@ def _render_request_document(
 
 
 def _ensure_student_document_access(user, doc_request: DocumentRequest) -> None:
-    if user.role == 'student' and doc_request.student_id != user.id:
+    if is_patient_role(user.role) and doc_request.patient_id != user.id:
         raise PermissionDenied
 
 
 def _ensure_certificate_access(user, certificate: MedicalCertificate) -> None:
-    if user.role == 'student' and certificate.user_id != user.id:
+    if is_patient_role(user.role) and certificate.user_id != user.id:
         raise PermissionDenied
 
 
@@ -218,7 +220,7 @@ def clinician_signature(request):
 
 
 @login_required
-@role_required(*_DOCUMENT_REQUEST_ACCESS_ROLES)
+@role_required(*_DOCUMENT_REQUEST_LIST_ROLES)
 def document_requests(request):
     get_params = request.GET
     scoped_qs = get_document_requests_queryset(request.user)
@@ -280,16 +282,16 @@ def request_document(request):
         student = request.user
         field_errors = {}
 
-        if user_can_initiate_on_behalf(request.user) and request.user.role != 'student':
-            student_id = (post.get('student_id') or '').strip()
-            if not student_id:
-                field_errors['student_id'] = ['Please select a student from the search results.']
+        if user_can_initiate_on_behalf(request.user) and not is_patient_role(request.user.role):
+            patient_id = (post.get('patient_id') or '').strip()
+            if not patient_id:
+                field_errors['patient_id'] = ['Please select a patient from the search results.']
             else:
                 try:
-                    student = User.objects.get(pk=student_id, role='student')
+                    student = User.objects.get(pk=patient_id, role__in=PATIENT_ROLE_VALUES)
                 except User.DoesNotExist:
-                    field_errors['student_id'] = [
-                        'Please select a valid student from the search results.',
+                    field_errors['patient_id'] = [
+                        'Please select a valid patient from the search results.',
                     ]
 
         if not document_type:
@@ -310,12 +312,12 @@ def request_document(request):
             )
 
         if DocumentRequest.objects.filter(
-            student=student,
+            patient=student,
             document_type=document_type,
             status=DocumentRequest.Status.PENDING_REVIEW,
         ).exists():
             student_label = student.get_full_name() or student.email
-            if request.user.role == 'student':
+            if is_patient_role(request.user.role):
                 pending_msg = (
                     'You already have a pending medical certificate request. '
                     'Please wait for it to be processed before submitting another.'
@@ -340,7 +342,7 @@ def request_document(request):
                 additional_info=additional_info,
                 post=post,
             )
-            if request.user.role == 'student':
+            if is_patient_role(request.user.role):
                 success_msg = 'Your medical certificate request has been submitted successfully.'
             else:
                 student_label = student.get_full_name() or student.email
@@ -458,7 +460,7 @@ def document_request_detail(request, request_id):
 
 
 def _document_request_detail_response(request, doc_request, can_process, missing_signature):
-    is_student = request.user.role == 'student'
+    is_student = is_patient_role(request.user.role)
     if is_student:
         page_title = 'My Document Request'
         page_subtitle = 'Track your certificate request status'

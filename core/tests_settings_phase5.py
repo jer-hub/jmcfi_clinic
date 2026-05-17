@@ -16,7 +16,7 @@ class EmailNotificationDeliveryTests(TestCase):
         self.user = User.objects.create_user(
             email='email-notify@test.com',
             password='pw',
-            role='student',
+            role='patient',
         )
         clinic = ClinicSettings.load()
         clinic.enable_email_notifications = True

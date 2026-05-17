@@ -21,17 +21,17 @@
         </div>
     </a>
 
-    <!-- Students -->
-    <a href="{% url 'core:user_management' %}?role=student"
-       hx-get="{% url 'core:user_management' %}?role=student"
+    <!-- Patients -->
+    <a href="{% url 'core:user_management' %}?role=patient"
+       hx-get="{% url 'core:user_management' %}?role=patient"
        hx-target="#user-table-container"
        hx-swap="innerHTML"
        hx-push-url="true"
        class="block cursor-pointer relative group bg-gradient-to-br from-emerald-50 to-emerald-100/60 rounded-xl p-3.5 border border-emerald-200/60 shadow-sm hover:shadow-md hover:border-emerald-300 transition-all duration-200">
         <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
-                <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700/80">Students</p>
-                <p class="mt-1.5 text-2xl font-bold text-emerald-900">{{ stats.total_students }}</p>
+                <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700/80">Patients</p>
+                <p class="mt-1.5 text-2xl font-bold text-emerald-900">{{ stats.total_patients }}</p>
             </div>
             <div class="flex-shrink-0 p-2 rounded-lg bg-emerald-100/80 text-emerald-600">
                 <i class="fas fa-user-graduate text-lg"></i>

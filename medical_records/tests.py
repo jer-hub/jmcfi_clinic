@@ -1,4 +1,4 @@
-from datetime import date, time
+from datetime import date, time, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -23,7 +23,7 @@ class MedicalRecordsBadgeCountTests(TestCase):
 		self.student = User.objects.create_user(
 			email='student@example.com',
 			password='test-pass-123',
-			role='student',
+			role='patient',
 			first_name='Student',
 			last_name='One',
 		)
@@ -33,12 +33,12 @@ class MedicalRecordsBadgeCountTests(TestCase):
 		self.staff.staff_profile.phone = '09123456789'
 		self.staff.staff_profile.save(update_fields=['department', 'phone'])
 
-	def _create_appointment(self, status, hour, appointment_type='checkup'):
+	def _create_appointment(self, status, hour, appointment_type='checkup', *, appt_date=None):
 		return Appointment.objects.create(
-			student=self.student,
+			patient=self.student,
 			doctor=self.staff,
 			appointment_type=appointment_type,
-			date=date.today(),
+			date=appt_date or date.today(),
 			time=time(hour, 0),
 			reason=f'{status} reason',
 			status=status,
@@ -48,18 +48,18 @@ class MedicalRecordsBadgeCountTests(TestCase):
 		completed_with_record = self._create_appointment('completed', 9)
 		self._create_appointment('confirmed', 10)
 		self._create_appointment('cancelled', 11)
-		self._create_appointment('pending', 12)
+		self._create_appointment('pending', 9, appt_date=date.today() + timedelta(days=1))
 		self._create_appointment('completed', 13)
 
 		MedicalRecord.objects.create(
-			student=self.student,
+			patient=self.student,
 			doctor=self.staff,
 			appointment=completed_with_record,
 			diagnosis='Recovered',
 			treatment='Routine check',
 		)
 		MedicalRecord.objects.create(
-			student=self.student,
+			patient=self.student,
 			doctor=self.staff,
 			diagnosis='Observation',
 			treatment='Monitor symptoms',

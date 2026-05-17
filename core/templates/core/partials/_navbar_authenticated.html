@@ -1,4 +1,4 @@
-{% load static %}
+{% load static role_tags %}
 <nav class="site-nav-root bg-white border-b border-gray-200 sticky top-0 z-40"
   x-data="{ mobileOpen: false, mobilePanel: '', moreOpen: false }"
   @keydown.escape.window="
@@ -30,7 +30,7 @@
           <a href="{% url 'core:dashboard' %}" class="nav-link {% if nav_active.dashboard %}active{% endif %}">Dashboard</a>
           {% endif %}
 
-          {% if user.role == 'student' %}
+          {% if user|is_patient_role %}
             {% include 'core/partials/_navbar_services_desktop.html' with svc_role=user.role %}
             {% if role_features.show_health_tips_nav %}
             <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if nav_active.health_tips %}active{% endif %}">Health Tips</a>
@@ -213,7 +213,7 @@
         <a href="{% url 'core:dashboard' %}" class="mobile-link {% if nav_active.dashboard %}active{% endif %}">Dashboard</a>
         {% endif %}
 
-        {% if user.role == 'student' %}
+        {% if user|is_patient_role %}
           {% include 'core/partials/_navbar_services_mobile.html' with svc_role=user.role %}
           {% if role_features.show_health_tips_nav %}
           <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if nav_active.health_tips %}active{% endif %}">Health Tips</a>

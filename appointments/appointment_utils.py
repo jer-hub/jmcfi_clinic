@@ -1,14 +1,17 @@
 """Appointment scheduling utility functions for interval-based conflict detection."""
 
 from datetime import datetime, timedelta
-from django.conf import settings
+
 from django.db.models import Q
+
+from core.settings_service import get_appointment_interval_minutes as clinic_interval_minutes
+
 from .models import Appointment
 
 
 def get_appointment_interval_minutes():
     """Get configured appointment buffer interval in minutes."""
-    return getattr(settings, 'APPOINTMENT_INTERVAL_MINUTES', 30)
+    return clinic_interval_minutes()
 
 
 def get_time_conflict_query(date, time, interval_minutes=None):

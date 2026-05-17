@@ -1,0 +1,23 @@
+{% comment %}
+  Settings hub navigation card.
+
+  Context:
+    card – {title, description, url, icon, icon_wrap, meta?}
+{% endcomment %}
+<a href="{{ card.url }}"
+   class="group flex h-full items-center justify-between gap-3 bg-white border border-gray-200 rounded-card shadow-sm p-5 hover:border-primary-300 hover:shadow-md transition-all">
+  <div class="flex min-w-0 flex-1 items-start gap-3">
+    <span class="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl {{ card.icon_wrap }}">
+      <i class="fas {{ card.icon }} text-lg" aria-hidden="true"></i>
+    </span>
+    <div class="min-w-0">
+      <h2 class="text-base font-semibold text-gray-900 group-hover:text-primary-700">{{ card.title }}</h2>
+      <p class="mt-1 text-sm text-gray-500">{{ card.description }}</p>
+      {% if card.meta %}
+        <p class="mt-2 text-xs text-gray-400">{{ card.meta }}</p>
+      {% endif %}
+    </div>
+  </div>
+  <i class="fas fa-chevron-right flex-shrink-0 text-sm text-gray-300 transition-colors group-hover:text-primary-500"
+     aria-hidden="true"></i>
+</a>

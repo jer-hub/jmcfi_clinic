@@ -1,0 +1,19 @@
+{% extends "core/base.html" %}
+
+{% block title %}Maintenance - {{ clinic_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-[60vh] flex items-center justify-center px-4 py-16">
+  <div class="max-w-lg w-full text-center">
+    <span class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-warning-100 text-warning-600 mb-6">
+      <i class="fas fa-wrench text-2xl"></i>
+    </span>
+    <h1 class="text-2xl font-bold text-gray-900">Under maintenance</h1>
+    <p class="mt-4 text-gray-600">{{ maintenance_message }}</p>
+    <p class="mt-6 text-sm text-gray-500">
+      Clinic staff with admin access can still sign in.
+      <a href="{% url 'core:admin_login' %}" class="text-primary-600 hover:text-primary-700 font-medium">Admin login</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

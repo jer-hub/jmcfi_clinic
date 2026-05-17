@@ -31,9 +31,15 @@ def _complete_staff_like_profile(user, staff_id):
 	user._state.fields_cache.pop('staff_profile', None)
 
 
-class GoogleOnlyAdapterDomainPolicyTests(SimpleTestCase):
+class GoogleOnlyAdapterDomainPolicyTests(TestCase):
 	def setUp(self):
 		self.adapter = GoogleOnlyAdapter()
+		from core.models import ClinicSettings
+		from core.settings_service import invalidate_settings_cache
+		clinic = ClinicSettings.load()
+		clinic.google_allowed_domains = ''
+		clinic.save(update_fields=['google_allowed_domains'])
+		invalidate_settings_cache()
 
 	@override_settings(GOOGLE_ALLOWED_DOMAINS=[])
 	def test_allows_any_email_when_domain_list_empty(self):

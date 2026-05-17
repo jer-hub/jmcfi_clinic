@@ -1,4 +1,5 @@
 from .models import Notification
+from .settings_service import get_clinic_settings, get_role_features, get_user_preferences
 from .utils import is_profile_complete, get_missing_profile_fields
 
 
@@ -51,3 +52,46 @@ def profile_context(request):
         'missing_profile_fields': [],
         'profile_completion_required': False
     }
+
+
+def clinic_settings_context(request):
+    """Expose clinic branding and maintenance flags to all templates."""
+    try:
+        clinic = get_clinic_settings()
+    except Exception:
+        return {
+            'clinic_name': 'JMCFI Clinic',
+            'clinic_logo_url': None,
+            'maintenance_mode': False,
+            'maintenance_message': '',
+        }
+
+    logo_url = clinic.logo.url if clinic.logo else None
+    return {
+        'clinic_name': clinic.clinic_name,
+        'clinic_logo_url': logo_url,
+        'maintenance_mode': clinic.maintenance_mode,
+        'maintenance_message': clinic.maintenance_message,
+    }
+
+
+def role_features_context(request):
+    """Expose per-role feature flags for templates (nav, links)."""
+    user = getattr(request, 'user', None)
+    if not user or not user.is_authenticated:
+        return {'role_features': {}}
+    try:
+        return {'role_features': get_role_features(user.role)}
+    except ValueError:
+        return {'role_features': {}}
+
+
+def user_preferences_context(request):
+    """UI preferences for authenticated users."""
+    user = getattr(request, 'user', None)
+    if not user or not user.is_authenticated:
+        return {'user_compact_nav': False}
+    try:
+        return {'user_compact_nav': get_user_preferences(user).compact_nav}
+    except Exception:
+        return {'user_compact_nav': False}

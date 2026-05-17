@@ -3,8 +3,8 @@
 {% block title %}Appointment Type Settings{% endblock title %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-    {% include 'appointments/_subnav.html' %}
+{% include "core/settings/_page_open.html" %}
+    {% include "core/settings/_subnav.html" %}
 
     {% include "components/page_header.html" with title="Appointment Type Settings" subtitle="Assign doctors to each appointment type. Students only see assigned doctors when booking." icon="fa-sliders" %}
 
@@ -24,7 +24,7 @@
             {% include "components/empty_state.html" with icon="fa-sliders" title="No appointment types" description="No appointment types are configured yet." %}
         {% endfor %}
     </div>
-</div>
+{% include "core/settings/_page_close.html" %}
 
 {% include 'appointments/appointment_settings/_shared_scripts.html' %}
 

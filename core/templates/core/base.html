@@ -94,6 +94,25 @@
         color: #111827;
       }
 
+      body.compact-nav .site-nav-row {
+        height: 3rem;
+      }
+
+      body.compact-nav .nav-link {
+        height: 2rem;
+        padding: 0 0.5rem;
+        font-size: 0.8125rem;
+      }
+
+      body.compact-nav .jmc-logo {
+        height: 1.75rem;
+        width: 1.75rem;
+      }
+
+      body.compact-nav .site-nav-brand {
+        font-size: 1rem;
+      }
+
       .mobile-link {
         display: block;
         padding: 0.625rem 0.875rem;
@@ -441,7 +460,7 @@
     {% block head %}
     {% endblock %}
   </head>
-  <body class="bg-gray-50" data-authenticated="{% if user.is_authenticated %}true{% endif %}">
+  <body class="bg-gray-50{% if user_compact_nav %} compact-nav{% endif %}" data-authenticated="{% if user.is_authenticated %}true{% endif %}">
     {% if user.is_authenticated %}
       {% include 'core/partials/_navbar_authenticated.html' %}
 

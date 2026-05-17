@@ -7,12 +7,9 @@ from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError
 from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
-from .profile_policy import (
-    STUDENT_PROFILE_REQUIRED_FIELDS,
-    STAFF_PROFILE_REQUIRED_FIELDS,
-    DOCTOR_PROFILE_REQUIRED_FIELDS,
-    ADMIN_PROFILE_REQUIRED_FIELDS,
-)
+from .settings_service import get_profile_required_fields
+
+USER_PROFILE_FIELDS = frozenset({'first_name', 'last_name'})
 
 User = get_user_model()
 
@@ -104,56 +101,36 @@ def get_user_profile(user):
     return None
 
 
+def _profile_field_value(user, profile, field):
+    if field in USER_PROFILE_FIELDS:
+        return getattr(user, field, None)
+    if profile is None:
+        return None
+    return getattr(profile, field, None)
+
+
+def _profile_field_filled(value) -> bool:
+    if value is None:
+        return False
+    if isinstance(value, str):
+        return bool(value.strip())
+    return True
+
+
 def is_profile_complete(user):
-    """Check if user's profile is complete with all required fields"""
+    """Check if user's profile has all fields required for their role."""
     try:
         profile = get_user_profile(user)
-        
         if not profile:
             return False
 
-        if user.role == 'student':
-            return is_student_profile_complete(profile)
-        elif user.role == 'staff':
-            return is_staff_profile_complete(profile)
-        elif user.role == 'doctor':
-            return is_doctor_profile_complete(profile)
-        elif user.role == 'admin':
-            return is_staff_profile_complete(profile)
-        
+        required_fields = get_profile_required_fields(user.role)
+        for field in required_fields:
+            if not _profile_field_filled(_profile_field_value(user, profile, field)):
+                return False
         return True
     except Exception:
         return False
-
-
-def is_student_profile_complete(profile):
-    """Check if student profile is complete with all required fields"""
-    for field in STUDENT_PROFILE_REQUIRED_FIELDS:
-        value = getattr(profile, field, None)
-        if not value or (isinstance(value, str) and not value.strip()):
-            return False
-    
-    return True
-
-
-def is_staff_profile_complete(profile):
-    """Check if staff profile is complete with all required fields"""
-    for field in STAFF_PROFILE_REQUIRED_FIELDS:
-        value = getattr(profile, field, None)
-        if not value or (isinstance(value, str) and not value.strip()):
-            return False
-    
-    return True
-
-
-def is_doctor_profile_complete(profile):
-    """Check if doctor profile is complete with all required fields"""
-    for field in DOCTOR_PROFILE_REQUIRED_FIELDS:
-        value = getattr(profile, field, None)
-        if not value or (isinstance(value, str) and not value.strip()):
-            return False
-
-    return True
 
 
 # Human-readable labels for profile fields shown on the "profile required" page
@@ -180,39 +157,19 @@ FIELD_LABELS = {
     'position':          'Position / Title',
 }
 
-# Required fields per role
-STUDENT_REQUIRED = STUDENT_PROFILE_REQUIRED_FIELDS
-STAFF_REQUIRED = STAFF_PROFILE_REQUIRED_FIELDS
-DOCTOR_REQUIRED = DOCTOR_PROFILE_REQUIRED_FIELDS
-ADMIN_REQUIRED = ADMIN_PROFILE_REQUIRED_FIELDS
-
-
 def get_missing_profile_fields(user):
     """Return a list of (field_name, friendly_label) tuples for missing required fields."""
     profile = get_user_profile(user)
-
-    if user.role == 'student':
-        required_fields = STUDENT_REQUIRED
-    elif user.role == 'staff':
-        required_fields = STAFF_REQUIRED
-    elif user.role == 'doctor':
-        required_fields = DOCTOR_REQUIRED
-    elif user.role == 'admin':
-        required_fields = ADMIN_REQUIRED
-    else:
+    required_fields = get_profile_required_fields(user.role)
+    if not required_fields:
         return []
 
     if not profile:
-        # Profile doesn't exist yet — all required fields are missing
         return [(f, FIELD_LABELS.get(f, f.replace('_', ' ').title())) for f in required_fields]
 
     missing = []
     for field in required_fields:
-        if field in {'first_name', 'last_name'}:
-            value = getattr(user, field, None)
-        else:
-            value = getattr(profile, field, None)
-        if not value or (isinstance(value, str) and not value.strip()):
+        if not _profile_field_filled(_profile_field_value(user, profile, field)):
             missing.append((field, FIELD_LABELS.get(field, field.replace('_', ' ').title())))
     return missing
 
@@ -412,28 +369,43 @@ def student_display_name(student):
     return title_case_name(fallback) if fallback else student.email
 
 
+def user_wants_in_app_notifications(user) -> bool:
+    """Whether the user accepts in-app notification records."""
+    if not getattr(user, 'is_authenticated', False):
+        return False
+    try:
+        from .settings_service import get_user_preferences
+
+        return get_user_preferences(user).in_app_notifications
+    except Exception:
+        return True
+
+
 def create_notification(user, title, message, notification_type='general', related_id=None, transaction_type=None):
-    """
-    Helper function to create notifications
-    """
+    """Create an in-app notification when the user has not opted out."""
+    if not user_wants_in_app_notifications(user):
+        return None
+
     from .models import Notification
-    
+
     return Notification.objects.create(
         user=user,
         title=title,
         message=message,
         notification_type=notification_type,
         related_id=related_id,
-        transaction_type=transaction_type
+        transaction_type=transaction_type,
     )
 
 
 def create_bulk_notifications(users, title, message, notification_type='general', related_id=None, transaction_type=None):
-    """
-    Create notifications for multiple users
-    """
+    """Create in-app notifications for users who have not opted out."""
     from .models import Notification
-    
+
+    recipients = [user for user in users if user_wants_in_app_notifications(user)]
+    if not recipients:
+        return []
+
     notifications = [
         Notification(
             user=user,
@@ -441,35 +413,41 @@ def create_bulk_notifications(users, title, message, notification_type='general'
             message=message,
             notification_type=notification_type,
             related_id=related_id,
-            transaction_type=transaction_type
+            transaction_type=transaction_type,
         )
-        for user in users
+        for user in recipients
     ]
     return Notification.objects.bulk_create(notifications)
 
 
 def notify_all_students(title, message, notification_type='general', related_id=None, transaction_type=None):
-    """
-    Send notification to all students
-    """
+    """Send notification to all students (in-app and email per preferences)."""
+    from .notification_delivery import deliver_bulk_notifications
+
     students = User.objects.filter(role='student')
-    return create_bulk_notifications(students, title, message, notification_type, related_id, transaction_type)
+    return deliver_bulk_notifications(
+        students, title, message, notification_type, related_id, transaction_type
+    )
 
 
 def notify_all_staff(title, message, notification_type='general', related_id=None, transaction_type=None):
-    """
-    Send notification to all staff
-    """
+    """Send notification to all staff (in-app and email per preferences)."""
+    from .notification_delivery import deliver_bulk_notifications
+
     staff = User.objects.filter(role__in=['staff', 'doctor'])
-    return create_bulk_notifications(staff, title, message, notification_type, related_id, transaction_type)
+    return deliver_bulk_notifications(
+        staff, title, message, notification_type, related_id, transaction_type
+    )
 
 
 def notify_all_users(title, message, notification_type='general', related_id=None, transaction_type=None):
-    """
-    Send notification to all users
-    """
+    """Send notification to all users (in-app and email per preferences)."""
+    from .notification_delivery import deliver_bulk_notifications
+
     users = User.objects.filter(role__in=['student', 'staff'])
-    return create_bulk_notifications(users, title, message, notification_type, related_id, transaction_type)
+    return deliver_bulk_notifications(
+        users, title, message, notification_type, related_id, transaction_type
+    )
 
 
 def get_dashboard_stats(user):

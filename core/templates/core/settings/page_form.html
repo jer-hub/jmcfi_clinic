@@ -1,0 +1,17 @@
+{% extends "core/base.html" %}
+{% comment %}
+  Settings create/edit form layout — flush under main navbar (no top padding).
+{% endcomment %}
+
+{% block title %}{% block page_title %}{% endblock %}{% endblock %}
+
+{% block content %}
+{% include "core/settings/_page_open.html" %}
+  {% block subnav %}{% endblock %}
+  {% block page_header %}{% endblock %}
+  {% block form_open %}<form method="post" novalidate>{% csrf_token %}{% endblock %}
+    {% block form_body %}{% endblock %}
+    {% block submit_bar %}{% endblock %}
+  {% block form_close %}</form>{% endblock %}
+{% include "core/settings/_page_close.html" %}
+{% endblock %}

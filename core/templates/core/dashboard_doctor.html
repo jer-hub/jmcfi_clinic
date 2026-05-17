@@ -3,8 +3,8 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   {% include "components/stat_card.html" with label="Today's Appointments" value=today_appointments.count icon="fa-calendar-day" variant="primary" hint="Scheduled today" href=appointment_list_today_url %}
   {% include "components/stat_card.html" with label="Pending Appointments" value=pending_appointments icon="fa-clock" variant="warning" hint="Awaiting confirmation" href=appointment_list_pending_url %}
-  {% include "components/stat_card.html" with label="Total Patients" value=total_patients icon="fa-users" variant="success" hint="Registered patients" %}
   {% include "components/stat_card.html" with label="Pending Certificates" value=pending_certificates icon="fa-file-circle-question" variant="info" hint="Awaiting your action" %}
+  {% include "components/stat_card.html" with label="Total Patients" value=total_patients icon="fa-users" variant="success" hint="Registered patients" %}
 </div>
 
 <div class="bg-white rounded-card shadow-sm border border-gray-200 mb-6">

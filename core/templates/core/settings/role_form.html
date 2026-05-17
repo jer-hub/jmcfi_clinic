@@ -1,0 +1,60 @@
+{% extends "core/settings/page_form.html" %}
+
+{% block page_title %}{{ role_label }} Settings - {{ clinic_name }}{% endblock %}
+
+{% block subnav %}{% include "core/settings/_subnav.html" %}{% endblock %}
+
+{% block page_header %}
+  {% url 'core:settings_roles' as roles_url %}
+  {% include "components/page_header.html" with title=role_label subtitle="Session, profile policy, and feature access for this role." icon="fa-user-gear" back_url=roles_url back_label="All roles" %}
+{% endblock %}
+
+{% block form_open %}
+<form method="post" novalidate>{% csrf_token %}
+{% endblock %}
+
+{% block form_body %}
+  {% if form.non_field_errors %}
+    <div class="mb-4 rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900">Session</h3>
+    </header>
+    <div class="px-6 py-5">
+      {% include "components/forms/field.html" with field=form.session_timeout_hours icon="fa-hourglass-half" %}
+    </div>
+  </section>
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900">Profile completion</h3>
+      <p class="mt-1 text-sm text-gray-500">Field names must match User or profile model attributes.</p>
+    </header>
+    <div class="px-6 py-5">
+      {% include "components/forms/field.html" with field=form.profile_required_fields_text %}
+    </div>
+  </section>
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900">Feature access</h3>
+    </header>
+    <div class="px-6 py-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {% include "components/forms/field.html" with field=form.can_access_analytics %}
+      {% include "components/forms/field.html" with field=form.can_submit_feedback %}
+      {% include "components/forms/field.html" with field=form.can_use_messaging %}
+      {% include "components/forms/field.html" with field=form.can_book_appointments %}
+      {% include "components/forms/field.html" with field=form.block_clinical_namespaces %}
+      {% include "components/forms/field.html" with field=form.show_health_tips_nav %}
+    </div>
+  </section>
+{% endblock %}
+
+{% block submit_bar %}
+  {% url 'core:settings_roles' as roles_url %}
+  {% include "components/forms/submit_bar.html" with submit_label="Save role settings" cancel_url=roles_url cancel_label="Back to roles" %}
+{% endblock %}

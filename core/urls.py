@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import user_mgmt_views
+from . import settings_views
 
 app_name = "core"
 
@@ -25,6 +26,7 @@ urlpatterns = [
     path('profile/edit/', views.edit_profile, name='edit_profile'),
     path('profile/quick-edit/', views.quick_edit_profile, name='quick_edit_profile'),
     path('profile/required/', views.profile_required, name='profile_required'),
+    path('profile/preferences/', settings_views.profile_preferences, name='profile_preferences'),
     
     # User Management (Admin Only)
     path('users/', views.user_management, name='user_management'),
@@ -49,4 +51,11 @@ urlpatterns = [
     
     # Search
     path('search/students/', views.search_students, name='search_students'),
+
+    # System settings (admin)
+    path('settings/', settings_views.settings_hub, name='settings_hub'),
+    path('settings/clinic/', settings_views.settings_clinic, name='settings_clinic'),
+    path('settings/roles/', settings_views.settings_roles, name='settings_roles'),
+    path('settings/roles/<str:role>/', settings_views.settings_role_edit, name='settings_role_edit'),
+    path('settings/audit/', settings_views.settings_audit, name='settings_audit'),
 ]

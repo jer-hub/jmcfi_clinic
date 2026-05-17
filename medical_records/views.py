@@ -17,7 +17,7 @@ from django.db import transaction
 from django.db.models import Q
 
 from .models import MedicalRecord
-from core.models import Notification
+from core.notification_delivery import notify_user
 from appointments.models import Appointment
 from core.decorators import role_required
 from dental_records.models import DentalRecord
@@ -830,13 +830,13 @@ def create_medical_record(request, appointment_id):
                 locked_appointment.save(update_fields=['status', 'updated_at'])
             
             # Create notification for student
-            Notification.objects.create(
-                user=appointment.student,
+            notify_user(
+                appointment.student,
                 title='Medical Record Created',
                 message=f'Your medical record from your appointment on {appointment.date.strftime("%B %d, %Y")} is now available',
                 notification_type='general',
                 transaction_type='medical_record_created',
-                related_id=medical_record.id
+                related_id=medical_record.id,
             )
             
             messages.success(request, 'Medical record created successfully!')
@@ -904,8 +904,8 @@ def create_medical_record_for_student(request):
                     medical_record,
                 )
 
-            Notification.objects.create(
-                user=student,
+            notify_user(
+                student,
                 title='Medical Record Created',
                 message='A new medical record has been created for you by the clinic.',
                 notification_type='general',

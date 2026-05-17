@@ -1,18 +1,21 @@
 # middleware.py
 import datetime
-from django.http import HttpResponseForbidden
-from django.shortcuts import redirect
-from django.urls import reverse
+
 from django.contrib import messages
-from django.conf import settings
+from django.http import HttpResponseForbidden
+from django.shortcuts import redirect, render
 from django.utils import timezone
-from .utils import get_user_profile
-from .profile_policy import (
-    STUDENT_PROFILE_REQUIRED_FIELDS,
-    STAFF_PROFILE_REQUIRED_FIELDS,
-    DOCTOR_PROFILE_REQUIRED_FIELDS,
-    ADMIN_PROFILE_REQUIRED_FIELDS,
+
+from .feature_access import (
+    feature_denied_message,
+    feature_denied_redirect_target,
+    get_denied_feature_for_request,
 )
+from .settings_service import (
+    get_clinic_settings,
+    get_effective_session_timeout,
+)
+from .utils import is_profile_complete
 
 
 class UserActivityMiddleware:
@@ -21,16 +24,20 @@ class UserActivityMiddleware:
     Updates last_activity_at for authenticated users periodically.
     Uses the session to avoid hitting the database on every request.
     """
+
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
         if request.user.is_authenticated:
-            # Only update every 5 minutes to avoid DB hits on every request
             last_update = request.session.get('last_activity_update')
             now = timezone.now()
-            if not last_update or (now - timezone.datetime.fromtimestamp(last_update, tz=datetime.timezone.utc)).seconds > 300:
-                User = __import__('django.contrib.auth', fromlist=['get_user_model']).get_user_model()
+            if not last_update or (
+                now - timezone.datetime.fromtimestamp(last_update, tz=datetime.timezone.utc)
+            ).seconds > 300:
+                User = __import__(
+                    'django.contrib.auth', fromlist=['get_user_model']
+                ).get_user_model()
                 User.objects.filter(id=request.user.id).update(last_activity_at=now)
                 request.session['last_activity_update'] = now.timestamp()
 
@@ -38,32 +45,90 @@ class UserActivityMiddleware:
 
 
 class SessionTimeoutMiddleware:
-    """
-    Middleware to set role-specific session timeouts
-    Admin: 12 hours
-    Staff: 24 hours  
-    Student: 24 hours
-    """
+    """Set session expiry from RoleSettings (see core.settings_service)."""
+
     def __init__(self, get_response):
         self.get_response = get_response
-        # Define session timeouts in seconds
-        self.role_timeouts = {
-            'admin': 43200,    # 12 hours
-            'doctor': 86400,   # 24 hours
-            'staff': 86400,    # 24 hours
-            'student': 86400,  # 24 hours
-        }
 
     def __call__(self, request):
-        # Set session timeout based on user role
         if request.user.is_authenticated:
-            user_role = getattr(request.user, 'role', None)
-            if user_role in self.role_timeouts:
-                timeout = self.role_timeouts[user_role]
-                request.session.set_expiry(timeout)
-        
-        response = self.get_response(request)
-        return response
+            request.session.set_expiry(get_effective_session_timeout(request.user))
+
+        return self.get_response(request)
+
+
+class MaintenanceModeMiddleware:
+    """
+    When clinic maintenance mode is enabled, block non-admin users.
+    Admins and auth/static paths remain available.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+        self.exempt_prefixes = (
+            '/static/',
+            '/media/',
+            '/accounts/',
+            '/admin/',
+            '/auth/admin-login/',
+        )
+
+    def __call__(self, request):
+        try:
+            clinic = get_clinic_settings()
+        except Exception:
+            return self.get_response(request)
+
+        if not clinic.maintenance_mode:
+            return self.get_response(request)
+
+        if request.user.is_authenticated and getattr(request.user, 'role', None) == 'admin':
+            return self.get_response(request)
+
+        path = request.path
+        if any(path.startswith(prefix) for prefix in self.exempt_prefixes):
+            return self.get_response(request)
+
+        message = clinic.maintenance_message or (
+            'The clinic system is temporarily unavailable for maintenance. '
+            'Please try again later.'
+        )
+        return render(
+            request,
+            'core/maintenance.html',
+            {'maintenance_message': message, 'clinic_name': clinic.clinic_name},
+            status=503,
+        )
+
+
+class RoleFeatureAccessMiddleware:
+    """Block URLs when the user's role has the feature disabled in RoleSettings."""
+
+    EXEMPT_PREFIXES = (
+        '/static/',
+        '/media/',
+        '/accounts/',
+        '/admin/',
+        '/auth/admin-login/',
+    )
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        return self.get_response(request)
+
+    def process_view(self, request, view_func, view_args, view_kwargs):
+        if not request.user.is_authenticated:
+            return None
+        path = request.path
+        if any(path.startswith(prefix) for prefix in self.EXEMPT_PREFIXES):
+            return None
+        denied_flag = get_denied_feature_for_request(request)
+        if denied_flag:
+            messages.error(request, feature_denied_message(denied_flag))
+            return redirect(feature_denied_redirect_target(request.user))
+        return None
 
 
 class RoleMiddleware:
@@ -76,7 +141,6 @@ class RoleMiddleware:
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         if hasattr(view_func, 'required_roles'):
-            # Skip check if user is not authenticated
             if not request.user.is_authenticated:
                 return HttpResponseForbidden()
             if request.user.role not in view_func.required_roles:
@@ -85,44 +149,30 @@ class RoleMiddleware:
 
 class ProfileCompleteMiddleware:
     """
-    Middleware that blocks ALL service access for authenticated users who have
-    not completed their required profile fields (including License Number and
-    PTR No. for clinical staff/doctors).
-
-    The check runs in __call__ so it covers every HTTP request – regular page
-    loads, AJAX calls, form submissions, redirects – not just Django view
-    functions.
+    Middleware that blocks service access until required profile fields are complete.
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
 
-        # Exact URL paths that are always allowed (profile edit + auth flows)
         self.exempt_urls = [
             '/profile/edit/',
             '/profile/required/',
+            '/profile/preferences/',
             '/logout/',
         ]
 
-        # URL prefixes that are always allowed
         self.exempt_patterns = [
             '/media/',
             '/static/',
-            '/accounts/',   # allauth: login, logout, signup, password-reset …
-            '/admin/',      # Django admin (admins are already skipped by role)
+            '/accounts/',
+            '/admin/',
         ]
 
-    # ------------------------------------------------------------------
-    # Primary intercept – runs on EVERY request
-    # ------------------------------------------------------------------
     def __call__(self, request):
-        if (
-            request.user.is_authenticated
-                        and not self._is_exempt_url(request.path)
-        ):
-            # Recompute on every request so stale session values cannot bypass enforcement.
+        if request.user.is_authenticated and not self._is_exempt_url(request.path):
             session_key = f'profile_complete_{request.user.id}_{request.user.role}'
-            profile_complete = self._is_profile_complete(request.user)
+            profile_complete = is_profile_complete(request.user)
             request.session[session_key] = profile_complete
 
             if not profile_complete:
@@ -131,71 +181,6 @@ class ProfileCompleteMiddleware:
         return self.get_response(request)
 
     def _is_exempt_url(self, path):
-        """Check if the URL is exempt from profile completion requirement"""
-        # Check exact matches
         if path in self.exempt_urls:
             return True
-
-        # Check pattern matches
-        for pattern in self.exempt_patterns:
-            if path.startswith(pattern):
-                return True
-                
-        return False
-
-    def _is_profile_complete(self, user):
-        """Check if user's profile is complete"""
-        try:
-            profile = get_user_profile(user)
-            
-            if not profile:
-                return False
-
-            if user.role == 'student':
-                return self._is_student_profile_complete(user, profile)
-            elif user.role == 'staff':
-                return self._is_staff_profile_complete(user, profile)
-            elif user.role == 'doctor':
-                return self._is_doctor_profile_complete(user, profile)
-            elif user.role == 'admin':
-                return self._is_admin_profile_complete(user, profile)
-            
-            return True
-        except Exception:
-            return False
-
-    def _is_student_profile_complete(self, user, profile):
-        """Check if student profile is complete with all required fields"""
-        for field in STUDENT_PROFILE_REQUIRED_FIELDS:
-            value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
-            if not value or (isinstance(value, str) and not value.strip()):
-                return False
-        
-        return True
-
-    def _is_staff_profile_complete(self, user, profile):
-        """Check if staff profile is complete with all required fields"""
-        for field in STAFF_PROFILE_REQUIRED_FIELDS:
-            value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
-            if not value or (isinstance(value, str) and not value.strip()):
-                return False
-        
-        return True
-
-    def _is_doctor_profile_complete(self, user, profile):
-        """Check if doctor profile is complete with all required fields"""
-        for field in DOCTOR_PROFILE_REQUIRED_FIELDS:
-            value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
-            if not value or (isinstance(value, str) and not value.strip()):
-                return False
-
-        return True
-
-    def _is_admin_profile_complete(self, user, profile):
-        """Check if admin profile is complete with all required fields"""
-        for field in ADMIN_PROFILE_REQUIRED_FIELDS:
-            value = getattr(user, field, None) if field in {'first_name', 'last_name'} else getattr(profile, field, None)
-            if not value or (isinstance(value, str) and not value.strip()):
-                return False
-
-        return True
+        return any(path.startswith(pattern) for pattern in self.exempt_patterns)

@@ -1,0 +1,47 @@
+{% comment %}
+  Dental history form — grouped sections aligned with detail/student view.
+{% endcomment %}
+<div class="space-y-6"
+     x-data="{
+       first_dental_visit: {{ toggles.first_dental_visit|yesno:'true,false' }},
+       teeth_extracted: {{ toggles.teeth_extracted|yesno:'true,false' }},
+       anesthesia_allergy: {{ toggles.anesthesia_allergy|yesno:'true,false' }},
+       dental_appliance: {{ toggles.dental_appliance|yesno:'true,false' }},
+       pain_discomfort: {{ toggles.pain_discomfort|yesno:'true,false' }}
+     }"
+     @change="if ($event.target.type === 'checkbox' && $event.target.name in $data) { $data[$event.target.name] = $event.target.checked }">
+  {% for section in sections %}
+  <section>
+    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+      <i class="fas {{ section.icon }} {{ section.icon_class }} text-sm" aria-hidden="true"></i>
+      <h3 class="text-sm font-semibold text-gray-800">{{ section.title }}</h3>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for field in section.fields %}
+        {% with bound=field.bound %}
+        {% if field.kind == 'checkbox' %}
+        <div class="{% if field.full_width %}md:col-span-2{% endif %}">
+          <label for="{{ bound.id_for_label }}"
+                 class="flex items-center gap-2.5 p-3 rounded-lg border border-gray-200 bg-gray-50/60 text-sm text-gray-800 cursor-pointer transition-colors hover:border-primary-200 hover:bg-white has-[:checked]:border-primary-300 has-[:checked]:bg-primary-50/70">
+            {{ bound }}
+            <span class="font-medium">{{ field.display_label }}</span>
+          </label>
+          {% include 'partials/field_errors.html' with errors=bound.errors %}
+        </div>
+        {% else %}
+        <div class="{% if field.full_width %}md:col-span-2{% endif %}"
+             {% if field.hide_if %}x-show="!{{ field.hide_if }}" x-cloak{% endif %}
+             {% if field.show_if %}x-show="{{ field.show_if }}" x-cloak{% endif %}>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5" for="{{ bound.id_for_label }}">
+            {{ field.display_label }}
+          </label>
+          {{ bound }}
+          {% include 'partials/field_errors.html' with errors=bound.errors %}
+        </div>
+        {% endif %}
+        {% endwith %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>

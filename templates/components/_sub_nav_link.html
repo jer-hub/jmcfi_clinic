@@ -1,0 +1,19 @@
+{% comment %}
+  Single sub-navigation tab.
+
+  Context:
+    item – dict with label, url, icon (optional), active (bool), badge (optional)
+{% endcomment %}
+<a href="{{ item.url }}"
+   role="tab"
+   {% if item.active %}aria-current="page"{% endif %}
+   class="nav-link whitespace-nowrap{% if item.active %} active{% endif %}">
+  {% if item.icon %}<i class="fas {{ item.icon }} text-sm opacity-80" aria-hidden="true"></i>{% endif %}
+  <span>{{ item.label }}</span>
+  {% if item.badge or item.badge == 0 %}
+    <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold
+                 {% if item.active %}bg-primary-200 text-primary-800{% else %}bg-white/80 text-gray-600{% endif %}">
+      {{ item.badge }}
+    </span>
+  {% endif %}
+</a>

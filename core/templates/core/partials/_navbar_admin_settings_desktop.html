@@ -23,6 +23,10 @@
     role="region"
     aria-labelledby="nav-trigger-settings-desktop"
     class="absolute left-0 top-full z-50 mt-2 w-72 origin-top-left rounded-xl border border-gray-200 bg-white shadow-lg p-2">
+    <a href="{% url 'core:settings_hub' %}" class="dropdown-item">System Settings</a>
+    <a href="{% url 'core:settings_clinic' %}" class="dropdown-item">Clinic Settings</a>
+    <a href="{% url 'core:settings_roles' %}" class="dropdown-item">Role Settings</a>
+    <a href="{% url 'core:settings_audit' %}" class="dropdown-item">Settings Audit Log</a>
     <a href="{% url 'appointments:appointment_type_settings' %}" class="dropdown-item">Appointment Settings</a>
   </div>
 </div>

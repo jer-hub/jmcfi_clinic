@@ -358,9 +358,15 @@ class StudentDentalIntakeForm(forms.ModelForm):
         }
 
 
+_EXAM_TEXTAREA_ATTRS = {
+    'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+    'rows': 2,
+}
+
+
 class DentalExaminationForm(forms.ModelForm):
     """Form for extraoral and intraoral examination findings"""
-    
+
     class Meta:
         model = DentalExamination
         fields = [
@@ -369,58 +375,12 @@ class DentalExaminationForm(forms.ModelForm):
             'tongue', 'salivary_flow', 'oral_hygiene'
         ]
         widgets = {
-            'facial_symmetry': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'cutaneous_areas': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'lips': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'eyes': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'lymph_nodes': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'tmj': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'buccal_labial_mucosa': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'gingiva': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'palate_soft': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'palate_hard': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'tongue': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'salivary_flow': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
-            'oral_hygiene': forms.Textarea(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
-            }),
+            name: forms.Textarea(attrs=_EXAM_TEXTAREA_ATTRS)
+            for name in [
+                'facial_symmetry', 'cutaneous_areas', 'lips', 'eyes', 'lymph_nodes', 'tmj',
+                'buccal_labial_mucosa', 'gingiva', 'palate_soft', 'palate_hard',
+                'tongue', 'salivary_flow', 'oral_hygiene',
+            ]
         }
         labels = {
             'facial_symmetry': 'Facial Symmetry & Profile',
@@ -506,7 +466,7 @@ class DentalHealthQuestionnaireForm(forms.ModelForm):
             }),
             'last_hospital_reason': forms.Textarea(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
+                'rows': 2
             }),
             'last_doctor_date': forms.DateInput(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
@@ -514,14 +474,14 @@ class DentalHealthQuestionnaireForm(forms.ModelForm):
             }),
             'last_doctor_reason': forms.Textarea(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
+                'rows': 2
             }),
             'doctor_care_2years': forms.CheckboxInput(attrs={
                 'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
             }),
             'doctor_care_reason': forms.Textarea(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
+                'rows': 2
             }),
             'excessive_bleeding': forms.CheckboxInput(attrs={
                 'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'
@@ -547,7 +507,7 @@ class DentalHealthQuestionnaireForm(forms.ModelForm):
             }),
             'pillows_reason': forms.Textarea(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'rows': 3
+                'rows': 2
             }),
             'tumor_cancer': forms.CheckboxInput(attrs={
                 'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600'

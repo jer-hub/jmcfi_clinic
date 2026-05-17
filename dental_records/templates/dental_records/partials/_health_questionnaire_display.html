@@ -1,0 +1,50 @@
+{% comment %}
+  Health questionnaire read-only display (detail / student view).
+{% endcomment %}
+<div class="space-y-6">
+  {% for section in sections %}
+  <section>
+    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+      <i class="fas {{ section.icon }} {{ section.icon_class }} text-sm" aria-hidden="true"></i>
+      <h3 class="text-sm font-semibold text-gray-800">{{ section.title }}</h3>
+    </div>
+
+    {% if section.has_data %}
+      {% if section.layout == 'visit_cards' %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for card in section.cards %}
+        <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ card.title }}</dt>
+          <dd class="mt-1 text-sm text-gray-900 font-medium">{{ card.date }}</dd>
+          {% if card.detail %}<dd class="text-xs text-gray-500 mt-0.5">{{ card.detail }}</dd>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      {% elif section.layout == 'care_cards' %}
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for card in section.cards %}
+        <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ card.title }}</dt>
+          <dd class="mt-1 text-sm text-gray-900 font-medium">Yes</dd>
+          {% if card.detail %}<dd class="text-xs text-gray-500 mt-0.5">{{ card.detail }}</dd>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+
+      {% elif section.layout == 'symptom_groups' or section.layout == 'womens_groups' %}
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {% for chip in section.chips %}
+        <div class="p-3 rounded-lg border {{ chip.wrap }}">
+          <span class="text-sm font-medium {{ chip.title_class }}">{{ chip.label }}</span>
+          {% if chip.detail %}<p class="text-xs {{ chip.detail_class }} mt-0.5">{{ chip.detail }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% else %}
+    <p class="text-sm text-gray-400 italic py-2">No data recorded</p>
+    {% endif %}
+  </section>
+  {% endfor %}
+</div>

@@ -17,8 +17,9 @@ import json
 from .models import Appointment, AppointmentTypeDefault
 from .forms import AppointmentTypeDefaultForm
 from .appointment_utils import check_appointment_availability, format_conflict_message
-from core.models import Notification
 from core.decorators import role_required, admin_required
+from core.settings_service import get_clinic_settings
+from core.notification_delivery import notify_user
 from core.htmx_utils import is_htmx_request, htmx_add_toast, htmx_add_trigger
 
 
@@ -272,6 +273,18 @@ def schedule_appointment(request):
                 return render(request, 'appointments/schedule_appointment.html',
                               _get_schedule_context(form_data=form_data))
 
+            max_days = get_clinic_settings().max_advance_booking_days
+            from datetime import timedelta
+
+            latest_date = timezone.now().date() + timedelta(days=max_days)
+            if appointment_date > latest_date:
+                messages.error(
+                    request,
+                    f'Appointments can only be booked up to {max_days} days in advance.',
+                )
+                return render(request, 'appointments/schedule_appointment.html',
+                              _get_schedule_context(form_data=form_data))
+
             if appointment_date.weekday() >= 5:
                 messages.error(request, 'Appointments are not available on weekends.')
                 return render(request, 'appointments/schedule_appointment.html',
@@ -306,13 +319,16 @@ def schedule_appointment(request):
                 reason=reason
             )
 
-            Notification.objects.create(
-                user=doctor,
+            notify_user(
+                doctor,
                 title='New Appointment Request',
-                message=f'New appointment request from {request.user.get_full_name()} for {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}',
+                message=(
+                    f'New appointment request from {request.user.get_full_name()} for '
+                    f'{appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}'
+                ),
                 notification_type='appointment',
                 transaction_type='appointment_scheduled',
-                related_id=appointment.id
+                related_id=appointment.id,
             )
 
             messages.success(request, 'Appointment scheduled successfully!')
@@ -459,8 +475,8 @@ def appointment_detail(request, appointment_id):
                         'completed': 'appointment_completed',
                         'cancelled': 'appointment_cancelled',
                     }
-                    Notification.objects.create(
-                        user=appointment.student,
+                    notify_user(
+                        appointment.student,
                         title='Appointment Update',
                         message=f'Your appointment status has been updated to {appointment.get_status_display()}',
                         notification_type='appointment',
@@ -473,11 +489,27 @@ def appointment_detail(request, appointment_id):
         elif request.user.role == 'student' and appointment.student == request.user:
             status = request.POST.get('status')
             if status == 'cancelled' and appointment.status in ['pending']:
+                from datetime import datetime as dt
+
+                cutoff_hours = get_clinic_settings().cancellation_cutoff_hours
+                appt_start = timezone.make_aware(
+                    dt.combine(appointment.date, appointment.time),
+                    timezone.get_current_timezone(),
+                )
+                from datetime import timedelta
+
+                if timezone.now() + timedelta(hours=cutoff_hours) > appt_start:
+                    err = htmx_error(
+                        f'Cancellations must be at least {cutoff_hours} hours before the appointment.',
+                    )
+                    if err:
+                        return err
+
                 appointment.status = 'cancelled'
                 appointment.save()
 
-                Notification.objects.create(
-                    user=appointment.doctor,
+                notify_user(
+                    appointment.doctor,
                     title='Appointment Cancelled',
                     message=f'Appointment with {request.user.get_full_name()} has been cancelled',
                     notification_type='appointment',
@@ -560,6 +592,7 @@ def appointment_type_settings(request):
         })
 
     return render(request, 'appointments/appointment_settings/appointment_type_settings.html', {
+        'settings_subnav_active': 'appointments',
         'settings_data': settings_data,
     })
 
@@ -804,10 +837,13 @@ def schedule_for_student(request):
             )
 
             # --- Create Notification for Student ---
-            Notification.objects.create(
-                user=student,
+            notify_user(
+                student,
                 title='Appointment Scheduled for You',
-                message=f'Dr. {doctor.get_full_name()} has scheduled a new appointment for you on {appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}.',
+                message=(
+                    f'Dr. {doctor.get_full_name()} has scheduled a new appointment for you on '
+                    f'{appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}.'
+                ),
                 notification_type='appointment',
                 transaction_type='appointment_scheduled',
                 related_id=appointment.id,

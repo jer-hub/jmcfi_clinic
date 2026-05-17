@@ -1,0 +1,103 @@
+{% extends "core/settings/page_form.html" %}
+
+{% block page_title %}Clinic Settings - {{ clinic_name }}{% endblock %}
+
+{% block subnav %}{% include "core/settings/_subnav.html" %}{% endblock %}
+
+{% block page_header %}
+  {% url 'core:settings_hub' as hub_url %}
+  {% include "components/page_header.html" with title="Clinic settings" subtitle="Branding, scheduling defaults, authentication, and maintenance." icon="fa-hospital" back_url=hub_url back_label="Settings overview" %}
+{% endblock %}
+
+{% block form_open %}
+<form method="post" enctype="multipart/form-data" novalidate>{% csrf_token %}
+{% endblock %}
+
+{% block form_body %}
+  {% if form.non_field_errors %}
+    <div class="mb-4 rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800">
+      {{ form.non_field_errors }}
+    </div>
+  {% endif %}
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-image text-primary-500"></i> Branding
+      </h3>
+    </header>
+    <div class="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+      {% include "components/forms/field.html" with field=form.clinic_name %}
+      {% include "components/forms/field.html" with field=form.logo %}
+      {% include "components/forms/field.html" with field=form.support_email %}
+      {% include "components/forms/field.html" with field=form.support_phone %}
+    </div>
+  </section>
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-clock text-primary-500"></i> Locale & sessions
+      </h3>
+    </header>
+    <div class="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+      {% include "components/forms/field.html" with field=form.timezone %}
+      {% include "components/forms/field.html" with field=form.date_format %}
+      {% include "components/forms/field.html" with field=form.default_session_hours %}
+    </div>
+  </section>
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-key text-primary-500"></i> Authentication
+      </h3>
+    </header>
+    <div class="px-6 py-5 space-y-4">
+      {% include "components/forms/field.html" with field=form.google_allowed_domains %}
+      {% include "components/forms/field.html" with field=form.allow_student_self_signup %}
+    </div>
+  </section>
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-calendar text-primary-500"></i> Appointments
+      </h3>
+    </header>
+    <div class="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+      {% include "components/forms/field.html" with field=form.appointment_interval_minutes %}
+      {% include "components/forms/field.html" with field=form.max_advance_booking_days %}
+      {% include "components/forms/field.html" with field=form.cancellation_cutoff_hours %}
+    </div>
+  </section>
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-bell text-primary-500"></i> Notifications
+      </h3>
+    </header>
+    <div class="px-6 py-5 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+      {% include "components/forms/field.html" with field=form.enable_email_notifications %}
+      {% include "components/forms/field.html" with field=form.digest_hour %}
+    </div>
+  </section>
+
+  <section class="bg-white border border-gray-200 rounded-card shadow-sm mb-6">
+    <header class="px-6 py-4 border-b border-gray-100">
+      <h3 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+        <i class="fas fa-wrench text-primary-500"></i> Maintenance
+      </h3>
+    </header>
+    <div class="px-6 py-5 space-y-4">
+      {% include "components/forms/field.html" with field=form.maintenance_mode %}
+      {% include "components/forms/field.html" with field=form.maintenance_message %}
+    </div>
+  </section>
+{% endblock %}
+
+{% block submit_bar %}
+  {% url 'core:settings_hub' as hub_url %}
+  {% include "components/forms/submit_bar.html" with submit_label="Save clinic settings" cancel_url=hub_url cancel_label="Back to overview" %}
+{% endblock %}

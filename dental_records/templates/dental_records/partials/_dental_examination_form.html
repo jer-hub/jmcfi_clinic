@@ -1,0 +1,26 @@
+{% comment %}
+  Dental examination form — grouped extraoral / intraoral sections.
+{% endcomment %}
+<div class="space-y-6">
+  {% for section in sections %}
+  <section>
+    <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
+      <i class="fas {{ section.icon }} {{ section.icon_class }} text-sm" aria-hidden="true"></i>
+      <h3 class="text-sm font-semibold text-gray-800">{{ section.title }}</h3>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {% for field in section.fields %}
+        {% with bound=field.bound %}
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1.5" for="{{ bound.id_for_label }}">
+            {{ field.display_label }}
+          </label>
+          {{ bound }}
+          {% include 'partials/field_errors.html' with errors=bound.errors %}
+        </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>

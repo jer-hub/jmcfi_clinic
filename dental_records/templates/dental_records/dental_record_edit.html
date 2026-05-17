@@ -1,5 +1,5 @@
 {% extends 'core/base.html' %}
-{% load static %}
+{% load static dental_extras %}
 
 {% block title %}{{ title }} - JMCFI Clinic{% endblock %}
 
@@ -243,24 +243,7 @@
           </div>
           {% endif %}
 
-          <section>
-            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-clipboard-list text-primary-600 text-sm"></i>
-              <h3 class="text-sm font-semibold text-gray-800">Health Questionnaire</h3>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {% for field in health_questionnaire_form %}
-              <div>
-                {% if field.field.widget.input_type == 'checkbox' %}
-                <div class="flex items-center">{{ field }}<label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label></div>
-                {% else %}
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ field.label }}</label>{{ field }}
-                {% endif %}
-                {% include 'partials/field_errors.html' with errors=field.errors %}
-              </div>
-              {% endfor %}
-            </div>
-          </section>
+          {% health_questionnaire_form_sections health_questionnaire_form %}
 
           <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
             <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
@@ -290,19 +273,7 @@
           </div>
           {% endif %}
 
-          <section>
-            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-heartbeat text-danger-500 text-sm"></i>
-              <h3 class="text-sm font-semibold text-gray-800">Systems Review</h3>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {% for field in systems_review_form %}
-              {% if field.field.widget.input_type == 'checkbox' %}
-              <div class="flex items-center">{{ field }}<label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label></div>
-              {% endif %}
-              {% endfor %}
-            </div>
-          </section>
+          {% systems_review_form_sections systems_review_form %}
 
           <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
             <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
@@ -332,73 +303,90 @@
           </div>
           {% endif %}
 
-          {# Previous Dental Visits #}
-          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
+          {% dental_history_form_sections dental_history_form %}
+
+          <div class="flex justify-end pt-5 border-t border-gray-200">
+            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+              <i class="fas fa-save"></i> Save Dental History
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {# ════════════════════════════════════ #}
+      {# ── Pediatric Tab                  ── #}
+      {# ════════════════════════════════════ #}
+      {% if is_pediatric %}
+      <div x-show="tab==='pediatric'" x-cloak>
+        <form method="post" class="space-y-6"
+              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              hx-swap="none"
+              hx-on::after-request="handleFormResponse(event, 'Pediatric History')">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="pediatric_history">
+
+          {% if pediatric_history_form.non_field_errors %}
+          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
+              {% for error in pediatric_history_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          <section>
             <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-calendar-check text-primary-600 text-sm"></i>
-              <h4 class="text-sm font-semibold text-gray-800">Previous Dental Visits</h4>
+              <i class="fas fa-child text-primary-600 text-sm"></i>
+              <h3 class="text-sm font-semibold text-gray-800">Pediatric Dental History</h3>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div class="md:col-span-2">
-                <div class="flex items-start">{{ dental_history_form.first_dental_visit }}<label for="{{ dental_history_form.first_dental_visit.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.first_dental_visit.label }}</label></div>
-                {% include 'partials/field_errors.html' with errors=dental_history_form.first_dental_visit.errors %}
+              {% for field in pediatric_history_form %}
+              <div>
+                {% if field.field.widget.input_type == 'checkbox' %}
+                <div class="flex items-center">{{ field }}<label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label></div>
+                {% else %}
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ field.label }}</label>{{ field }}
+                {% endif %}
+                {% include 'partials/field_errors.html' with errors=field.errors %}
               </div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.last_dental_visit.label }}</label>{{ dental_history_form.last_dental_visit }}{% include 'partials/field_errors.html' with errors=dental_history_form.last_dental_visit.errors %}</div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.last_visit_reason.label }}</label>{{ dental_history_form.last_visit_reason }}{% include 'partials/field_errors.html' with errors=dental_history_form.last_visit_reason.errors %}</div>
-            </div>
-          </section>
-
-          {# Teeth Extraction #}
-          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
-            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-tooth text-primary-600 text-sm"></i>
-              <h4 class="text-sm font-semibold text-gray-800">Teeth Extraction History</h4>
-            </div>
-            <div class="space-y-4">
-              <div><div class="flex items-start">{{ dental_history_form.teeth_extracted }}<label for="{{ dental_history_form.teeth_extracted.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.teeth_extracted.label }}</label></div>{% include 'partials/field_errors.html' with errors=dental_history_form.teeth_extracted.errors %}</div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.extraction_when.label }}</label>{{ dental_history_form.extraction_when }}{% include 'partials/field_errors.html' with errors=dental_history_form.extraction_when.errors %}</div>
-            </div>
-          </section>
-
-          {# Anesthesia Allergy #}
-          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
-            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-syringe text-danger-500 text-sm"></i>
-              <h4 class="text-sm font-semibold text-gray-800">Anesthesia Allergy</h4>
-            </div>
-            <div class="space-y-4">
-              <div><div class="flex items-start">{{ dental_history_form.anesthesia_allergy }}<label for="{{ dental_history_form.anesthesia_allergy.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.anesthesia_allergy.label }}</label></div>{% include 'partials/field_errors.html' with errors=dental_history_form.anesthesia_allergy.errors %}</div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.anesthesia_allergy_when.label }}</label>{{ dental_history_form.anesthesia_allergy_when }}{% include 'partials/field_errors.html' with errors=dental_history_form.anesthesia_allergy_when.errors %}</div>
-            </div>
-          </section>
-
-          {# Dental Appliances #}
-          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
-            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-prescription text-primary-600 text-sm"></i>
-              <h4 class="text-sm font-semibold text-gray-800">Dental Appliances</h4>
-            </div>
-            <div class="space-y-4">
-              <div><div class="flex items-start">{{ dental_history_form.dental_appliance }}<label for="{{ dental_history_form.dental_appliance.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.dental_appliance.label }}</label></div>{% include 'partials/field_errors.html' with errors=dental_history_form.dental_appliance.errors %}</div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.appliance_type.label }}</label>{{ dental_history_form.appliance_type }}{% include 'partials/field_errors.html' with errors=dental_history_form.appliance_type.errors %}</div>
-            </div>
-          </section>
-
-          {# Pain & Discomfort #}
-          <section class="bg-gray-50 rounded-lg p-5 border border-gray-200">
-            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-triangle-exclamation text-warning-500 text-sm"></i>
-              <h4 class="text-sm font-semibold text-gray-800">Pain and Discomfort</h4>
-            </div>
-            <div class="space-y-4">
-              <div><div class="flex items-start">{{ dental_history_form.pain_discomfort }}<label for="{{ dental_history_form.pain_discomfort.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700">{{ dental_history_form.pain_discomfort.label }}</label></div>{% include 'partials/field_errors.html' with errors=dental_history_form.pain_discomfort.errors %}</div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ dental_history_form.pain_location.label }}</label>{{ dental_history_form.pain_location }}{% include 'partials/field_errors.html' with errors=dental_history_form.pain_location.errors %}</div>
+              {% endfor %}
             </div>
           </section>
 
           <div class="flex justify-end pt-5 border-t border-gray-200">
             <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Dental History
+              <i class="fas fa-save"></i> Save Pediatric History
+            </button>
+          </div>
+        </form>
+      </div>
+      {% endif %}
+
+      {# ════════════════════════════════════ #}
+      {# ── Examination Tab                ── #}
+      {# ════════════════════════════════════ #}
+      <div x-show="tab==='exam'" x-cloak>
+        <form method="post" class="space-y-6"
+              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              hx-swap="none"
+              hx-on::after-request="handleFormResponse(event, 'Examination')">
+          {% csrf_token %}
+          <input type="hidden" name="form_type" value="examination">
+
+          {% if examination_form.non_field_errors %}
+          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
+            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
+            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
+              {% for error in examination_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+            </ul>
+          </div>
+          {% endif %}
+
+          {% dental_examination_form_sections examination_form %}
+
+          <div class="flex justify-end pt-5 border-t border-gray-200">
+            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
+              <i class="fas fa-save"></i> Save Examination
             </button>
           </div>
         </form>

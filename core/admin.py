@@ -2,12 +2,16 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from .models import (
     AccountProvisioningAudit,
-    StudentProfile,
-    StaffProfile,
-    Notification,
-    UserInvite,
-    CourseProgram,
+    ClinicSettings,
     CollegeDepartment,
+    CourseProgram,
+    Notification,
+    RoleSettings,
+    SettingsChangeLog,
+    StaffProfile,
+    StudentProfile,
+    UserInvite,
+    UserPreferences,
     YearLevelOption,
 )
 
@@ -104,3 +108,31 @@ class YearLevelOptionAdmin(admin.ModelAdmin):
     list_display = ('name', 'college_department', 'sort_order', 'is_active', 'updated_at')
     search_fields = ('name', 'college_department__name')
     list_filter = ('college_department', 'is_active')
+
+
+@admin.register(ClinicSettings)
+class ClinicSettingsAdmin(admin.ModelAdmin):
+    list_display = ('clinic_name', 'maintenance_mode', 'appointment_interval_minutes', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at')
+
+
+@admin.register(RoleSettings)
+class RoleSettingsAdmin(admin.ModelAdmin):
+    list_display = ('role', 'session_timeout_seconds', 'can_access_analytics', 'can_book_appointments', 'updated_at')
+    list_filter = ('role',)
+
+
+@admin.register(UserPreferences)
+class UserPreferencesAdmin(admin.ModelAdmin):
+    list_display = ('user', 'email_notifications', 'in_app_notifications', 'compact_nav', 'updated_at')
+    search_fields = ('user__email',)
+
+
+@admin.register(SettingsChangeLog)
+class SettingsChangeLogAdmin(admin.ModelAdmin):
+    list_display = ('created_at', 'setting_type', 'role', 'field_name', 'changed_by')
+    list_filter = ('setting_type', 'role')
+    search_fields = ('field_name', 'changed_by__email')
+    readonly_fields = (
+        'setting_type', 'role', 'field_name', 'old_value', 'new_value', 'changed_by', 'created_at',
+    )

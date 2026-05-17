@@ -1,6 +1,6 @@
 # JMCFI Clinic Management System
 
-A comprehensive web-based clinic management system built with Django for managing patient records, appointments, dental records, and medical services.
+A web-based clinic management system built with Django for managing patient profiles, appointments, dental and medical records, document requests, pharmacy inventory, and clinic analytics.
 
 ---
 
@@ -8,6 +8,7 @@ A comprehensive web-based clinic management system built with Django for managin
 
 - [Overview](#overview)
 - [Features](#features)
+- [Tech Stack](#tech-stack)
 - [System Requirements](#system-requirements)
 - [Installation](#installation)
 - [Running the Application](#running-the-application)
@@ -15,53 +16,61 @@ A comprehensive web-based clinic management system built with Django for managin
 - [Application Modules](#application-modules)
 - [Project Structure](#project-structure)
 - [Configuration](#configuration)
+- [Development](#development)
 - [Support](#support)
 
 ---
 
 ## Overview
 
-JMCFI Clinic Management System is a Django-based web application designed to streamline clinic operations for educational institutions. It provides tools for managing patient profiles, scheduling appointments, maintaining dental and medical records, and generating health certificates.
+JMCFI Clinic is a Django application for clinic operations at an educational institution. It supports Google OAuth sign-in, role-based dashboards, appointment scheduling with month/week calendar views, medical and dental records, certificate/document requests, messaging, and admin analytics.
 
 ---
 
 ## Features
 
-### Core Features
-- User authentication with Google OAuth integration
-- Role-based access control (Student, Staff, Doctor, Admin)
-- Profile management with comprehensive demographics
-- Session timeout for security
+### Core
+- Google OAuth authentication (domain-restricted)
+- Role-based access: **patient**, staff, doctor, admin
+- `PatientProfile` and `StaffProfile` with profile-completion enforcement
+- Per-role session timeouts and clinic-wide settings
+- HTMX-driven UI updates and Alpine.js for local interactivity
 
-### Patient Management
-- Student and Staff profile management
-- Medical history tracking
-- Emergency contact information
-- Allergy and medical condition records
+### Patients
+- Demographics, emergency contacts, allergies, and institutional info
+- Self-service appointment booking (when enabled for the patient role)
+- Own medical/dental records and document requests
 
-### Appointment System
-- Online appointment scheduling
-- Appointment status tracking
-- Doctor availability management
-- Appointment reminders
+### Appointments
+- Online scheduling and staff/doctor scheduling on behalf of patients
+- Full-page and dashboard-embedded calendars (month and week views)
+- Status workflow, doctor filters, ICS export
+- Appointment type defaults and conflict checks
 
-### Dental Records
-- Complete dental examination records
-- Vital signs tracking
-- Health questionnaire management
-- Systems review documentation
-- Dental chart and treatment history
+### Clinical records
+- Medical records with prescriptions and walk-in create flow
+- Dental records with charting and intake forms
+- Health forms (profiles, dental forms, patient charts, prescriptions)
 
-### Medical Records
-- Patient medical history
-- Treatment records
-- Prescription management
+### Operations
+- Document/certificate requests and processing
+- Pharmacy inventory and dispensing
+- Feedback and health tips
+- Direct messaging and announcements
+- Analytics dashboards and compliance reporting (admin/staff/doctor)
 
-### Additional Features
-- Health certificates generation
-- Patient feedback system
-- Health tips and announcements
-- Responsive design (mobile-friendly)
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | Django 5.2, Channels 4.3 |
+| Auth | django-allauth (Google OAuth) |
+| Frontend | HTMX 1.9, Alpine.js 3.x, Tailwind CSS (CDN) |
+| Database | SQLite (dev) / PostgreSQL (prod) |
+| Package manager | [uv](https://github.com/astral-sh/uv) (`pyproject.toml`) |
+| Static files | WhiteNoise |
 
 ---
 
@@ -69,49 +78,36 @@ JMCFI Clinic Management System is a Django-based web application designed to str
 
 | Requirement | Version |
 |-------------|---------|
-| Python | 3.10 or higher |
-| Django | 4.x or higher |
+| Python | 3.13+ (see `pyproject.toml`) |
+| Django | 5.2 |
 | Database | SQLite (default) or PostgreSQL |
-| Browser | Chrome, Firefox, Edge, Safari |
+| Browser | Modern Chromium, Firefox, Safari, or Edge |
 
-**Recommended:**
-- 4GB RAM minimum
-- 1GB free disk space
-- Internet connection (for Google OAuth)
+**Recommended:** 4GB+ RAM, 1GB free disk space, internet for Google OAuth.
 
 ---
 
 ## Installation
 
-1. **Clone or download the project**
+1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/jer-hub/jmcfi_clinic.git
    cd jmcfi_clinic
    ```
 
-2. **Create a virtual environment**
+2. **Install dependencies with uv** (recommended)
    ```bash
-   python -m venv venv
+   uv sync
    ```
 
-3. **Activate the virtual environment**
+   Or with pip:
    ```bash
-   # Windows
-   venv\Scripts\activate
-   
-   # Linux/Mac
-   source venv/bin/activate
+   python -m venv .venv
+   .venv\Scripts\activate   # Windows
+   pip install -e .
    ```
 
-4. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   
-   # Or if using uv
-   uv pip install -r requirements.txt
-   ```
-
-5. **Configure environment variables** (create `.env` file)
+3. **Environment variables** (create `.env` in the project root)
    ```env
    SECRET_KEY=your-secret-key
    DEBUG=True
@@ -120,12 +116,12 @@ JMCFI Clinic Management System is a Django-based web application designed to str
    GOOGLE_ALLOWED_DOMAINS=jmc.edu.ph,jmcfi.edu.ph
    ```
 
-6. **Run database migrations**
+4. **Apply migrations**
    ```bash
    python manage.py migrate
    ```
 
-7. **Create a superuser account**
+5. **Optional: create a Django superuser**
    ```bash
    python manage.py createsuperuser
    ```
@@ -134,73 +130,47 @@ JMCFI Clinic Management System is a Django-based web application designed to str
 
 ## Running the Application
 
-### Development Server
+```bash
+python manage.py runserver
+```
 
-1. Activate your virtual environment
-2. Run the development server:
-   ```bash
-   python manage.py runserver
-   ```
-3. Open your browser and navigate to: `http://127.0.0.1:8000/`
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
-### Admin Panel
-Access the admin panel at: `http://127.0.0.1:8000/admin/`
+- **Django admin:** [http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)
+- **Dev admin login (local only):** [http://127.0.0.1:8000/auth/admin-login/](http://127.0.0.1:8000/auth/admin-login/) — see project Cursor rules for credentials
+
+For WebSocket features (messaging), use an ASGI server compatible with Channels if required in your environment.
 
 ---
 
 ## User Roles
 
-| Role | Permissions |
-|------|-------------|
-| **Student** | View/edit personal profile, book appointments, view own records, submit feedback |
-| **Staff** | View/edit personal profile, book appointments, view own records, submit feedback |
-| **Doctor** | Manage appointments, create/update medical & dental records, issue certificates, view patient history |
-| **Admin** | Full system access, user management, system configuration, report generation |
+| Role | Typical access |
+|------|----------------|
+| **Patient** | Complete profile, book appointments, view own records, request documents, feedback, messaging |
+| **Staff** | Clinic operations, appointments, records, document processing, analytics (per role settings) |
+| **Doctor** | Appointments, clinical records, certificates, schedule-for-patient, patient search |
+| **Admin** | User management, clinic/role settings, analytics; clinical namespaces can be blocked by policy |
+
+Role constants and legacy compatibility live in `core/roles.py` (`student` in old data or decorators is normalized to `patient`).
 
 ---
 
 ## Application Modules
 
-### Core (`/core/`)
-- Custom user model with role support
-- Authentication adapters
-- Middleware (session timeout)
-- Base templates and utilities
-
-### Management (`/management/`)
-- Dashboard views
-- User profile management
-- Appointment management
-- User administration
-- System settings
-
-### Appointments (`/appointments/`)
-- Appointment scheduling
-- Calendar views
-- Status management
-
-### Dental Records (`/dental_records/`)
-- Dental examination records
-- Vital signs tracking
-- Health questionnaire
-- Systems review
-- Treatment history
-
-### Medical Records (`/medical_records/`)
-- Patient medical history
-- Treatment documentation
-
-### Certificates (`/certificates/`)
-- Health certificate generation
-- Certificate templates
-
-### Feedback (`/feedback/`)
-- Patient feedback collection
-- Feedback management
-
-### Health Tips (`/health_tips/`)
-- Health announcements
-- Tips and reminders
+| App | URL prefix | Purpose |
+|-----|------------|---------|
+| `core/` | `/` | Dashboard, auth, profiles, notifications, user management, patient search |
+| `appointments/` | `/appointments/` | Scheduling, calendar, appointment settings |
+| `medical_records/` | `/medical-records/` | Medical history and prescriptions |
+| `dental_records/` | `/dental-records/` | Dental exams and charting |
+| `document_request/` | `/documents/` | Certificate/document requests |
+| `feedback/` | `/feedback/` | Service feedback |
+| `health_tips/` | `/health-tips/` | Articles and announcements |
+| `health_forms_services/` | `/health-forms/` | Health/dental forms and charts |
+| `analytics/` | `/analytics/` | Reporting and population health |
+| `pharmacy/` | `/pharmacy/` | Inventory and dispensing |
+| `messaging/` | `/messages/` | Direct messages and announcements |
 
 ---
 
@@ -208,87 +178,92 @@ Access the admin panel at: `http://127.0.0.1:8000/admin/`
 
 ```
 jmcfi_clinic/
-├── backend/                 # Main Django settings
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-├── core/                    # Core app (users, auth)
-│   ├── models.py
-│   ├── views.py
-│   └── middleware.py
-├── management/              # Main management app
-│   ├── models.py
-│   ├── views.py
-│   ├── forms.py
-│   └── templates/
-├── appointments/            # Appointments module
-├── dental_records/          # Dental records module
-├── medical_records/         # Medical records module
-├── certificates/            # Certificates module
-├── feedback/                # Feedback module
-├── health_tips/             # Health tips module
-├── templates/               # Global templates
-├── staticfiles/             # Static files
-├── media/                   # User uploads
-├── manage.py
-└── db.sqlite3               # SQLite database
+├── backend/              # settings, root URLs, ASGI/WSGI
+├── core/                 # User, PatientProfile, auth, dashboard, settings hub
+├── appointments/
+├── medical_records/
+├── dental_records/
+├── document_request/
+├── feedback/
+├── health_tips/
+├── health_forms_services/
+├── analytics/
+├── pharmacy/
+├── messaging/
+├── templates/            # Shared components (calendar, modals, badges)
+├── static/
+├── media/
+├── pyproject.toml        # Dependencies (use uv, not requirements.txt)
+└── manage.py
 ```
 
 ---
 
 ## Configuration
 
-### Key Settings (`backend/settings.py`)
+| Area | Location |
+|------|----------|
+| Django settings | `backend/settings.py` |
+| Clinic & role settings | Admin UI → Settings, or `ClinicSettings` / `RoleSettings` models |
+| Profile required fields | `core/profile_policy.py` |
+| Google OAuth | `.env` + `core/adapters.py` |
 
-| Setting | Description |
-|---------|-------------|
-| `DEBUG` | Set to `False` in production |
-| `ALLOWED_HOSTS` | Configure for production domain |
-| `DATABASE` | SQLite by default, can be changed to PostgreSQL |
-| `SESSION_COOKIE_AGE` | Session timeout duration |
+### Google OAuth
 
-### Google OAuth Setup
+1. Create OAuth 2.0 credentials in [Google Cloud Console](https://console.cloud.google.com/).
+2. Add authorized redirect URIs for your environment.
+3. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_ALLOWED_DOMAINS` in `.env`.
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create OAuth 2.0 credentials
-3. Add authorized redirect URIs
-4. Update `.env` with credentials
+Patient Google signup profiling is described in `core/GOOGLE_STUDENT_PROFILE_POLICY.md` (patient-focused policy; filename retained).
 
-See `GOOGLE_OAUTH_GUIDE.md` for detailed instructions.
+---
+
+## Development
+
+```bash
+# Run tests (example)
+python manage.py test core.tests_roles appointments.tests_calendar
+
+# System checks
+python manage.py check
+```
+
+Key conventions are documented in `.cursor/rules/` (project structure, views, templates, auth).
+
+After pulling changes that include migrations (e.g. student → patient rename), always run:
+
+```bash
+python manage.py migrate
+```
 
 ---
 
 ## Support
 
-### Documentation Files
-
-| File | Description |
-|------|-------------|
-| `DEPLOYMENT_CHECKLIST.md` | Production setup guide |
-| `SESSION_TIMEOUT_GUIDE.md` | Security settings |
-| `DENTAL_RECORDS_QUICK_START.md` | Dental module usage |
-| `GOOGLE_OAUTH_GUIDE.md` | OAuth configuration |
-| `APP_STRUCTURE_STATUS.md` | Application structure |
+| Document | Description |
+|----------|-------------|
+| `core/GOOGLE_STUDENT_PROFILE_POLICY.md` | Patient profile completion on Google signup |
+| `appointments/APPOINTMENT_SCHEDULING_POLICY.md` | Scheduling rules |
+| `document_request/DOCUMENT_REQUEST_POLICY.md` | Document request workflow |
+| `core/ADMIN_ROLE_POLICY.md` | Admin access boundaries |
 
 ---
 
 ## Version History
 
-**Version 1.0** - Initial Release
-- Core user management
-- Appointment scheduling
-- Dental records module
-- Medical records module
-- Certificate generation
-- Google OAuth integration
-- Session timeout security
+**Current** — Patient role rename and calendar enhancements
+- `student` role and `StudentProfile` renamed to **patient** / `PatientProfile` (DB migrations included)
+- Unified dashboard calendar with month/week views for all roles
+- Patient-first URLs and forms; legacy student aliases removed
+- Role settings, clinic settings, and expanded test coverage
+
+**1.0** — Initial release
+- Core user management, appointments, dental/medical records, certificates, Google OAuth
 
 ---
 
 ## License
 
-This software is proprietary to JMCFI Clinic. All rights reserved.
-
----
+Proprietary to JMCFI Clinic. All rights reserved.
 
 *© 2026 JMCFI Clinic Management System*

@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
@@ -9,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
 
+from appointments.models import Appointment
 from core.decorators import role_required
 from core.htmx_utils import is_htmx_request
 from core.roles import PATIENT_ROLE_VALUES, is_patient_role
@@ -129,6 +132,8 @@ def _request_document_page_context(
         'purpose': post.get('purpose', ''),
         'additional_info': post.get('additional_info', ''),
         'patient_id': post.get('patient_id', ''),
+        'appointment_id': post.get('appointment_id', ''),
+        'consultation_date': post.get('consultation_date', ''),
     }
     if user_can_initiate_on_behalf(user) and not is_patient_role(user.role) and post.get('patient_id'):
         try:
@@ -145,10 +150,91 @@ def _request_document_page_context(
                 'label': label,
                 'email': patient.email,
                 'pid': pid,
+                'sid': pid,
             }
         except User.DoesNotExist:
             pass
     return ctx
+
+
+_APPOINTMENT_CERTIFICATE_PURPOSE = {
+    'consultation': 'General consultation',
+    'dental': 'Dental purposes',
+}
+
+
+def _appointment_certificate_prefill(user, appointment_id: str | None) -> dict | None:
+    """Build request-form prefill from a completed appointment (clinician/admin only)."""
+    if not appointment_id or not user_can_initiate_on_behalf(user) or is_patient_role(user.role):
+        return None
+    try:
+        appointment = Appointment.objects.select_related('patient', 'patient__patient_profile').get(
+            pk=int(appointment_id),
+        )
+    except (Appointment.DoesNotExist, TypeError, ValueError):
+        return None
+    if appointment.status != 'completed':
+        return None
+    role = getattr(user, 'role', None)
+    if role in ('doctor', 'staff') and appointment.doctor_id != user.id:
+        return None
+    purpose = _APPOINTMENT_CERTIFICATE_PURPOSE.get(
+        appointment.appointment_type,
+        appointment.get_appointment_type_display(),
+    )
+    return {
+        'document_type': 'medical_certificate',
+        'patient_id': str(appointment.patient_id),
+        'purpose': purpose,
+        'appointment_id': str(appointment.id),
+        'consultation_date': appointment.date.isoformat(),
+    }
+
+
+def _resolve_completed_appointment_for_submission(*, user, student, post) -> Appointment | None:
+    """Return the completed appointment when issuing a certificate from appointment detail."""
+    appointment_id = (post.get('appointment_id') or '').strip()
+    if not appointment_id:
+        return None
+    try:
+        appointment = Appointment.objects.get(
+            pk=int(appointment_id),
+            patient=student,
+            status='completed',
+        )
+    except (Appointment.DoesNotExist, TypeError, ValueError):
+        return None
+    role = getattr(user, 'role', None)
+    if role in ('doctor', 'staff') and appointment.doctor_id != user.id:
+        return None
+    return appointment
+
+
+def _resolve_consultation_date_from_post(*, student, post, user) -> date | None:
+    """Use appointment visit date when creating a certificate from a completed appointment."""
+    appointment = _resolve_completed_appointment_for_submission(
+        user=user,
+        student=student,
+        post=post,
+    )
+    if appointment:
+        return appointment.date
+    raw = (post.get('consultation_date') or '').strip()
+    if raw:
+        return parse_date(raw)
+    return None
+
+
+def _pending_document_request_exists(*, student, document_type: str, appointment: Appointment | None) -> bool:
+    """One pending request per patient/type, or per completed appointment when tied to a visit."""
+    qs = DocumentRequest.objects.filter(
+        patient=student,
+        document_type=document_type,
+        status=DocumentRequest.Status.PENDING_REVIEW,
+    )
+    if appointment:
+        return qs.filter(appointment=appointment).exists()
+    return qs.filter(appointment__isnull=True).exists()
 
 
 def _render_request_document(
@@ -311,13 +397,22 @@ def request_document(request):
                 },
             )
 
-        if DocumentRequest.objects.filter(
-            patient=student,
+        appointment = _resolve_completed_appointment_for_submission(
+            user=request.user,
+            student=student,
+            post=post,
+        )
+        if _pending_document_request_exists(
+            student=student,
             document_type=document_type,
-            status=DocumentRequest.Status.PENDING_REVIEW,
-        ).exists():
+            appointment=appointment,
+        ):
             student_label = student.get_full_name() or student.email
-            if is_patient_role(request.user.role):
+            if appointment:
+                pending_msg = (
+                    f'A medical certificate request for this visit is already pending review.'
+                )
+            elif is_patient_role(request.user.role):
                 pending_msg = (
                     'You already have a pending medical certificate request. '
                     'Please wait for it to be processed before submitting another.'
@@ -334,6 +429,11 @@ def request_document(request):
             )
 
         try:
+            consultation_date = _resolve_consultation_date_from_post(
+                student=student,
+                post=post,
+                user=request.user,
+            )
             create_document_request(
                 actor=request.user,
                 student=student,
@@ -341,6 +441,8 @@ def request_document(request):
                 purpose=purpose,
                 additional_info=additional_info,
                 post=post,
+                consultation_date=consultation_date,
+                appointment=appointment,
             )
             if is_patient_role(request.user.role):
                 success_msg = 'Your medical certificate request has been submitted successfully.'
@@ -369,7 +471,17 @@ def request_document(request):
                 },
             )
 
-    return _render_request_document(request)
+    prefill = {}
+    appointment_param = (request.GET.get('appointment') or '').strip()
+    if appointment_param:
+        prefill = _appointment_certificate_prefill(request.user, appointment_param) or {}
+    elif request.GET.get('patient') or request.GET.get('patient_id'):
+        prefill['patient_id'] = (request.GET.get('patient') or request.GET.get('patient_id') or '').strip()
+        if request.GET.get('purpose'):
+            prefill['purpose'] = request.GET.get('purpose', '').strip()
+        prefill.setdefault('document_type', 'medical_certificate')
+
+    return _render_request_document(request, post=prefill)
 
 
 @login_required
@@ -384,7 +496,11 @@ def edit_medical_certificate(request, cert_id):
     missing_signature_warning = request.user.role in ('doctor', 'staff', 'admin') and not signature
 
     if request.method == 'POST':
-        form = MedicalCertificateForm(request.POST, instance=certificate)
+        form = MedicalCertificateForm(
+            request.POST,
+            instance=certificate,
+            clinician_user=request.user,
+        )
         if form.is_valid():
             save_certificate_draft(
                 certificate=certificate,
@@ -397,7 +513,11 @@ def edit_medical_certificate(request, cert_id):
             return redirect('document_request:document_requests')
     else:
         initial = build_certificate_form_initial(certificate, request.user)
-        form = MedicalCertificateForm(instance=certificate, initial=initial)
+        form = MedicalCertificateForm(
+            instance=certificate,
+            initial=initial,
+            clinician_user=request.user,
+        )
 
     return render(
         request,

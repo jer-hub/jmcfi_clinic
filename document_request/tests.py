@@ -48,13 +48,23 @@ class DocumentRequestFlowTests(TestCase):
             last_name='Tor',
             is_staff=True,
         )
-        staff_profile, _ = StaffProfile.objects.get_or_create(user=self.doctor)
-        staff_profile.staff_id = 'D-2001'
-        staff_profile.department = 'Health Services'
-        staff_profile.phone = '09112223333'
-        staff_profile.license_number = 'LIC-001'
-        staff_profile.ptr_no = 'PTR-001'
-        staff_profile.save()
+        staff_profile, _ = StaffProfile.objects.update_or_create(
+            user=self.doctor,
+            defaults={
+                'staff_id': 'D-2001',
+                'department': 'Health Services',
+                'phone': '09112223333',
+                'license_number': 'LIC-001',
+                'ptr_no': 'PTR-001',
+            },
+        )
+        if not staff_profile.staff_id:
+            staff_profile.staff_id = 'D-2001'
+            staff_profile.license_number = 'LIC-001'
+            staff_profile.ptr_no = 'PTR-001'
+            staff_profile.department = 'Health Services'
+            staff_profile.phone = '09112223333'
+            staff_profile.save()
 
         self.staff = User.objects.create_user(
             email='staff@example.com',
@@ -391,3 +401,184 @@ class DocumentRequestFlowTests(TestCase):
 
         self.assertRedirects(self.client.get(preview_url), detail_url)
         self.assertRedirects(self.client.get(edit_url), detail_url)
+
+    def _completed_appointment(self, *, appointment_type='consultation', visit_date=None):
+        return Appointment.objects.create(
+            patient=self.student,
+            doctor=self.doctor,
+            appointment_type=appointment_type,
+            date=visit_date or date(2026, 3, 10),
+            time=time(10, 0),
+            reason='Follow-up',
+            status='completed',
+        )
+
+    def test_request_document_prefills_from_completed_appointment(self):
+        appointment = self._completed_appointment(appointment_type='dental')
+        self.client.force_login(self.doctor)
+        response = self.client.get(
+            reverse('document_request:request_document'),
+            {'appointment': appointment.pk},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Dental purposes')
+        self.assertContains(response, f'value="{appointment.pk}"')
+        self.assertContains(response, appointment.date.isoformat())
+        self.assertContains(response, 'Test Student')
+
+    def test_doctor_can_create_request_from_appointment_while_other_pending_exists(self):
+        self._create_pending_request()
+        appointment = self._completed_appointment(visit_date=date(2026, 2, 1))
+        self.client.force_login(self.doctor)
+        response = self.client.post(
+            reverse('document_request:request_document'),
+            {
+                'document_type': 'medical_certificate',
+                'patient_id': self.student.pk,
+                'purpose': 'General consultation',
+                'appointment_id': appointment.pk,
+                'consultation_date': appointment.date.isoformat(),
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        created = DocumentRequest.objects.filter(
+            patient=self.student,
+            appointment=appointment,
+        ).latest('created_at')
+        self.assertEqual(created.status, DocumentRequest.Status.PENDING_REVIEW)
+        self.assertEqual(
+            DocumentRequest.objects.filter(
+                patient=self.student,
+                status=DocumentRequest.Status.PENDING_REVIEW,
+            ).count(),
+            2,
+        )
+
+    def test_doctor_create_from_appointment_sets_consultation_date(self):
+        appointment = self._completed_appointment(visit_date=date(2026, 1, 15))
+        self.client.force_login(self.doctor)
+        response = self.client.post(
+            reverse('document_request:request_document'),
+            {
+                'document_type': 'medical_certificate',
+                'patient_id': self.student.pk,
+                'purpose': 'General consultation',
+                'appointment_id': appointment.pk,
+                'consultation_date': appointment.date.isoformat(),
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        created = DocumentRequest.objects.filter(
+            patient=self.student,
+            document_type='medical_certificate',
+        ).latest('created_at')
+        self.assertEqual(created.medical_certificate.consultation_date, appointment.date)
+
+    def test_non_completed_appointment_does_not_prefill(self):
+        appointment = Appointment.objects.create(
+            patient=self.student,
+            doctor=self.doctor,
+            appointment_type='consultation',
+            date=date.today(),
+            time=time(9, 0),
+            reason='Checkup',
+            status='confirmed',
+        )
+        self.client.force_login(self.doctor)
+        response = self.client.get(
+            reverse('document_request:request_document'),
+            {'appointment': appointment.pk},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Pre-filled from a completed appointment')
+        self.assertNotContains(response, 'General consultation')
+
+    def test_form_shows_clinician_credentials(self):
+        doc_request = self._create_pending_request()
+        cert = doc_request.medical_certificate
+        cert.physician_name = 'Someone Else'
+        cert.license_no = 'OLD-LIC'
+        cert.ptr_no = 'OLD-PTR'
+        cert.save()
+        from document_request.forms import MedicalCertificateForm
+
+        form = MedicalCertificateForm(instance=cert, clinician_user=self.doctor)
+        self.assertEqual(form['physician_name'].value(), 'Doc Tor')
+        self.assertEqual(form['license_no'].value(), 'LIC-001')
+        self.assertEqual(form['ptr_no'].value(), 'PTR-001')
+        self.assertTrue(form.fields['physician_name'].disabled)
+
+    def test_edit_view_renders_clinician_credentials(self):
+        from django.test import RequestFactory
+        from document_request.views import edit_medical_certificate
+
+        doc_request = self._create_pending_request()
+        cert = doc_request.medical_certificate
+        cert.physician_name = 'Someone Else'
+        cert.license_no = 'OLD-LIC'
+        cert.ptr_no = 'OLD-PTR'
+        cert.save()
+
+        request = RequestFactory().get(f'/documents/certificate/{cert.pk}/edit/')
+        request.user = self.doctor
+        response = edit_medical_certificate(request, cert.pk)
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('LIC-001', content)
+        self.assertIn('disabled', content)
+
+    def test_edit_certificate_physician_fields_disabled_and_from_doctor_profile(self):
+        doc_request = self._create_pending_request()
+        cert = doc_request.medical_certificate
+        cert.physician_name = 'Someone Else'
+        cert.license_no = 'OLD-LIC'
+        cert.ptr_no = 'OLD-PTR'
+        cert.save()
+
+        from document_request.services.certificates import get_clinician_certificate_credentials
+
+        self.client.force_login(self.doctor)
+        response = self.client.get(
+            reverse('document_request:edit_medical_certificate', args=[cert.pk]),
+        )
+        self.assertEqual(response.status_code, 200)
+        creds = get_clinician_certificate_credentials(self.doctor)
+        self.assertContains(response, creds['physician_name'])
+        self.assertContains(response, creds['license_no'])
+        self.assertContains(response, creds['ptr_no'])
+        self.assertContains(response, 'disabled')
+        self.assertNotContains(response, 'Someone Else')
+
+    def test_save_certificate_uses_authenticated_doctor_credentials(self):
+        from document_request.services.certificates import get_clinician_certificate_credentials
+
+        doc_request = self._create_pending_request()
+        cert = doc_request.medical_certificate
+        cert.physician_name = 'Someone Else'
+        cert.license_no = 'OLD-LIC'
+        cert.ptr_no = 'OLD-PTR'
+        cert.save()
+
+        self.client.force_login(self.doctor)
+        response = self.client.post(
+            reverse('document_request:edit_medical_certificate', args=[cert.pk]),
+            {
+                'certificate_date': date.today().isoformat(),
+                'patient_name': 'Test Student',
+                'age': '22',
+                'gender': 'male',
+                'address': 'Campus',
+                'consultation_date': date.today().isoformat(),
+                'diagnosis': 'Fit for school',
+                'remarks_recommendations': 'No restrictions',
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        cert.refresh_from_db()
+        creds = get_clinician_certificate_credentials(self.doctor)
+        self.assertEqual(cert.physician_name, creds['physician_name'])
+        self.assertEqual(cert.license_no, creds['license_no'])
+        self.assertEqual(cert.ptr_no, creds['ptr_no'])

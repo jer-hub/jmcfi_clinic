@@ -19,6 +19,19 @@
                 {% if is_doctor_flow %}
                 <input type="hidden" name="source" value="doctor_on_behalf">
                 {% endif %}
+                {% if form_data.appointment_id %}
+                <input type="hidden" name="appointment_id" value="{{ form_data.appointment_id }}">
+                <input type="hidden" name="consultation_date" value="{{ form_data.consultation_date }}">
+                {% endif %}
+
+                {% if form_data.appointment_id %}
+                <div class="rounded-lg border border-info-200 bg-info-50 px-4 py-3 text-sm text-info-800" role="status">
+                  <div class="flex items-start gap-2">
+                    <i class="fas fa-calendar-check mt-0.5 flex-shrink-0 text-info-600" aria-hidden="true"></i>
+                    <p>Pre-filled from a completed appointment. Consultation date will be set to {{ form_data.consultation_date }} when the certificate is created.</p>
+                  </div>
+                </div>
+                {% endif %}
 
                 {% if form_warning_list %}
                 <div id="doc-request-warnings-summary"

@@ -1,5 +1,7 @@
 from django import forms
 from .models import ClinicianSignature, DocumentRequest, MedicalCertificate
+from .services.certificates import CLINICIAN_CREDENTIAL_FIELDS, get_clinician_certificate_credentials
+from .services.policies import PROCESSOR_ROLES
 
 DoctorSignature = ClinicianSignature
 
@@ -87,9 +89,26 @@ class MedicalCertificateForm(forms.ModelForm):
             'ptr_no': forms.TextInput(attrs={'class': 'form-input'}),
         }
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, clinician_user=None, **kwargs):
+        instance = kwargs.get('instance')
+        if clinician_user and getattr(clinician_user, 'role', None) in PROCESSOR_ROLES and instance is not None:
+            credentials = get_clinician_certificate_credentials(clinician_user)
+            for field_name in CLINICIAN_CREDENTIAL_FIELDS:
+                setattr(instance, field_name, credentials.get(field_name, ''))
+
         super().__init__(*args, **kwargs)
         self.fields['patient_name'].required = True
+        if clinician_user and getattr(clinician_user, 'role', None) in PROCESSOR_ROLES:
+            disabled_attrs = {
+                'class': 'form-input bg-gray-50 text-gray-600 cursor-not-allowed',
+                'tabindex': '-1',
+            }
+            for field_name in CLINICIAN_CREDENTIAL_FIELDS:
+                self.fields[field_name].disabled = True
+                widget = self.fields[field_name].widget
+                widget.attrs.update(disabled_attrs)
+                if field_name == 'physician_name':
+                    widget.attrs.setdefault('placeholder', 'Signature over Printed Name')
 
 
 class ClinicianSignatureForm(forms.ModelForm):

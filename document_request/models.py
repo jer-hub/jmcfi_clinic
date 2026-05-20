@@ -146,6 +146,15 @@ class DocumentRequest(models.Model):
 
     rejection_reason = models.TextField(blank=True)
 
+    appointment = models.ForeignKey(
+        'appointments.Appointment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='document_requests',
+        help_text='Completed visit this certificate request is tied to, when created from an appointment.',
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     updated_at = models.DateTimeField(auto_now=True)
@@ -161,17 +170,16 @@ class DocumentRequest(models.Model):
         verbose_name_plural = 'Document Requests'
 
         constraints = [
-
             models.UniqueConstraint(
-
                 fields=['patient', 'document_type'],
-
-                condition=Q(status='pending_review'),
-
+                condition=Q(status='pending_review', appointment__isnull=True),
                 name='uniq_pending_document_request_per_type',
-
-            )
-
+            ),
+            models.UniqueConstraint(
+                fields=['patient', 'document_type', 'appointment'],
+                condition=Q(status='pending_review') & ~Q(appointment__isnull=True),
+                name='uniq_pending_document_request_per_appointment',
+            ),
         ]
 
 

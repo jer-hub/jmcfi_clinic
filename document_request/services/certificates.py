@@ -12,6 +12,46 @@ from .policies import PROCESSOR_ROLES
 from .signatures import mark_certificate_reviewed
 
 
+CLINICIAN_CREDENTIAL_FIELDS = ('physician_name', 'license_no', 'ptr_no')
+
+
+def get_clinician_certificate_credentials(user) -> dict[str, str]:
+    """Return signing clinician display fields from the authenticated user profile."""
+    if getattr(user, 'role', None) not in PROCESSOR_ROLES:
+        return {field: '' for field in CLINICIAN_CREDENTIAL_FIELDS}
+
+    from core.models import StaffProfile, User
+
+    user = User.objects.filter(pk=user.pk).first() or user
+    staff_profile = None
+    try:
+        staff_profile = user.staff_profile
+    except StaffProfile.DoesNotExist:
+        staff_profile = StaffProfile.objects.filter(user_id=user.pk).first()
+    lic = ''
+    if staff_profile:
+        lic = getattr(staff_profile, 'license_number', '') or ''
+    lic = lic or getattr(user, 'license_number', '') or getattr(user, 'license_no', '') or ''
+
+    ptr = getattr(user, 'ptr_no', '') or getattr(user, 'ptrno', '') or ''
+    if not ptr and staff_profile:
+        ptr = getattr(staff_profile, 'ptr_no', '') or getattr(staff_profile, 'ptrno', '') or ''
+
+    return {
+        'physician_name': user.get_full_name() or user.email or '',
+        'license_no': lic,
+        'ptr_no': ptr,
+    }
+
+
+def apply_clinician_credentials(certificate: MedicalCertificate, user) -> None:
+    """Stamp certificate with the authenticated clinician's credentials."""
+    if getattr(user, 'role', None) not in PROCESSOR_ROLES:
+        return
+    for field, value in get_clinician_certificate_credentials(user).items():
+        setattr(certificate, field, value)
+
+
 def build_certificate_form_initial(certificate: MedicalCertificate, user) -> dict:
     """Prefill empty certificate fields from student profile and clinician profile."""
     initial: dict = {}
@@ -27,25 +67,8 @@ def build_certificate_form_initial(certificate: MedicalCertificate, user) -> dic
     if not certificate.patient_name:
         initial['patient_name'] = student.get_full_name() or student.email
 
-    if user.role not in PROCESSOR_ROLES:
-        return initial
-
-    if not certificate.physician_name:
-        initial['physician_name'] = user.get_full_name() or user.email or ''
-
-    staff_profile = getattr(user, 'staff_profile', None)
-    lic = ''
-    if staff_profile:
-        lic = getattr(staff_profile, 'license_number', '') or ''
-    lic = lic or getattr(user, 'license_number', '') or getattr(user, 'license_no', '') or ''
-    if lic and not certificate.license_no:
-        initial['license_no'] = lic
-
-    ptr = getattr(user, 'ptr_no', '') or getattr(user, 'ptrno', '') or ''
-    if not ptr and staff_profile:
-        ptr = getattr(staff_profile, 'ptr_no', '') or getattr(staff_profile, 'ptrno', '') or ''
-    if ptr and not certificate.ptr_no:
-        initial['ptr_no'] = ptr
+    if user.role in PROCESSOR_ROLES:
+        initial.update(get_clinician_certificate_credentials(user))
 
     return initial
 
@@ -55,6 +78,7 @@ def save_certificate_draft(*, certificate: MedicalCertificate, actor, form_clean
     """Persist certificate edits without issuing or changing request workflow status."""
     for field, value in form_cleaned_data.items():
         setattr(certificate, field, value)
+    apply_clinician_credentials(certificate, actor)
     mark_certificate_reviewed(certificate, actor)
     certificate.save()
 

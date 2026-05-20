@@ -63,7 +63,17 @@ def _profile_data_from_student(student, post) -> dict:
 
 
 @transaction.atomic
-def create_document_request(*, actor, student, document_type: str, purpose: str, additional_info: str = '', post=None):
+def create_document_request(
+    *,
+    actor,
+    student,
+    document_type: str,
+    purpose: str,
+    additional_info: str = '',
+    post=None,
+    consultation_date=None,
+    appointment=None,
+):
     """Create request + linked medical certificate and notify assigned clinician(s)."""
     post = post or {}
     origin = 'patient'
@@ -82,6 +92,7 @@ def create_document_request(*, actor, student, document_type: str, purpose: str,
         purpose=purpose,
         additional_info=additional_info,
         status=DocumentRequest.Status.PENDING_REVIEW,
+        appointment=appointment,
     )
 
     if doc_request.requires_medical_certificate:
@@ -96,7 +107,7 @@ def create_document_request(*, actor, student, document_type: str, purpose: str,
             status=MedicalCertificate.Status.DRAFT,
             certificate_date=timezone.now().date(),
             patient_name=student.get_full_name() or student.email,
-            consultation_date=timezone.now().date(),
+            consultation_date=consultation_date or timezone.now().date(),
             diagnosis='',
             physician_name=physician_name,
             remarks_recommendations=additional_info or '',

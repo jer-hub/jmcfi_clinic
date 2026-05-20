@@ -2,8 +2,6 @@ from django.db import models
 
 from django.contrib.auth import get_user_model
 
-from django.db.models import Q
-
 from django.utils import timezone
 
 
@@ -168,19 +166,6 @@ class DocumentRequest(models.Model):
         verbose_name = 'Document Request'
 
         verbose_name_plural = 'Document Requests'
-
-        constraints = [
-            models.UniqueConstraint(
-                fields=['patient', 'document_type'],
-                condition=Q(status='pending_review', appointment__isnull=True),
-                name='uniq_pending_document_request_per_type',
-            ),
-            models.UniqueConstraint(
-                fields=['patient', 'document_type', 'appointment'],
-                condition=Q(status='pending_review') & ~Q(appointment__isnull=True),
-                name='uniq_pending_document_request_per_appointment',
-            ),
-        ]
 
 
 

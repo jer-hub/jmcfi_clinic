@@ -42,12 +42,10 @@
                   <div class="flex items-start gap-2">
                     <i class="fas fa-triangle-exclamation mt-0.5 flex-shrink-0 text-warning-600" aria-hidden="true"></i>
                     <div>
-                      <p class="font-semibold text-warning-900">
-                        {% if is_doctor_flow %}Pending request exists{% else %}Request already in progress{% endif %}
-                      </p>
-                      <ul id="doc-request-warnings-list" class="mt-1.5 space-y-0.5 list-disc list-inside text-warning-800">
+                      <p class="font-semibold text-warning-900">Please review before continuing</p>
+                      <ul id="doc-request-warnings-list" class="mt-1.5 space-y-1 text-warning-800">
                         {% for warn in form_warning_list %}
-                        <li>{{ warn }}</li>
+                        <li class="flex gap-2"><span class="text-warning-600" aria-hidden="true">•</span><span>{{ warn }}</span></li>
                         {% endfor %}
                       </ul>
                     </div>

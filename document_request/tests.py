@@ -188,7 +188,7 @@ class DocumentRequestFlowTests(TestCase):
         self.assertNotContains(response, 'id="doc-request-errors-summary"')
         self.assertFalse(DocumentRequest.objects.exists())
 
-    def test_doctor_duplicate_pending_shows_error_on_form(self):
+    def test_doctor_can_create_second_pending_request_for_same_patient(self):
         self._create_pending_request()
         self.client.force_login(self.doctor)
         response = self.client.post(
@@ -199,20 +199,17 @@ class DocumentRequestFlowTests(TestCase):
                 'purpose': 'Another reason',
                 'patient_id': str(self.student.pk),
             },
+            follow=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'id="doc-request-warnings-summary"')
-        self.assertContains(response, 'border-warning-200')
-        self.assertContains(response, 'Pending request exists')
-        self.assertContains(response, 'already has a pending medical certificate request')
-        self.assertNotContains(response, 'id="doc-request-errors-summary"')
+        self.assertNotContains(response, 'id="doc-request-warnings-summary"')
         self.assertEqual(
             DocumentRequest.objects.filter(
                 patient=self.student,
                 document_type='medical_certificate',
                 status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
-            1,
+            2,
         )
 
     def test_student_medical_certificate_request_leaves_physician_name_blank(self):

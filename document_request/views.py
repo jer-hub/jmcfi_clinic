@@ -5,7 +5,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db import IntegrityError
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -225,18 +224,6 @@ def _resolve_consultation_date_from_post(*, student, post, user) -> date | None:
     return None
 
 
-def _pending_document_request_exists(*, student, document_type: str, appointment: Appointment | None) -> bool:
-    """One pending request per patient/type, or per completed appointment when tied to a visit."""
-    qs = DocumentRequest.objects.filter(
-        patient=student,
-        document_type=document_type,
-        status=DocumentRequest.Status.PENDING_REVIEW,
-    )
-    if appointment:
-        return qs.filter(appointment=appointment).exists()
-    return qs.filter(appointment__isnull=True).exists()
-
-
 def _render_request_document(
     request,
     post=None,
@@ -402,31 +389,6 @@ def request_document(request):
             student=student,
             post=post,
         )
-        if _pending_document_request_exists(
-            student=student,
-            document_type=document_type,
-            appointment=appointment,
-        ):
-            student_label = student.get_full_name() or student.email
-            if appointment:
-                pending_msg = (
-                    f'A medical certificate request for this visit is already pending review.'
-                )
-            elif is_patient_role(request.user.role):
-                pending_msg = (
-                    'You already have a pending medical certificate request. '
-                    'Please wait for it to be processed before submitting another.'
-                )
-            else:
-                pending_msg = (
-                    f'{student_label} already has a pending medical certificate request. '
-                    'Complete or reject the existing request before creating a new one.'
-                )
-            return _render_request_document(
-                request,
-                post=post,
-                field_warnings={'__all__': [pending_msg]},
-            )
 
         try:
             consultation_date = _resolve_consultation_date_from_post(
@@ -451,17 +413,6 @@ def request_document(request):
                 success_msg = f'Medical certificate request created for {student_label}.'
             messages.success(request, success_msg)
             return redirect('document_request:document_requests')
-        except IntegrityError:
-            return _render_request_document(
-                request,
-                post=post,
-                field_warnings={
-                    '__all__': [
-                        'A pending request of this type already exists. '
-                        'Check the requests list or try again shortly.',
-                    ],
-                },
-            )
         except Exception:
             return _render_request_document(
                 request,

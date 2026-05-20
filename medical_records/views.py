@@ -32,8 +32,12 @@ User = get_user_model()
 
 
 def _is_missed_pending_appointment(appointment) -> bool:
-    """True if appointment is still pending and its scheduled local date/time is in the past."""
-    if not appointment or appointment.status != 'pending':
+    """True if appointment is missed or still pending after its scheduled slot."""
+    if not appointment:
+        return False
+    if appointment.status == 'missed':
+        return True
+    if appointment.status != 'pending':
         return False
     now = timezone.localtime()
     if appointment.date < now.date():
@@ -44,19 +48,19 @@ def _is_missed_pending_appointment(appointment) -> bool:
 
 
 def _pending_missed_q():
-    """Q() on Appointment: pending and slot start has passed (local wall clock)."""
+    """Q() on Appointment: missed status or pending with slot start in the past."""
     now = timezone.localtime()
-    return Q(status='pending') & (
-        Q(date__lt=now.date()) | Q(date=now.date(), time__lt=now.time())
-    )
+    past_slot = Q(date__lt=now.date()) | Q(date=now.date(), time__lt=now.time())
+    return Q(status='missed') | (Q(status='pending') & past_slot)
 
 
 def _record_linked_pending_missed_q():
-    """Q() on MedicalRecord: linked appointment pending and slot start has passed."""
+    """Q() on MedicalRecord: linked appointment missed or pending past slot."""
     now = timezone.localtime()
-    return Q(appointment__status='pending') & (
-        Q(appointment__date__lt=now.date()) | Q(appointment__date=now.date(), appointment__time__lt=now.time())
+    past_slot = Q(appointment__date__lt=now.date()) | Q(
+        appointment__date=now.date(), appointment__time__lt=now.time()
     )
+    return Q(appointment__status='missed') | (Q(appointment__status='pending') & past_slot)
 
 
 def _apply_physician_user_to_initial(initial, physician_user):

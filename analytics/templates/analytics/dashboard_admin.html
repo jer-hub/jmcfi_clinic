@@ -34,6 +34,8 @@
       {% include "components/stat_card.html" with label="Avg rating" value=avg_feedback icon="fa-star" variant="danger" hint="All-time feedback" %}
     </div>
 
+    {% include "analytics/_pharmacy_summary.html" %}
+
     {% include "components/calendar/_admin_calendar_heatmap.html" %}
 
     <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 mb-6" aria-labelledby="chart-volume-heading">

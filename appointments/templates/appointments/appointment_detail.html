@@ -70,6 +70,7 @@
                     <option value="pending" {% if appointment.status == 'pending' %}selected{% endif %}>Pending</option>
                     <option value="confirmed" {% if appointment.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
                     <option value="completed" {% if appointment.status == 'completed' %}selected{% endif %}>Completed</option>
+                    <option value="missed" {% if appointment.status == 'missed' %}selected{% endif %}>Missed</option>
                     <option value="cancelled" {% if appointment.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
                   </select>
                 {% endif %}
@@ -200,6 +201,27 @@
               {% endif %}
             {% endif %}
 
+            {# ── MISSED: Rebook ── #}
+            {% if appointment.status == 'missed' %}
+              <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-danger-50 border border-danger-200 text-xs text-danger-700">
+                <i class="fas fa-calendar-xmark"></i>
+                <span>The patient did not attend this appointment.</span>
+              </div>
+              {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
+                <a href="{% url 'appointments:schedule_for_patient' %}?student={{ appointment.patient.id }}"
+                   class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-primary-200 hover:bg-primary-50/50 transition-all">
+                  <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50 text-primary-600 group-hover:bg-primary-100 transition-colors flex-shrink-0">
+                    <i class="fas fa-calendar-plus text-sm"></i>
+                  </span>
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900">Book an Appointment Again</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Schedule a new visit for {{ appointment.patient.get_full_name }}</p>
+                  </div>
+                  <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+                </a>
+              {% endif %}
+            {% endif %}
+
           {% endif %}
 
           {% if user.role == 'admin' %}
@@ -252,6 +274,27 @@
                     </div>
                   </div>
                 {% endif %}
+              {% endif %}
+            {% endif %}
+
+            {# ── MISSED ── #}
+            {% if appointment.status == 'missed' %}
+              <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-danger-50 border border-danger-200 text-xs text-danger-700">
+                <i class="fas fa-calendar-xmark"></i>
+                <span>You missed this appointment. Please book a new visit if you still need care.</span>
+              </div>
+              {% if role_features.can_book_appointments %}
+              <a href="{% url 'appointments:schedule_appointment' %}"
+                 class="group w-full flex items-center gap-3 p-3 rounded-xl border border-primary-200 bg-primary-50/50 hover:bg-primary-100 transition-all">
+                <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-100 text-primary-600 group-hover:bg-primary-200 transition-colors flex-shrink-0">
+                  <i class="fas fa-calendar-plus text-sm"></i>
+                </span>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-gray-900">Book an Appointment Again</p>
+                  <p class="text-xs text-gray-500 mt-0.5">Schedule a new visit with the clinic</p>
+                </div>
+                <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+              </a>
               {% endif %}
             {% endif %}
 

@@ -101,7 +101,7 @@ def _appointment_list_querystring(get_params: QueryDict) -> str:
     return f'&{encoded}' if encoded else ''
 
 
-_APPOINTMENT_LIST_STATUS_KEYS = ('pending', 'confirmed', 'completed', 'cancelled')
+_APPOINTMENT_LIST_STATUS_KEYS = ('pending', 'confirmed', 'completed', 'missed', 'cancelled')
 
 
 def _appointment_list_stat_filter_url(get_params: QueryDict, status_key: str) -> str:
@@ -177,6 +177,7 @@ def _appointment_list_status_totals(queryset):
         'pending': queryset.filter(status='pending').count(),
         'confirmed': queryset.filter(status='confirmed').count(),
         'completed': queryset.filter(status='completed').count(),
+        'missed': queryset.filter(status='missed').count(),
         'cancelled': queryset.filter(status='cancelled').count(),
     }
 
@@ -560,6 +561,7 @@ def appointment_detail(request, appointment_id):
                         'pending': 'appointment_reminder',
                         'confirmed': 'appointment_confirmed',
                         'completed': 'appointment_completed',
+                        'missed': 'appointment_reminder',
                         'cancelled': 'appointment_cancelled',
                     }
                     notify_user(

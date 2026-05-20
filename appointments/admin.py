@@ -13,7 +13,7 @@ class AppointmentAdmin(admin.ModelAdmin):
     
     def has_scheduling_conflict(self, obj):
         """Display whether appointment has scheduling conflicts with others."""
-        if obj.status == 'cancelled':
+        if obj.status in ('cancelled', 'missed', 'completed'):
             return 'N/A'
         return 'Yes' if obj.has_conflict() else 'No'
     has_scheduling_conflict.short_description = 'Conflict?'

@@ -25,6 +25,8 @@
       {% include "components/stat_card.html" with label="Pending" value=pending_appointments icon="fa-clock" variant="warning" %}
     </div>
 
+    {% include "analytics/_pharmacy_summary.html" %}
+
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
       <a href="{% url 'analytics:health_trends' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-primary-200 transition text-center">
         <div class="bg-primary-50 text-primary-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center"><i class="fas fa-chart-line text-lg"></i></div>

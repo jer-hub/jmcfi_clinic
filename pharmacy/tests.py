@@ -17,7 +17,20 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Medicine, MedicineCategory, Batch, AuditLog
+from django.core.exceptions import ValidationError
+
+from .models import (
+    AuditLog,
+    Batch,
+    Dispensing,
+    Medicine,
+    MedicineCategory,
+    PharmacyCounter,
+    PurchaseOrder,
+    Supplier,
+)
+from .services.numbering import allocate_purchase_order_number
+from .services.stock import dispense_and_deduct
 
 # ─── Helper: strip ProfileCompleteMiddleware during tests ───────────────────
 # It redirects users with incomplete profiles to the profile-required page,
@@ -402,3 +415,56 @@ class PharmacyRouteAccessTest(TestCase):
         ]
         for name in protected_urls:
             self._assert_forbidden(self.student, name)
+
+
+class PurchaseOrderNumberingTest(TestCase):
+    """Atomic PO numbers do not reuse sequence values."""
+
+    def test_allocate_increments_counter(self):
+        PharmacyCounter.objects.update_or_create(pk=1, defaults={'next_purchase_order_seq': 0})
+        n1 = allocate_purchase_order_number()
+        n2 = allocate_purchase_order_number()
+        self.assertNotEqual(n1, n2)
+        counter = PharmacyCounter.objects.get(pk=1)
+        self.assertEqual(counter.next_purchase_order_seq, 2)
+
+    def test_new_po_uses_allocator(self):
+        supplier = Supplier.objects.create(name='Test Supplier')
+        staff = _make_user(role='staff', email='po-staff@test.example')
+        po = PurchaseOrder(supplier=supplier, ordered_by=staff, status='draft')
+        po.save()
+        self.assertTrue(po.order_number)
+        self.assertRegex(po.order_number, r'^\d{6}-\d{4}$')
+
+
+class DispenseStockIntegrityTest(TestCase):
+    """Dispensing cannot drive batch quantity below zero."""
+
+    def setUp(self):
+        self.staff = _make_user(role='staff', email='disp-staff@test.example')
+        self.patient = _make_user(role='student', email='disp-patient@test.example')
+        self.medicine = Medicine.objects.create(
+            name='Test Med',
+            unit='tablet',
+            reorder_level=1,
+            max_stock_level=100,
+        )
+        future = timezone.now().date() + datetime.timedelta(days=365)
+        self.batch = Batch.objects.create(
+            medicine=self.medicine,
+            batch_number='TST-001',
+            quantity=2,
+            expiry_date=future,
+        )
+
+    def test_dispense_more_than_on_hand_raises_validation_error(self):
+        dispensing = Dispensing(
+            patient=self.patient,
+            batch=self.batch,
+            quantity=5,
+        )
+        with self.assertRaises(ValidationError):
+            dispense_and_deduct(dispensing, self.staff)
+        self.batch.refresh_from_db()
+        self.assertEqual(self.batch.quantity, 2)
+        self.assertEqual(Dispensing.objects.count(), 0)

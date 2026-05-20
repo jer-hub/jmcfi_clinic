@@ -679,10 +679,13 @@
         }
         window.__jmcfiDispatchOpenModal({
           type: 'danger',
-          title: 'Rejection Reason',
+          title: 'Rejection reason',
+          subtitle: 'This certificate request was not approved',
           message: message,
+          messageLabel: 'Reason from clinic staff',
           actionLabel: '',
           size: 'sm',
+          viewOnly: true,
         });
       };
 
@@ -721,23 +724,68 @@
           modalTitleId: '',
           bodyContentId: '',
           showHxLoader: true,
+          viewOnly: false,
+          dismissLabel: 'Close',
+          messageLabel: '',
           _closeTimer: null,
           _modalLeaveMs: 220,
 
           get headerClasses() {
-            const m = {info:'from-primary-50 to-primary-100',danger:'from-red-50 to-red-100',warning:'from-amber-50 to-orange-50',success:'from-emerald-50 to-emerald-100'};
+            const m = {
+              info: 'bg-gradient-to-r from-primary-50 to-primary-100',
+              danger: 'bg-gradient-to-r from-danger-50 to-danger-100',
+              warning: 'bg-gradient-to-r from-amber-50 to-orange-50',
+              success: 'bg-gradient-to-r from-emerald-50 to-emerald-100',
+            };
             return m[this.type] || m.info;
+          },
+          get headerBorderClass() {
+            const m = {
+              info: 'border-primary-100',
+              danger: 'border-danger-100',
+              warning: 'border-amber-100',
+              success: 'border-emerald-100',
+            };
+            return m[this.type] || 'border-gray-200';
           },
           get iconContainer() {
-            const m = {info:'bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl',danger:'bg-red-100 rounded-full',warning:'bg-amber-100 rounded-full',success:'bg-emerald-100 rounded-full'};
+            const m = {
+              info: 'bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl shadow-sm',
+              danger: 'bg-white border border-danger-200 rounded-xl shadow-sm',
+              warning: 'bg-white border border-amber-200 rounded-xl shadow-sm',
+              success: 'bg-white border border-emerald-200 rounded-xl shadow-sm',
+            };
             return m[this.type] || m.info;
           },
-          get iconSize() { return this.type === 'info' ? 'w-10 h-10' : 'w-12 h-12'; },
+          get iconSize() { return 'w-10 h-10'; },
           get sizeClass() {
             const m = {sm:'max-w-sm',lg:'max-w-lg',xl:'max-w-2xl','4xl':'max-w-4xl'};
             return m[this.size] || m.lg;
           },
           get isConfirmation() { return !this.hxUrl && !this.hasForm && !this.bodyHtml; },
+          get isViewOnly() {
+            if (this.viewOnly) return true;
+            return this.isConfirmation && !this.actionLabel;
+          },
+          get messagePanelClasses() {
+            if (!this.isViewOnly) return '';
+            const m = {
+              danger: 'rounded-lg border border-danger-200 bg-danger-50/50 p-4',
+              warning: 'rounded-lg border border-amber-200 bg-amber-50/50 p-4',
+              success: 'rounded-lg border border-emerald-200 bg-emerald-50/50 p-4',
+              info: 'rounded-lg border border-primary-200 bg-primary-50/50 p-4',
+            };
+            return m[this.type] || 'rounded-lg border border-gray-200 bg-gray-50 p-4';
+          },
+          get dismissButtonClasses() {
+            const m = {
+              danger: 'bg-danger-600 hover:bg-danger-700 text-white focus:ring-danger-500',
+              warning: 'bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500',
+              success: 'bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500',
+              info: 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500',
+            };
+            return m[this.type] || m.info;
+          },
 
           openModal(opts = {}) {
             if (this._closeTimer) {
@@ -747,6 +795,13 @@
             if (opts.title) this.title = opts.title;
             if (opts.subtitle) this.subtitle = opts.subtitle;
             if (opts.message) this.message = opts.message;
+            this.messageLabel = opts.messageLabel || '';
+            if (opts.dismissLabel) this.dismissLabel = opts.dismissLabel;
+            if (Object.prototype.hasOwnProperty.call(opts, 'viewOnly')) {
+              this.viewOnly = Boolean(opts.viewOnly);
+            } else {
+              this.viewOnly = false;
+            }
             if (opts.type) this.type = opts.type;
             if (opts.size) this.size = opts.size;
             this.hxUrl = opts.hxUrl || '';

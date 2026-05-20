@@ -70,25 +70,45 @@
       {% endif %}
 
       <!-- Action Buttons -->
-      {% if order.status in 'draft,submitted' and request.user.role == 'admin' %}
+      {% if order.status in 'draft,submitted' %}
       <div class="px-6 pb-6">
-        <form method="post" action="{% url 'pharmacy:purchase_order_approve' order_id=order.pk %}" class="inline">
+        <form id="po-approve-form-{{ order.pk }}" method="post" action="{% url 'pharmacy:purchase_order_approve' order_id=order.pk %}" class="hidden"
+              hx-post="{% url 'pharmacy:purchase_order_approve' order_id=order.pk %}" hx-swap="none">
           {% csrf_token %}
-          <button type="submit" class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 shadow-sm">
-            <i class="fas fa-check mr-2"></i>Approve Order
-          </button>
         </form>
+        <button type="button"
+                class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 shadow-sm"
+                @click="$dispatch('open-modal', {
+                  type: 'success',
+                  title: 'Approve Purchase Order',
+                  subtitle: 'PO-{{ order.order_number }}',
+                  message: 'Approve this order for receiving? Stock is not updated until the order is marked received.',
+                  actionLabel: 'Approve',
+                  onConfirm: () => htmx.trigger(document.getElementById('po-approve-form-{{ order.pk }}'), 'submit')
+                })">
+          <i class="fas fa-check mr-2"></i>Approve Order
+        </button>
       </div>
       {% endif %}
 
       {% if order.status == 'approved' %}
       <div class="px-6 pb-6">
-        <form method="post" action="{% url 'pharmacy:purchase_order_receive' order_id=order.pk %}" class="inline">
+        <form id="po-receive-form-{{ order.pk }}" method="post" action="{% url 'pharmacy:purchase_order_receive' order_id=order.pk %}" class="hidden"
+              hx-post="{% url 'pharmacy:purchase_order_receive' order_id=order.pk %}" hx-swap="none">
           {% csrf_token %}
-          <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm" onclick="return confirm('Mark this order as received? Stock will be updated automatically.')">
-            <i class="fas fa-box-open mr-2"></i>Mark as Received
-          </button>
         </form>
+        <button type="button"
+                class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 shadow-sm"
+                @click="$dispatch('open-modal', {
+                  type: 'warning',
+                  title: 'Receive Purchase Order',
+                  subtitle: 'PO-{{ order.order_number }}',
+                  message: 'Mark this order as received? Stock batches will be created or updated automatically.',
+                  actionLabel: 'Mark Received',
+                  onConfirm: () => htmx.trigger(document.getElementById('po-receive-form-{{ order.pk }}'), 'submit')
+                })">
+          <i class="fas fa-box-open mr-2"></i>Mark as Received
+        </button>
       </div>
       {% endif %}
     </div>

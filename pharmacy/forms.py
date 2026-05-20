@@ -1,5 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from django.utils import timezone
 from .models import (
     Medicine, MedicineCategory, Batch, Supplier,
@@ -275,6 +276,15 @@ class DispensingForm(forms.ModelForm):
         self.fields['batch'].label_from_instance = (
             lambda b: f"{b.medicine.name} – Batch {b.batch_number} (Qty: {b.quantity}, Exp: {b.expiry_date})"
         )
+        self.fields['medicine'].widget.attrs.update({
+            'hx-target': '#id_batch',
+            'hx-swap': 'innerHTML',
+            'hx-trigger': 'change',
+            'data-batch-api-base': reverse(
+                'pharmacy:api_batches_for_medicine',
+                kwargs={'medicine_id': 0},
+            ),
+        })
 
     def clean(self):
         cleaned = super().clean()

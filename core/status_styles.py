@@ -9,6 +9,7 @@ APPOINTMENT_STATUS_VARIANTS: dict[str, BadgeVariant] = {
     'pending': 'warning',
     'confirmed': 'success',
     'completed': 'muted',
+    'missed': 'danger',
     'cancelled': 'danger',
 }
 
@@ -16,6 +17,7 @@ APPOINTMENT_STATUS_ICONS: dict[str, str] = {
     'pending': 'fa-clock',
     'confirmed': 'fa-circle-check',
     'completed': 'fa-check-double',
+    'missed': 'fa-calendar-xmark',
     'cancelled': 'fa-ban',
 }
 
@@ -50,6 +52,10 @@ CALENDAR_FILTER_CHIP_TONES: dict[str, tuple[str, str]] = {
     'completed': (
         'bg-white text-muted-600 border-muted-200 hover:border-muted-300 hover:bg-muted-50',
         'bg-muted-100 text-muted-800 border-muted-300 shadow-sm',
+    ),
+    'missed': (
+        'bg-white text-danger-700 border-danger-200 hover:border-danger-300 hover:bg-danger-50',
+        'bg-danger-100 text-danger-800 border-danger-300 shadow-sm',
     ),
     'cancelled': (
         'bg-white text-danger-700 border-danger-200 hover:border-danger-300 hover:bg-danger-50',

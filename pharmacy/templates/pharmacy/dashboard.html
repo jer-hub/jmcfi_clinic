@@ -43,7 +43,7 @@
               <p class="text-xs text-gray-500">{{ med.get_unit_display }} · Reorder at {{ med.reorder_level }}</p>
             </div>
             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-              {{ med.current_stock }} left
+              {{ med.display_stock }} left
             </span>
           </div>
           {% empty %}

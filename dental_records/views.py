@@ -44,8 +44,12 @@ User = get_user_model()
 
 
 def _is_missed_pending_appointment(appointment) -> bool:
-    """True if appointment is still pending and its scheduled local date/time has passed."""
-    if not appointment or appointment.status != 'pending':
+    """True if appointment is missed or still pending after its scheduled slot."""
+    if not appointment:
+        return False
+    if appointment.status == 'missed':
+        return True
+    if appointment.status != 'pending':
         return False
     now = timezone.localtime()
     if appointment.date < now.date():

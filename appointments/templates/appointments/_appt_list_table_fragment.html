@@ -80,7 +80,7 @@
                   <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="p-1.5 rounded text-success-700 hover:bg-success-50 transition-colors" title="View Medical Record"><i class="fas fa-file-medical"></i></a>
                 {% endif %}
                 {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
-                  {% if appointment.status == 'completed' %}
+                  {% if appointment.status == 'completed' or appointment.status == 'missed' %}
                     <a href="{% url 'appointments:schedule_for_patient' %}?student={{ appointment.patient.id }}"
                        class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors"
                        title="Book again">
@@ -90,15 +90,17 @@
                   {% endif %}
                 {% endif %}
                 {% if user|is_patient_role and role_features.can_book_appointments %}
-                  {% if appointment.status == 'cancelled' or appointment.status == 'completed' %}
-                    {% url 'appointments:schedule_appointment' as schedule_url %}
-                    {% include "components/table_icon_link.html" with href=schedule_url icon="fa-calendar-plus" title="Book again" %}
-                  {% endif %}
                   {% if appointment.status == 'completed' %}
                     {% if appointment.dental_records.exists %}
                       {% url 'dental_records:dental_record_detail' appointment.dental_records.first.id as dental_detail_url %}
                       {% include "components/table_icon_link.html" with href=dental_detail_url icon="fa-tooth" title="View dental record" tone="info" %}
                     {% endif %}
+                  {% endif %}
+                  {% if appointment.status == 'cancelled' or appointment.status == 'completed' or appointment.status == 'missed' %}
+                    {% url 'appointments:schedule_appointment' as schedule_url %}
+                    {% include "components/table_icon_link.html" with href=schedule_url icon="fa-calendar-plus" title="Book again" %}
+                  {% endif %}
+                  {% if appointment.status == 'completed' %}
                     {% url 'feedback:submit_feedback_appointment' appointment.id as feedback_url %}
                     {% include "components/table_icon_link.html" with href=feedback_url icon="fa-comment-dots" title="Give feedback" tone="success" %}
                   {% endif %}

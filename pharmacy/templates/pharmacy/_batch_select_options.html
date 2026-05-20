@@ -1,0 +1,4 @@
+<option value="">---------</option>
+{% for b in batches %}
+<option value="{{ b.id }}">Batch {{ b.batch_number }} (Qty: {{ b.quantity }}, Exp: {{ b.expiry_date }})</option>
+{% endfor %}

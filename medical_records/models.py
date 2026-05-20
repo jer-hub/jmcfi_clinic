@@ -129,6 +129,8 @@ class MedicalRecord(models.Model):
             apt = self.appointment_status_value()
             if apt == 'pending':
                 return 'pending'
+            if apt == 'missed':
+                return 'missed'
             if apt == 'cancelled':
                 return 'cancelled'
             if self.is_documentation_complete:

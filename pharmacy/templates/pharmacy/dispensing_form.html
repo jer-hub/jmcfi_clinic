@@ -55,29 +55,10 @@
 
 {% block scripts %}
 <script>
-// Filter batches when medicine is selected
-document.addEventListener('DOMContentLoaded', function() {
-    const medicineSelect = document.getElementById('id_medicine');
-    const batchSelect = document.getElementById('id_batch');
-    
-    if (medicineSelect && batchSelect) {
-        medicineSelect.addEventListener('change', function() {
-            const medicineId = this.value;
-            if (!medicineId) return;
-            
-            fetch(`/pharmacy/api/batches/${medicineId}/`)
-                .then(r => r.json())
-                .then(data => {
-                    batchSelect.innerHTML = '<option value="">---------</option>';
-                    data.forEach(b => {
-                        const opt = document.createElement('option');
-                        opt.value = b.id;
-                        opt.textContent = `Batch ${b.batch_number} (Qty: ${b.quantity}, Exp: ${b.expiry_date})`;
-                        batchSelect.appendChild(opt);
-                    });
-                });
-        });
-    }
+document.getElementById('id_medicine')?.addEventListener('change', function () {
+  const base = this.dataset.batchApiBase;
+  if (!base || !this.value) return;
+  this.setAttribute('hx-get', base.replace('/0/', '/' + this.value + '/'));
 });
 </script>
 {% endblock %}

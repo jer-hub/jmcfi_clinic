@@ -14,6 +14,7 @@ class StatusStylesTests(SimpleTestCase):
         self.assertEqual(APPOINTMENT_STATUS_VARIANTS['pending'], 'warning')
         self.assertEqual(APPOINTMENT_STATUS_VARIANTS['confirmed'], 'success')
         self.assertEqual(APPOINTMENT_STATUS_VARIANTS['completed'], 'muted')
+        self.assertEqual(APPOINTMENT_STATUS_VARIANTS['missed'], 'danger')
         self.assertEqual(APPOINTMENT_STATUS_VARIANTS['cancelled'], 'danger')
 
     def test_appointment_status_variant_unknown_defaults_muted(self):

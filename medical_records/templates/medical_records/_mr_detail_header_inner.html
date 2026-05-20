@@ -10,6 +10,8 @@
           {% appointment_status_badge appointment=record.appointment label="Appointment completed" icon="fa-calendar-check" %}
         {% elif record.appointment.status == 'confirmed' %}
           {% appointment_status_badge appointment=record.appointment label="Appointment confirmed" %}
+        {% elif record.appointment.status == 'missed' %}
+          {% appointment_status_badge appointment=record.appointment label="Appointment missed" %}
         {% elif record.appointment.status == 'cancelled' %}
           {% appointment_status_badge appointment=record.appointment label="Appointment cancelled" %}
         {% endif %}

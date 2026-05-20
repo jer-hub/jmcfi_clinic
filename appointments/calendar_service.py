@@ -26,7 +26,7 @@ from .models import Appointment
 User = get_user_model()
 
 DEFAULT_STATUSES: tuple[str, ...] = ('pending', 'confirmed', 'completed')
-ALL_STATUS_CHOICES: tuple[str, ...] = ('pending', 'confirmed', 'completed', 'cancelled')
+ALL_STATUS_CHOICES: tuple[str, ...] = ('pending', 'confirmed', 'completed', 'missed', 'cancelled')
 
 WEEKDAY_LABELS: tuple[str, ...] = ('Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat')
 
@@ -35,6 +35,7 @@ STATUS_FILTER_OPTIONS: tuple[dict[str, str], ...] = (
     {'key': 'pending', 'label': 'Pending'},
     {'key': 'confirmed', 'label': 'Confirmed'},
     {'key': 'completed', 'label': 'Completed'},
+    {'key': 'missed', 'label': 'Missed'},
     {'key': 'cancelled', 'label': 'Cancelled'},
 )
 
@@ -252,6 +253,7 @@ def serialize_appointment(appt: Appointment, viewer_role: str) -> dict[str, Any]
         'appointment_type_label': type_label,
         'detail_url': detail_url,
         'is_cancelled': appt.status == 'cancelled',
+        'is_missed': appt.status == 'missed',
         'is_completed': appt.status == 'completed',
         'sort_key': appt.time,
     }

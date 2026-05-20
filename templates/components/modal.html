@@ -15,6 +15,12 @@
         onConfirm: () => { /* action */ }
     })"
 
+  View-only (message + Close, no confirm):
+    viewOnly: true,
+    actionLabel: '',
+    messageLabel: 'Optional label above message',
+    dismissLabel: 'Close',
+
   Requires: modalComponent() Alpine function defined globally.
 {% endcomment %}
 
@@ -55,8 +61,8 @@
                      :class="sizeClass">
 
                     <!-- ═══ Header ═══ -->
-                    <div class="flex items-center justify-between px-6 py-5 border-b border-gray-200 rounded-t-2xl"
-                         :class="headerClasses">
+                    <div class="flex items-center justify-between px-5 py-4 border-b rounded-t-2xl"
+                         :class="[headerClasses, headerBorderClass]">
                         <div class="flex items-center gap-3 min-w-0">
                             <!-- Icon Container -->
                             <div class="flex-shrink-0 flex items-center justify-center"
@@ -67,8 +73,8 @@
                                     </svg>
                                 </template>
                                 <template x-if="type === 'danger'">
-                                    <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                    <svg class="w-5 h-5 text-danger-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
                                     </svg>
                                 </template>
                                 <template x-if="type === 'warning'">
@@ -84,15 +90,15 @@
                             </div>
                             <div class="min-w-0">
                                 <h3 :id="modalTitleId"
-                                    class="text-lg font-bold text-gray-900 truncate"
+                                    class="text-base font-semibold text-gray-900 truncate"
                                     x-text="title">Title</h3>
-                                <p class="text-sm text-gray-600 truncate"
+                                <p class="text-sm text-gray-600 truncate mt-0.5"
                                    x-show="subtitle"
                                    x-text="subtitle"></p>
                             </div>
                         </div>
                         <button type="button" @click="if (!isSaving) closeModal()"
-                                class="flex-shrink-0 flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                class="flex-shrink-0 flex items-center justify-center w-9 h-9 text-gray-400 hover:text-gray-600 hover:bg-white/60 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 aria-label="Close modal"
                                 tabindex="0">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +115,14 @@
                          :class="isConfirmation ? '' : 'max-h-[65vh]'"
                          aria-live="polite">
                         <template x-if="isConfirmation">
-                            <p class="text-sm text-gray-600 leading-relaxed" x-text="message"></p>
+                            <div :class="messagePanelClasses">
+                                <p x-show="isViewOnly && messageLabel"
+                                   class="text-xs font-medium uppercase tracking-wider text-gray-500 mb-2"
+                                   x-text="messageLabel"></p>
+                                <p class="text-sm leading-relaxed whitespace-pre-wrap break-words"
+                                   :class="isViewOnly ? 'text-gray-800' : 'text-gray-600'"
+                                   x-text="message"></p>
+                            </div>
                         </template>
                         <div class="max-w-none" x-ref="modalEmbedSlot" x-show="Boolean(bodyHtml && bodyHtml.length)" x-html="bodyHtml"></div>
                         <div class="relative max-w-none"
@@ -125,10 +138,19 @@
                     </div>
 
                     <!-- ═══ Footer ═══ -->
-                    <div x-show="actionLabel || validationError"
-                         class="px-6 py-4 bg-gray-50 rounded-b-2xl flex items-center justify-end gap-3">
-                        <p x-show="validationError" x-text="validationError" class="flex-1 text-sm text-red-600"></p>
-                        <button type="button" @click="if (!isSaving) closeModal()"
+                    <div x-show="actionLabel || validationError || isViewOnly"
+                         class="px-5 py-4 bg-gray-50/80 rounded-b-2xl flex items-center justify-end gap-3 border-t border-gray-100">
+                        <p x-show="validationError" x-text="validationError" class="flex-1 text-sm text-danger-600"></p>
+                        <button type="button"
+                                x-show="isViewOnly && !actionLabel"
+                                @click="if (!isSaving) closeModal()"
+                                :disabled="isSaving"
+                                class="w-full sm:w-auto px-4 py-2 rounded-lg transition-all font-medium text-sm focus:outline-none focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                :class="dismissButtonClasses"
+                                x-text="dismissLabel"></button>
+                        <button type="button"
+                                x-show="!isViewOnly"
+                                @click="if (!isSaving) closeModal()"
                                 :disabled="isSaving"
                                 class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
                             Cancel
@@ -138,7 +160,7 @@
                                     @click="confirmAction()"
                                     :disabled="isSaving"
                                     class="px-4 py-2 rounded-lg transition-all font-medium text-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                    :class="type === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500' :
+                                    :class="type === 'danger' ? 'bg-danger-600 hover:bg-danger-700 text-white focus:ring-danger-500' :
                                             type === 'warning' ? 'bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500' :
                                             type === 'success' ? 'bg-emerald-600 hover:bg-emerald-700 text-white focus:ring-emerald-500' :
                                             'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500'">

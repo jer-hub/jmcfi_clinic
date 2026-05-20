@@ -6,6 +6,16 @@ from decimal import Decimal
 User = get_user_model()
 
 
+class PharmacyCounter(models.Model):
+    """Singleton (pk=1) for atomic PO sequence; avoids race on last-id numbering."""
+
+    next_purchase_order_seq = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        verbose_name = 'Pharmacy counter'
+        verbose_name_plural = 'Pharmacy counters'
+
+
 # ─── Medicine / Product Catalog ──────────────────────────────────────────────
 
 class MedicineCategory(models.Model):
@@ -64,11 +74,22 @@ class Medicine(models.Model):
         help_text='Alert when stock exceeds this quantity'
     )
     is_active = models.BooleanField(default=True)
+    cached_non_expired_stock = models.PositiveIntegerField(
+        default=0,
+        help_text='Cached sum of non-expired batch qty; refreshed on batch changes.',
+    )
+    stock_cache_updated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['name']
+        indexes = [
+            models.Index(
+                fields=['is_active', 'cached_non_expired_stock'],
+                name='pharm_med_active_stock_idx',
+            ),
+        ]
 
     def __str__(self):
         label = self.name
@@ -78,7 +99,9 @@ class Medicine(models.Model):
 
     @property
     def current_stock(self):
-        """Sum of all non-expired batch quantities."""
+        """Non-expired batch quantity (uses cache when populated)."""
+        if self.stock_cache_updated_at is not None:
+            return self.cached_non_expired_stock
         return sum(
             b.quantity for b in self.batches.filter(
                 quantity__gt=0, expiry_date__gt=timezone.now().date()
@@ -123,6 +146,15 @@ class Batch(models.Model):
         ordering = ['expiry_date']
         verbose_name_plural = 'Batches'
         unique_together = ['medicine', 'batch_number']
+        indexes = [
+            models.Index(fields=['expiry_date', 'quantity'], name='pharm_batch_exp_qty_idx'),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(quantity__gte=0),
+                name='pharm_batch_qty_non_negative',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.medicine.name} – Batch {self.batch_number}"
@@ -202,6 +234,10 @@ class PurchaseOrder(models.Model):
 
     class Meta:
         ordering = ['-order_date']
+        indexes = [
+            models.Index(fields=['status', 'order_date'], name='pharm_po_status_ord_idx'),
+            models.Index(fields=['status', 'received_date'], name='pharm_po_status_rcv_idx'),
+        ]
 
     def __str__(self):
         return f"PO-{self.order_number} ({self.supplier.name})"
@@ -212,9 +248,10 @@ class PurchaseOrder(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.order_number:
-            last = PurchaseOrder.objects.order_by('-id').first()
-            next_id = (last.id + 1) if last else 1
-            self.order_number = f"{timezone.now().strftime('%Y%m')}-{next_id:04d}"
+            # Avoid import cycle: allocate only when app registry is ready.
+            from pharmacy.services.numbering import allocate_purchase_order_number
+
+            self.order_number = allocate_purchase_order_number()
         super().save(*args, **kwargs)
 
 
@@ -235,6 +272,12 @@ class PurchaseOrderItem(models.Model):
 
     class Meta:
         ordering = ['id']
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(quantity_ordered__gte=1),
+                name='pharm_poitem_qty_ordered_min',
+            ),
+        ]
 
     def __str__(self):
         return f"{self.medicine.name} x{self.quantity_ordered}"
@@ -269,11 +312,17 @@ class Dispensing(models.Model):
         limit_choices_to={'role__in': ['staff', 'doctor']}
     )
     reason = models.TextField(blank=True, default='')
-    dispensed_at = models.DateTimeField(default=timezone.now)
+    dispensed_at = models.DateTimeField(default=timezone.now, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-dispensed_at']
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(quantity__gte=1),
+                name='pharm_disp_qty_min',
+            ),
+        ]
 
     def __str__(self):
         return (

@@ -369,6 +369,10 @@ def render_analytics_dashboard(request):
             'top_diagnoses': _illness_stats(date_from, date_to, doctor=user)[:10],
             'hourly_distribution': _appointment_by_hour(date_from, date_to),
         })
+        if user.role == 'staff':
+            from pharmacy.services.reports import build_pharmacy_analytics_summary
+
+            context['pharmacy_analytics'] = build_pharmacy_analytics_summary(date_from, date_to)
         return render(request, 'analytics/dashboard_staff.html', context)
 
     else:
@@ -397,6 +401,8 @@ def render_analytics_dashboard(request):
         cal_month = max(1, min(12, cal_month))
         cal_selected = parse_date(request.GET.get('date', '')) or today
 
+        from pharmacy.services.reports import build_pharmacy_analytics_summary
+
         context.update({
             'total_patients': total_patients,
             'total_staff': total_staff,
@@ -410,6 +416,7 @@ def render_analytics_dashboard(request):
             'appointment_by_weekday': _appointment_by_weekday(date_from, date_to),
             'demographics': _student_demographics(),
             'financial_summary': _financial_summary(date_from, date_to),
+            'pharmacy_analytics': build_pharmacy_analytics_summary(date_from, date_to),
         })
         context.update(build_admin_calendar_context(
             year=cal_year,

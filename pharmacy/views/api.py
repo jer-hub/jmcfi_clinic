@@ -1,0 +1,25 @@
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.utils import timezone
+
+from core.decorators import role_required
+from core.htmx_utils import is_htmx_request
+
+from pharmacy.models import Batch
+from pharmacy.services.stock import available_batches_payload
+
+
+@login_required
+@role_required('staff')
+def api_batches_for_medicine(request, medicine_id):
+    """Return available batches for dispensing (HTML options for HTMX, JSON for legacy)."""
+    today = timezone.now().date()
+    batches = Batch.objects.filter(
+        medicine_id=medicine_id,
+        quantity__gt=0,
+        expiry_date__gt=today,
+    ).order_by('expiry_date')
+    if is_htmx_request(request):
+        return render(request, 'pharmacy/_batch_select_options.html', {'batches': batches})
+    return JsonResponse(available_batches_payload(medicine_id), safe=False)

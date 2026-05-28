@@ -26,6 +26,9 @@
 {% endblock %}
 
 {% block form_fields %}
+  {% include 'health_forms_services/partials/_patient_picker_shell_open.html' %}
+  {% include 'health_forms_services/partials/_patient_picker_panel.html' %}
+
   <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
     {% for field in personal_form %}
       <div class="{% if field.name == 'permanent_address' or field.name == 'current_address' %}md:col-span-3{% endif %} {% if field.errors %}has-error{% endif %}">
@@ -42,6 +45,7 @@
       </div>
     {% endfor %}
   </div>
+</div>
 {% endblock %}
 
 {% block info_note %}

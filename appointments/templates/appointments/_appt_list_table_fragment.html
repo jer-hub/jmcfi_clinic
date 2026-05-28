@@ -80,6 +80,13 @@
                   <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="p-1.5 rounded text-success-700 hover:bg-success-50 transition-colors" title="View Medical Record"><i class="fas fa-file-medical"></i></a>
                 {% endif %}
                 {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
+                  {% if appointment.status == 'completed' %}
+                    {% if appointment.appointment_type == 'consultation' or appointment.appointment_type == 'dental' %}
+                      {% if user.role == 'admin' or appointment.doctor_id == user.id %}
+                        {% include "appointments/partials/_issue_certificate_action.html" %}
+                      {% endif %}
+                    {% endif %}
+                  {% endif %}
                   {% if appointment.status == 'completed' or appointment.status == 'missed' %}
                     <a href="{% url 'appointments:schedule_for_patient' %}?student={{ appointment.patient.id }}"
                        class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors"

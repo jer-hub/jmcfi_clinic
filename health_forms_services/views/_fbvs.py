@@ -8,13 +8,17 @@ HTMX/JSON API surface that the URL config still wires up.
 import json
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 
 from core.decorators import role_required
+from core.roles import PATIENT_ROLE_VALUES
 
 from ..exports import (
     doc_to_response,
@@ -43,6 +47,7 @@ from ..forms import (
     PrescriptionPatientForm,
     PrescriptionReviewForm,
 )
+from ..picker_mappings import picker_field_mappings
 from ..models import (
     DentalFormTooth,
     DentalFormToothSurface,
@@ -55,6 +60,8 @@ from ..models import (
     PrescriptionItem,
 )
 
+User = get_user_model()
+
 
 # ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -62,6 +69,130 @@ from ..models import (
 def _is_json_request(request):
     content_type = (request.content_type or '').lower()
     return content_type.startswith('application/json')
+
+
+def _selected_patient_from_request(request):
+    """Resolve selected patient from explicit picker input for doctor/staff create flows."""
+    raw_patient_id = (request.POST.get('selected_user_id') or '').strip()
+    if not raw_patient_id:
+        return None, None
+    try:
+        patient_id = int(raw_patient_id)
+    except (TypeError, ValueError):
+        return None, 'Please select a valid patient from the search results.'
+    patient = User.objects.filter(pk=patient_id, role__in=PATIENT_ROLE_VALUES).first()
+    if not patient:
+        return None, 'Please select a valid patient from the search results.'
+    return patient, None
+
+
+def _patient_search_result_payload(patient):
+    """Shared payload contract for patient picker search results."""
+    profile = getattr(patient, 'patient_profile', None)
+    patient_id = getattr(profile, 'patient_id', '') or ''
+    course = getattr(profile, 'course', '') or ''
+    year_level = getattr(profile, 'year_level', '') or ''
+    detail_bits = [bit for bit in (course, year_level) if bit]
+    detail = ' · '.join(detail_bits) if detail_bits else 'Patient'
+    return {
+        'id': patient.id,
+        'name': patient.get_full_name() or patient.email or f'User {patient.id}',
+        'email': patient.email or '',
+        'patient_id': patient_id,
+        'detail': detail,
+        'display': f"{patient.get_full_name() or patient.email} ({patient_id or patient.email})",
+    }
+
+
+def _patient_profile_prefill_payload(patient):
+    """Shared payload contract for auto-prefilling create transaction forms."""
+    profile = getattr(patient, 'patient_profile', None)
+    return {
+        'id': patient.id,
+        'name': patient.get_full_name() or patient.email or '',
+        'first_name': patient.first_name or '',
+        'last_name': patient.last_name or '',
+        'middle_name': getattr(profile, 'middle_name', '') or '',
+        'email_address': patient.email or '',
+        'gender': getattr(profile, 'gender', '') or '',
+        'civil_status': getattr(profile, 'civil_status', '') or '',
+        'date_of_birth': (
+            profile.date_of_birth.isoformat()
+            if profile and getattr(profile, 'date_of_birth', None)
+            else ''
+        ),
+        'place_of_birth': getattr(profile, 'place_of_birth', '') or '',
+        'age': getattr(profile, 'age', '') or '',
+        'address': getattr(profile, 'address', '') or '',
+        'contact_number': getattr(profile, 'phone', '') or '',
+        'telephone_number': getattr(profile, 'telephone_number', '') or '',
+        'designation': 'student',
+        'department_college_office': (
+            ' - '.join(filter(None, [getattr(profile, 'course', ''), getattr(profile, 'department', '')]))
+            if profile else ''
+        ),
+        'department': (
+            ' - '.join(filter(None, [getattr(profile, 'course', ''), getattr(profile, 'department', '')]))
+            if profile else ''
+        ),
+        'guardian_name': getattr(profile, 'emergency_contact', '') or '',
+        'guardian_contact': getattr(profile, 'emergency_phone', '') or '',
+        'patient_id': getattr(profile, 'patient_id', '') or '',
+        'name': patient.get_full_name() or patient.email or '',
+        'permanent_address': getattr(profile, 'address', '') or '',
+        'current_address': getattr(profile, 'address', '') or '',
+        'mobile_number': getattr(profile, 'phone', '') or '',
+        'course': getattr(profile, 'course', '') or '',
+        'year_level': getattr(profile, 'year_level', '') or '',
+        'institution_id': getattr(profile, 'patient_id', '') or '',
+    }
+
+
+def _patient_picker_config(request, form_key, selected_patient=None):
+    """Serializable Alpine config for the shared patient picker (safe for json_script)."""
+    initial_selected = None
+    if selected_patient:
+        payload = _patient_search_result_payload(selected_patient)
+        initial_selected = {
+            'id': str(payload['id']),
+            'name': payload['name'],
+            'email': payload['email'],
+            'patientId': payload['patient_id'],
+        }
+    return {
+        'searchUrl': reverse('health_forms_services:search_patients'),
+        'profileUrlTemplate': reverse(
+            'health_forms_services:patient_profile_prefill',
+            args=[0],
+        ),
+        'initialSelected': initial_selected,
+        'fieldMappings': picker_field_mappings(form_key),
+    }
+
+
+def _patient_picker_create_context(request, form_key, selected_patient=None):
+    """Shared template context for patient picker on create flows."""
+    return {
+        'selected_patient': selected_patient,
+        'selected_patient_payload': (
+            _patient_search_result_payload(selected_patient) if selected_patient else None
+        ),
+        'hf_picker_config': _patient_picker_config(request, form_key, selected_patient),
+    }
+
+
+def _preselected_patient_from_request(request):
+    """Optional ?patient= / ?patient_id= query pre-selection for create forms."""
+    raw_patient_id = (request.GET.get('patient') or request.GET.get('patient_id') or '').strip()
+    if not raw_patient_id:
+        return None
+    try:
+        return User.objects.select_related('patient_profile').get(
+            pk=int(raw_patient_id),
+            role__in=PATIENT_ROLE_VALUES,
+        )
+    except (User.DoesNotExist, TypeError, ValueError):
+        return None
 
 
 def get_form_or_404(model, pk, user, select_related_fields=None):
@@ -85,10 +216,14 @@ def get_form_or_404(model, pk, user, select_related_fields=None):
 @role_required('staff', 'doctor')
 def manual_entry(request):
     """Create a new health profile form using personal info only."""
+    selected_patient = None
     if request.method == 'POST':
+        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         personal_form = HealthProfilePersonalInfoForm(request.POST)
+        if selected_patient_error:
+            personal_form.add_error(None, selected_patient_error)
         if personal_form.is_valid():
-            health_form = HealthProfileForm(user=request.user)
+            health_form = HealthProfileForm(user=selected_patient or request.user)
             for field in personal_form.cleaned_data:
                 setattr(health_form, field, personal_form.cleaned_data[field])
             health_form.status = HealthProfileForm.Status.PENDING
@@ -96,10 +231,14 @@ def manual_entry(request):
             messages.success(request, 'Health profile form created. You can now fill in clinical details.')
             return redirect('health_forms_services:edit_form', pk=health_form.pk)
     else:
-        personal_form = HealthProfilePersonalInfoForm()
+        preselected = _preselected_patient_from_request(request)
+        selected_patient = preselected
+        initial = _patient_profile_prefill_payload(preselected) if preselected else None
+        personal_form = HealthProfilePersonalInfoForm(initial=initial)
 
     return render(request, 'health_forms_services/manual_entry.html', {
         'personal_form': personal_form,
+        **_patient_picker_create_context(request, 'health_profile', selected_patient),
     })
 
 
@@ -263,10 +402,14 @@ def export_form_json(request, pk):
 @login_required
 @role_required('staff', 'doctor')
 def create_dental_form(request):
+    selected_patient = None
     if request.method == 'POST':
+        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         personal_form = DentalHealthPersonalInfoForm(request.POST)
+        if selected_patient_error:
+            personal_form.add_error(None, selected_patient_error)
         if personal_form.is_valid():
-            dental_form = DentalHealthForm(user=request.user)
+            dental_form = DentalHealthForm(user=selected_patient or request.user)
             for field in personal_form.cleaned_data:
                 setattr(dental_form, field, personal_form.cleaned_data[field])
             dental_form.status = DentalHealthForm.Status.PENDING
@@ -274,10 +417,14 @@ def create_dental_form(request):
             messages.success(request, 'Dental records form created. You can now fill in clinical details.')
             return redirect('health_forms_services:edit_dental_form', pk=dental_form.pk)
     else:
-        personal_form = DentalHealthPersonalInfoForm()
+        preselected = _preselected_patient_from_request(request)
+        selected_patient = preselected
+        initial = _patient_profile_prefill_payload(preselected) if preselected else None
+        personal_form = DentalHealthPersonalInfoForm(initial=initial)
 
     return render(request, 'health_forms_services/create_dental_form.html', {
         'personal_form': personal_form,
+        **_patient_picker_create_context(request, 'dental_form', selected_patient),
     })
 
 
@@ -491,12 +638,52 @@ def dental_form_chart_api_delete(request, pk, tooth_id):
 
 
 @login_required
+@require_GET
+@role_required('staff', 'doctor')
+def search_patients(request):
+    """Search patient accounts for picker-first transaction create flows."""
+    query = (request.GET.get('q') or '').strip()
+    if len(query) < 2:
+        return JsonResponse({'results': []})
+
+    patients = (
+        User.objects.filter(role__in=PATIENT_ROLE_VALUES)
+        .filter(
+            Q(first_name__icontains=query)
+            | Q(last_name__icontains=query)
+            | Q(email__icontains=query)
+            | Q(patient_profile__patient_id__icontains=query)
+        )
+        .select_related('patient_profile')
+        .order_by('last_name', 'first_name')[:20]
+    )
+    return JsonResponse({'results': [_patient_search_result_payload(patient) for patient in patients]})
+
+
+@login_required
+@require_GET
+@role_required('staff', 'doctor')
+def patient_profile_prefill(request, patient_id):
+    """Return patient-profile payload for chart/services create auto-prefill."""
+    patient = get_object_or_404(
+        User.objects.select_related('patient_profile'),
+        pk=patient_id,
+        role__in=PATIENT_ROLE_VALUES,
+    )
+    return JsonResponse(_patient_profile_prefill_payload(patient))
+
+
+@login_required
 @role_required('staff', 'doctor')
 def create_patient_chart(request):
+    selected_patient = None
     if request.method == 'POST':
+        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         form = PatientChartPersonalInfoForm(request.POST)
+        if selected_patient_error:
+            form.add_error(None, selected_patient_error)
         if form.is_valid():
-            chart = PatientChart(user=request.user)
+            chart = PatientChart(user=selected_patient or request.user)
             for field in form.cleaned_data:
                 setattr(chart, field, form.cleaned_data[field])
             chart.status = PatientChart.Status.PENDING
@@ -504,9 +691,15 @@ def create_patient_chart(request):
             messages.success(request, 'Patient chart created successfully.')
             return redirect('health_forms_services:patient_chart_detail', pk=chart.pk)
     else:
-        form = PatientChartPersonalInfoForm()
+        preselected = _preselected_patient_from_request(request)
+        selected_patient = preselected
+        initial = _patient_profile_prefill_payload(preselected) if preselected else None
+        form = PatientChartPersonalInfoForm(initial=initial)
 
-    return render(request, 'health_forms_services/create_patient_chart.html', {'personal_form': form})
+    return render(request, 'health_forms_services/create_patient_chart.html', {
+        'personal_form': form,
+        **_patient_picker_create_context(request, 'patient_chart', selected_patient),
+    })
 
 
 @login_required
@@ -589,10 +782,14 @@ def delete_chart_entry(request, pk, entry_id):
 @login_required
 @role_required('staff', 'doctor')
 def create_dental_services(request):
+    selected_patient = None
     if request.method == 'POST':
+        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         personal_form = DentalServicesPersonalInfoForm(request.POST)
+        if selected_patient_error:
+            personal_form.add_error(None, selected_patient_error)
         if personal_form.is_valid():
-            service_form = DentalServicesRequest(user=request.user)
+            service_form = DentalServicesRequest(user=selected_patient or request.user)
             for field in personal_form.cleaned_data:
                 setattr(service_form, field, personal_form.cleaned_data[field])
             service_form.status = DentalServicesRequest.Status.PENDING
@@ -600,10 +797,14 @@ def create_dental_services(request):
             messages.success(request, 'Dental services request created. You can now fill in the services checklist.')
             return redirect('health_forms_services:edit_dental_services', pk=service_form.pk)
     else:
-        personal_form = DentalServicesPersonalInfoForm()
+        preselected = _preselected_patient_from_request(request)
+        selected_patient = preselected
+        initial = _patient_profile_prefill_payload(preselected) if preselected else None
+        personal_form = DentalServicesPersonalInfoForm(initial=initial)
 
     return render(request, 'health_forms_services/create_dental_services.html', {
         'personal_form': personal_form,
+        **_patient_picker_create_context(request, 'dental_services', selected_patient),
     })
 
 
@@ -653,19 +854,38 @@ def delete_dental_services(request, pk):
 @login_required
 @role_required('staff', 'doctor')
 def create_prescription(request):
+    selected_patient = None
     if request.method == 'POST':
+        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         form = PrescriptionPatientForm(request.POST)
+        if selected_patient_error:
+            form.add_error(None, selected_patient_error)
         if form.is_valid():
             prescription = form.save(commit=False)
-            prescription.user = request.user
+            prescription.user = selected_patient or request.user
             prescription.status = Prescription.Status.INCOMPLETE
             prescription.save()
             messages.success(request, 'Prescription created successfully.')
             return redirect('health_forms_services:prescription_detail', pk=prescription.pk)
     else:
-        form = PrescriptionPatientForm()
+        preselected = _preselected_patient_from_request(request)
+        selected_patient = preselected
+        if preselected:
+            profile = _patient_profile_prefill_payload(preselected)
+            initial = {
+                'patient_name': profile['name'],
+                'age': profile['age'],
+                'gender': profile['gender'],
+                'address': profile['address'],
+            }
+        else:
+            initial = None
+        form = PrescriptionPatientForm(initial=initial)
 
-    return render(request, 'health_forms_services/create_prescription.html', {'form': form})
+    return render(request, 'health_forms_services/create_prescription.html', {
+        'form': form,
+        **_patient_picker_create_context(request, 'prescription', selected_patient),
+    })
 
 
 @login_required

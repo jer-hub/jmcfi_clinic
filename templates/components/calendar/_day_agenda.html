@@ -11,12 +11,18 @@
       <p class="text-xs text-gray-500 mt-0.5">
         {{ calendar_day_events|length }} item{{ calendar_day_events|length|pluralize }}
       </p>
-      {% elif calendar_status_filter %}
-      <p class="text-xs text-amber-700 mt-0.5">No items match this filter</p>
       {% endif %}
   </div>
 
-  {% if calendar_status_chips %}
+  {% if calendar_event_chips %}
+  <div class="flex flex-wrap gap-1.5 mb-2 flex-shrink-0" role="group" aria-label="Filter by item type">
+    {% for chip in calendar_event_chips %}
+    {% include "components/calendar/_status_filter_chip.html" %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if calendar_status_chips and calendar_event_filter != 'documents' %}
   <div class="flex flex-wrap gap-1.5 mb-3 flex-shrink-0" role="group" aria-label="Filter by status">
     {% for chip in calendar_status_chips %}
     {% include "components/calendar/_status_filter_chip.html" %}

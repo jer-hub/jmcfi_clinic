@@ -57,6 +57,7 @@ class CalendarFilters:
     selected_date: date
     doctor_id: int | None = None
     status_filter: str | None = None
+    event_filter: str = 'all'
     full_page: bool = False
     view_mode: str = 'month'
 
@@ -94,6 +95,13 @@ def parse_status_filter(raw: str | None) -> str | None:
     return None
 
 
+def parse_event_filter(raw: str | None) -> str:
+    value = (raw or 'all').strip().lower()
+    if value in ('all', 'appointments', 'documents'):
+        return value
+    return 'all'
+
+
 def statuses_for_filter(status_filter: str | None) -> tuple[str, ...]:
     if status_filter == 'all' or status_filter is None:
         return ALL_STATUS_CHOICES
@@ -108,6 +116,16 @@ def get_grid_events_by_date(
 ) -> dict[date, list[dict[str, Any]]]:
     """Events for month/week grids — same status rules as the day panel."""
     statuses = statuses_for_filter(filters.status_filter)
+    if filters.event_filter == 'appointments':
+        return get_events_by_date(
+            user,
+            start,
+            end,
+            statuses=statuses,
+            doctor_id=filters.doctor_id,
+        )
+    if filters.event_filter == 'documents':
+        return get_document_events_by_date(user, start, end)
     if filters.status_filter:
         return get_events_by_date(
             user,
@@ -162,6 +180,7 @@ def parse_calendar_filters(
         selected_date=selected,
         doctor_id=parse_doctor_id(get_params.get('doctor'), user),
         status_filter=parse_status_filter(get_params.get('status')),
+        event_filter=parse_event_filter(get_params.get('kind')),
         full_page=full_page,
         view_mode=parse_view_mode(get_params.get('view')),
     )
@@ -449,6 +468,8 @@ def _calendar_url_params(filters: CalendarFilters, *, year: int | None = None, m
         params['doctor'] = filters.doctor_id
     if filters.status_filter:
         params['status'] = filters.status_filter
+    if filters.event_filter != 'all':
+        params['kind'] = filters.event_filter
     if filters.full_page:
         params['full'] = '1'
     if filters.view_mode == 'week':
@@ -547,6 +568,7 @@ def build_calendar_filters_context(user, filters: CalendarFilters) -> dict[str, 
             selected_date=filters.selected_date,
             doctor_id=filters.doctor_id,
             status_filter=opt['key'] or None,
+            event_filter=filters.event_filter,
             full_page=filters.full_page,
             view_mode=filters.view_mode,
         )
@@ -567,6 +589,53 @@ def build_calendar_filters_context(user, filters: CalendarFilters) -> dict[str, 
             ),
         })
 
+    event_chip_options: tuple[dict[str, str], ...] = (
+        {'key': 'all', 'label': 'All items'},
+        {'key': 'appointments', 'label': 'Appointments'},
+        {'key': 'documents', 'label': 'Document Requests'},
+    )
+    event_chip_classes: dict[str, tuple[str, str]] = {
+        'all': (
+            'text-gray-700 bg-white border-gray-200 hover:bg-gray-50',
+            'text-primary-700 bg-primary-50 border-primary-200',
+        ),
+        'appointments': (
+            'text-info-700 bg-white border-info-200 hover:bg-info-50',
+            'text-info-800 bg-info-100 border-info-300',
+        ),
+        'documents': (
+            'text-indigo-700 bg-white border-indigo-200 hover:bg-indigo-50',
+            'text-indigo-800 bg-indigo-100 border-indigo-300',
+        ),
+    }
+    event_chips = []
+    for opt in event_chip_options:
+        status_for_chip = filters.status_filter
+        if opt['key'] in ('all', 'documents'):
+            status_for_chip = None
+        chip_filters = CalendarFilters(
+            year=filters.year,
+            month=filters.month,
+            selected_date=filters.selected_date,
+            doctor_id=filters.doctor_id,
+            status_filter=status_for_chip,
+            event_filter=opt['key'],
+            full_page=filters.full_page,
+            view_mode=filters.view_mode,
+        )
+        inactive_cls, active_cls = event_chip_classes[opt['key']]
+        is_active = filters.event_filter == opt['key']
+        event_chips.append({
+            'key': opt['key'],
+            'label': opt['label'],
+            'active': is_active,
+            'chip_class': active_cls if is_active else inactive_cls,
+            'url': _build_calendar_url(
+                'appointments:calendar_body_fragment',
+                _calendar_url_params(chip_filters),
+            ),
+        })
+
     def view_url(mode: str) -> str:
         f = replace(filters, view_mode=mode)
         return _build_calendar_url('appointments:calendar_body_fragment', _calendar_url_params(f))
@@ -574,6 +643,8 @@ def build_calendar_filters_context(user, filters: CalendarFilters) -> dict[str, 
     ctx: dict[str, Any] = {
         'calendar_status_chips': status_chips,
         'calendar_status_filter': filters.status_filter or '',
+        'calendar_event_chips': event_chips,
+        'calendar_event_filter': filters.event_filter,
         'calendar_doctor_id': filters.doctor_id,
         'calendar_show_doctor_filter': user.role == 'staff',
         'calendar_filter_query': urlencode(_calendar_url_params(filters)),
@@ -728,7 +799,21 @@ def build_calendar_day_context(
     """Context for day agenda partial."""
     selected = filters.selected_date
     statuses = statuses_for_filter(filters.status_filter)
-    if filters.status_filter:
+    if filters.event_filter == 'documents':
+        events = get_document_events_by_date(
+            user,
+            selected,
+            selected,
+        ).get(selected, [])
+    elif filters.event_filter == 'appointments':
+        events = get_events_by_date(
+            user,
+            selected,
+            selected,
+            doctor_id=filters.doctor_id,
+            statuses=statuses,
+        ).get(selected, [])
+    elif filters.status_filter:
         events = get_events_by_date(
             user,
             selected,
@@ -752,6 +837,7 @@ def build_calendar_day_context(
         'calendar_viewer_role': normalize_role(user.role),
         'calendar_is_today': selected == timezone.localdate(),
         'calendar_status_filter': filters.status_filter or '',
+        'calendar_event_filter': filters.event_filter,
     }
 
 
@@ -848,6 +934,7 @@ def build_dashboard_calendar_context(
             year=selected.year,
             month=selected.month,
             selected_date=selected,
+            event_filter='all',
         )
     return build_calendar_context(user, filters)
 

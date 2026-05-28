@@ -253,6 +253,7 @@ def _calendar_filters_from_request(request, *, full_page: bool = False):
             selected_date=filters.selected_date,
             doctor_id=filters.doctor_id,
             status_filter=filters.status_filter,
+            event_filter=filters.event_filter,
             full_page=True,
             view_mode=filters.view_mode,
         )

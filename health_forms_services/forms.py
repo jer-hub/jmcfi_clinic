@@ -382,27 +382,27 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
             'date_of_examination',
         ]
         widgets = {
-            'last_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'middle_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'age': forms.NumberInput(attrs={'class': 'form-input'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Dela Cruz'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Juan'}),
+            'middle_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Santos'}),
+            'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
-            'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
-            'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
-            'place_of_birth': forms.TextInput(attrs={'class': 'form-input'}),
-            'email_address': forms.EmailInput(attrs={'class': 'form-input'}),
+            'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'House/Unit No., Street, Barangay, City/Municipality, Province'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date', 'placeholder': 'mm/dd/yyyy'}),
+            'place_of_birth': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'City/Municipality, Province'}),
+            'email_address': forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'juan@example.com'}),
             'contact_number': forms.TextInput(attrs={
-                'class': 'form-input pl-12',
+                'class': 'form-input',
                 'data-phone-input': 'true',
                 'placeholder': '+639171234567 or 09171234567'
             }),
-            'telephone_number': forms.TextInput(attrs={'class': 'form-input'}),
+            'telephone_number': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Landline (optional)'}),
             'designation': forms.Select(attrs={'class': 'form-select'}),
-            'department_college_office': forms.TextInput(attrs={'class': 'form-input'}),
-            'guardian_name': forms.TextInput(attrs={'class': 'form-input'}),
+            'department_college_office': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Department / College / Office'}),
+            'guardian_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Parent/Guardian full name'}),
             'guardian_contact': forms.TextInput(attrs={
-                'class': 'form-input pl-12',
+                'class': 'form-input',
                 'data-phone-input': 'true',
                 'placeholder': '+639171234567 or 09171234567'
             }),
@@ -548,27 +548,27 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
             'guardian_name', 'guardian_contact',
         ]
         widgets = {
-            'last_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'middle_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
-            'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
-            'place_of_birth': forms.TextInput(attrs={'class': 'form-input'}),
-            'age': forms.NumberInput(attrs={'class': 'form-input'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Dela Cruz'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Juan'}),
+            'middle_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Santos'}),
+            'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'House/Unit No., Street, Barangay, City/Municipality, Province'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date', 'placeholder': 'mm/dd/yyyy'}),
+            'place_of_birth': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'City/Municipality, Province'}),
+            'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
-            'email_address': forms.EmailInput(attrs={'class': 'form-input'}),
+            'email_address': forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'juan@example.com'}),
             'contact_number': forms.TextInput(attrs={
-                'class': 'form-input pl-12',
+                'class': 'form-input',
                 'data-phone-input': 'true',
                 'placeholder': '+639171234567 or 09171234567'
             }),
-            'telephone_number': forms.TextInput(attrs={'class': 'form-input'}),
+            'telephone_number': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Landline (optional)'}),
             'designation': forms.Select(attrs={'class': 'form-select'}),
-            'department_college_office': forms.TextInput(attrs={'class': 'form-input'}),
-            'guardian_name': forms.TextInput(attrs={'class': 'form-input'}),
+            'department_college_office': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Department / College / Office'}),
+            'guardian_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Parent/Guardian full name'}),
             'guardian_contact': forms.TextInput(attrs={
-                'class': 'form-input pl-12',
+                'class': 'form-input',
                 'data-phone-input': 'true',
                 'placeholder': '+639171234567 or 09171234567'
             }),
@@ -618,19 +618,19 @@ class DentalServicesPersonalInfoForm(forms.ModelForm):
             'date_of_birth', 'contact_number', 'department',
         ]
         widgets = {
-            'last_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'first_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'middle_name': forms.TextInput(attrs={'class': 'form-input'}),
-            'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
-            'age': forms.NumberInput(attrs={'class': 'form-input'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Dela Cruz'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Juan'}),
+            'middle_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Santos'}),
+            'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'House/Unit No., Street, Barangay, City/Municipality, Province'}),
+            'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
-            'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date', 'placeholder': 'mm/dd/yyyy'}),
             'contact_number': forms.TextInput(attrs={
-                'class': 'form-input pl-12',
+                'class': 'form-input',
                 'data-phone-input': 'true',
                 'placeholder': '+639171234567 or 09171234567'
             }),
-            'department': forms.TextInput(attrs={'class': 'form-input'}),
+            'department': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Department / College / Office'}),
         }
 
     def __init__(self, *args, **kwargs):

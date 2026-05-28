@@ -186,17 +186,9 @@
                   <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
                 </a>
               {% endif %}
-              <a href="{% url 'document_request:request_document' %}?appointment={{ appointment.id }}"
-                 class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-info-200 hover:bg-info-50/50 transition-all">
-                <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-info-50 text-info-600 group-hover:bg-info-100 transition-colors flex-shrink-0">
-                  <i class="fas fa-file-signature text-sm"></i>
-                </span>
-                <div class="min-w-0">
-                  <p class="text-sm font-semibold text-gray-900">Issue Medical Certificate</p>
-                  <p class="text-xs text-gray-500 mt-0.5">Create a certificate for this completed visit</p>
-                </div>
-                <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
-              </a>
+              {% if appointment.appointment_type == 'consultation' or appointment.appointment_type == 'dental' %}
+                {% include "appointments/partials/_issue_certificate_action.html" with cert_variant="card" %}
+              {% endif %}
               {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
                 <a href="{% url 'appointments:schedule_for_patient' %}?student={{ appointment.patient.id }}"
                    class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-primary-200 hover:bg-primary-50/50 transition-all">
@@ -240,17 +232,9 @@
               {% include "appointments/partials/_cancel_appointment_action.html" with cancel_variant="card" %}
             {% endif %}
             {% if appointment.status == 'completed' %}
-              <a href="{% url 'document_request:request_document' %}?appointment={{ appointment.id }}"
-                 class="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-info-200 hover:bg-info-50/50 transition-all">
-                <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-info-50 text-info-600 group-hover:bg-info-100 transition-colors flex-shrink-0">
-                  <i class="fas fa-file-signature text-sm"></i>
-                </span>
-                <div class="min-w-0">
-                  <p class="text-sm font-semibold text-gray-900">Issue Medical Certificate</p>
-                  <p class="text-xs text-gray-500 mt-0.5">Create a certificate for this completed visit</p>
-                </div>
-                <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
-              </a>
+              {% if appointment.appointment_type == 'consultation' or appointment.appointment_type == 'dental' %}
+                {% include "appointments/partials/_issue_certificate_action.html" with cert_variant="card" %}
+              {% endif %}
             {% endif %}
           {% endif %}
 

@@ -340,20 +340,23 @@ class DocumentRequestFlowTests(TestCase):
         self.assertEqual(doc_request.status, DocumentRequest.Status.PENDING_REVIEW)
         self.assertContains(response, 'Upload your signature')
 
-    def _create_pending_request(self):
+    def _create_pending_request(self, *, patient=None, created_by=None, appointment=None, purpose='Test'):
+        patient = patient or self.student
+        created_by = created_by or self.student
         cert = MedicalCertificate.objects.create(
-            user=self.student,
-            patient_name='Test Student',
+            user=patient,
+            patient_name=patient.get_full_name() or 'Test Student',
             diagnosis='',
             remarks_recommendations='',
             status=MedicalCertificate.Status.DRAFT,
         )
         doc_request = DocumentRequest.objects.create(
-            patient=self.student,
-            created_by=self.student,
+            patient=patient,
+            created_by=created_by,
             document_type='medical_certificate',
-            purpose='Test',
+            purpose=purpose,
             status=DocumentRequest.Status.PENDING_REVIEW,
+            appointment=appointment,
             medical_certificate=cert,
         )
         cert.document_request = doc_request
@@ -422,6 +425,49 @@ class DocumentRequestFlowTests(TestCase):
         self.assertContains(response, f'value="{appointment.pk}"')
         self.assertContains(response, appointment.date.isoformat())
         self.assertContains(response, 'Test Student')
+
+    def test_issue_certificate_from_appointment_redirects_to_detail(self):
+        appointment = self._completed_appointment(appointment_type='consultation')
+        self.client.force_login(self.doctor)
+        response = self.client.get(
+            reverse('document_request:issue_certificate_from_appointment', args=[appointment.pk]),
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        created = DocumentRequest.objects.filter(
+            patient=self.student,
+            appointment=appointment,
+            document_type='medical_certificate',
+        ).latest('created_at')
+        self.assertEqual(response.request['PATH_INFO'], reverse('document_request:document_request_detail', args=[created.pk]))
+
+    def test_issue_certificate_from_appointment_reuses_pending_request(self):
+        appointment = self._completed_appointment(appointment_type='dental')
+        existing = self._create_pending_request(
+            patient=self.student,
+            created_by=self.doctor,
+            appointment=appointment,
+            purpose='Dental purposes',
+        )
+        self.client.force_login(self.doctor)
+        response = self.client.get(
+            reverse('document_request:issue_certificate_from_appointment', args=[appointment.pk]),
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.request['PATH_INFO'],
+            reverse('document_request:document_request_detail', args=[existing.pk]),
+        )
+        self.assertEqual(
+            DocumentRequest.objects.filter(
+                patient=self.student,
+                appointment=appointment,
+                document_type='medical_certificate',
+                status=DocumentRequest.Status.PENDING_REVIEW,
+            ).count(),
+            1,
+        )
 
     def test_doctor_can_create_request_from_appointment_while_other_pending_exists(self):
         self._create_pending_request()

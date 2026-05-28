@@ -437,6 +437,52 @@ def request_document(request):
 
 @login_required
 @role_required('doctor', 'staff', 'admin')
+def issue_certificate_from_appointment(request, appointment_id):
+    """Create/reuse a document request from a completed appointment, then open processing detail."""
+    appointment = get_object_or_404(
+        Appointment.objects.select_related('patient', 'doctor'),
+        pk=appointment_id,
+        status='completed',
+    )
+    if request.user.role in ('doctor', 'staff') and appointment.doctor_id != request.user.id:
+        messages.error(request, 'Access denied')
+        return redirect('appointments:appointment_list')
+    if appointment.appointment_type not in ('consultation', 'dental'):
+        messages.error(request, 'Certificates can only be issued for completed consultation or dental visits.')
+        return redirect('appointments:appointment_detail', appointment_id=appointment.id)
+
+    existing = (
+        DocumentRequest.objects.filter(
+            patient=appointment.patient,
+            appointment=appointment,
+            document_type='medical_certificate',
+            status=DocumentRequest.Status.PENDING_REVIEW,
+        )
+        .order_by('-created_at')
+        .first()
+    )
+    if existing:
+        return redirect('document_request:document_request_detail', request_id=existing.id)
+
+    doc_request = create_document_request(
+        actor=request.user,
+        student=appointment.patient,
+        document_type='medical_certificate',
+        purpose=_APPOINTMENT_CERTIFICATE_PURPOSE.get(
+            appointment.appointment_type,
+            appointment.get_appointment_type_display(),
+        ),
+        additional_info='',
+        post={'appointment_id': str(appointment.id)},
+        consultation_date=appointment.date,
+        appointment=appointment,
+    )
+    messages.success(request, 'Medical certificate request created from appointment.')
+    return redirect('document_request:document_request_detail', request_id=doc_request.id)
+
+
+@login_required
+@role_required('doctor', 'staff', 'admin')
 def edit_medical_certificate(request, cert_id):
     certificate = get_object_or_404(MedicalCertificate, id=cert_id)
     linked_doc_request = DocumentRequest.objects.filter(medical_certificate=certificate).first()

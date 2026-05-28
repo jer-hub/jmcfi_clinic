@@ -16,6 +16,10 @@ from .views._cbvs import (
 app_name = 'health_forms_services'
 
 urlpatterns = [
+    # Patient picker APIs for transaction create flows
+    path('api/search-patients/', views.search_patients, name='search_patients'),
+    path('api/patient/<int:patient_id>/profile/', views.patient_profile_prefill, name='patient_profile_prefill'),
+
     # Health Profile Forms (class-based views)
     path('', HealthProfileListView.as_view(), name='forms_list'),
     path('new/', views.manual_entry, name='manual_entry'),

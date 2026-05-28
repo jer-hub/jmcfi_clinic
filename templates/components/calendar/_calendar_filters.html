@@ -10,6 +10,7 @@
     <input type="hidden" name="month" value="{{ calendar_month }}">
     <input type="hidden" name="date" value="{{ calendar_selected_iso }}">
     {% if calendar_status_filter %}<input type="hidden" name="status" value="{{ calendar_status_filter }}">{% endif %}
+    {% if calendar_event_filter and calendar_event_filter != 'all' %}<input type="hidden" name="kind" value="{{ calendar_event_filter }}">{% endif %}
     {% if calendar_full_page %}<input type="hidden" name="full" value="1">{% endif %}
     {% if calendar_view_mode == 'week' %}<input type="hidden" name="view" value="week">{% endif %}
     <label for="cal-doctor-filter" class="text-xs font-medium text-gray-600 whitespace-nowrap">Doctor</label>

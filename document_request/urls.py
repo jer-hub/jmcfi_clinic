@@ -10,6 +10,11 @@ urlpatterns = [
     
     # Submit New Request
     path('request/', views.request_document, name='request_document'),
+    path(
+        'request/from-appointment/<int:appointment_id>/',
+        views.issue_certificate_from_appointment,
+        name='issue_certificate_from_appointment',
+    ),
 
     # Clinician signature (doctor/staff/admin)
     path('signature/', views.clinician_signature, name='clinician_signature'),

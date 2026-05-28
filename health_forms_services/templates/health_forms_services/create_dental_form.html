@@ -27,6 +27,9 @@
 {% endblock %}
 
 {% block form_fields %}
+  {% include 'health_forms_services/partials/_patient_picker_shell_open.html' %}
+  {% include 'health_forms_services/partials/_patient_picker_panel.html' %}
+
   {# ── Name ── #}
   <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">Name</h3>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mb-6">
@@ -167,6 +170,7 @@
         <span class="text-xs text-gray-400">({{ request.user.email }})</span>
       </div>
     </div>
+  </div>
   </div>
 {% endblock %}
 

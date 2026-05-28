@@ -26,7 +26,10 @@
 {% endblock %}
 
 {% block form_fields %}
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+  {% include 'health_forms_services/partials/_patient_picker_shell_open.html' %}
+  {% include 'health_forms_services/partials/_patient_picker_panel.html' %}
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
     {% for field in personal_form %}
       <div class="{% if field.name == 'address' %}md:col-span-3{% endif %} {% if field.errors %}has-error{% endif %}">
         <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
@@ -38,6 +41,7 @@
         {% endif %}
       </div>
     {% endfor %}
+    </div>
   </div>
 {% endblock %}
 

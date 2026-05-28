@@ -331,6 +331,22 @@ class CalendarServiceTests(TestCase):
         self.assertIn('bg-success-50', confirmed['chip_class'])
         self.assertIn('border-success-200', confirmed['chip_class'])
 
+    def test_event_kind_chips_present(self):
+        filters = self._filters(self.student)
+        chips = build_calendar_filters_context(self.student, filters)['calendar_event_chips']
+        self.assertEqual([chip['key'] for chip in chips], ['all', 'appointments', 'documents'])
+        self.assertEqual(sum(1 for chip in chips if chip['active']), 1)
+
+    def test_all_items_chip_clears_status_filter(self):
+        filters = self._filters(self.student, status_filter='cancelled')
+        chips = build_calendar_filters_context(self.student, filters)['calendar_event_chips']
+        all_chip = next(chip for chip in chips if chip['key'] == 'all')
+        docs_chip = next(chip for chip in chips if chip['key'] == 'documents')
+        appt_chip = next(chip for chip in chips if chip['key'] == 'appointments')
+        self.assertNotIn('status=', all_chip['url'])
+        self.assertNotIn('status=', docs_chip['url'])
+        self.assertIn('status=cancelled', appt_chip['url'])
+
     def test_week_context_for_doctor(self):
         filters = self._filters(self.doctor, view_mode='week')
         ctx = build_calendar_week_context(self.doctor, filters)
@@ -364,6 +380,13 @@ class CalendarServiceTests(TestCase):
         self.assertIn(f'date={(anchor - timedelta(days=7)).isoformat()}', nav['prev'])
         self.assertIn(f'date={(anchor + timedelta(days=7)).isoformat()}', nav['next'])
 
+    def test_nav_preserves_event_kind_filter(self):
+        filters = self._filters(self.doctor, event_filter='documents')
+        nav = build_calendar_nav_urls(filters)
+        self.assertIn('kind=documents', nav['prev'])
+        self.assertIn('kind=documents', nav['next'])
+        self.assertIn('kind=documents', nav['today'])
+
     def test_week_period_label_is_range_not_month_only(self):
         filters = self._filters(self.doctor, selected_date=date(2026, 5, 15), view_mode='week')
         ctx = build_calendar_week_context(self.doctor, filters)
@@ -383,6 +406,50 @@ class CalendarServiceTests(TestCase):
         events = get_combined_events_by_date(self.student, start, end)
         doc_days = [d for d, items in events.items() if any(e['event_kind'] == 'document' for e in items)]
         self.assertTrue(doc_days)
+
+    def test_document_kind_filter_returns_only_document_events(self):
+        doc = DocumentRequest.objects.create(
+            patient=self.student,
+            document_type='medical_certificate',
+            purpose='Need certificate',
+            status=DocumentRequest.Status.PENDING_REVIEW,
+        )
+        doc_day = timezone.localtime(doc.created_at).date()
+        Appointment.objects.create(
+            patient=self.student,
+            doctor=self.doctor,
+            appointment_type='consultation',
+            date=doc_day,
+            time=time(9, 0),
+            reason='Same day visit',
+            status='confirmed',
+        )
+        filters = self._filters(self.student, selected_date=doc_day, event_filter='documents')
+        events = build_calendar_day_context(self.student, filters)['calendar_day_events']
+        self.assertTrue(events)
+        self.assertTrue(all(event['event_kind'] == 'document' for event in events))
+
+    def test_appointments_kind_filter_returns_only_appointment_events(self):
+        doc = DocumentRequest.objects.create(
+            patient=self.student,
+            document_type='medical_certificate',
+            purpose='Need certificate',
+            status=DocumentRequest.Status.PENDING_REVIEW,
+        )
+        doc_day = timezone.localtime(doc.created_at).date()
+        Appointment.objects.create(
+            patient=self.student,
+            doctor=self.doctor,
+            appointment_type='consultation',
+            date=doc_day,
+            time=time(11, 0),
+            reason='Same day visit',
+            status='confirmed',
+        )
+        filters = self._filters(self.student, selected_date=doc_day, event_filter='appointments')
+        events = build_calendar_day_context(self.student, filters)['calendar_day_events']
+        self.assertTrue(events)
+        self.assertTrue(all(event['event_kind'] == 'appointment' for event in events))
 
     def test_ics_export_contains_appointment(self):
         filters = self._filters(self.student)

@@ -12,8 +12,10 @@
 {#   {% block extra_content %}{% endblock %} — anything after the form      #}
 
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}{% block create_title %}New Form{% endblock %} - JMCFI Clinic{% endblock %}
+{% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     {% include 'health_forms_services/_subnav.html' %}
 
@@ -87,3 +89,8 @@
     </form>
 </div>
 {% endblock content %}
+
+{% block scripts %}
+{{ block.super }}
+<script src="{% static 'js/hf-patient-picker.js' %}"></script>
+{% endblock %}

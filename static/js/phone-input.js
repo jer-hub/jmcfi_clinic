@@ -371,6 +371,11 @@
             if (input.dataset.phoneInitialised) return;
             input.dataset.phoneInitialised = 'true';
 
+            // Guard against mismatched markup: only keep left-padding when badge mode is enabled.
+            if (!hasBadge(input)) {
+                input.classList.remove('pl-12');
+            }
+
             // Ensure parent is position:relative for the status icon
             if (input.parentElement) {
                 input.parentElement.style.position = 'relative';

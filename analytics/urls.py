@@ -37,4 +37,9 @@ urlpatterns = [
 
     # Chart data API
     path('api/chart-data/', views.chart_data_api, name='chart_data_api'),
+    path(
+        'api/admin-calendar-month/',
+        views.admin_calendar_month_api,
+        name='admin_calendar_month',
+    ),
 ]

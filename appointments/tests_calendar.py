@@ -293,6 +293,24 @@ class CalendarServiceTests(TestCase):
         self.assertEqual(appt_events[0]['status'], 'cancelled')
         self.assertEqual(appt_events[0]['variant'], 'danger')
 
+    def test_admin_calendar_nav_urls_use_core_dashboard_with_month_params(self):
+        from django.urls import reverse
+
+        ctx = build_admin_calendar_context(
+            year=2026,
+            month=5,
+            selected_date=date(2026, 5, 15),
+        )
+        home = reverse('core:dashboard')
+        prev = ctx['admin_calendar_nav_prev_url']
+        next_url = ctx['admin_calendar_nav_next_url']
+        self.assertTrue(prev.startswith(home))
+        self.assertTrue(next_url.startswith(home))
+        self.assertIn('year=2026&month=4', prev)
+        self.assertIn('date=2026-04-15', prev)
+        self.assertIn('year=2026&month=6', next_url)
+        self.assertIn('date=2026-06-15', next_url)
+
     def test_admin_heatmap_counts(self):
         ctx = build_admin_calendar_context(year=2026, month=5, selected_date=self.appt_date)
         flat = [cell for week in ctx['admin_calendar_weeks'] for cell in week]

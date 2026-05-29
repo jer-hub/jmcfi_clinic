@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from django.db import models
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
@@ -300,7 +301,11 @@ def _financial_summary(date_from, date_to):
 def analytics_dashboard(request):
     """Main analytics hub – role-based dashboard."""
     if request.user.role == 'admin':
-        return redirect('core:dashboard')
+        url = reverse('core:dashboard')
+        query = request.META.get('QUERY_STRING', '')
+        if query:
+            url = f'{url}?{query}'
+        return redirect(url)
     return render_analytics_dashboard(request)
 
 
@@ -1408,6 +1413,33 @@ def export_report(request):
 # =====================================================================
 # API endpoints for chart data (JSON)
 # =====================================================================
+
+@login_required
+@role_required('admin')
+def admin_calendar_month_api(request):
+    """JSON month payload for admin dashboard heat-map (Alpine navigation)."""
+    from appointments.calendar_service import build_admin_calendar_context
+
+    today = timezone.localdate()
+    try:
+        cal_year = int(request.GET.get('year', today.year))
+    except (TypeError, ValueError):
+        cal_year = today.year
+    try:
+        cal_month = int(request.GET.get('month', today.month))
+    except (TypeError, ValueError):
+        cal_month = today.month
+    cal_month = max(1, min(12, cal_month))
+    cal_selected = parse_date(request.GET.get('date', '')) or today
+
+    ctx = build_admin_calendar_context(
+        year=cal_year,
+        month=cal_month,
+        selected_date=cal_selected,
+        user=request.user,
+    )
+    return JsonResponse(ctx['admin_calendar_client'])
+
 
 @login_required
 def chart_data_api(request):

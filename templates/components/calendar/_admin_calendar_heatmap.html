@@ -1,14 +1,17 @@
 {% comment %}Admin clinic schedule heat map (analytics dashboard).{% endcomment %}
 {% load static %}
-<script src="{% static 'js/admin-calendar-heatmap.js' %}"></script>
+{{ admin_calendar_client|json_script:"admin-calendar-client-data" }}
 <section class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden mb-6"
          aria-labelledby="admin-cal-heading"
-         x-data="adminCalendarHeatmap"
+         x-data="adminCalendarHeatmap()"
          x-init="init()"
          @keydown.escape.window="hideTooltip()"
+         data-month-api-url="{% url 'analytics:admin_calendar_month' %}"
+         data-today-iso="{{ admin_calendar_today_iso }}"
          data-initial-iso="{{ admin_calendar_initial_iso }}"
-         data-today-iso="{{ admin_calendar_today_iso }}">
-  {{ admin_calendar_days_json|json_script:"admin-calendar-days-data" }}
+         data-year="{{ admin_calendar_client.year }}"
+         data-month="{{ admin_calendar_client.month }}"
+         data-month-label="{{ admin_calendar_month_label }}">
   <div class="px-5 py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
     <div>
       <h2 id="admin-cal-heading" class="text-base font-semibold text-gray-900 flex items-center gap-2">
@@ -17,29 +20,25 @@
       <p class="mt-0.5 text-xs text-gray-500">Hover for preview · click for details · blue badge = document request count</p>
     </div>
     <div class="flex items-center gap-2">
-      <a :href="selectedDay().list_url"
-         class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">
-        View <span x-text="selectedDay().short_label || ''"></span> →
-      </a>
       <div class="flex items-center gap-1 rounded-lg border border-gray-200 bg-gray-50 p-0.5">
-        <a href="{{ admin_calendar_nav_prev_url }}"
-           class="p-1.5 rounded-md text-gray-600 hover:bg-white hover:text-gray-900 transition-colors"
-           aria-label="Previous month">
+        <button type="button"
+                class="p-1.5 rounded-md text-gray-600 hover:bg-white hover:text-gray-900 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                aria-label="Previous month"
+                :disabled="monthLoading"
+                @click="changeMonth(-1)">
           <i class="fas fa-chevron-left text-xs" aria-hidden="true"></i>
-        </a>
-        <span class="px-2 text-sm font-semibold text-gray-900 min-w-[8.5rem] text-center tabular-nums">
-          {{ admin_calendar_month_label }}
-        </span>
-        <a href="{{ admin_calendar_nav_next_url }}"
-           class="p-1.5 rounded-md text-gray-600 hover:bg-white hover:text-gray-900 transition-colors"
-           aria-label="Next month">
+        </button>
+        <span class="px-2 text-sm font-semibold text-gray-900 min-w-[8.5rem] text-center tabular-nums"
+              x-text="displayMonthLabel()"
+              :aria-busy="monthLoading">{{ admin_calendar_month_label }}</span>
+        <button type="button"
+                class="p-1.5 rounded-md text-gray-600 hover:bg-white hover:text-gray-900 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                aria-label="Next month"
+                :disabled="monthLoading"
+                @click="changeMonth(1)">
           <i class="fas fa-chevron-right text-xs" aria-hidden="true"></i>
-        </a>
+        </button>
       </div>
-      <a href="{{ admin_calendar_nav_today_url }}"
-         class="text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 border border-primary-200 rounded-lg px-2.5 py-1.5 transition-colors">
-        Today
-      </a>
     </div>
   </div>
 
@@ -53,7 +52,7 @@
     </div>
     <div class="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden border border-gray-200"
          role="grid"
-         aria-label="{{ admin_calendar_month_label }} clinic schedule"
+         :aria-label="(displayMonthLabel() || 'Calendar') + ' clinic schedule'"
          @focusout="onGridFocusOut($event)">
       {% for label in calendar_weekday_labels %}
       <div class="bg-gray-50 text-center py-1.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">
@@ -61,44 +60,44 @@
         <span class="sm:hidden">{{ label|slice:":1" }}</span>
       </div>
       {% endfor %}
-      {% for week in admin_calendar_weeks %}
-        {% for cell in week %}
+      <template x-for="cell in gridCells" :key="cell.iso">
         <div role="gridcell"
-             class="min-h-[3.5rem] sm:min-h-[4rem] p-1 flex flex-col
-                    {% if not cell.in_month %}opacity-40{% endif %}
-                    {% if cell.is_weekend %}bg-gray-50/80{% else %}bg-white{% endif %}"
-             @mouseenter="showTooltip('{{ cell.iso }}', $event)"
+             class="min-h-[3.5rem] sm:min-h-[4rem] p-1 flex flex-col"
+             :class="{
+               'opacity-40': !cell.in_month,
+               'bg-gray-50/80': cell.is_weekend,
+               'bg-white': !cell.is_weekend
+             }"
+             @mouseenter="showTooltip(cell.iso, $event)"
              @mouseleave="onCellLeave($event)">
           <button type="button"
-                  :class="dayButtonClasses('{{ cell.iso }}', '{% if cell.heat_class %}{{ cell.heat_class }}{% endif %}')"
-                  @click="selectDay('{{ cell.iso }}')"
-                  @focus="showTooltip('{{ cell.iso }}', $event)"
+                  :class="dayButtonClasses(cell.iso, cell.heat_class)"
+                  @click="selectDay(cell.iso)"
+                  @focus="showTooltip(cell.iso, $event)"
                   @blur="hideTooltip()"
-                  :aria-describedby="tooltipIso === '{{ cell.iso }}' ? 'admin-cal-tooltip' : null"
-                  :aria-current="isSelected('{{ cell.iso }}') ? 'date' : 'false'"
-                  aria-label="{{ cell.date|date:'F j' }}{% if cell.event_count %} — {{ cell.event_count }} appointment{{ cell.event_count|pluralize }}{% endif %}{% if cell.document_count %} — {{ cell.document_count }} document request{{ cell.document_count|pluralize }}{% endif %}">
-            <span class="text-xs font-semibold tabular-nums leading-none">{{ cell.day }}</span>
-            {% if cell.event_count or cell.document_count %}
-            <span class="flex items-center justify-center gap-0.5 mt-1">
-              {% if cell.event_count %}
-              <span class="text-[9px] font-bold tabular-nums opacity-90 min-w-[1rem] text-center">{{ cell.event_count }}</span>
-              {% endif %}
-              {% if cell.document_count %}
+                  :aria-describedby="tooltipIso === cell.iso ? 'admin-cal-tooltip' : null"
+                  :aria-current="isSelected(cell.iso) ? 'date' : 'false'"
+                  :aria-label="dayAriaLabel(cell)">
+            <span class="text-xs font-semibold tabular-nums leading-none" x-text="cell.day"></span>
+            <span class="flex items-center justify-center gap-0.5 mt-1"
+                  x-show="cell.event_count || cell.document_count">
+              <span class="text-[9px] font-bold tabular-nums opacity-90 min-w-[1rem] text-center"
+                    x-show="cell.event_count"
+                    x-text="cell.event_count"></span>
               <span class="inline-flex items-center justify-center gap-0.5 min-w-[1rem] h-4 px-1 rounded-full bg-info-100 text-info-800 text-[9px] font-bold leading-4 tabular-nums flex-shrink-0"
-                    title="{{ cell.document_count }} document request{{ cell.document_count|pluralize }}">
+                    x-show="cell.document_count"
+                    :title="cell.document_count + ' document request' + (cell.document_count === 1 ? '' : 's')">
                 <i class="fas fa-file-alt text-[8px] opacity-90" aria-hidden="true"></i>
-                <span>{{ cell.document_count }}</span>
+                <span x-text="cell.document_count"></span>
               </span>
-              {% endif %}
             </span>
-            {% endif %}
           </button>
         </div>
-        {% endfor %}
-      {% endfor %}
+      </template>
     </div>
 
     {% include "components/calendar/_admin_calendar_tooltip.html" %}
     {% include "components/calendar/_admin_calendar_day_panel.html" %}
   </div>
 </section>
+<script src="{% static 'js/admin-calendar-heatmap.js' %}"></script>

@@ -488,6 +488,13 @@ def _clamp_selected_date(selected: date | None, year: int, month: int, today: da
     return selected
 
 
+def _selected_date_for_month(anchor: date, year: int, month: int, today: date) -> date:
+    """Keep the same day-of-month when changing calendar months (clamped to month length)."""
+    _, last_day = cal_module.monthrange(year, month)
+    candidate = date(year, month, min(anchor.day, last_day))
+    return _clamp_selected_date(candidate, year, month, today)
+
+
 def _calendar_url_params(filters: CalendarFilters, *, year: int | None = None, month: int | None = None) -> dict[str, str | int]:
     params: dict[str, str | int] = {
         'year': year if year is not None else filters.year,
@@ -1045,6 +1052,46 @@ def _admin_day_json_payload(
     }
 
 
+def serialize_admin_calendar_weeks(
+    weeks: list[list[dict[str, Any]]],
+) -> list[list[dict[str, Any]]]:
+    """Week grid cells for Alpine month navigation (JSON-serializable)."""
+    return [
+        [
+            {
+                'iso': cell['iso'],
+                'day': cell['day'],
+                'in_month': cell['in_month'],
+                'is_weekend': cell.get('is_weekend', cell['date'].weekday() >= 5),
+                'heat_class': cell.get('heat_class', ''),
+                'event_count': cell.get('event_count', 0),
+                'document_count': cell.get('document_count', 0),
+            }
+            for cell in week
+        ]
+        for week in weeks
+    ]
+
+
+def build_admin_calendar_client_payload(
+    *,
+    year: int,
+    month: int,
+    weeks: list[list[dict[str, Any]]],
+    days_json: dict[str, dict[str, Any]],
+    selected_iso: str,
+) -> dict[str, Any]:
+    """Month bundle for admin heat-map Alpine state and JSON API."""
+    return {
+        'year': year,
+        'month': month,
+        'monthLabel': date(year, month, 1).strftime('%B %Y'),
+        'selectedIso': selected_iso,
+        'weeks': serialize_admin_calendar_weeks(weeks),
+        'days': days_json,
+    }
+
+
 def build_admin_calendar_context(
     *,
     year: int | None = None,
@@ -1073,7 +1120,8 @@ def build_admin_calendar_context(
         p: dict[str, str | int] = {'year': y, 'month': m}
         if d:
             p['date'] = d.isoformat()
-        return f"{reverse('analytics:dashboard')}?{urlencode(p)}"
+        # Admin home is core:dashboard (/); analytics:dashboard redirects and drops query params.
+        return f"{reverse('core:dashboard')}?{urlencode(p)}"
 
     raw_weeks = build_month_weeks(year, month)
     grid_start = raw_weeks[0][0]['date']
@@ -1125,14 +1173,29 @@ def build_admin_calendar_context(
     return {
         'admin_calendar_weeks': weeks,
         'admin_calendar_days_json': days_json,
+        'admin_calendar_client': build_admin_calendar_client_payload(
+            year=year,
+            month=month,
+            weeks=weeks,
+            days_json=days_json,
+            selected_iso=selected_iso,
+        ),
         'admin_calendar_initial_iso': selected_iso,
         'admin_calendar_today_iso': today.isoformat(),
         'calendar_weekday_labels': WEEKDAY_LABELS,
         'admin_calendar_month_label': date(year, month, 1).strftime('%B %Y'),
         'admin_calendar_selected_date': selected,
         'admin_calendar_is_today': selected == today,
-        'admin_calendar_nav_prev_url': admin_cal_url(prev_year, prev_month, selected),
-        'admin_calendar_nav_next_url': admin_cal_url(next_year, next_month, selected),
+        'admin_calendar_nav_prev_url': admin_cal_url(
+            prev_year,
+            prev_month,
+            _selected_date_for_month(selected, prev_year, prev_month, today),
+        ),
+        'admin_calendar_nav_next_url': admin_cal_url(
+            next_year,
+            next_month,
+            _selected_date_for_month(selected, next_year, next_month, today),
+        ),
         'admin_calendar_nav_today_url': admin_cal_url(today.year, today.month, today),
         'admin_calendar_selected_list_url': appointment_list_url_for_date(selected),
         'admin_calendar_selected_documents_url': document_requests_url_for_date(selected),

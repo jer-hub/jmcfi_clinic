@@ -16,6 +16,21 @@
   const TOOLTIP_EST_HEIGHT = 140;
   const VIEWPORT_PAD = 8;
 
+  const MONTH_NAMES = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ];
+
   function emptyDay(iso) {
     return {
       iso,
@@ -51,11 +66,58 @@
     return parts.join(' · ');
   }
 
+  function lastDayOfMonth(year, month) {
+    return new Date(year, month, 0).getDate();
+  }
+
+  function selectedIsoForMonth(anchorIso, year, month) {
+    const anchor = anchorIso ? new Date(`${anchorIso}T12:00:00`) : new Date();
+    const day = Number.isNaN(anchor.getTime()) ? 1 : anchor.getDate();
+    const lastDay = lastDayOfMonth(year, month);
+    const d = Math.min(day, lastDay);
+    const mm = String(month).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    return `${year}-${mm}-${dd}`;
+  }
+
+  function flattenWeeks(weeks) {
+    if (!Array.isArray(weeks)) {
+      return [];
+    }
+    return weeks.reduce((cells, week) => {
+      if (Array.isArray(week)) {
+        cells.push(...week);
+      }
+      return cells;
+    }, []);
+  }
+
+  function readJsonScript(id) {
+    const el = document.getElementById(id);
+    if (!el || !el.textContent) {
+      return null;
+    }
+    try {
+      return JSON.parse(el.textContent);
+    } catch (err) {
+      console.error(`Failed to parse #${id}`, err);
+      return null;
+    }
+  }
+
   function adminCalendarHeatmapData() {
     return {
       days: {},
+      weeks: [],
+      gridCells: [],
+      year: 0,
+      month: 0,
+      monthLabel: '',
+      fallbackMonthLabel: '',
       selectedIso: '',
       todayIso: '',
+      monthApiUrl: '',
+      monthLoading: false,
       tooltipIso: null,
       tooltipPlacement: 'above',
       tooltipTop: '0px',
@@ -63,15 +125,63 @@
       tooltipTransform: 'translate(-50%, -100%)',
 
       init() {
-        const el = document.getElementById('admin-calendar-days-data');
-        if (el) {
-          this.days = JSON.parse(el.textContent);
-        }
         const root = this.$root;
+        this.monthApiUrl = root.dataset.monthApiUrl || '';
         this.todayIso = root.dataset.todayIso || '';
+        this.fallbackMonthLabel = root.dataset.monthLabel || '';
+
+        this.$nextTick(() => {
+          this.loadInitialPayload();
+        });
+      },
+
+      loadInitialPayload() {
+        const root = this.$root;
+        const payload = readJsonScript('admin-calendar-client-data');
+        if (payload && typeof payload === 'object') {
+          this.applyMonthPayload(payload);
+          return;
+        }
+
+        const days = readJsonScript('admin-calendar-days-data');
+        if (days && typeof days === 'object') {
+          this.days = days;
+        }
+
         const initial = root.dataset.initialIso || '';
         const fromUrl = new URLSearchParams(window.location.search).get('date');
-        this.selectedIso = fromUrl || initial;
+        this.selectedIso = fromUrl || initial || this.todayIso;
+
+        const year = parseInt(root.dataset.year, 10);
+        const month = parseInt(root.dataset.month, 10);
+        if (year && month) {
+          this.year = year;
+          this.month = month;
+          this.monthLabel = this.fallbackMonthLabel || this.formatMonthLabel(year, month);
+        }
+      },
+
+      displayMonthLabel() {
+        return this.monthLabel || this.fallbackMonthLabel;
+      },
+
+      applyMonthPayload(payload) {
+        if (!payload || typeof payload !== 'object') {
+          return;
+        }
+        this.year = payload.year;
+        this.month = payload.month;
+        this.monthLabel = payload.monthLabel || this.formatMonthLabel(payload.year, payload.month);
+        this.weeks = payload.weeks || [];
+        this.gridCells = flattenWeeks(this.weeks);
+        this.days = payload.days || {};
+        this.selectedIso = payload.selectedIso || this.selectedIso;
+        this.syncUrl();
+      },
+
+      formatMonthLabel(year, month) {
+        const name = MONTH_NAMES[month - 1] || '';
+        return `${name} ${year}`.trim();
       },
 
       selectedDay() {
@@ -143,8 +253,17 @@
       selectDay(iso) {
         this.selectedIso = iso;
         this.hideTooltip();
+        this.syncUrl();
+      },
+
+      syncUrl() {
+        if (!this.year || !this.month || !this.selectedIso) {
+          return;
+        }
         const url = new URL(window.location.href);
-        url.searchParams.set('date', iso);
+        url.searchParams.set('year', String(this.year));
+        url.searchParams.set('month', String(this.month));
+        url.searchParams.set('date', this.selectedIso);
         window.history.replaceState({}, '', url);
       },
 
@@ -180,6 +299,64 @@
         }
 
         return classes;
+      },
+
+      dayAriaLabel(cell) {
+        const day = this.days[cell.iso] || emptyDay(cell.iso);
+        const parts = [day.label];
+        const appts = cell.event_count || day.appt_count || 0;
+        const docs = cell.document_count || day.doc_count || 0;
+        if (appts) {
+          parts.push(`${appts} appointment${appts === 1 ? '' : 's'}`);
+        }
+        if (docs) {
+          parts.push(`${docs} document request${docs === 1 ? '' : 's'}`);
+        }
+        return parts.join(' — ');
+      },
+
+      async changeMonth(delta) {
+        if (this.monthLoading || !this.monthApiUrl) {
+          return;
+        }
+        let year = this.year;
+        let month = this.month + delta;
+        if (month < 1) {
+          month = 12;
+          year -= 1;
+        } else if (month > 12) {
+          month = 1;
+          year += 1;
+        }
+        const selectedIso = selectedIsoForMonth(this.selectedIso, year, month);
+        await this.loadMonth(year, month, selectedIso);
+      },
+
+      async loadMonth(year, month, selectedIso) {
+        if (!this.monthApiUrl) {
+          return;
+        }
+        this.monthLoading = true;
+        this.hideTooltip();
+        try {
+          const url = new URL(this.monthApiUrl, window.location.origin);
+          url.searchParams.set('year', String(year));
+          url.searchParams.set('month', String(month));
+          if (selectedIso) {
+            url.searchParams.set('date', selectedIso);
+          }
+          const response = await fetch(url, {
+            headers: { Accept: 'application/json' },
+            credentials: 'same-origin',
+          });
+          if (!response.ok) {
+            return;
+          }
+          const payload = await response.json();
+          this.applyMonthPayload(payload);
+        } finally {
+          this.monthLoading = false;
+        }
       },
 
       badgeClasses(variant) {
@@ -219,6 +396,5 @@
     Alpine.data('adminCalendarHeatmap', adminCalendarHeatmapData);
   });
 
-  // Fallback when Alpine is already on the page (e.g. late script load).
   window.adminCalendarHeatmap = adminCalendarHeatmapData;
 })();

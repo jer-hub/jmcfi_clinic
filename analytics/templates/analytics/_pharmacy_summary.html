@@ -1,17 +1,9 @@
 {% if pharmacy_analytics %}
 {% url 'pharmacy:dashboard' as pharmacy_dash_url %}
 <div class="mb-6" aria-labelledby="pharmacy-analytics-heading">
-  <div class="flex flex-wrap items-center justify-between gap-3 mb-3 sm:mb-4">
-    <h2 id="pharmacy-analytics-heading" class="text-base font-semibold text-gray-900 flex items-center gap-2">
-      <i class="fas fa-pills text-primary-500" aria-hidden="true"></i>Pharmacy &amp; inventory
-    </h2>
-    {% if request.user.role == 'admin' or request.user.role == 'staff' %}
-    <a href="{{ pharmacy_dash_url }}"
-       class="text-xs sm:text-sm font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">
-      Pharmacy dashboard →
-    </a>
-    {% endif %}
-  </div>
+  <h2 id="pharmacy-analytics-heading" class="text-base font-semibold text-gray-900 flex items-center gap-2 mb-3 sm:mb-4">
+    <i class="fas fa-pills text-primary-500" aria-hidden="true"></i>Pharmacy &amp; inventory
+  </h2>
 
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
     {% include "components/stat_card.html" with label="Active medicines" value=pharmacy_analytics.active_medicines icon="fa-capsules" variant="primary" hint="In formulary" href=pharmacy_dash_url %}

@@ -1252,6 +1252,67 @@ def _write_admin_dashboard_csv(writer, date_from, date_to):
         writer.writerow([row['diagnosis'], row['count']])
 
 
+def _financial_category_label(category_key):
+    return dict(FinancialRecord.CATEGORY_CHOICES).get(category_key, category_key or 'Unknown')
+
+
+def _financial_monthly_table(monthly_rows):
+    """Pivot monthly aggregates into sorted (month, expenses, income) rows."""
+    monthly_data = OrderedDict()
+    for row in monthly_rows:
+        month = row.get('month')
+        key = month.strftime('%Y-%m') if month else ''
+        if key not in monthly_data:
+            monthly_data[key] = {'expense': Decimal('0'), 'income': Decimal('0')}
+        if row['is_expense']:
+            monthly_data[key]['expense'] = row['total'] or Decimal('0')
+        else:
+            monthly_data[key]['income'] = row['total'] or Decimal('0')
+    return monthly_data.items()
+
+
+def _write_financial_summary_csv(writer, date_from, date_to):
+    summary = _financial_summary(date_from, date_to)
+    records_qs = FinancialRecord.objects.filter(
+        date__gte=date_from, date__lte=date_to,
+    ).order_by('-date', '-id')
+
+    writer.writerow(['Financial & Cost Analysis'])
+    writer.writerow(['Period from', date_from])
+    writer.writerow(['Period to', date_to])
+    writer.writerow([])
+    writer.writerow(['Summary KPIs'])
+    writer.writerow(['Metric', 'Amount (PHP)'])
+    writer.writerow(['Total expenses', summary['total_expenses']])
+    writer.writerow(['Total income', summary['total_income']])
+    writer.writerow(['Net', summary['net']])
+    writer.writerow([])
+    writer.writerow(['Expenses by category'])
+    writer.writerow(['Category', 'Amount (PHP)'])
+    for row in summary['by_category']:
+        writer.writerow([
+            _financial_category_label(row['category']),
+            row['total'],
+        ])
+    writer.writerow([])
+    writer.writerow(['Monthly overview'])
+    writer.writerow(['Month', 'Expenses (PHP)', 'Income (PHP)'])
+    for month, totals in _financial_monthly_table(summary['monthly']):
+        writer.writerow([month, totals['expense'], totals['income']])
+    writer.writerow([])
+    writer.writerow(['Financial records'])
+    writer.writerow(['Date', 'Category', 'Description', 'Amount (PHP)', 'Type', 'Reference'])
+    for record in records_qs:
+        writer.writerow([
+            record.date,
+            record.get_category_display(),
+            record.description,
+            record.amount,
+            'Expense' if record.is_expense else 'Income',
+            record.reference_number,
+        ])
+
+
 @login_required
 @role_required('staff', 'doctor', 'admin')
 def export_report(request):
@@ -1317,14 +1378,21 @@ def export_report(request):
                 r.diagnosis, r.treatment,
             ])
 
-    elif report_type == 'financial':
-        writer.writerow(['Date', 'Category', 'Description', 'Amount', 'Type', 'Reference'])
-        for f in FinancialRecord.objects.filter(date__gte=date_from, date__lte=date_to).order_by('-date'):
-            writer.writerow([
-                f.date, f.get_category_display(), f.description,
-                f.amount, 'Expense' if f.is_expense else 'Income',
-                f.reference_number,
-            ])
+    elif report_type in ('financial', 'financial_summary'):
+        if request.user.role != 'admin':
+            return HttpResponseForbidden()
+        if report_type == 'financial_summary':
+            _write_financial_summary_csv(writer, date_from, date_to)
+        else:
+            writer.writerow(['Date', 'Category', 'Description', 'Amount (PHP)', 'Type', 'Reference'])
+            for f in FinancialRecord.objects.filter(
+                date__gte=date_from, date__lte=date_to,
+            ).order_by('-date', '-id'):
+                writer.writerow([
+                    f.date, f.get_category_display(), f.description,
+                    f.amount, 'Expense' if f.is_expense else 'Income',
+                    f.reference_number,
+                ])
 
     elif report_type == 'health_trends':
         writer.writerow(['Academic Year', 'Semester', 'Illness', 'Cases', 'Notes'])

@@ -157,6 +157,25 @@
         <span class="block text-xs text-gray-500">Completed appointments by clinician</span>
       </span>
     </a>
+    {% elif export_variant == 'financial' %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=financial_summary&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-table-cells"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Full page summary</span>
+        <span class="block text-xs text-gray-500">KPIs, categories, monthly &amp; records</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=financial&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-info-50 text-info-600"><i class="fas fa-list-ul"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Financial records</span>
+        <span class="block text-xs text-gray-500">All entries in this period</span>
+      </span>
+    </a>
     {% elif export_variant == 'health_trends' %}
     <a role="menuitem"
        href="{% url 'analytics:export_report' %}?report=health_trends_summary&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"

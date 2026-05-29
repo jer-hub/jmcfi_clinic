@@ -142,3 +142,45 @@ class AnalyticsExportTests(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertIn('Academic Correlation', response.content.decode())
+
+    def test_financial_page_includes_export_menu(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('analytics:financial_overview'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'financial_summary')
+        self.assertContains(response, 'report=financial&amp;')
+
+    def test_financial_summary_export(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('analytics:export_report'), {
+            'report': 'financial_summary',
+            'date_from': '2026-01-01',
+            'date_to': '2026-12-31',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        body = response.content.decode()
+        self.assertIn('Financial & Cost Analysis', body)
+        self.assertIn('Total expenses', body)
+        self.assertIn('Expenses by category', body)
+        self.assertIn('Monthly overview', body)
+
+    def test_financial_records_export(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('analytics:export_report'), {
+            'report': 'financial',
+            'date_from': '2026-01-01',
+            'date_to': '2026-12-31',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/csv')
+        self.assertIn('Date', response.content.decode())
+
+    def test_financial_export_forbidden_for_doctor(self):
+        self.client.force_login(self.doctor)
+        response = self.client.get(reverse('analytics:export_report'), {
+            'report': 'financial_summary',
+            'date_from': '2026-01-01',
+            'date_to': '2026-12-31',
+        })
+        self.assertEqual(response.status_code, 403)

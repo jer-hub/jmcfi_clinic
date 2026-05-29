@@ -388,10 +388,14 @@ class MessagingViewTests(MessagingTestCase):
 
 
 
-        response = client.get(reverse('messaging:start_conversation'))
+        response = client.get(reverse('messaging:start_conversation'), follow=True)
 
 
 
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
+
+        self.assertEqual(response.request['PATH_INFO'], reverse('messaging:inbox'))
+
+        self.assertContains(response, 'Direct messaging is not available for your role.')
 
 

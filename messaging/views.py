@@ -1,11 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponseForbidden, JsonResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_GET, require_POST
 
 from core.decorators import role_required
+from core.htmx_utils import htmx_add_toast, is_htmx_request
 
 from .forms import AnnouncementForm, MessageForm, StartConversationForm
 from .models import Conversation
@@ -22,8 +23,20 @@ from .services import (
 )
 
 
+_DIRECT_MESSAGING_DENIED = "Direct messaging is not available for your role."
+
+
 def _wants_json(request):
     return request.headers.get("x-requested-with") == "XMLHttpRequest" or "application/json" in request.headers.get("Accept", "")
+
+
+def _deny_direct_messaging(request):
+    if is_htmx_request(request):
+        response = HttpResponse(status=200)
+        response["HX-Redirect"] = reverse("messaging:inbox")
+        return htmx_add_toast(response, _DIRECT_MESSAGING_DENIED, "error")
+    messages.error(request, _DIRECT_MESSAGING_DENIED)
+    return redirect("messaging:inbox")
 
 
 def _get_conversation_or_404(request, conversation_id):
@@ -52,7 +65,7 @@ def inbox(request):
 @role_required("student", "staff", "doctor", "admin")
 def start_conversation(request):
     if not can_start_direct_conversation(request.user):
-        return HttpResponseForbidden("Direct messaging is not available for your role.")
+        return _deny_direct_messaging(request)
 
     if request.method == "POST":
         form = StartConversationForm(request.POST, user=request.user)

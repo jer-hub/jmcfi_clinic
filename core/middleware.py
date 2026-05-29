@@ -53,7 +53,10 @@ class SessionTimeoutMiddleware:
 
     def __call__(self, request):
         if request.user.is_authenticated:
-            request.session.set_expiry(get_effective_session_timeout(request.user))
+            if request.session.get('admin_session_persistent') is False:
+                request.session.set_expiry(0)
+            else:
+                request.session.set_expiry(get_effective_session_timeout(request.user))
 
         return self.get_response(request)
 

@@ -71,6 +71,9 @@ def nav_bar_context(request: HttpRequest) -> dict[str, Any]:
         "feedback": ns == "feedback",
         "notifications": bool(ns == "core" and url_name and "notification" in url_name),
         "user_management": bool(ns == "core" and "user_management" in view_full),
+        "profile": view_full == "core:profile",
+        "edit_profile": view_full == "core:edit_profile",
+        "profile_preferences": view_full == "core:profile_preferences",
     }
 
     return {"nav_active": nav_active}

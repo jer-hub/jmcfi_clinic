@@ -1,0 +1,40 @@
+{% comment %}Floating preview tooltip (teleported to body, fixed position).{% endcomment %}
+<template x-teleport="body">
+  <div id="admin-cal-tooltip"
+       x-show="tooltipIso"
+       x-cloak
+       class="fixed z-[9999] w-56 max-w-[calc(100vw-1rem)] rounded-lg bg-gray-900 text-white text-xs shadow-xl pointer-events-none"
+       :style="{ top: tooltipTop, left: tooltipLeft, transform: tooltipTransform }"
+       role="tooltip"
+       :aria-hidden="!tooltipIso">
+    <div class="relative p-2.5">
+      <p class="font-semibold leading-snug" x-text="tooltipDay()?.label"></p>
+      <p x-show="tooltipDay() && !hasDayItems(tooltipDay())" class="text-gray-300 mt-1">
+        No appointments or document requests
+      </p>
+      <ul x-show="tooltipDay() && hasDayItems(tooltipDay())" class="mt-1.5 space-y-1">
+        <template x-for="(ev, idx) in (tooltipDay()?.events || []).slice(0, 4)" :key="idx">
+          <li class="truncate text-gray-100">
+            <template x-if="ev.event_kind === 'document'">
+              <span class="text-info-300"><i class="fas fa-file-alt mr-0.5" aria-hidden="true"></i>Doc</span>
+            </template>
+            <template x-if="ev.event_kind !== 'document'">
+              <span class="text-gray-400" x-text="ev.time_label"></span>
+            </template>
+            <span class="text-gray-500"> · </span>
+            <span x-text="ev.title"></span>
+          </li>
+        </template>
+        <li x-show="tooltipDay() && (tooltipDay().events?.length || 0) > 4" class="text-gray-400 italic">
+          …and <span x-text="(tooltipDay().events?.length || 0) - 4"></span> more
+        </li>
+      </ul>
+      <p x-show="tooltipDay() && hasDayItems(tooltipDay()) && !(tooltipDay().events?.length)"
+         class="text-gray-300 mt-1 text-[11px]"
+         x-text="scheduleSummary(tooltipDay())"></p>
+      <div class="absolute left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-gray-900"
+           :class="tooltipPlacement === 'above' ? '-bottom-1' : '-top-1'"
+           aria-hidden="true"></div>
+    </div>
+  </div>
+</template>

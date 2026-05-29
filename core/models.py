@@ -113,6 +113,39 @@ class User(AbstractUser):
         """Deprecated: use is_patient()."""
         return self.is_patient()
 
+    def get_initials(self):
+        """Up to two initials for avatar fallbacks."""
+        first = (self.first_name or '').strip()
+        last = (self.last_name or '').strip()
+        if first and last:
+            return f'{first[0]}{last[0]}'.upper()
+        if first:
+            return first[0].upper()
+        if last:
+            return last[0].upper()
+        email = (self.email or '').strip()
+        return email[0].upper() if email else '?'
+
+    def get_profile_image_url(self):
+        """Profile photo URL from patient or staff profile, if uploaded."""
+        from django.core.exceptions import ObjectDoesNotExist
+
+        from .roles import is_patient_role
+
+        if is_patient_role(self.role):
+            accessors = ('patient_profile', 'staff_profile')
+        else:
+            accessors = ('staff_profile', 'patient_profile')
+        for accessor in accessors:
+            try:
+                profile = getattr(self, accessor)
+            except ObjectDoesNotExist:
+                continue
+            url = profile.get_profile_image_url()
+            if url:
+                return url
+        return None
+
     def sync_onboarding_status(self):
         """Synchronize onboarding_status with is_active to keep them in sync."""
         if self.onboarding_status == self.ONBOARDING_STATUS.PENDING_ACTIVATION:

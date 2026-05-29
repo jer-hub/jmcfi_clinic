@@ -9,27 +9,13 @@
         {% include 'core/_subnav.html' %}
 
         <div class="mb-8">
-            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
-                <div>
-                    {% if is_first_time %}
-                        <h1 class="text-3xl lg:text-4xl font-bold text-gray-900">Complete Your Profile</h1>
-                        <p class="text-gray-600 mt-2">Please fill in all required information to get started.</p>
-                    {% else %}
-                        <h1 class="text-3xl lg:text-4xl font-bold text-gray-900">Edit Profile</h1>
-                        <p class="text-gray-600 mt-2">Update your personal and medical information.</p>
-                    {% endif %}
-                </div>
-
-                {% if not is_first_time %}
-                <div>
-                    <a href="{% url 'core:profile' %}"
-                       class="inline-flex items-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
-                        </svg>
-                        Back to Profile
-                    </a>
-                </div>
+            <div>
+                {% if is_first_time %}
+                    <h1 class="text-3xl lg:text-4xl font-bold text-gray-900">Complete Your Profile</h1>
+                    <p class="text-gray-600 mt-2">Please fill in all required information to get started.</p>
+                {% else %}
+                    <h1 class="text-3xl lg:text-4xl font-bold text-gray-900">Edit Profile</h1>
+                    <p class="text-gray-600 mt-2">Update your personal and medical information.</p>
                 {% endif %}
             </div>
         </div>
@@ -40,11 +26,11 @@
         </div>
         {% endif %}
 
-        <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="bg-white border border-gray-200 rounded-card shadow-sm overflow-hidden">
             <form method="post" enctype="multipart/form-data" class="space-y-0">
                 {% csrf_token %}
 
-                <div class="px-8 py-8 bg-gray-50 border-b border-gray-200" x-data="profileImagePreview()">
+                <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 bg-gray-50/80 border-b border-gray-200" x-data="profileImagePreview()">
                     <div class="flex flex-col lg:flex-row items-center space-y-6 lg:space-y-0 lg:space-x-10">
                         <div class="flex-shrink-0">
                             <div class="relative group">
@@ -131,34 +117,33 @@
                     </div>
                 </div>
 
-                <div class="px-8 py-8">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div>
-                            <label for="id_first_name" class="block text-sm font-medium text-gray-700 mb-2">
-                                First Name <span class="text-red-600">*</span>
-                            </label>
-                            <input type="text"
-                                   id="id_first_name"
-                                   name="first_name"
-                                   value="{{ request.POST.first_name|default:user.first_name }}"
-                                   autocomplete="given-name"
-                                   required
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
+                    {% include "core/partials/_profile_form_section.html" with title="Account Name" icon="fa-id-card" description="Your legal name as shown on clinic records." grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" %}
+                        <div class="space-y-1">
+                          <label for="id_first_name" class="block text-sm font-medium text-gray-700">
+                            First Name <span class="text-danger-500">*</span>
+                          </label>
+                          <input type="text"
+                                 id="id_first_name"
+                                 name="first_name"
+                                 value="{{ request.POST.first_name|default:user.first_name }}"
+                                 autocomplete="given-name"
+                                 required
+                                 class="form-input">
                         </div>
-
-                        <div>
-                            <label for="id_last_name" class="block text-sm font-medium text-gray-700 mb-2">
-                                Last Name <span class="text-red-600">*</span>
-                            </label>
-                            <input type="text"
-                                   id="id_last_name"
-                                   name="last_name"
-                                   value="{{ request.POST.last_name|default:user.last_name }}"
-                                   autocomplete="family-name"
-                                   required
-                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                        <div class="space-y-1">
+                          <label for="id_last_name" class="block text-sm font-medium text-gray-700">
+                            Last Name <span class="text-danger-500">*</span>
+                          </label>
+                          <input type="text"
+                                 id="id_last_name"
+                                 name="last_name"
+                                 value="{{ request.POST.last_name|default:user.last_name }}"
+                                 autocomplete="family-name"
+                                 required
+                                 class="form-input">
                         </div>
-                    </div>
+                    {% include "core/partials/_profile_form_section_end.html" %}
 
                     {% if user|is_patient_role %}
                         {% include 'core/partials/student_profile_fields.html' %}
@@ -167,24 +152,18 @@
                     {% endif %}
                 </div>
 
-                <div class="px-8 py-6 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                    {% if not is_first_time %}
-                        <a href="{% url 'core:profile' %}"
-                           class="inline-flex items-center justify-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                            Cancel
-                        </a>
-                    {% else %}
-                        <div></div>
-                    {% endif %}
-
-                    <button type="submit"
-                            class="inline-flex items-center justify-center px-6 py-3 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-sm">
-                        {% if is_first_time %}
-                            Create Profile
-                        {% else %}
-                            Save Changes
-                        {% endif %}
-                    </button>
+                <div class="px-4 sm:px-6 lg:px-8 py-4 border-t border-gray-200 bg-gray-50/60">
+                    <div class="flex flex-wrap items-center justify-end gap-3">
+                      {% if not is_first_time %}
+                        {% url 'core:profile' as profile_cancel_url %}
+                        {% include "components/button.html" with label="Cancel" icon="fa-xmark" variant="secondary" as="a" href=profile_cancel_url %}
+                      {% endif %}
+                      {% if is_first_time %}
+                        {% include "components/button.html" with label="Create Profile" icon="fa-check" variant="primary" type="submit" %}
+                      {% else %}
+                        {% include "components/button.html" with label="Save Changes" icon="fa-floppy-disk" variant="primary" type="submit" %}
+                      {% endif %}
+                    </div>
                 </div>
             </form>
         </div>

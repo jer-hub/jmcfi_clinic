@@ -300,6 +300,60 @@ class CalendarServiceTests(TestCase):
         self.assertEqual(may15['event_count'], 2)
         self.assertGreater(may15['heat_level'], 0)
 
+    def test_admin_heatmap_selected_day_events(self):
+        admin = User.objects.create_user(
+            email='admin-cal-detail@test.com',
+            password='AdminPass123!',
+            role='admin',
+            is_staff=True,
+            is_active=True,
+        )
+        ctx = build_admin_calendar_context(
+            year=2026,
+            month=5,
+            selected_date=self.appt_date,
+            user=admin,
+        )
+        self.assertEqual(len(ctx['admin_calendar_day_events']), 2)
+        self.assertEqual(ctx['admin_calendar_selected_count'], 2)
+        flat = [cell for week in ctx['admin_calendar_weeks'] for cell in week]
+        may15 = next(c for c in flat if c['date'] == self.appt_date)
+        self.assertTrue(may15['is_selected'])
+        self.assertNotIn('select_url', may15)
+        day_payload = ctx['admin_calendar_days_json']['2026-05-15']
+        self.assertEqual(day_payload['appt_count'], 2)
+        self.assertEqual(day_payload['count'], 2)
+        self.assertEqual(len(day_payload['events']), 2)
+
+    def test_admin_heatmap_includes_document_requests(self):
+        admin = User.objects.create_user(
+            email='admin-cal-docs@test.com',
+            password='AdminPass123!',
+            role='admin',
+            is_staff=True,
+            is_active=True,
+        )
+        doc = DocumentRequest.objects.create(
+            patient=self.student,
+            document_type='medical_certificate',
+            purpose='Certificate',
+            status=DocumentRequest.Status.PENDING_REVIEW,
+        )
+        doc_day = timezone.localtime(doc.created_at).date()
+        ctx = build_admin_calendar_context(
+            year=doc_day.year,
+            month=doc_day.month,
+            selected_date=doc_day,
+            user=admin,
+        )
+        flat = [cell for week in ctx['admin_calendar_weeks'] for cell in week]
+        day_cell = next(c for c in flat if c['date'] == doc_day)
+        self.assertGreaterEqual(day_cell['document_count'], 1)
+        payload = ctx['admin_calendar_days_json'][doc_day.isoformat()]
+        self.assertGreaterEqual(payload['doc_count'], 1)
+        doc_events = [e for e in payload['events'] if e.get('event_kind') == 'document']
+        self.assertGreaterEqual(len(doc_events), 1)
+
     def test_admin_heatmap_excludes_cancelled(self):
         Appointment.objects.create(
             patient=self.student,

@@ -17,7 +17,7 @@
       {% include "medical_records/partials/_create_medical_record_form_fields.html" %}
 
       {% url 'appointments:appointment_detail' appointment.id as cancel_url %}
-      {% include "components/forms/submit_bar.html" with submit_label="Create medical record" submit_icon="fa-file-medical" cancel_url=cancel_url cancel_label="Back to appointment" %}
+      {% include "components/forms/submit_bar.html" with sticky=1 submit_label="Create medical record" submit_icon="fa-file-medical" cancel_url=cancel_url cancel_label="Back to appointment" %}
     </form>
   </div>
 </div>

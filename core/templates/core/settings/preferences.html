@@ -43,6 +43,5 @@
 {% endblock %}
 
 {% block submit_bar %}
-  {% url 'core:profile' as profile_url %}
-  {% include "components/forms/submit_bar.html" with submit_label="Save preferences" cancel_url=profile_url cancel_label="Back to profile" %}
+  {% include "components/forms/form_actions.html" with submit_label="Save preferences" submit_icon="fa-floppy-disk" %}
 {% endblock %}

@@ -5,19 +5,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
     {% include 'analytics/_subnav.html' %}
 
-    {% include "components/page_header.html" with title="Staff Analytics" subtitle="Your patient trends and workload overview" icon="fa-chart-line" %}
-
-    <form method="get" class="mb-6 bg-white border border-gray-200 rounded-card shadow-sm p-4 flex flex-wrap items-end gap-3">
-      <div>
-        <label class="block text-xs font-medium text-gray-500 mb-1">From</label>
-        <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}" class="block px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-500 mb-1">To</label>
-        <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}" class="block px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-      </div>
-      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors"><i class="fas fa-filter"></i>Filter</button>
-    </form>
+    {% include "analytics/_period_export_bar.html" with export_variant="staff" %}
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
       {% include "components/stat_card.html" with label="Unique Patients" value=total_patients icon="fa-users" variant="primary" %}
@@ -46,40 +34,94 @@
       </a>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-chart-line text-primary-500"></i>Your Appointment Trend</h3>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="trend-chart-heading">
+        <h2 id="trend-chart-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <i class="fas fa-chart-line text-primary-500"></i>Your appointment trend
+        </h2>
         {% if appointment_trend %}
-        <canvas id="trendChart" height="250"></canvas>
-        {% else %}
-        <p class="text-sm text-gray-500">No appointment data for this period.</p>
-        {% endif %}
-      </div>
-
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5">
-        <h3 class="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2"><i class="fas fa-stethoscope text-primary-500"></i>Top Diagnoses</h3>
-        {% if top_diagnoses %}
-        <div class="space-y-1.5">
-          {% for item in top_diagnoses %}
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-gray-700 truncate flex-1">{{ item.diagnosis }}</span>
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-700 ml-2 flex-shrink-0">{{ item.count }}</span>
-          </div>
-          {% endfor %}
+        <div class="h-52 sm:h-56">
+          <canvas id="trendChart" role="img" aria-label="Appointment trend over time"></canvas>
         </div>
         {% else %}
-        <p class="text-sm text-gray-500">No diagnosis data available.</p>
+        <p class="text-sm text-gray-500 py-8 text-center">No appointment data for this period.</p>
         {% endif %}
-      </div>
+      </section>
 
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 lg:col-span-2">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-clock text-primary-500"></i>Hourly Distribution</h3>
-        {% if hourly_distribution %}
-        <canvas id="hourlyChart" height="200"></canvas>
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 self-start w-full" aria-labelledby="diagnoses-heading">
+        <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 mb-4">
+          <div class="min-w-0">
+            <h2 id="diagnoses-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-stethoscope text-primary-500"></i>Top diagnoses
+            </h2>
+            <p class="mt-0.5 text-xs text-gray-500">From your records in this period</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            {% if top_diagnoses_total %}
+            <span class="inline-flex items-center rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary-700 tabular-nums">
+              {{ top_diagnoses_total }} case{{ top_diagnoses_total|pluralize }}
+            </span>
+            {% endif %}
+            <a href="{% url 'analytics:health_trends' %}?date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+              class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Trends →</a>
+          </div>
+        </div>
+        {% if top_diagnoses %}
+        <ol class="space-y-3 max-h-64 sm:max-h-72 overflow-y-auto pr-1">
+          {% for item in top_diagnoses %}
+          <li>
+            <div class="flex items-baseline justify-between gap-2 mb-1">
+              <span class="text-sm font-medium text-gray-800 truncate min-w-0" title="{{ item.diagnosis }}">
+                <span class="text-gray-400 font-normal tabular-nums mr-1.5">{{ forloop.counter }}.</span>{{ item.diagnosis }}
+              </span>
+              <span class="text-sm font-bold text-gray-900 tabular-nums shrink-0">{{ item.count }}</span>
+            </div>
+            <div class="h-2 bg-gray-100 rounded-full overflow-hidden" role="presentation">
+              <div class="h-full rounded-full bg-gradient-to-r from-primary-400 to-primary-600"
+                style="width: {% if top_diagnoses_total %}{% widthratio item.count top_diagnoses_total 100 %}{% else %}0{% endif %}%"></div>
+            </div>
+            {% if top_diagnoses_total %}
+            <p class="mt-0.5 text-[10px] text-gray-400 text-right tabular-nums">
+              {% widthratio item.count top_diagnoses_total 100 %}% of period
+            </p>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ol>
         {% else %}
-        <p class="text-sm text-gray-500">No hourly data available.</p>
+        <div class="flex flex-col items-center justify-center text-center py-8 px-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
+          <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white border border-gray-200 text-gray-400 mb-2">
+            <i class="fas fa-notes-medical" aria-hidden="true"></i>
+          </span>
+          <p class="text-sm font-medium text-gray-700">No diagnoses in this period</p>
+          <p class="mt-0.5 text-xs text-gray-500">Records with diagnoses will appear here.</p>
+        </div>
         {% endif %}
-      </div>
+      </section>
+
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 lg:col-span-2" aria-labelledby="hourly-chart-heading">
+        <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-3">
+          <div>
+            <h2 id="hourly-chart-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-clock text-primary-500"></i>Hourly distribution
+            </h2>
+            <p class="mt-0.5 text-xs text-gray-500">When your appointments occur (24-hour view)</p>
+          </div>
+          {% if hourly_peak %}
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-2.5 py-1 text-xs font-medium text-primary-800 shrink-0">
+            <i class="fas fa-arrow-trend-up text-[10px]" aria-hidden="true"></i>
+            Peak: {{ hourly_peak.label }} ({{ hourly_peak.count }})
+          </span>
+          {% endif %}
+        </div>
+        {% if hourly_has_data %}
+        <div class="h-52 sm:h-56">
+          <canvas id="hourlyChart" role="img" aria-label="Appointments by hour of day"></canvas>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 py-8 text-center">No hourly data for this period.</p>
+        {% endif %}
+      </section>
     </div>
 </div>
 {% endblock %}
@@ -87,25 +129,68 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
+const staffChartOpts = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+};
+
 {% if appointment_trend %}
 new Chart(document.getElementById('trendChart'), {
   type: 'line',
   data: {
     labels: [{% for item in appointment_trend %}"{{ item.day|date:'M d' }}"{% if not forloop.last %},{% endif %}{% endfor %}],
-    datasets: [{label: 'Appointments', data: [{% for item in appointment_trend %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}], borderColor: '#a855f7', backgroundColor: 'rgba(168,85,247,0.1)', fill: true, tension: 0.3}]
+    datasets: [{
+      label: 'Appointments',
+      data: [{% for item in appointment_trend %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}],
+      borderColor: '#a855f7',
+      backgroundColor: 'rgba(168,85,247,0.12)',
+      fill: true,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5,
+    }],
   },
-  options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}}}
+  options: staffChartOpts,
 });
 {% endif %}
-{% if hourly_distribution %}
-new Chart(document.getElementById('hourlyChart'), {
-  type: 'bar',
-  data: {
-    labels: [{% for item in hourly_distribution %}"{{ item.hour }}:00"{% if not forloop.last %},{% endif %}{% endfor %}],
-    datasets: [{label: 'Appointments', data: [{% for item in hourly_distribution %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: '#a855f7'}]
-  },
-  options: {responsive: true, plugins: {legend: {display: false}}, scales: {y: {beginAtZero: true}}}
-});
+
+{% if hourly_has_data %}
+(function () {
+  const peakHour = {{ hourly_peak.hour }};
+  const hours = [{% for item in hourly_distribution %}{{ item.hour }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+  const counts = [{% for item in hourly_distribution %}{{ item.count }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+  const labels = [{% for item in hourly_distribution %}"{{ item.label }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
+  const barColors = hours.map((hour) => hour === peakHour ? '#a855f7' : '#ddd6fe');
+
+  new Chart(document.getElementById('hourlyChart'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Appointments',
+        data: counts,
+        backgroundColor: barColors,
+        borderRadius: 4,
+        maxBarThickness: 28,
+      }],
+    },
+    options: {
+      ...staffChartOpts,
+      scales: {
+        x: {
+          ticks: {
+            maxRotation: 0,
+            autoSkip: true,
+            maxTicksLimit: 12,
+          },
+        },
+        y: staffChartOpts.scales.y,
+      },
+    },
+  });
+})();
 {% endif %}
 </script>
 {% endblock %}

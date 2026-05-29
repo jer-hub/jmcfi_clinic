@@ -1,9 +1,10 @@
 {% load static role_tags %}
 <nav class="site-nav-root bg-white border-b border-gray-200 sticky top-0 z-40"
-  x-data="{ mobileOpen: false, mobilePanel: '', moreOpen: false }"
+  x-data="{ mobileOpen: false, mobilePanel: '', moreOpen: false, profileOpen: false }"
   @keydown.escape.window="
     if (mobileOpen) { mobileOpen = false; mobilePanel = '' }
     if (moreOpen) { moreOpen = false }
+    if (profileOpen) { profileOpen = false }
   ">
   <div class="site-nav-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="site-nav-row h-16 flex items-center justify-between gap-4">
@@ -155,19 +156,7 @@
           </div>
         </div>
 
-        <div class="site-nav-profile hidden sm:flex items-center gap-2 ml-1">
-          <a href="{% url 'core:profile' %}" class="text-sm text-gray-700 hover:text-primary-600 truncate max-w-36">{{ user.get_full_name }}</a>
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">{{ user.get_role_display }}</span>
-          <form method="post" action="{% url 'account_logout' %}" class="inline">
-            {% csrf_token %}
-            <button type="submit" class="text-gray-400 hover:text-gray-500 p-1">
-              <span class="sr-only">Logout</span>
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </form>
-        </div>
+        {% include "core/partials/_navbar_profile_menu.html" %}
 
         <button type="button" class="site-nav-burger lg:hidden inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100" @click="mobileOpen = !mobileOpen" :aria-expanded="mobileOpen.toString()" aria-controls="mobile-menu">
           <span class="sr-only">Open main menu</span>
@@ -193,21 +182,22 @@
       x-transition:leave-end="opacity-0 -translate-y-1"
       @click.outside="mobileOpen = false; mobilePanel = ''">
       <div class="px-1 space-y-1">
-        <div class="flex items-center px-2 py-2 bg-gray-50 rounded-lg mb-2">
+        <div class="flex items-center gap-3 px-2 py-2.5 bg-gray-50 rounded-lg mb-2">
+          {% include "components/avatar.html" with user=user size="sm" %}
           <div class="flex-1 min-w-0">
-            <a href="{% url 'core:profile' %}" class="text-sm font-medium text-gray-900 hover:text-primary-600 truncate block">{{ user.get_full_name }}</a>
-            <div class="text-xs text-gray-500">{{ user.get_role_display }}</div>
-            <a href="{% url 'core:profile_preferences' %}" class="text-xs text-primary-600 hover:text-primary-700 mt-1 inline-block">Preferences</a>
+            <p class="text-sm font-medium text-gray-900 truncate">{{ user.get_full_name }}</p>
+            <p class="text-xs text-gray-500">{{ user.get_role_display }}</p>
           </div>
-          <form method="post" action="{% url 'account_logout' %}" class="inline">
-            {% csrf_token %}
-            <button type="submit" class="text-gray-400 hover:text-gray-500 p-1">
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
-          </form>
         </div>
+        <a href="{% url 'core:profile' %}" class="mobile-link {% if nav_active.profile %}active{% endif %}">Profile</a>
+        <a href="{% url 'core:edit_profile' %}" class="mobile-link {% if nav_active.edit_profile %}active{% endif %}">Edit profile</a>
+        <a href="{% url 'core:profile_preferences' %}" class="mobile-link {% if nav_active.profile_preferences %}active{% endif %}">Preferences</a>
+        <form method="post" action="{% url 'account_logout' %}" class="px-2 pt-1">
+          {% csrf_token %}
+          <button type="submit" class="mobile-link w-full text-left text-gray-700 hover:text-gray-900">
+            Sign out
+          </button>
+        </form>
 
         {% if user.role != 'admin' %}
         <a href="{% url 'core:dashboard' %}" class="mobile-link {% if nav_active.dashboard %}active{% endif %}">Dashboard</a>

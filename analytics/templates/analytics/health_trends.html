@@ -6,35 +6,48 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    <form method="get" class="mb-5 bg-white border border-gray-200 rounded-card shadow-sm p-3 sm:p-4">
-      <div class="flex flex-col gap-3 xl:flex-row xl:items-end xl:gap-3">
-        <div class="flex flex-wrap items-end gap-2 sm:gap-3 flex-1 min-w-0">
-          <div class="min-w-[10rem] max-w-[11rem] flex-1 sm:flex-none">
-            <label for="{{ form.term.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.term.label }}</label>
-            {{ form.term }}
-          </div>
-          <div class="min-w-[9rem] flex-1 max-w-[14rem]">
-            <label for="{{ form.illness_category.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.illness_category.label }}</label>
-            {{ form.illness_category }}
-          </div>
-          <div>
-            <label for="{{ form.date_from.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.date_from.label }}</label>
-            <input type="date" id="{{ form.date_from.id_for_label }}" name="date_from"
-              value="{{ date_from|date:'Y-m-d' }}" class="form-input form-input--compact w-full min-w-[9.5rem]">
-          </div>
-          <div>
-            <label for="{{ form.date_to.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.date_to.label }}</label>
-            <input type="date" id="{{ form.date_to.id_for_label }}" name="date_to"
-              value="{{ date_to|date:'Y-m-d' }}" class="form-input form-input--compact w-full min-w-[9.5rem]">
-          </div>
+    <div class="mb-5 bg-white border border-gray-200 rounded-card shadow-sm p-3 sm:p-4">
+      <form method="get" class="flex flex-col gap-3">
+        {% if period_presets %}
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-xs font-medium uppercase tracking-wider text-gray-500 mr-1">Quick range</span>
+          {% for preset in period_presets %}
+          <a href="?date_from={{ preset.date_from|date:'Y-m-d' }}&amp;date_to={{ preset.date_to|date:'Y-m-d' }}{% if request.GET.term %}&amp;term={{ request.GET.term|urlencode }}{% endif %}{% if illness_filter %}&amp;illness_category={{ illness_filter|urlencode }}{% endif %}"
+             class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors
+                    {% if preset.active %}bg-primary-100 text-primary-800 border-primary-200{% else %}bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-200 hover:text-primary-700{% endif %}">
+            {{ preset.label }}
+          </a>
+          {% endfor %}
         </div>
-        <div class="shrink-0 xl:pb-0.5">
-          <button type="submit" class="form-btn--compact form-btn--compact-primary w-full sm:w-auto">
-            <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
-          </button>
+        {% endif %}
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+          <div class="flex flex-wrap items-end gap-2 sm:gap-3 flex-1 min-w-0">
+            <div class="min-w-[10rem] max-w-[11rem] flex-1 sm:flex-none">
+              <label for="{{ form.term.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.term.label }}</label>
+              {{ form.term }}
+            </div>
+            <div class="min-w-[9rem] flex-1 max-w-[14rem]">
+              <label for="{{ form.illness_category.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.illness_category.label }}</label>
+              {{ form.illness_category }}
+            </div>
+            <div>
+              <label for="{{ form.date_from.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.date_from.label }}</label>
+              <input type="date" id="{{ form.date_from.id_for_label }}" name="date_from"
+                value="{{ date_from|date:'Y-m-d' }}" class="form-input form-input--compact w-full min-w-[9.5rem]">
+            </div>
+            <div>
+              <label for="{{ form.date_to.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.date_to.label }}</label>
+              <input type="date" id="{{ form.date_to.id_for_label }}" name="date_to"
+                value="{{ date_to|date:'Y-m-d' }}" class="form-input form-input--compact w-full min-w-[9.5rem]">
+            </div>
+            <button type="submit" class="form-btn--compact form-btn--compact-primary w-full sm:w-auto shrink-0">
+              <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
+            </button>
+          </div>
+          {% include "analytics/_export_dropdown.html" with export_variant="health_trends" %}
         </div>
-      </div>
-    </form>
+      </form>
+    </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
       {% include "components/stat_card.html" with label="Trend records" value=trends_count icon="fa-table" variant="primary" hint="Semester aggregates" %}
@@ -49,16 +62,9 @@
           <h2 id="trends-table-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2 min-w-0">
             <i class="fas fa-table text-primary-500"></i>Semester trend records
           </h2>
-          <div class="flex items-center gap-2 shrink-0">
-            {% if trends_count %}
-            <span class="text-xs font-medium text-gray-500 tabular-nums">{{ trends_count }} row{{ trends_count|pluralize }}</span>
-            {% endif %}
-            <a href="{% url 'analytics:export_report' %}?report=health_trends&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{% if illness_filter %}&amp;illness_category={{ illness_filter|urlencode }}{% endif %}{% if request.GET.term %}&amp;term={{ request.GET.term|urlencode }}{% endif %}"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-              title="Download semester trend records as CSV">
-              <i class="fas fa-file-export text-gray-400" aria-hidden="true"></i>Export
-            </a>
-          </div>
+          {% if trends_count %}
+          <span class="text-xs font-medium text-gray-500 tabular-nums shrink-0">{{ trends_count }} row{{ trends_count|pluralize }}</span>
+          {% endif %}
         </div>
 
         {% if trends %}

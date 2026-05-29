@@ -231,6 +231,14 @@ def appointment_list_url_for_date(d: date, *, status: str | None = None) -> str:
     return f"{reverse('appointments:appointment_list')}?{urlencode(params)}"
 
 
+def document_requests_url_for_date(d: date) -> str:
+    params = {
+        'date_from': d.isoformat(),
+        'date_to': d.isoformat(),
+    }
+    return f"{reverse('document_request:document_requests')}?{urlencode(params)}"
+
+
 def _format_time(t) -> str:
     return t.strftime('%I:%M %p').lstrip('0')
 
@@ -325,14 +333,14 @@ def document_requests_queryset(user):
     ).select_related('patient', 'assigned_to')
     if role_matches(user.role, ROLE_PATIENT):
         return qs.filter(patient=user)
-    if user.role in ('doctor', 'staff'):
+    if user.role in ('doctor', 'staff', 'admin'):
         return qs
     return DocumentRequest.objects.none()
 
 
 def get_document_events_by_date(user, start: date, end: date) -> dict[date, list[dict[str, Any]]]:
     """Map submitted-on date to pending document requests."""
-    if not role_matches(user.role, ROLE_PATIENT, 'staff', 'doctor'):
+    if not role_matches(user.role, ROLE_PATIENT, 'staff', 'doctor', 'admin'):
         return {}
     by_date: dict[date, list[dict[str, Any]]] = defaultdict(list)
     viewer_role = normalize_role(user.role)
@@ -416,6 +424,28 @@ def get_daily_counts(
     counts: dict[date, int] = {}
     for row in qs.values('date').annotate(count=Count('id')):
         counts[row['date']] = row['count']
+    return counts
+
+
+def get_document_daily_counts(start: date, end: date) -> dict[date, int]:
+    """Clinic-wide pending document request counts by submitted date (admin heat map)."""
+    from document_request.models import DocumentRequest
+    from django.db.models import Count
+    from django.db.models.functions import TruncDate
+
+    counts: dict[date, int] = {}
+    rows = (
+        DocumentRequest.objects.filter(status=DocumentRequest.Status.PENDING_REVIEW)
+        .filter(created_at__date__gte=start, created_at__date__lte=end)
+        .annotate(day=TruncDate('created_at'))
+        .values('day')
+        .annotate(count=Count('id'))
+    )
+    for row in rows:
+        day = row['day']
+        if hasattr(day, 'date'):
+            day = day.date()
+        counts[day] = row['count']
     return counts
 
 
@@ -939,37 +969,96 @@ def build_dashboard_calendar_context(
     return build_calendar_context(user, filters)
 
 
+def _admin_event_for_json(event: dict[str, Any]) -> dict[str, Any]:
+    """JSON-safe appointment/document row for admin heat-map tooltips and panel."""
+    return {
+        'event_kind': event.get('event_kind', 'appointment'),
+        'title': event['title'],
+        'time_label': event['time_label'],
+        'meta_line': event.get('meta_line', ''),
+        'meta_prefix': event.get('meta_prefix', ''),
+        'status_label': event['status_label'],
+        'variant': event['variant'],
+        'detail_url': event['detail_url'],
+        'is_cancelled': bool(event.get('is_cancelled')),
+        'is_completed': bool(event.get('is_completed')),
+    }
+
+
+def _admin_status_summary(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    tallies: dict[str, int] = defaultdict(int)
+    doc_count = 0
+    for event in events:
+        if event.get('event_kind') == 'appointment':
+            tallies[event['status']] += 1
+        elif event.get('event_kind') == 'document':
+            doc_count += 1
+    status_order = ('pending', 'confirmed', 'completed', 'cancelled', 'missed')
+    status_labels = dict(Appointment.STATUS_CHOICES)
+    summary = [
+        {
+            'status': status,
+            'label': (
+                f'{status_labels.get(status, status.title())} '
+                f'({tallies[status]})'
+            ),
+            'count': tallies[status],
+            'variant': appointment_status_variant(status),
+        }
+        for status in status_order
+        if tallies.get(status)
+    ]
+    if doc_count:
+        summary.append({
+            'status': 'document',
+            'label': f'Document requests ({doc_count})',
+            'count': doc_count,
+            'variant': 'info',
+        })
+    return summary
+
+
+def _admin_day_json_payload(
+    d: date,
+    cell: dict[str, Any],
+    *,
+    appt_count: int,
+    doc_count: int,
+    events: list[dict[str, Any]],
+    today: date,
+) -> dict[str, Any]:
+    total = len(events) if events else appt_count + doc_count
+    return {
+        'iso': cell['iso'],
+        'day': cell['day'],
+        'label': d.strftime('%A, %B %d, %Y'),
+        'short_label': f"{d.strftime('%b')} {d.day}",
+        'appt_count': appt_count,
+        'doc_count': doc_count,
+        'count': total,
+        'in_month': cell['in_month'],
+        'is_today': d == today,
+        'list_url': appointment_list_url_for_date(d),
+        'documents_url': document_requests_url_for_date(d),
+        'events': [_admin_event_for_json(e) for e in events],
+        'status_summary': _admin_status_summary(events),
+    }
+
+
 def build_admin_calendar_context(
     *,
     year: int | None = None,
     month: int | None = None,
     selected_date: date | None = None,
+    user=None,
 ) -> dict[str, Any]:
-    """Admin analytics heat-map month grid."""
+    """Admin analytics heat-map month grid with selected-day detail."""
     today = timezone.localdate()
     year = year or today.year
     month = month or today.month
     selected = _clamp_selected_date(selected_date or today, year, month, today)
     start, end = month_bounds(year, month)
-    counts = get_daily_counts(start, end)
-
-    weeks: list[list[dict[str, Any]]] = []
-    for week in build_month_weeks(year, month):
-        week_cells = []
-        for cell in week:
-            d = cell['date']
-            count = counts.get(d, 0)
-            level = _heat_level(count)
-            week_cells.append({
-                **cell,
-                'is_today': d == today,
-                'is_selected': d == selected,
-                'event_count': count,
-                'heat_level': level,
-                'heat_class': HEAT_LEVEL_CLASSES[level],
-                'list_url': appointment_list_url_for_date(d),
-            })
-        weeks.append(week_cells)
+    counts = get_daily_counts(start, end)  # appointment-only totals (heat-map shading)
 
     if month == 1:
         prev_year, prev_month = year - 1, 12
@@ -986,13 +1075,70 @@ def build_admin_calendar_context(
             p['date'] = d.isoformat()
         return f"{reverse('analytics:dashboard')}?{urlencode(p)}"
 
+    raw_weeks = build_month_weeks(year, month)
+    grid_start = raw_weeks[0][0]['date']
+    grid_end = raw_weeks[-1][-1]['date']
+    doc_counts = get_document_daily_counts(grid_start, grid_end)
+    events_by_date: dict[date, list[dict[str, Any]]] = {}
+    if user is not None and getattr(user, 'is_authenticated', False):
+        events_by_date = get_combined_events_by_date(user, grid_start, grid_end)
+
+    weeks: list[list[dict[str, Any]]] = []
+    days_json: dict[str, dict[str, Any]] = {}
+    for week in raw_weeks:
+        week_cells = []
+        for cell in week:
+            d = cell['date']
+            day_events = events_by_date.get(d, [])
+            if day_events:
+                appt_count, doc_count, _badge = _grid_day_counts(day_events)
+            else:
+                appt_count = counts.get(d, 0)
+                doc_count = doc_counts.get(d, 0)
+            level = _heat_level(appt_count)
+            days_json[cell['iso']] = _admin_day_json_payload(
+                d,
+                cell,
+                appt_count=appt_count,
+                doc_count=doc_count,
+                events=day_events,
+                today=today,
+            )
+            week_cells.append({
+                **cell,
+                'is_today': d == today,
+                'is_selected': d == selected,
+                'event_count': appt_count,
+                'document_count': doc_count,
+                'heat_level': level,
+                'heat_class': HEAT_LEVEL_CLASSES[level],
+                'list_url': appointment_list_url_for_date(d),
+                'documents_url': document_requests_url_for_date(d),
+            })
+        weeks.append(week_cells)
+
+    selected_iso = selected.isoformat()
+    selected_payload = days_json.get(selected_iso, {})
+    day_events = selected_payload.get('events', [])
+    status_summary = selected_payload.get('status_summary', [])
+
     return {
         'admin_calendar_weeks': weeks,
+        'admin_calendar_days_json': days_json,
+        'admin_calendar_initial_iso': selected_iso,
+        'admin_calendar_today_iso': today.isoformat(),
         'calendar_weekday_labels': WEEKDAY_LABELS,
         'admin_calendar_month_label': date(year, month, 1).strftime('%B %Y'),
         'admin_calendar_selected_date': selected,
+        'admin_calendar_is_today': selected == today,
         'admin_calendar_nav_prev_url': admin_cal_url(prev_year, prev_month, selected),
         'admin_calendar_nav_next_url': admin_cal_url(next_year, next_month, selected),
         'admin_calendar_nav_today_url': admin_cal_url(today.year, today.month, today),
         'admin_calendar_selected_list_url': appointment_list_url_for_date(selected),
+        'admin_calendar_selected_documents_url': document_requests_url_for_date(selected),
+        'admin_calendar_day_events': day_events,
+        'admin_calendar_status_summary': status_summary,
+        'admin_calendar_selected_appt_count': selected_payload.get('appt_count', counts.get(selected, 0)),
+        'admin_calendar_selected_doc_count': selected_payload.get('doc_count', doc_counts.get(selected, 0)),
+        'admin_calendar_selected_count': selected_payload.get('count', 0),
     }

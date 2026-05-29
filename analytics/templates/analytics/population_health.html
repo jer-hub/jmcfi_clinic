@@ -15,19 +15,13 @@
             <span class="text-gray-400">· records &amp; appointments</span>
           </p>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <div class="flex flex-wrap gap-1.5" role="group" aria-label="Quick ranges">
-            {% for preset in period_presets %}
-            <a href="?date_from={{ preset.date_from|date:'Y-m-d' }}&amp;date_to={{ preset.date_to|date:'Y-m-d' }}"
-              class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors {% if preset.active %}bg-primary-100 text-primary-700 ring-1 ring-primary-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-              {{ preset.label }}
-            </a>
-            {% endfor %}
-          </div>
-          <a href="{% url 'analytics:export_report' %}?report=demographics&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
-            class="inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors shrink-0">
-            <i class="fas fa-file-export text-gray-400" aria-hidden="true"></i>Export
+        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Quick ranges">
+          {% for preset in period_presets %}
+          <a href="?date_from={{ preset.date_from|date:'Y-m-d' }}&amp;date_to={{ preset.date_to|date:'Y-m-d' }}"
+            class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors {% if preset.active %}bg-primary-100 text-primary-700 ring-1 ring-primary-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
+            {{ preset.label }}
           </a>
+          {% endfor %}
         </div>
       </div>
 
@@ -45,6 +39,7 @@
         <button type="submit" class="form-btn--compact form-btn--compact-primary shrink-0">
           <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
         </button>
+        {% include "analytics/_export_dropdown.html" with export_variant="population" %}
       </form>
     </div>
 

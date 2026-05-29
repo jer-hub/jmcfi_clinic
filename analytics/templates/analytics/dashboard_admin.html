@@ -6,25 +6,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <form method="get" class="flex flex-wrap items-center gap-2">
-        <span class="text-xs font-medium uppercase tracking-wider text-gray-500 mr-1">Period</span>
-        <input type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
-          class="form-input form-input--compact w-auto min-w-[9.5rem]"
-          aria-label="From date">
-        <span class="text-gray-300" aria-hidden="true">–</span>
-        <input type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
-          class="form-input form-input--compact w-auto min-w-[9.5rem]"
-          aria-label="To date">
-        <button type="submit" class="form-btn--compact form-btn--compact-primary shrink-0">
-          <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
-        </button>
-      </form>
-      <a href="{% url 'analytics:export_report' %}?date_from={{ date_from|date:'Y-m-d' }}&date_to={{ date_to|date:'Y-m-d' }}"
-        class="inline-flex items-center justify-center gap-2 px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors shrink-0">
-        <i class="fas fa-file-export text-gray-400"></i>Export report
-      </a>
-    </div>
+    {% include "analytics/_period_export_bar.html" with export_variant="admin" %}
 
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
       {% include "components/stat_card.html" with label="Patients" value=total_patients icon="fa-user-graduate" variant="primary" hint="Registered" %}

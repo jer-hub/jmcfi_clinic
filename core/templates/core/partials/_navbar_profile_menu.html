@@ -1,0 +1,77 @@
+{% comment %}
+  Desktop profile menu (sm+). Requires parent nav x-data: profileOpen.
+{% endcomment %}
+<div class="site-nav-profile relative hidden sm:block ml-1 shrink-0">
+  <button type="button"
+          id="nav-trigger-profile"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white py-1 pl-1 pr-2 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1 transition-colors"
+          @click="profileOpen = !profileOpen"
+          :aria-expanded="profileOpen.toString()"
+          aria-haspopup="menu"
+          aria-controls="nav-profile-menu">
+    {% include "components/avatar.html" with user=user size="sm" %}
+    <span class="hidden md:flex flex-col items-start min-w-0 max-w-[9.5rem] leading-tight text-left">
+      <span class="text-sm font-medium text-gray-900 truncate w-full">{{ user.get_full_name }}</span>
+      <span class="text-[11px] text-gray-500 truncate w-full">{{ user.get_role_display }}</span>
+    </span>
+    <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform hidden md:block shrink-0"
+       :class="profileOpen && 'rotate-180'"
+       aria-hidden="true"></i>
+  </button>
+
+  <div id="nav-profile-menu"
+       x-show="profileOpen"
+       x-cloak
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0 translate-y-1"
+       x-transition:enter-end="opacity-100 translate-y-0"
+       x-transition:leave="transition ease-in duration-150"
+       x-transition:leave-start="opacity-100 translate-y-0"
+       x-transition:leave-end="opacity-0 translate-y-1"
+       @click.outside="profileOpen = false"
+       role="menu"
+       aria-labelledby="nav-trigger-profile"
+       class="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-xl border border-gray-200 bg-white py-1 shadow-lg ring-1 ring-black/5">
+    <div class="px-3 py-2.5 border-b border-gray-100 flex items-center gap-3">
+      {% include "components/avatar.html" with user=user size="md" %}
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-medium text-gray-900 truncate">{{ user.get_full_name }}</p>
+        <p class="text-xs text-gray-500 truncate">{{ user.get_role_display }}</p>
+      </div>
+    </div>
+
+    <a href="{% url 'core:profile' %}"
+       role="menuitem"
+       @click="profileOpen = false"
+       class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 {% if nav_active.profile %}text-primary-700 font-medium bg-primary-50/50{% endif %}">
+      <i class="fas fa-user w-4 text-center text-gray-400" aria-hidden="true"></i>
+      View profile
+    </a>
+    <a href="{% url 'core:edit_profile' %}"
+       role="menuitem"
+       @click="profileOpen = false"
+       class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 {% if nav_active.edit_profile %}text-primary-700 font-medium bg-primary-50/50{% endif %}">
+      <i class="fas fa-pen w-4 text-center text-gray-400" aria-hidden="true"></i>
+      Edit profile
+    </a>
+    <a href="{% url 'core:profile_preferences' %}"
+       role="menuitem"
+       @click="profileOpen = false"
+       class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 {% if nav_active.profile_preferences %}text-primary-700 font-medium bg-primary-50/50{% endif %}">
+      <i class="fas fa-sliders w-4 text-center text-gray-400" aria-hidden="true"></i>
+      Preferences
+    </a>
+
+    <div class="my-1 border-t border-gray-100" role="separator"></div>
+
+    <form method="post" action="{% url 'account_logout' %}" role="none">
+      {% csrf_token %}
+      <button type="submit"
+              role="menuitem"
+              class="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 text-left">
+        <i class="fas fa-right-from-bracket w-4 text-center text-gray-400" aria-hidden="true"></i>
+        Sign out
+      </button>
+    </form>
+  </div>
+</div>

@@ -1,55 +1,46 @@
 {% if pharmacy_analytics %}
-<section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 mb-6" aria-labelledby="pharmacy-analytics-heading">
-  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+{% url 'pharmacy:dashboard' as pharmacy_dash_url %}
+<div class="mb-6" aria-labelledby="pharmacy-analytics-heading">
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-3 sm:mb-4">
     <h2 id="pharmacy-analytics-heading" class="text-base font-semibold text-gray-900 flex items-center gap-2">
-      <i class="fas fa-pills text-primary-500"></i>Pharmacy & Inventory
+      <i class="fas fa-pills text-primary-500" aria-hidden="true"></i>Pharmacy &amp; inventory
     </h2>
-    {% if request.user.role == 'staff' %}
-    <a href="{% url 'pharmacy:dashboard' %}" class="text-sm font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">
-      Open pharmacy dashboard →
+    {% if request.user.role == 'admin' or request.user.role == 'staff' %}
+    <a href="{{ pharmacy_dash_url }}"
+       class="text-xs sm:text-sm font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">
+      Pharmacy dashboard →
     </a>
     {% endif %}
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-    <div class="rounded-lg border border-gray-100 bg-gray-50/80 px-3 py-2">
-      <p class="text-xs text-gray-500">Active medicines</p>
-      <p class="text-lg font-semibold text-gray-900">{{ pharmacy_analytics.active_medicines }}</p>
-    </div>
-    <div class="rounded-lg border border-amber-100 bg-amber-50/80 px-3 py-2">
-      <p class="text-xs text-amber-700">Low stock</p>
-      <p class="text-lg font-semibold text-amber-900">{{ pharmacy_analytics.low_stock_count }}</p>
-    </div>
-    <div class="rounded-lg border border-red-100 bg-red-50/80 px-3 py-2">
-      <p class="text-xs text-red-700">Near expiry</p>
-      <p class="text-lg font-semibold text-red-900">{{ pharmacy_analytics.near_expiry_count }}</p>
-    </div>
-    <div class="rounded-lg border border-primary-100 bg-primary-50/80 px-3 py-2">
-      <p class="text-xs text-primary-700">Inventory value</p>
-      <p class="text-lg font-semibold text-primary-900">₱{{ pharmacy_analytics.inventory_value|floatformat:2 }}</p>
-    </div>
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {% include "components/stat_card.html" with label="Active medicines" value=pharmacy_analytics.active_medicines icon="fa-capsules" variant="primary" hint="In formulary" href=pharmacy_dash_url %}
+    {% include "components/stat_card.html" with label="Low stock" value=pharmacy_analytics.low_stock_count icon="fa-triangle-exclamation" variant="warning" hint="Below reorder level" href=pharmacy_dash_url %}
+    {% include "components/stat_card.html" with label="Near expiry" value=pharmacy_analytics.near_expiry_count icon="fa-hourglass-half" variant="danger" hint="Batches expiring soon" href=pharmacy_dash_url %}
+    {% include "components/stat_card.html" with label="Inventory value" value=pharmacy_analytics.inventory_value|floatformat:2 icon="fa-peso-sign" variant="info" hint="₱ · non-expired stock" href=pharmacy_dash_url %}
   </div>
 
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Period dispensing</p>
-      <p class="text-gray-700">{{ pharmacy_analytics.period_dispensed_qty }} units · ₱{{ pharmacy_analytics.period_dispensed_cost|floatformat:2 }}</p>
-    </div>
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">Period procurement (received)</p>
-      <p class="text-gray-700">₱{{ pharmacy_analytics.period_procured_cost|floatformat:2 }} · {{ pharmacy_analytics.pending_orders }} pending PO(s)</p>
-    </div>
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
+    {% include "components/stat_card.html" with label="Period dispensing" value=pharmacy_analytics.period_dispensed_qty icon="fa-hand-holding-medical" variant="muted" hint=pharmacy_analytics.dispensed_hint %}
+    {% include "components/stat_card.html" with label="Period procurement" value=pharmacy_analytics.pending_orders icon="fa-truck" variant="muted" hint=pharmacy_analytics.procured_hint %}
   </div>
 
   {% if pharmacy_analytics.low_stock_preview %}
-  <div class="mt-4 pt-4 border-t border-gray-100">
-    <p class="text-xs font-semibold text-gray-500 mb-2">Low stock preview</p>
-    <ul class="space-y-1 text-sm text-gray-700">
+  <div class="mt-4 rounded-xl border border-warning-200 bg-warning-50/40 px-4 py-3">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+      <p class="text-xs font-semibold text-warning-900">Low stock attention</p>
+      <a href="{{ pharmacy_dash_url }}"
+         class="text-xs font-medium text-warning-800 hover:text-warning-900">Review inventory →</a>
+    </div>
+    <ul class="space-y-1 text-sm text-warning-900/90" role="list">
       {% for med in pharmacy_analytics.low_stock_preview %}
-      <li>{{ med.name }}{% if med.strength %} ({{ med.strength }}){% endif %} — {{ med.cached_non_expired_stock }} left</li>
+      <li role="listitem">
+        <span class="font-medium">{{ med.name }}</span>{% if med.strength %} <span class="text-warning-800/80">({{ med.strength }})</span>{% endif %}
+        <span class="text-warning-800"> — {{ med.cached_non_expired_stock }} left</span>
+      </li>
       {% endfor %}
     </ul>
   </div>
   {% endif %}
-</section>
+</div>
 {% endif %}

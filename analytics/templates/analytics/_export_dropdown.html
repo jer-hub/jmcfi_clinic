@@ -1,0 +1,200 @@
+{% comment %}
+  Export CSV dropdown (Alpine.js).
+
+  Context:
+    export_variant – staff | admin | health_trends | demographics | …
+    export_query – optional extra query string (e.g. "&term=2025|1&illness_category=uti")
+{% endcomment %}
+<div class="relative shrink-0" x-data="{ exportOpen: false }" @keydown.escape.window="exportOpen = false">
+  <button type="button"
+          @click="exportOpen = !exportOpen"
+          :aria-expanded="exportOpen"
+          aria-haspopup="true"
+          class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-sm transition-colors">
+    <i class="fas fa-download text-primary-600" aria-hidden="true"></i>
+    <span>Export</span>
+    <i class="fas fa-chevron-down text-[10px] text-gray-400 transition-transform" :class="exportOpen && 'rotate-180'"></i>
+  </button>
+
+  <div x-show="exportOpen"
+       x-cloak
+       @click.outside="exportOpen = false"
+       x-transition
+       class="absolute right-0 z-30 mt-2 w-72 rounded-xl border border-gray-200 bg-white py-1 shadow-lg ring-1 ring-black/5"
+       role="menu">
+    <p class="px-3 py-2 text-xs font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-100">
+      Download CSV
+    </p>
+
+    {% if export_variant == 'staff' %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=staff_dashboard&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-table-cells"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Dashboard summary</span>
+        <span class="block text-xs text-gray-500">KPIs, trends, diagnoses &amp; hours</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=my_appointments&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-success-50 text-success-600"><i class="fas fa-calendar-check"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">My appointments</span>
+        <span class="block text-xs text-gray-500">Detailed visit list for this period</span>
+      </span>
+    </a>
+    {% elif export_variant == 'admin' %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=admin_dashboard&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-table-cells"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Dashboard summary</span>
+        <span class="block text-xs text-gray-500">Clinic-wide KPI snapshot</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=appointments&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-info-50 text-info-600"><i class="fas fa-calendar-days"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">All appointments</span>
+        <span class="block text-xs text-gray-500">Full schedule export</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=medical_records&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning-50 text-warning-600"><i class="fas fa-file-medical"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Medical records</span>
+        <span class="block text-xs text-gray-500">Diagnoses and treatments</span>
+      </span>
+    </a>
+    {% elif export_variant == 'academic' %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=academic_summary&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-table-cells"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Full page summary</span>
+        <span class="block text-xs text-gray-500">KPIs, frequent visitors &amp; emergencies</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=academic_visitors&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning-50 text-warning-600"><i class="fas fa-user-clock"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Frequent visitors</span>
+        <span class="block text-xs text-gray-500">Top patients by appointment count</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=academic_emergency&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-danger-50 text-danger-600"><i class="fas fa-truck-medical"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Emergency by course</span>
+        <span class="block text-xs text-gray-500">Emergency visits grouped by course</span>
+      </span>
+    </a>
+    {% elif export_variant == 'population' %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=population_summary&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-table-cells"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Full page summary</span>
+        <span class="block text-xs text-gray-500">KPIs, profiles &amp; period breakdowns</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=demographics&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-info-50 text-info-600"><i class="fas fa-id-card"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Patient roster</span>
+        <span class="block text-xs text-gray-500">All enrolled patient profiles</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=population_period&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-success-50 text-success-600"><i class="fas fa-chart-bar"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Period activity</span>
+        <span class="block text-xs text-gray-500">Records &amp; appointments by course</span>
+      </span>
+    </a>
+    {% elif export_variant == 'resources' %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=resource_utilization_summary&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-table-cells"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Full page summary</span>
+        <span class="block text-xs text-gray-500">KPIs, staff completions &amp; daily log</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=resource_utilization_daily&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-info-50 text-info-600"><i class="fas fa-list-check"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Daily utilization log</span>
+        <span class="block text-xs text-gray-500">Consultation &amp; throughput by day</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=resource_utilization_staff&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-success-50 text-success-600"><i class="fas fa-user-doctor"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Staff completions</span>
+        <span class="block text-xs text-gray-500">Completed appointments by clinician</span>
+      </span>
+    </a>
+    {% elif export_variant == 'health_trends' %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=health_trends_summary&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-table-cells"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Full page summary</span>
+        <span class="block text-xs text-gray-500">KPIs, semester records &amp; live diagnoses</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=health_trends&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-info-50 text-info-600"><i class="fas fa-table"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Semester trend records</span>
+        <span class="block text-xs text-gray-500">Filtered aggregate rows</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=health_trends_live&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-success-50 text-success-600"><i class="fas fa-stethoscope"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Live diagnoses</span>
+        <span class="block text-xs text-gray-500">Cases from records in date range</span>
+      </span>
+    </a>
+    {% else %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report={{ export_variant }}&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-file-csv"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Export data</span>
+        <span class="block text-xs text-gray-500">Current filters applied</span>
+      </span>
+    </a>
+    {% endif %}
+  </div>
+</div>

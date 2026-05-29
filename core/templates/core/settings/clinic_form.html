@@ -99,5 +99,5 @@
 
 {% block submit_bar %}
   {% url 'core:settings_hub' as hub_url %}
-  {% include "components/forms/submit_bar.html" with submit_label="Save clinic settings" cancel_url=hub_url cancel_label="Back to overview" %}
+  {% include "components/forms/submit_bar.html" with submit_label="Save clinic settings" submit_icon="fa-floppy-disk" cancel_url=hub_url cancel_label="Back to overview" cancel_icon="fa-arrow-left" %}
 {% endblock %}

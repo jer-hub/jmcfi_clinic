@@ -1,26 +1,49 @@
 {% comment %}
-  Initials avatar.
+  User avatar — profile photo when available, otherwise initials.
 
   Context:
-    user         – User object (preferred) — uses get_full_name / email
-    name         – fallback name string
+    user         – User object (preferred)
+    name         – fallback display name if no user
+    image_url    – optional explicit image URL (overrides user profile photo)
     size         – xs | sm | md | lg (default "md")
-    color_seed   – optional seed string for color variation; defaults to name
-
-  Renders a colored circle with initials.
 {% endcomment %}
 {% with fallback_name=name|default:"?" %}
 {% with display_name=user.get_full_name|default:user.email|default:fallback_name %}
-{% with letter=display_name|slice:':1'|upper %}
-<span class="inline-flex items-center justify-center rounded-full font-semibold text-white flex-shrink-0
-             {% if size == 'xs' %}w-6 h-6 text-[0.65rem]
-             {% elif size == 'sm' %}w-8 h-8 text-xs
-             {% elif size == 'lg' %}w-12 h-12 text-base
-             {% else %}w-10 h-10 text-sm{% endif %}
-             bg-gradient-to-br from-primary-500 to-primary-700"
+{% with initials=user.get_initials|default:display_name|slice:':1'|upper %}
+{% with photo_url=image_url|default:user.get_profile_image_url %}
+{% with size_class=size|default:"md" %}
+<span class="inline-flex shrink-0 rounded-full overflow-hidden
+             {% if size_class == 'xs' %}h-6 w-6
+             {% elif size_class == 'sm' %}h-8 w-8
+             {% elif size_class == 'lg' %}h-12 w-12
+             {% else %}h-10 w-10{% endif %}"
       aria-label="{{ display_name }}">
-  {{ letter }}
+  {% if photo_url %}
+  <img src="{{ photo_url }}"
+       alt=""
+       class="h-full w-full object-cover"
+       loading="lazy"
+       decoding="async"
+       onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
+  <span class="hidden h-full w-full items-center justify-center font-semibold text-white bg-gradient-to-br from-primary-500 to-primary-700
+               {% if size_class == 'xs' %}text-[0.65rem]
+               {% elif size_class == 'sm' %}text-xs
+               {% elif size_class == 'lg' %}text-base
+               {% else %}text-sm{% endif %}">
+    {{ initials }}
+  </span>
+  {% else %}
+  <span class="flex h-full w-full items-center justify-center font-semibold text-white bg-gradient-to-br from-primary-500 to-primary-700
+               {% if size_class == 'xs' %}text-[0.65rem]
+               {% elif size_class == 'sm' %}text-xs
+               {% elif size_class == 'lg' %}text-base
+               {% else %}text-sm{% endif %}">
+    {{ initials }}
+  </span>
+  {% endif %}
 </span>
+{% endwith %}
+{% endwith %}
 {% endwith %}
 {% endwith %}
 {% endwith %}

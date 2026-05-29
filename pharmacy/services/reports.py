@@ -184,18 +184,26 @@ def build_pharmacy_analytics_summary(date_from: date, date_to: date) -> dict:
     dispensed = dispensing_totals_since(date_from)
     procured = procurement_totals_since(date_from)
 
+    pending_orders = PurchaseOrder.objects.filter(
+        status__in=['draft', 'submitted', 'approved'],
+    ).count()
+    dispensed_cost = dispensed['total_cost']
+    procured_cost = procured['total_cost']
+
     return {
         'active_medicines': Medicine.objects.filter(is_active=True).count(),
         'low_stock_count': low_stock_qs.count(),
         'near_expiry_count': near_expiry_qs.count(),
         'expired_count': get_expired_batches(today)[0].count(),
         'inventory_value': inventory_value_total(),
-        'pending_orders': PurchaseOrder.objects.filter(
-            status__in=['draft', 'submitted', 'approved'],
-        ).count(),
+        'pending_orders': pending_orders,
         'period_dispensed_qty': dispensed['total_qty'],
-        'period_dispensed_cost': dispensed['total_cost'],
-        'period_procured_cost': procured['total_cost'],
+        'period_dispensed_cost': dispensed_cost,
+        'period_procured_cost': procured_cost,
+        'dispensed_hint': f'₱{dispensed_cost:,.2f} cost in selected period',
+        'procured_hint': (
+            f'₱{procured_cost:,.2f} received · {pending_orders} pending PO(s)'
+        ),
         'monthly_dispensed_cost': dispensing_totals_since(month_start)['total_cost'],
         'monthly_procured_cost': procurement_totals_since(month_start)['total_cost'],
         'low_stock_preview': list(low_stock_qs[:5]),

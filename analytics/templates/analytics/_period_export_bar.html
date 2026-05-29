@@ -1,0 +1,44 @@
+{% comment %}
+  Analytics date filter + export menu.
+
+  Context:
+    date_from, date_to (required)
+    period_presets (optional list from _period_presets)
+    export_variant – staff | admin | health_trends | demographics (controls menu items)
+    extra_query – extra URL query fragment for exports (e.g. illness filter)
+{% endcomment %}
+<div class="mb-6 bg-white border border-gray-200 rounded-card shadow-sm p-4">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <form method="get" class="flex flex-col gap-3 flex-1 min-w-0">
+      {% if period_presets %}
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-medium uppercase tracking-wider text-gray-500 mr-1">Quick range</span>
+        {% for preset in period_presets %}
+        <a href="?date_from={{ preset.date_from|date:'Y-m-d' }}&date_to={{ preset.date_to|date:'Y-m-d' }}"
+           class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors
+                  {% if preset.active %}bg-primary-100 text-primary-800 border-primary-200{% else %}bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-200 hover:text-primary-700{% endif %}">
+          {{ preset.label }}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="flex flex-wrap items-end gap-3">
+        <div>
+          <label for="analytics-date-from" class="block text-xs font-medium text-gray-500 mb-1">From</label>
+          <input type="date" id="analytics-date-from" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
+                 class="form-input form-input--compact min-w-[9.5rem]">
+        </div>
+        <div>
+          <label for="analytics-date-to" class="block text-xs font-medium text-gray-500 mb-1">To</label>
+          <input type="date" id="analytics-date-to" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
+                 class="form-input form-input--compact min-w-[9.5rem]">
+        </div>
+        <button type="submit" class="form-btn--compact form-btn--compact-primary">
+          <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
+        </button>
+      </div>
+    </form>
+
+    {% include "analytics/_export_dropdown.html" with export_query=extra_query %}
+  </div>
+</div>

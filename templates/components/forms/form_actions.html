@@ -1,0 +1,15 @@
+{% comment %}
+  Form primary / cancel actions (inline, non-sticky).
+
+  Context: same as submit_bar.html (submit_label, submit_icon, cancel_url, cancel_label,
+  cancel_icon, variant, extra).
+{% endcomment %}
+{% with v=variant|default:'primary' %}
+<div class="flex flex-wrap items-center justify-end gap-3">
+  {{ extra }}
+  {% if cancel_url %}
+    {% include "components/button.html" with label=cancel_label|default:"Cancel" icon=cancel_icon|default:"fa-xmark" variant="secondary" as="a" href=cancel_url %}
+  {% endif %}
+  {% include "components/button.html" with label=submit_label|default:"Save" icon=submit_icon|default:"fa-check" variant=v type="submit" %}
+</div>
+{% endwith %}

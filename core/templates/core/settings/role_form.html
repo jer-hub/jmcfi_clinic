@@ -56,5 +56,5 @@
 
 {% block submit_bar %}
   {% url 'core:settings_roles' as roles_url %}
-  {% include "components/forms/submit_bar.html" with submit_label="Save role settings" cancel_url=roles_url cancel_label="Back to roles" %}
+  {% include "components/forms/submit_bar.html" with submit_label="Save role settings" submit_icon="fa-floppy-disk" cancel_url=roles_url cancel_label="Back to roles" cancel_icon="fa-arrow-left" %}
 {% endblock %}

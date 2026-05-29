@@ -118,3 +118,6 @@ class PharmacyAnalyticsSummaryTest(TestCase):
         self.assertIn('low_stock_count', summary)
         self.assertIn('inventory_value', summary)
         self.assertIn('period_dispensed_cost', summary)
+        self.assertIn('dispensed_hint', summary)
+        self.assertIn('procured_hint', summary)
+        self.assertIn('₱', summary['dispensed_hint'])

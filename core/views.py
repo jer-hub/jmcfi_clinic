@@ -42,7 +42,7 @@ from .forms import (
 )
 from .notification_delivery import notify_user
 from .roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, filter_users_by_role, normalize_role, role_matches
-from .settings_service import get_profile_required_fields
+from .settings_service import get_effective_session_timeout, get_profile_required_fields
 from .utils import (
     get_user_profile, paginate_queryset,
     get_missing_profile_fields, get_client_ip,
@@ -215,14 +215,19 @@ def admin_login(request):
             else:
                 cache.delete(throttle_key)
                 login(request, user)
+                remember_me = bool(form.cleaned_data.get('remember_me'))
                 auth_logger.info(
                     'admin_login_success user_id=%s email=%s ip=%s remember_me=%s',
                     user.id,
                     user.email,
                     client_ip,
-                    bool(form.cleaned_data.get('remember_me')),
+                    remember_me,
                 )
-                if not form.cleaned_data.get('remember_me'):
+                if remember_me:
+                    request.session['admin_session_persistent'] = True
+                    request.session.set_expiry(get_effective_session_timeout(user))
+                else:
+                    request.session['admin_session_persistent'] = False
                     request.session.set_expiry(0)
                 return redirect(_safe_login_redirect(request, requested_next, user=user))
 

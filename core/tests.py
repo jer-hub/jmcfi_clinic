@@ -155,6 +155,32 @@ class AdminLoginViewTests(TestCase):
 			},
 		)
 		self.assertEqual(self.client.session.get_expire_at_browser_close(), True)
+		self.assertIs(self.client.session.get('admin_session_persistent'), False)
+
+	def test_browser_session_survives_middleware_on_next_request(self):
+		self.client.post(
+			self.url,
+			{
+				'email': self.admin_user.email,
+				'password': 'AdminPass123!',
+			},
+		)
+		self.client.get(self.dashboard_url)
+		self.assertEqual(self.client.session.get_expire_at_browser_close(), True)
+		self.assertIs(self.client.session.get('admin_session_persistent'), False)
+
+	def test_remember_me_uses_role_timeout_after_next_request(self):
+		self.client.post(
+			self.url,
+			{
+				'email': self.admin_user.email,
+				'password': 'AdminPass123!',
+				'remember_me': 'on',
+			},
+		)
+		self.client.get(self.dashboard_url)
+		self.assertFalse(self.client.session.get_expire_at_browser_close())
+		self.assertIs(self.client.session.get('admin_session_persistent'), True)
 
 
 class LogoutViewTests(TestCase):

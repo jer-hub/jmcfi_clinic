@@ -2,15 +2,8 @@
 
 from django import forms
 
+from .form_widgets import CHECKBOX_CLASS, INPUT_CLASS, TEXTAREA_CLASS
 from .models import ClinicSettings, RoleSettings, User, UserPreferences
-
-INPUT_CLASS = (
-    'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm '
-    'placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 '
-    'focus:border-primary-500 sm:text-sm'
-)
-TEXTAREA_CLASS = INPUT_CLASS + ' min-h-[88px]'
-CHECKBOX_CLASS = 'h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500'
 
 
 class ClinicSettingsForm(forms.ModelForm):

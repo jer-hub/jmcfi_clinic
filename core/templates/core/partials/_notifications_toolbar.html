@@ -39,10 +39,15 @@
                   class="w-full pl-8 pr-8 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm appearance-none focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
                   onchange="this.form.submit()">
             <option value="">All types</option>
-            <option value="appointment" {% if current_type == 'appointment' %}selected{% endif %}>Appointments</option>
-            <option value="certificate" {% if current_type == 'certificate' %}selected{% endif %}>Certificates</option>
-            <option value="health_tip" {% if current_type == 'health_tip' %}selected{% endif %}>Health tips</option>
-            <option value="general" {% if current_type == 'general' %}selected{% endif %}>General</option>
+            {% if user.role == 'admin' %}
+              <option value="health_tip" {% if current_type == 'health_tip' %}selected{% endif %}>Health tips</option>
+              <option value="general" {% if current_type == 'general' %}selected{% endif %}>General</option>
+            {% else %}
+              <option value="appointment" {% if current_type == 'appointment' %}selected{% endif %}>Appointments</option>
+              <option value="certificate" {% if current_type == 'certificate' %}selected{% endif %}>Certificates</option>
+              <option value="health_tip" {% if current_type == 'health_tip' %}selected{% endif %}>Health tips</option>
+              <option value="general" {% if current_type == 'general' %}selected{% endif %}>General</option>
+            {% endif %}
           </select>
           <i class="fas fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-gray-400 pointer-events-none" aria-hidden="true"></i>
         </div>
@@ -59,11 +64,8 @@
 
     <div class="flex flex-wrap items-center gap-2 sm:justify-end flex-shrink-0 border-t border-gray-200/80 pt-3 lg:border-t-0 lg:pt-0">
       {% if user.role == 'admin' %}
-        <a href="{% url 'core:create_system_notification' %}"
-           class="inline-flex items-center gap-2 px-3 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors">
-          <i class="fas fa-plus text-xs" aria-hidden="true"></i>
-          <span>Create</span>
-        </a>
+        {% url 'core:create_system_notification' as create_system_notification_url %}
+        {% include "components/button.html" with label="Create" icon="fa-plus" variant="outline-primary" as="a" href=create_system_notification_url extra="px-3 py-2 shadow-sm" %}
       {% endif %}
       {% if unread_count > 0 %}
         <a href="?mark_all_read=true"

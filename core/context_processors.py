@@ -1,10 +1,6 @@
-from .models import Notification
 from .roles import ROLE_PATIENT, role_matches
 from .settings_service import get_clinic_settings, get_role_features, get_user_preferences
-from .utils import is_profile_complete, get_missing_profile_fields
-
-
-MESSAGE_NOTIFICATION_TYPES = ("direct_message", "announcement_posted")
+from .utils import is_profile_complete, get_missing_profile_fields, user_visible_notifications
 
 
 def notification_context(request):
@@ -12,12 +8,7 @@ def notification_context(request):
     Context processor to add unread notification count to all templates
     """
     if request.user.is_authenticated:
-        unread_count = Notification.objects.filter(
-            user=request.user,
-            is_read=False
-        ).exclude(
-            transaction_type__in=MESSAGE_NOTIFICATION_TYPES
-        ).count()
+        unread_count = user_visible_notifications(request.user).filter(is_read=False).count()
 
         unread_messages_count = 0
         try:

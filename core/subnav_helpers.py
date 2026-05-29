@@ -57,7 +57,11 @@ def enrich_subnav(items, *, always_show_nav: bool = False, nav_mb: str | None = 
     if nav_mb:
         ctx['nav_mb'] = nav_mb
 
-    if always_show_nav or len(items) < 2:
+    if len(items) < 2 and not always_show_nav:
+        ctx['items'] = []
+        return ctx
+
+    if always_show_nav:
         return ctx
 
     parent = items[0]

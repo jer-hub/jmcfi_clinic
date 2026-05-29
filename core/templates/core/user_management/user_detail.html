@@ -5,12 +5,7 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50 pt-0 pb-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Breadcrumbs -->
-        <nav class="mb-4 flex items-center gap-2 text-sm text-gray-500">
-            <a href="{% url 'core:user_management' %}" class="hover:text-primary-600 transition-colors">Users</a>
-            <i class="fas fa-chevron-right text-xs text-gray-400"></i>
-            <span class="font-medium text-gray-900">{{ viewed_user.get_full_name }}</span>
-        </nav>
+        {% include "core/_subnav.html" %}
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Left Column - User Info -->

@@ -260,6 +260,34 @@ CERTIFICATE_NOTIFICATION_TRANSACTION_TYPES = frozenset({
     'certificate_rejected',
 })
 
+MESSAGE_NOTIFICATION_TYPES = frozenset({'direct_message', 'announcement_posted'})
+
+NON_ADMIN_NOTIFICATION_TYPES = frozenset({'appointment', 'certificate'})
+
+NON_ADMIN_NOTIFICATION_TRANSACTION_TYPES = frozenset({
+    *APPOINTMENT_NOTIFICATION_TRANSACTION_TYPES,
+    *CERTIFICATE_NOTIFICATION_TRANSACTION_TYPES,
+    'health_tip_new',
+    'health_tip_updated',
+    'medical_record_created',
+    'medical_record_updated',
+    'feedback_request',
+})
+
+
+def user_visible_notifications(user):
+    """In-app notifications for the bell and notifications page (role-aware)."""
+    from .models import Notification
+
+    qs = Notification.objects.filter(user=user).exclude(
+        transaction_type__in=MESSAGE_NOTIFICATION_TYPES,
+    )
+    if getattr(user, 'role', None) == 'admin':
+        qs = qs.exclude(notification_type__in=NON_ADMIN_NOTIFICATION_TYPES).exclude(
+            transaction_type__in=NON_ADMIN_NOTIFICATION_TRANSACTION_TYPES,
+        )
+    return qs
+
 
 def resolve_notification_url(notification):
     """Return the detail/list URL for a notification, or None if unknown."""

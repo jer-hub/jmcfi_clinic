@@ -1,9 +1,12 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}User Management - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div id="user-management-bulk-root"
+     class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+     x-data="userListBulk()">
   {% include "core/_subnav.html" %}
 
   <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -60,7 +63,7 @@
                    hx-swap="innerHTML"
                    hx-push-url="true"
                    hx-include="closest form"
-                   class="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm">
+                   class="block w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm">
           </div>
         </div>
         <div>
@@ -72,7 +75,7 @@
                   hx-swap="innerHTML"
                   hx-push-url="true"
                   hx-include="closest form"
-                  class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm">
+                  class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
             <option value="">All Roles</option>
             <option value="patient" {% if role_filter == 'patient' or role_filter == 'student' %}selected{% endif %}>Patient</option>
             <option value="staff" {% if role_filter == 'staff' %}selected{% endif %}>Staff</option>
@@ -89,7 +92,7 @@
                   hx-swap="innerHTML"
                   hx-push-url="true"
                   hx-include="closest form"
-                  class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm">
+                  class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 text-sm">
             <option value="">All Status</option>
             <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
             <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending Activation</option>
@@ -108,6 +111,8 @@
       </form>
     </div>
 
+    {% include 'core/user_management/_user_bulk_toolbar.html' %}
+
     <div id="user-table-container">
       {% include 'core/user_management/_user_table_body.html' %}
     </div>
@@ -116,26 +121,8 @@
 {% endblock content %}
 
 {% block scripts %}
-<div x-data="userListController()" x-cloak>
-  <template x-if="selectedUsers.size > 0">
-    <div class="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-white rounded-card shadow-xl border border-gray-200 px-5 py-3 flex items-center gap-3">
-      <span class="text-sm font-medium text-gray-700">
-        <span x-text="selectedUsers.size"></span> selected
-      </span>
-      <select x-model="bulkAction" class="px-2 py-1.5 text-sm border border-gray-300 rounded-lg">
-        <option value="">Select Action</option>
-        <option value="activate">Activate</option>
-        <option value="deactivate">Deactivate</option>
-        <option value="delete">Soft Delete</option>
-      </select>
-      <button type="button" @click="applyBulkAction()" :disabled="!bulkAction"
-              class="px-3 py-1.5 text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-        Apply
-      </button>
-    </div>
-  </template>
-</div>
-
+<script src="{% static 'js/user-list-bulk.js' %}"></script>
+{{ block.super }}
 <script>
   document.addEventListener('updateStatus', (e) => {
     const userId = e.detail?.id;
@@ -151,48 +138,5 @@
       checkbox.checked = isActive;
     }
   });
-
-  function userListController() {
-    return {
-      selectedUsers: new Set(),
-      totalUsers: {{ users.paginator.count }},
-      bulkAction: '',
-      init() {
-        this.$nextTick(() => {
-          document.querySelectorAll('.select-user').forEach(cb => {
-            cb.addEventListener('change', () => {
-              if (cb.checked) this.selectedUsers.add(cb.dataset.userId);
-              else this.selectedUsers.delete(cb.dataset.userId);
-            });
-          });
-        });
-      },
-      applyBulkAction() {
-        if (!this.bulkAction) return;
-        if (this.bulkAction === 'delete' && !confirm('Soft-delete the selected users? This is reversible.')) return;
-        const userIds = Array.from(this.selectedUsers).join(',');
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '{% url "core:user_bulk_action" %}';
-        form.innerHTML = `{% csrf_token %}<input type="hidden" name="action" value="${this.bulkAction}"><input type="hidden" name="user_ids" value="${userIds}"><input type="hidden" name="confirmation" value="True">`;
-        form.style.display = 'none';
-        document.body.appendChild(form);
-        htmx.ajax('POST', form.action, {
-          source: form,
-          swap: 'none',
-          values: {
-            csrfmiddlewaretoken: form.querySelector('[name=csrfmiddlewaretoken]').value,
-            action: this.bulkAction,
-            user_ids: userIds,
-            confirmation: 'True'
-          }
-        });
-        htmx.on('htmx:afterRequest', () => {
-          document.body.dispatchEvent(new CustomEvent('refreshUserStats'));
-          setTimeout(() => window.location.reload(), 2000);
-        });
-      }
-    };
-  }
 </script>
 {% endblock scripts %}

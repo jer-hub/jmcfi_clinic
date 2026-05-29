@@ -444,7 +444,7 @@ def messaging_subnav(context):
             active=is_active(vn, 'messaging:inbox', 'messaging:conversation_detail'),
         )
     ]
-    if role_matches(user.role, ROLE_PATIENT, 'staff', 'doctor', 'admin'):
+    if role_matches(user.role, ROLE_PATIENT, 'staff', 'doctor'):
         items.append(
             nav_item(
                 'New Message',
@@ -479,12 +479,96 @@ def settings_subnav(context):
     return enrich_subnav(items, always_show_nav=True)
 
 
+def _users_list_crumb():
+    return {
+        'label': 'Users',
+        'url': reverse('core:user_management'),
+        'icon': 'fa-users-gear',
+    }
+
+
+def _user_management_breadcrumb_subnav(context, section_label, *, section_icon='fa-circle'):
+    """Breadcrumb subnav for a specific user (detail, edit, audit, etc.)."""
+    viewed_user = context.get('viewed_user')
+    if not viewed_user:
+        return breadcrumb_subnav(
+            [_users_list_crumb(), {'label': section_label, 'icon': section_icon}],
+        )
+
+    name = (viewed_user.get_full_name() or '').strip() or viewed_user.email
+    return breadcrumb_subnav(
+        [
+            _users_list_crumb(),
+            {
+                'label': name,
+                'url': reverse('core:user_detail', kwargs={'user_id': viewed_user.pk}),
+                'icon': 'fa-user',
+            },
+            {'label': section_label, 'icon': section_icon},
+        ],
+    )
+
+
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
 def core_admin_subnav(context):
     request = context['request']
     if request.user.role != 'admin':
         return enrich_subnav([])
     vn = view_name(request)
+
+    if vn == 'core:user_detail':
+        viewed_user = context.get('viewed_user')
+        name = ((viewed_user.get_full_name() if viewed_user else '') or '').strip()
+        if viewed_user and not name:
+            name = viewed_user.email
+        return breadcrumb_subnav(
+            [
+                _users_list_crumb(),
+                {'label': name or 'User', 'icon': 'fa-user'},
+            ],
+        )
+
+    if vn == 'core:user_edit':
+        return _user_management_breadcrumb_subnav(
+            context, 'Edit user', section_icon='fa-pen-to-square',
+        )
+    if vn == 'core:user_audit_log':
+        return _user_management_breadcrumb_subnav(
+            context, 'Audit log', section_icon='fa-clock-rotate-left',
+        )
+    if vn == 'core:user_reset_password':
+        return _user_management_breadcrumb_subnav(
+            context, 'Reset password', section_icon='fa-key',
+        )
+    if vn == 'core:user_create':
+        return breadcrumb_subnav(
+            [
+                _users_list_crumb(),
+                {'label': 'Create user', 'icon': 'fa-user-plus'},
+            ],
+        )
+    if vn == 'core:user_cleanup_stale':
+        return breadcrumb_subnav(
+            [
+                _users_list_crumb(),
+                {'label': 'Clean up', 'icon': 'fa-broom'},
+            ],
+        )
+    if is_active(
+        vn,
+        'core:deleted_user_management',
+        'core:deleted_user_bulk_action',
+        'core:deleted_user_bulk_restore',
+        'core:deleted_user_permanent_delete',
+        'core:user_restore',
+    ):
+        return breadcrumb_subnav(
+            [
+                _users_list_crumb(),
+                {'label': 'Deleted accounts', 'icon': 'fa-box-archive'},
+            ],
+        )
+
     active = 'user_management' in vn or is_active(
         vn,
         'core:user_create',
@@ -495,7 +579,6 @@ def core_admin_subnav(context):
         'core:user_reset_password',
         'core:user_audit_log',
         'core:user_cleanup_stale',
-        'core:user_deleted_list',
     )
     return enrich_subnav(
         [

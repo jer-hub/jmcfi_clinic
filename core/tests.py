@@ -283,7 +283,9 @@ class AdminRoleDirectAccessRestrictionTests(TestCase):
 		for url in blocked_urls:
 			with self.subTest(url=url):
 				response = self.client.get(url)
-				self.assertEqual(response.status_code, 403)
+				self.assertIn(response.status_code, (302, 403))
+				if response.status_code == 302:
+					self.assertIn('restricted', response.url)
 
 	def test_admin_direct_access_is_allowed_for_appointment_settings(self):
 		self.client.force_login(self.admin_user)
@@ -809,3 +811,123 @@ class AdminProvisioningAuditTrailTests(TestCase):
 		self.assertEqual(audits[0].action, AccountProvisioningAudit.ACTION.ACTIVATED)
 		self.assertEqual(audits[1].actor, self.admin_user)
 		self.assertEqual(audits[1].action, AccountProvisioningAudit.ACTION.SUSPENDED)
+
+
+class AdminNotificationVisibilityTests(TestCase):
+	def setUp(self):
+		self.url = reverse('core:notifications')
+		self.admin_user = User.objects.create_user(
+			email='notif-vis-admin@jmcfi.edu.ph',
+			password='AdminPass123!',
+			role='admin',
+			is_staff=True,
+			is_active=True,
+		)
+		_complete_staff_like_profile(self.admin_user, 'ADM-NOTIF-VIS-001')
+
+	def test_admin_notifications_exclude_clinical_items(self):
+		Notification.objects.create(
+			user=self.admin_user,
+			title='New Certificate Request',
+			message='A patient requested a certificate.',
+			notification_type='certificate',
+			transaction_type='certificate_requested',
+		)
+		Notification.objects.create(
+			user=self.admin_user,
+			title='Clinic announcement',
+			message='Maintenance this weekend.',
+			notification_type='general',
+			transaction_type='general_announcement',
+		)
+		self.client.force_login(self.admin_user)
+		response = self.client.get(self.url)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Clinic announcement')
+		self.assertNotContains(response, 'New Certificate Request')
+
+	def test_admin_unread_count_excludes_clinical_items(self):
+		Notification.objects.create(
+			user=self.admin_user,
+			title='New Certificate Request',
+			message='Hidden from admin.',
+			notification_type='certificate',
+			transaction_type='certificate_requested',
+			is_read=False,
+		)
+		Notification.objects.create(
+			user=self.admin_user,
+			title='Visible alert',
+			message='Shown to admin.',
+			notification_type='general',
+			is_read=False,
+		)
+		from core.utils import user_visible_notifications
+
+		self.assertEqual(user_visible_notifications(self.admin_user).filter(is_read=False).count(), 1)
+
+
+class CreateSystemNotificationViewTests(TestCase):
+	def setUp(self):
+		self.url = reverse('core:create_system_notification')
+		self.admin_user = User.objects.create_user(
+			email='notif-admin@jmcfi.edu.ph',
+			password='AdminPass123!',
+			role='admin',
+			is_staff=True,
+			is_active=True,
+		)
+		_complete_staff_like_profile(self.admin_user, 'ADM-NOTIF-001')
+		self.patient = User.objects.create_user(
+			email='notif-patient@jmcfi.edu.ph',
+			password='PatientPass123!',
+			role='patient',
+			is_active=True,
+		)
+
+	def test_get_requires_admin(self):
+		self.client.force_login(self.patient)
+		response = self.client.get(self.url)
+		self.assertEqual(response.status_code, 302)
+
+	def test_get_renders_form_for_admin(self):
+		self.client.force_login(self.admin_user)
+		response = self.client.get(self.url)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Create System Notification')
+		self.assertContains(response, 'name="title"')
+
+	def test_post_creates_notifications_for_recipients(self):
+		self.client.force_login(self.admin_user)
+		before = Notification.objects.filter(user=self.patient).count()
+		response = self.client.post(
+			self.url,
+			{
+				'title': 'Clinic update',
+				'message': 'Please read this announcement.',
+				'recipient_type': 'students',
+				'notification_type': 'general',
+			},
+		)
+		self.assertEqual(response.status_code, 302)
+		self.assertEqual(
+			Notification.objects.filter(user=self.patient).count(),
+			before + 1,
+		)
+		latest = Notification.objects.filter(user=self.patient).order_by('-created_at').first()
+		self.assertEqual(latest.title, 'Clinic update')
+		self.assertEqual(latest.notification_type, 'general')
+
+	def test_post_invalid_shows_field_errors(self):
+		self.client.force_login(self.admin_user)
+		response = self.client.post(
+			self.url,
+			{
+				'title': '',
+				'message': '',
+				'recipient_type': 'all',
+				'notification_type': 'general',
+			},
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'This field is required')

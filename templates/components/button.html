@@ -4,7 +4,7 @@
 
   Context:
     label     – button text (required)
-    variant   – primary | secondary | danger | ghost | success (default "primary")
+    variant   – primary | secondary | outline-primary | danger | ghost | success (default "primary")
     size      – sm | md | lg (default "md")
     icon      – optional FA icon class (rendered before label)
     icon_end  – optional FA icon class (rendered after label)
@@ -26,6 +26,7 @@
           {% elif v == 'danger' %}bg-danger-600 hover:bg-danger-700 text-white focus:ring-2 focus:ring-danger-500 focus:ring-offset-2
           {% elif v == 'success' %}bg-success-600 hover:bg-success-700 text-white focus:ring-2 focus:ring-success-500 focus:ring-offset-2
           {% elif v == 'ghost' %}text-gray-600 hover:text-gray-900 hover:bg-gray-100
+          {% elif v == 'outline-primary' %}bg-white border border-primary-200 text-primary-700 hover:bg-primary-50 focus:ring-2 focus:ring-primary-500/20 focus:ring-offset-1
           {% else %}bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-primary-500 focus:ring-offset-1{% endif %}
           {{ extra }}"
    {{ attrs|safe }}>

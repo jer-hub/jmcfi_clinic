@@ -86,6 +86,26 @@ def notify_user(
     return notification
 
 
+def resolve_system_notification_recipients(recipient_type: str):
+    """Return a User queryset for admin broadcast recipient selection."""
+    from .models import User
+    from .roles import PATIENT_ROLE_VALUES
+
+    if recipient_type == 'students':
+        return User.objects.filter(role__in=PATIENT_ROLE_VALUES)
+    if recipient_type == 'staff_only':
+        return User.objects.filter(role='staff')
+    if recipient_type == 'doctors':
+        return User.objects.filter(role='doctor')
+    if recipient_type == 'admins':
+        return User.objects.filter(role='admin')
+    if recipient_type == 'staff_and_doctors':
+        return User.objects.filter(role__in=['staff', 'doctor'])
+    if recipient_type == 'non_students':
+        return User.objects.filter(role__in=['staff', 'doctor', 'admin'])
+    return User.objects.filter(role__in=[*PATIENT_ROLE_VALUES, 'staff', 'doctor', 'admin'])
+
+
 def deliver_bulk_notifications(
     users,
     title: str,

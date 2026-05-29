@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 from appointments.models import Appointment
 from document_request.models import DocumentRequest
@@ -6,7 +7,8 @@ from medical_records.models import MedicalRecord
 
 from .models import AccountProvisioningAudit
 from .roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, role_matches
-from .utils import get_user_profile, get_client_ip
+from .roles import filter_users_by_role
+from .utils import get_user_profile, get_client_ip, paginate_queryset
 
 User = get_user_model()
 
@@ -139,3 +141,49 @@ def toggle_user_status(*, request, actor, target_user):
     )
 
     return was_pending
+
+
+def build_active_user_list_context(request):
+    """Queryset + filter context for the active user management list (and HTMX partials)."""
+    role_filter = request.GET.get('role', '')
+    status_filter = request.GET.get('status', '')
+    search_query = request.GET.get('search', '')
+
+    users = User.objects.filter(is_deleted=False).order_by('-date_joined')
+
+    if role_filter:
+        users = filter_users_by_role(users, role_filter)
+
+    if status_filter == 'active':
+        users = users.filter(
+            onboarding_status=User.ONBOARDING_STATUS.ACTIVE,
+            is_active=True,
+        )
+    elif status_filter == 'pending':
+        users = users.filter(onboarding_status=User.ONBOARDING_STATUS.PENDING_ACTIVATION)
+    elif status_filter == 'suspended':
+        users = users.filter(onboarding_status=User.ONBOARDING_STATUS.SUSPENDED)
+    elif status_filter == 'inactive':
+        users = users.filter(is_active=False)
+
+    if search_query:
+        users = users.filter(
+            Q(username__icontains=search_query)
+            | Q(email__icontains=search_query)
+            | Q(first_name__icontains=search_query)
+            | Q(last_name__icontains=search_query)
+        )
+
+    query_copy = request.GET.copy()
+    query_copy.pop('page', None)
+    user_list_querystring = f'&{query_copy.urlencode()}' if query_copy else ''
+
+    return {
+        'users': paginate_queryset(users, request, per_page=20),
+        'stats': get_user_management_stats(),
+        'role_filter': role_filter,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'user_list_querystring': user_list_querystring,
+        'current_user_id': request.user.pk,
+    }

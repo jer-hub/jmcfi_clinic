@@ -245,6 +245,53 @@ class AdminBulkActionTests(TestCase):
             self.assertTrue(user.is_deleted)
             self.assertIsNotNone(user.deleted_at)
 
+    def test_bulk_soft_delete_accepts_checkbox_user_ids(self):
+        targets = self.target_users[:2]
+        response = self.client.post(
+            self.url,
+            {
+                'action': 'delete',
+                'confirmation': 'True',
+                'user_ids': [str(user.id) for user in targets],
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        for user in targets:
+            user.refresh_from_db()
+            self.assertTrue(user.is_deleted)
+
+    def test_bulk_soft_delete_htmx_returns_table_partial(self):
+        target = self.target_users[0]
+        response = self.client.post(
+            self.url,
+            {
+                'action': 'delete',
+                'confirmation': 'True',
+                'user_ids': [str(target.id)],
+            },
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'hx-trigger')
+        self.assertNotContains(response, target.email)
+        target.refresh_from_db()
+        self.assertTrue(target.is_deleted)
+
+    def test_bulk_soft_delete_with_duplicate_user_id_list(self):
+        """Simulates duplicate checkbox values from mobile + desktop rows."""
+        target = self.target_users[0]
+        response = self.client.post(
+            self.url,
+            {
+                'action': 'delete',
+                'confirmation': 'True',
+                'user_ids': [str(target.id), str(target.id)],
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        target.refresh_from_db()
+        self.assertTrue(target.is_deleted)
+
     def test_bulk_action_skips_admin_users(self):
         admin_user2 = User.objects.create_user(
             email='admin-bulk2@test.com',
@@ -589,6 +636,43 @@ class AdminUserDetailTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'ADM-DETAIL-001')
         self.assertContains(response, 'Recent Audit Log')
+
+    def test_admin_detail_uses_breadcrumb_subnav(self):
+        response = self.client.get(reverse('core:user_detail', kwargs={'user_id': self.admin_user.id}))
+        self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, 'Users')
+        self.assertContains(response, reverse('core:user_management'))
+
+
+class AdminUserEditSubnavTests(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_user(
+            email='admin-edit-nav@test.com',
+            password='AdminPass123!',
+            role='admin',
+            is_staff=True,
+            is_active=True,
+        )
+        _complete_staff_like_profile(self.admin_user, 'ADM-EDIT-NAV')
+        self.target_user = User.objects.create_user(
+            email='edit-nav-patient@test.com',
+            password='PatientPass123!',
+            role='patient',
+            first_name='T',
+            last_name='S',
+            is_active=True,
+        )
+        self.client.force_login(self.admin_user)
+
+    def test_edit_user_uses_breadcrumb_subnav(self):
+        response = self.client.get(
+            reverse('core:user_edit', kwargs={'user_id': self.target_user.id}),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, 'rounded-xl border border-gray-200')
+        self.assertNotContains(response, 'mb-4 flex items-center gap-2 text-sm text-gray-500')
+        self.assertContains(response, 'Edit user')
 
 
 

@@ -4,6 +4,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from .form_widgets import INPUT_CLASS, SELECT_CLASS, TEXTAREA_CLASS
 from .models import (
     StudentProfile,
     StaffProfile,
@@ -26,11 +27,7 @@ OPTIONAL_COURSE_DEPARTMENTS = {
 # ---------------------------------------------------------------------------
 
 PHONE_WIDGET_ATTRS = {
-    'class': (
-        'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm '
-        'placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 '
-        'focus:border-primary-500 sm:text-sm'
-    ),
+    'class': INPUT_CLASS,
     'type': 'tel',
     'placeholder': '9XXXXXXXXX',
     'inputmode': 'numeric',
@@ -59,11 +56,7 @@ class AdminLoginForm(forms.Form):
     email = forms.EmailField(
         widget=forms.EmailInput(
             attrs={
-                'class': (
-                    'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm '
-                    'placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 '
-                    'focus:border-primary-500 sm:text-sm'
-                ),
+                'class': INPUT_CLASS,
                 'placeholder': 'admin@jmcfi.edu.ph',
                 'autocomplete': 'email',
                 'required': True,
@@ -73,11 +66,7 @@ class AdminLoginForm(forms.Form):
     password = forms.CharField(
         widget=forms.PasswordInput(
             attrs={
-                'class': (
-                    'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm '
-                    'placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 '
-                    'focus:border-primary-500 sm:text-sm'
-                ),
+                'class': INPUT_CLASS,
                 'placeholder': 'Enter password',
                 'autocomplete': 'current-password',
                 'required': True,
@@ -119,7 +108,7 @@ class StudentProfileForm(forms.ModelForm):
         ]
         widgets = {
             'patient_id': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-mono',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm font-mono',
                 'placeholder': 'Enter your patient ID',
                 'required': True
             }),
@@ -131,36 +120,36 @@ class StudentProfileForm(forms.ModelForm):
                 '@change': 'handleFileChange($event)',
             }),
             'middle_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'Middle Name',
                 'required': True,
             }),
             'gender': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'required': True
             }),
             'civil_status': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'required': True
             }),
             'date_of_birth': forms.DateInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'type': 'date',
                 'required': True
             }),
             'place_of_birth': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'City/Province',
                 'required': True
             }),
             'age': forms.NumberInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'min': '0',
                 'max': '150',
                 'required': True
             }),
             'address': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
                 'rows': 3,
                 'placeholder': 'Complete residential address',
                 'required': True
@@ -170,36 +159,36 @@ class StudentProfileForm(forms.ModelForm):
                 'required': False,
             }),
             'emergency_contact': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'Emergency contact name',
                 'required': True
             }),
             'course': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'e.g., BS Computer Science',
                 'required': True
             }),
             'year_level': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'e.g., 1st Year, 2nd Year',
                 'required': True
             }),
             'department': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'College/Department',
                 'required': True
             }),
             'blood_type': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'required': True
             }),
             'allergies': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
                 'rows': 4,
                 'placeholder': 'List any allergies (food, medication, environmental, etc.) or write "None"'
             }),
             'medical_conditions': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
                 'rows': 4,
                 'placeholder': 'List any existing medical conditions or chronic illnesses or write "None"'
             }),
@@ -311,7 +300,7 @@ class StaffProfileForm(forms.ModelForm):
         ]
         widgets = {
             'staff_id': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-mono',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm font-mono',
                 'placeholder': 'Enter your staff ID',
                 'required': True
             }),
@@ -323,35 +312,35 @@ class StaffProfileForm(forms.ModelForm):
                 '@change': 'handleFileChange($event)',
             }),
             'middle_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'Middle Name'
             }),
             'gender': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'required': True
             }),
             'civil_status': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'required': True
             }),
             'date_of_birth': forms.DateInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'type': 'date',
                 'required': True
             }),
             'place_of_birth': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'City/Province',
                 'required': True
             }),
             'age': forms.NumberInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'min': '0',
                 'max': '150',
                 'required': True
             }),
             'address': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
                 'rows': 3,
                 'placeholder': 'Complete residential address',
                 'required': True
@@ -360,43 +349,43 @@ class StaffProfileForm(forms.ModelForm):
                 **PHONE_WIDGET_ATTRS,
             }),
             'emergency_contact': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'Emergency contact name',
                 'required': True
             }),
             'blood_type': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm'
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm'
             }),
             'allergies': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
                 'rows': 4,
                 'placeholder': 'List any allergies (food, medication, environmental, etc.) or write "None"'
             }),
             'medical_conditions': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
                 'rows': 4,
                 'placeholder': 'List any existing medical conditions or chronic illnesses or write "None"'
             }),
             'department': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'e.g., Cardiology, General Medicine',
                 'required': True
             }),
             'position': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'Your position/title',
                 'required': True
             }),
             'specialization': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
                 'placeholder': 'Your area of specialization'
             }),
             'license_number': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-mono',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm font-mono',
                 'placeholder': 'Medical license number'
             }),
             'ptr_no': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm font-mono',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm font-mono',
                 'placeholder': 'PTR No. / Professional Tax Receipt'
             }),
         }
@@ -503,14 +492,14 @@ class UserCreationForm(forms.ModelForm):
     password1 = forms.CharField(
         label='Password',
         widget=forms.PasswordInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
             'placeholder': 'Enter password'
         })
     )
     password2 = forms.CharField(
         label='Confirm Password',
         widget=forms.PasswordInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
             'placeholder': 'Confirm password'
         })
     )
@@ -520,23 +509,23 @@ class UserCreationForm(forms.ModelForm):
         fields = ['username', 'email', 'first_name', 'last_name', 'role']
         widgets = {
             'username': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
                 'placeholder': 'Enter username'
             }),
             'email': forms.EmailInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
                 'placeholder': 'Enter email address'
             }),
             'first_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
                 'placeholder': 'Enter first name'
             }),
             'last_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
                 'placeholder': 'Enter last name'
             }),
             'role': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500'
             })
         }
     
@@ -642,23 +631,23 @@ class UserEditForm(forms.ModelForm):
         fields = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active']
         widgets = {
             'username': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
                 'placeholder': 'Enter username'
             }),
             'email': forms.EmailInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
                 'placeholder': 'Enter email address'
             }),
             'first_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
                 'placeholder': 'Enter first name'
             }),
             'last_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
                 'placeholder': 'Enter last name'
             }),
             'role': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500'
+                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500'
             }),
             'is_active': forms.CheckboxInput(attrs={
                 'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
@@ -710,14 +699,14 @@ class PasswordResetForm(forms.Form):
     new_password1 = forms.CharField(
         label='New Password',
         widget=forms.PasswordInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
             'placeholder': 'Enter new password'
         })
     )
     new_password2 = forms.CharField(
         label='Confirm New Password',
         widget=forms.PasswordInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500',
+            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
             'placeholder': 'Confirm new password'
         })
     )
@@ -750,7 +739,7 @@ class BulkUserActionForm(forms.Form):
     action = forms.ChoiceField(
         choices=ACTION_CHOICES,
         widget=forms.Select(attrs={
-            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm',
         })
     )
     user_ids = forms.CharField(
@@ -790,27 +779,76 @@ class UserExportForm(forms.Form):
         required=False,
         choices=[('', 'All Roles'), ('patient', 'Patient'), ('student', 'Patient'), ('staff', 'Staff'), ('doctor', 'Doctor'), ('admin', 'Admin')],
         widget=forms.Select(attrs={
-            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm',
         })
     )
     status = forms.ChoiceField(
         required=False,
         choices=[('', 'All Status'), ('active', 'Active'), ('pending', 'Pending Activation'), ('suspended', 'Suspended')],
         widget=forms.Select(attrs={
-            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm',
         })
     )
     date_from = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={
-            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm',
             'type': 'date',
         })
     )
     date_to = forms.DateField(
         required=False,
         widget=forms.DateInput(attrs={
-            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm',
+            'class': 'block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm',
             'type': 'date',
         })
+    )
+
+
+class SystemNotificationForm(forms.Form):
+    """Admin form for broadcasting in-app notifications to role groups."""
+
+    RECIPIENT_CHOICES = [
+        ('all', 'All Users (Everyone)'),
+        ('students', 'Students Only'),
+        ('staff_only', 'Staff Only'),
+        ('doctors', 'Doctors Only'),
+        ('admins', 'Admins Only'),
+        ('staff_and_doctors', 'Staff & Doctors'),
+        ('non_students', 'Staff, Doctors & Admins'),
+    ]
+    TYPE_CHOICES = [
+        ('general', 'General'),
+        ('health_tip', 'Health Tip'),
+    ]
+
+    title = forms.CharField(
+        max_length=200,
+        widget=forms.TextInput(
+            attrs={
+                'class': INPUT_CLASS,
+                'placeholder': 'Enter notification title',
+                'x-model': 'title',
+            }
+        ),
+    )
+    message = forms.CharField(
+        widget=forms.Textarea(
+            attrs={
+                'class': TEXTAREA_CLASS,
+                'rows': 4,
+                'placeholder': 'Enter your message...',
+                'x-model': 'message',
+            }
+        ),
+    )
+    recipient_type = forms.ChoiceField(
+        choices=RECIPIENT_CHOICES,
+        initial='all',
+        widget=forms.Select(attrs={'class': SELECT_CLASS}),
+    )
+    notification_type = forms.ChoiceField(
+        choices=TYPE_CHOICES,
+        initial='general',
+        widget=forms.RadioSelect,
     )

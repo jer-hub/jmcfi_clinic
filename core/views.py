@@ -38,18 +38,25 @@ from .forms import (
     UserCreationForm,
     UserEditForm,
     PasswordResetForm,
+    SystemNotificationForm,
     clean_strict_ph_number,
 )
-from .notification_delivery import notify_user
+from .notification_delivery import (
+    deliver_bulk_notifications,
+    notify_user,
+    resolve_system_notification_recipients,
+)
 from .roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, filter_users_by_role, normalize_role, role_matches
 from .settings_service import get_effective_session_timeout, get_profile_required_fields
 from .utils import (
     get_user_profile, paginate_queryset,
     get_missing_profile_fields, get_client_ip,
     resolve_notification_url, student_display_name, patient_search_q,
+    user_visible_notifications,
 )
 from .decorators import admin_required, role_required
 from .user_management_services import (
+    build_active_user_list_context,
     get_user_management_stats,
     get_user_detail_summary,
     soft_delete_user,
@@ -65,7 +72,6 @@ from health_forms_services.models import HealthProfileForm, DentalHealthForm
 from pharmacy.models import Medicine, Batch
 
 User = get_user_model()
-MESSAGE_NOTIFICATION_TYPES = ("direct_message", "announcement_posted")
 ADMIN_LOGIN_ATTEMPT_LIMIT = 5
 ADMIN_LOGIN_LOCK_SECONDS = 900
 auth_logger = logging.getLogger('security.auth')
@@ -247,6 +253,39 @@ def logout_view(request):
     return redirect('account_login')
 
 
+def restricted_access(request):
+    """Full-page restricted / unauthorized access display (also HX-Redirect target)."""
+    from django.contrib import messages
+
+    from .access_control import restricted_access_context
+
+    # Page copy already explains denial; do not also flash the same text as a toast.
+    list(messages.get_messages(request))
+
+    return render(
+        request,
+        'core/restricted_access.html',
+        restricted_access_context(request),
+    )
+
+
+def csrf_failure(request, reason=''):
+    """CSRF verification failed — HTMX-safe redirect to restricted access page."""
+    from .access_control import AccessReason, access_denied_response, restricted_access_context
+    from .htmx_utils import is_htmx_request
+
+    if is_htmx_request(request) or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return access_denied_response(
+            request,
+            status_code=403,
+            reason=AccessReason.CSRF,
+        )
+
+    context = restricted_access_context(request)
+    context['csrf_failure_reason'] = reason
+    return render(request, 'core/restricted_access.html', context, status=403)
+
+
 @require_http_methods(["GET", "POST"])
 def accept_invite(request, token):
     """Accept a user invitation and activate account when invite is valid."""
@@ -343,11 +382,8 @@ def dashboard(request):
             'recent_records': MedicalRecord.objects.filter(
                 patient=request.user
             ).order_by('-created_at')[:3],
-            'unread_notifications': Notification.objects.filter(
-                user=request.user, 
-                is_read=False
-            ).exclude(
-                transaction_type__in=MESSAGE_NOTIFICATION_TYPES
+            'unread_notifications': user_visible_notifications(request.user).filter(
+                is_read=False,
             ).count(),
             'pending_certificates': DocumentRequest.objects.filter(
                 patient=request.user,
@@ -421,39 +457,34 @@ def dashboard(request):
 @login_required
 def notifications(request):
     """Display user notifications"""
-    notifications_qs = Notification.objects.filter(user=request.user).exclude(
-        transaction_type__in=MESSAGE_NOTIFICATION_TYPES
-    ).order_by('-created_at')
-    
+    base_qs = user_visible_notifications(request.user)
+    notifications_qs = base_qs.order_by('-created_at')
+
     # Filter by read/unread status
     status = request.GET.get('status')
     if status == 'unread':
         notifications_qs = notifications_qs.filter(is_read=False)
     elif status == 'read':
         notifications_qs = notifications_qs.filter(is_read=True)
-    
+
     # Filter by type
     notification_type = request.GET.get('type')
     if notification_type:
         notifications_qs = notifications_qs.filter(notification_type=notification_type)
-    
+
     # Mark all as read if requested
     if request.GET.get('mark_all_read') == 'true':
-        notifications_qs.filter(is_read=False).update(is_read=True)
+        base_qs.filter(is_read=False).update(is_read=True)
         messages.success(request, 'All notifications marked as read.')
         return redirect('core:notifications')
-    
+
     paginator = Paginator(notifications_qs, 15)
     page = request.GET.get('page')
     notifications_page = paginator.get_page(page)
-    
+
     # Get counts for filters
-    total_count = Notification.objects.filter(user=request.user).exclude(
-        transaction_type__in=MESSAGE_NOTIFICATION_TYPES
-    ).count()
-    unread_count = Notification.objects.filter(user=request.user, is_read=False).exclude(
-        transaction_type__in=MESSAGE_NOTIFICATION_TYPES
-    ).count()
+    total_count = base_qs.count()
+    unread_count = base_qs.filter(is_read=False).count()
     read_count = total_count - unread_count
     
     context = {
@@ -487,8 +518,8 @@ def mark_notification_read(request, notification_id):
 def mark_all_notifications_read(request):
     """Mark all notifications as read for the current user"""
     if request.method == 'POST':
-        updated_count = Notification.objects.filter(user=request.user, is_read=False).exclude(
-            transaction_type__in=MESSAGE_NOTIFICATION_TYPES
+        updated_count = user_visible_notifications(request.user).filter(
+            is_read=False,
         ).update(is_read=True)
         return JsonResponse({
             'status': 'success', 
@@ -501,9 +532,7 @@ def mark_all_notifications_read(request):
 @require_http_methods(['POST'])
 def clear_all_notifications(request):
     """Delete all notifications for the current user"""
-    notifications_qs = Notification.objects.filter(user=request.user).exclude(
-        transaction_type__in=MESSAGE_NOTIFICATION_TYPES
-    )
+    notifications_qs = user_visible_notifications(request.user)
     if notifications_qs.exists():
         notifications_qs.delete()
         messages.success(request, 'All notifications cleared.')
@@ -515,47 +544,28 @@ def clear_all_notifications(request):
 @login_required
 @admin_required
 def create_system_notification(request):
-    """Allow admins to create system-wide notifications"""
-    
+    """Allow admins to create system-wide notifications."""
     if request.method == 'POST':
-        title = request.POST.get('title')
-        message = request.POST.get('message')
-        notification_type = request.POST.get('notification_type', 'general')
-        recipient_type = request.POST.get('recipient_type', 'all')
-        
-        if not title or not message:
-            messages.error(request, 'Title and message are required.')
-            return render(request, 'core/create_system_notification.html')
-        
-        # Determine recipients
-        if recipient_type == 'students':
-            recipients = User.objects.filter(role__in=PATIENT_ROLE_VALUES)
-        elif recipient_type == 'staff_only':
-            recipients = User.objects.filter(role='staff')
-        elif recipient_type == 'doctors':
-            recipients = User.objects.filter(role='doctor')
-        elif recipient_type == 'admins':
-            recipients = User.objects.filter(role='admin')
-        elif recipient_type == 'staff_and_doctors':
-            recipients = User.objects.filter(role__in=['staff', 'doctor'])
-        elif recipient_type == 'non_students':
-            recipients = User.objects.filter(role__in=['staff', 'doctor', 'admin'])
-        else:  # all
-            recipients = User.objects.filter(
-                role__in=[*PATIENT_ROLE_VALUES, 'staff', 'doctor', 'admin']
+        form = SystemNotificationForm(request.POST)
+        if form.is_valid():
+            data = form.cleaned_data
+            recipients = resolve_system_notification_recipients(data['recipient_type'])
+            deliver_bulk_notifications(
+                recipients,
+                data['title'],
+                data['message'],
+                data['notification_type'],
             )
-        
-        # Create notifications
-        from .notification_delivery import deliver_bulk_notifications
+            messages.success(request, 'Notification sent successfully.')
+            return redirect('core:notifications')
+    else:
+        form = SystemNotificationForm()
 
-        created_count = len(
-            deliver_bulk_notifications(recipients, title, message, notification_type)
-        )
-        
-        messages.success(request, 'Notification sent successfully.')
-        return redirect('core:notifications')
-    
-    return render(request, 'core/create_system_notification.html')
+    return render(
+        request,
+        'core/create_system_notification.html',
+        {'form': form},
+    )
 
 
 # =====================
@@ -1165,57 +1175,15 @@ def user_stats_cards(request):
 @admin_required
 def user_management(request):
     """List all users with filtering and search"""
-    # Get filter parameters
-    role_filter = request.GET.get('role', '')
     status_filter = request.GET.get('status', '')
-    search_query = request.GET.get('search', '')
-    
-    # Base queryset - exclude soft-deleted users by default
-    users = User.objects.filter(is_deleted=False).order_by('-date_joined')
-    
-    # Apply filters
-    if role_filter:
-        users = filter_users_by_role(users, role_filter)
-    
-    if status_filter == 'active':
-        users = users.filter(
-            onboarding_status=User.ONBOARDING_STATUS.ACTIVE,
-            is_active=True,
-        )
-    elif status_filter == 'pending':
-        users = users.filter(onboarding_status=User.ONBOARDING_STATUS.PENDING_ACTIVATION)
-    elif status_filter == 'suspended':
-        users = users.filter(onboarding_status=User.ONBOARDING_STATUS.SUSPENDED)
-    elif status_filter == 'inactive':
-        # Legacy filter value retained for compatibility with existing links/bookmarks.
-        users = users.filter(is_active=False)
-    elif status_filter == 'deleted':
-        # Redirect deleted-account requests to the dedicated page.
+    if status_filter == 'deleted':
+        role_filter = request.GET.get('role', '')
+        search_query = request.GET.get('search', '')
         query_string = urlencode({k: v for k, v in {'role': role_filter, 'search': search_query}.items() if v})
         target = reverse('core:deleted_user_management')
         return redirect(f'{target}?{query_string}' if query_string else target)
-    
-    # Apply search
-    if search_query:
-        users = users.filter(
-            Q(username__icontains=search_query) |
-            Q(email__icontains=search_query) |
-            Q(first_name__icontains=search_query) |
-            Q(last_name__icontains=search_query)
-        )
-    
-    stats = get_user_management_stats()
-    
-    # Paginate results
-    users = paginate_queryset(users, request, per_page=20)
-    
-    context = {
-        'users': users,
-        'stats': stats,
-        'role_filter': role_filter,
-        'status_filter': status_filter,
-        'search_query': search_query,
-    }
+
+    context = build_active_user_list_context(request)
 
     if is_htmx_request(request):
         return render(request, 'core/user_management/_user_table_body.html', context)

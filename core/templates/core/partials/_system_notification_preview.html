@@ -1,0 +1,24 @@
+{% comment %}
+  Live preview for create system notification (requires Alpine title, message, type).
+{% endcomment %}
+<div class="bg-gray-50 rounded-lg p-4">
+  <h4 class="text-sm font-medium text-gray-700 mb-2">Preview</h4>
+  <div class="bg-white rounded-lg p-3 border border-gray-200">
+    <div class="flex items-start gap-3">
+      <span class="inline-flex items-center justify-center w-9 h-9 rounded-full flex-shrink-0"
+            :class="type === 'health_tip' ? 'bg-success-100 text-success-600' : 'bg-info-100 text-info-600'">
+        <i class="fas" :class="type === 'health_tip' ? 'fa-heart-pulse' : 'fa-bullhorn'"></i>
+      </span>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap">
+          <p class="text-sm font-medium text-gray-900" x-text="title || 'Notification Title'"></p>
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
+                :class="type === 'health_tip' ? 'bg-success-100 text-success-800' : 'bg-info-100 text-info-800'"
+                x-text="type === 'health_tip' ? 'Health Tip' : 'General'"></span>
+        </div>
+        <p class="text-sm text-gray-600 mt-1" x-text="message || 'Your notification message will appear here...'"></p>
+        <p class="text-xs text-gray-400 mt-1">Just now</p>
+      </div>
+    </div>
+  </div>
+</div>

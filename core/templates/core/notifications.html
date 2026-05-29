@@ -4,7 +4,11 @@
 
 {% block content %}
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
-  {% include "components/page_header.html" with title="Notifications" subtitle="Stay updated with your appointments and health information" icon="fa-bell" header_mb="mb-4" %}
+  {% if user.role == 'admin' %}
+    {% include "components/page_header.html" with title="Notifications" subtitle="System announcements and clinic-wide alerts" icon="fa-bell" header_mb="mb-4" %}
+  {% else %}
+    {% include "components/page_header.html" with title="Notifications" subtitle="Stay updated with your appointments and health information" icon="fa-bell" header_mb="mb-4" %}
+  {% endif %}
 
   <div class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
     {% include "core/partials/_notifications_toolbar.html" %}

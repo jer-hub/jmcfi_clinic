@@ -30,9 +30,9 @@ from .utils import (
     get_user_profile,
     paginate_queryset,
 )
-from .htmx_utils import htmx_add_toast, htmx_add_trigger
+from .htmx_utils import htmx_add_toast, htmx_add_trigger, is_htmx_request
 from .roles import filter_users_by_role
-from .user_management_services import get_user_management_stats
+from .user_management_services import build_active_user_list_context, get_user_management_stats
 
 auth_logger = logging.getLogger('security.auth')
 User = User  # Use the global User model
@@ -89,9 +89,27 @@ def user_bulk_action(request):
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'POST required.'}, status=405)
 
-    form = BulkUserActionForm(request.POST)
+    post_data = request.POST.copy()
+    selected_ids = request.POST.getlist('user_ids')
+    if selected_ids:
+        post_data['user_ids'] = ','.join(selected_ids)
+    if post_data.get('confirmation') in (True, 'True', 'true', 'on', '1'):
+        post_data['confirmation'] = 'on'
+
+    form = BulkUserActionForm(post_data)
     if not form.is_valid():
-        return JsonResponse({'status': 'error', 'message': 'Invalid form data.', 'errors': form.errors}, status=400)
+        message = 'Invalid bulk action. Select users and try again.'
+        if is_htmx_request(request):
+            response = render(
+                request,
+                'core/user_management/_user_table_body.html',
+                build_active_user_list_context(request),
+            )
+            return htmx_add_toast(response, message, 'error')
+        return JsonResponse(
+            {'status': 'error', 'message': message, 'errors': form.errors},
+            status=400,
+        )
 
     action = form.cleaned_data['action']
     user_ids = form.cleaned_data['user_ids']
@@ -104,7 +122,15 @@ def user_bulk_action(request):
         users = users.exclude(role='admin')
 
     if not users.exists():
-        return JsonResponse({'status': 'error', 'message': 'No valid (non-admin) users found.'}, status=400)
+        message = 'No valid (non-admin) users found.'
+        if is_htmx_request(request):
+            response = render(
+                request,
+                'core/user_management/_user_table_body.html',
+                build_active_user_list_context(request),
+            )
+            return htmx_add_toast(response, message, 'error')
+        return JsonResponse({'status': 'error', 'message': message}, status=400)
 
     if action == 'activate':
         updated = users.update(
@@ -161,6 +187,15 @@ def user_bulk_action(request):
 
     else:
         return JsonResponse({'status': 'error', 'message': 'Unknown action.'}, status=400)
+
+    if is_htmx_request(request):
+        response = render(
+            request,
+            'core/user_management/_user_table_body.html',
+            build_active_user_list_context(request),
+        )
+        response = htmx_add_trigger(response, 'refreshUserStats')
+        return htmx_add_toast(response, msg)
 
     return JsonResponse({'status': 'success', 'message': msg})
 

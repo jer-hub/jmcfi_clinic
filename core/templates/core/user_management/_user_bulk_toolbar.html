@@ -1,0 +1,66 @@
+{% comment %}
+  Bulk actions for active user list. Checkboxes in the table reference form="user-bulk-form".
+  Requires Alpine userListBulk() on an ancestor element.
+{% endcomment %}
+<div class="px-5 py-3 border-b border-gray-200 bg-gray-50/70"
+     x-show="selectedCount === 0"
+     x-cloak>
+  <p class="text-sm text-gray-600">
+    <i class="fas fa-square-check text-gray-400 mr-1.5" aria-hidden="true"></i>
+    Select users with the checkboxes, then use bulk actions below. Soft delete is available from the user detail page or here in bulk.
+  </p>
+</div>
+
+<div class="px-5 py-3 border-b border-gray-200 bg-primary-50/60"
+     x-show="selectedCount > 0"
+     x-transition
+     x-cloak>
+  <form id="user-bulk-form"
+        method="post"
+        action="{% url 'core:user_bulk_action' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+        hx-post="{% url 'core:user_bulk_action' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+        hx-target="#user-table-container"
+        hx-swap="innerHTML"
+        hx-include="[form='user-bulk-form']"
+        @submit="beforeBulkSubmit($event)"
+        @htmx:after-request="onBulkRequest($event)"
+        class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    {% csrf_token %}
+    <input type="hidden" name="confirmation" value="True">
+    <p class="text-sm text-gray-700">
+      <span class="font-semibold text-gray-900" x-text="selectedCount"></span>
+      <span x-text="selectedCount === 1 ? 'user selected' : 'users selected'"></span>
+    </p>
+    <div class="flex flex-col sm:flex-row gap-2 sm:items-center flex-wrap">
+      <button type="button"
+              @click="quickSoftDelete()"
+              class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white bg-danger-600 hover:bg-danger-700 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-danger-500">
+        <i class="fas fa-trash-can" aria-hidden="true"></i>
+        <span>Soft delete selected</span>
+      </button>
+      <label for="bulk_action" class="sr-only">Bulk action</label>
+      <select id="bulk_action"
+              name="action"
+              x-model="bulkAction"
+              class="block w-full sm:w-52 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
+        <option value="">More actions…</option>
+        <option value="activate">Activate</option>
+        <option value="deactivate">Deactivate</option>
+        <option value="delete">Soft delete</option>
+      </select>
+      <button type="submit"
+              :disabled="!bulkAction"
+              :class="bulkAction === 'delete' ? 'bg-danger-600 hover:bg-danger-700 focus:ring-danger-500' : 'bg-primary-600 hover:bg-primary-700 focus:ring-primary-500'"
+              class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white transition-colors focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="fas" :class="bulkAction === 'delete' ? 'fa-trash-can' : 'fa-check'" aria-hidden="true"></i>
+        <span x-text="bulkAction === 'delete' ? 'Delete selected' : 'Apply'"></span>
+      </button>
+      <button type="button"
+              @click="clearSelection()"
+              class="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">
+        Clear
+      </button>
+    </div>
+  </form>
+</div>
+

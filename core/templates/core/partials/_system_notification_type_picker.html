@@ -1,0 +1,35 @@
+{% comment %}
+  Card-style radio group for system notification type (requires Alpine `type` on parent).
+{% endcomment %}
+<fieldset>
+  <legend class="block text-sm font-medium text-gray-700 mb-2">Type</legend>
+  <div class="grid grid-cols-2 gap-3">
+    <label class="flex flex-col items-center gap-2 cursor-pointer rounded-lg border-2 p-4 transition-all"
+           :class="type === 'general' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 bg-white hover:border-gray-300'">
+      <input type="radio" name="notification_type" value="general" class="sr-only" x-model="type">
+      <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-info-100 text-info-600">
+        <i class="fas fa-bullhorn"></i>
+      </span>
+      <span class="text-sm font-medium text-gray-700">General</span>
+    </label>
+    <label class="flex flex-col items-center gap-2 cursor-pointer rounded-lg border-2 p-4 transition-all"
+           :class="type === 'health_tip' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 bg-white hover:border-gray-300'">
+      <input type="radio" name="notification_type" value="health_tip" class="sr-only" x-model="type">
+      <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-success-100 text-success-600">
+        <i class="fas fa-heart-pulse"></i>
+      </span>
+      <span class="text-sm font-medium text-gray-700">Health Tip</span>
+    </label>
+  </div>
+  <p class="mt-2 text-xs text-gray-500">
+    Appointment and certificate notifications are sent automatically by the system.
+  </p>
+  {% if form.notification_type.errors %}
+    {% for err in form.notification_type.errors %}
+      <p class="mt-2 text-xs text-danger-600 flex items-center gap-1">
+        <i class="fas fa-circle-exclamation"></i>
+        <span>{{ err }}</span>
+      </p>
+    {% endfor %}
+  {% endif %}
+</fieldset>

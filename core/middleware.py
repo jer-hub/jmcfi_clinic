@@ -1,16 +1,11 @@
 # middleware.py
 import datetime
 
-from django.contrib import messages
-from django.http import HttpResponseForbidden
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from .feature_access import (
-    feature_denied_message,
-    feature_denied_redirect_target,
-    get_denied_feature_for_request,
-)
+from .access_control import AccessReason, access_denied_response
+from .feature_access import get_denied_feature_for_request
 from .settings_service import (
     get_clinic_settings,
     get_effective_session_timeout,
@@ -75,6 +70,7 @@ class MaintenanceModeMiddleware:
             '/accounts/',
             '/admin/',
             '/auth/admin-login/',
+            '/access/restricted/',
         )
 
     def __call__(self, request):
@@ -114,6 +110,7 @@ class RoleFeatureAccessMiddleware:
         '/accounts/',
         '/admin/',
         '/auth/admin-login/',
+        '/access/restricted/',
     )
 
     def __init__(self, get_response):
@@ -130,8 +127,11 @@ class RoleFeatureAccessMiddleware:
             return None
         denied_flag = get_denied_feature_for_request(request)
         if denied_flag:
-            messages.error(request, feature_denied_message(denied_flag))
-            return redirect(feature_denied_redirect_target(request.user))
+            return access_denied_response(
+                request,
+                status_code=403,
+                reason=AccessReason.FEATURE_DISABLED,
+            )
         return None
 
 
@@ -146,9 +146,17 @@ class RoleMiddleware:
     def process_view(self, request, view_func, view_args, view_kwargs):
         if hasattr(view_func, 'required_roles'):
             if not request.user.is_authenticated:
-                return HttpResponseForbidden()
+                return access_denied_response(
+                    request,
+                    status_code=401,
+                    reason=AccessReason.UNAUTHENTICATED,
+                )
             if not role_matches(request.user.role, *view_func.required_roles):
-                return HttpResponseForbidden()
+                return access_denied_response(
+                    request,
+                    status_code=403,
+                    reason=AccessReason.FORBIDDEN,
+                )
 
 
 class ProfileCompleteMiddleware:
@@ -164,6 +172,7 @@ class ProfileCompleteMiddleware:
             '/profile/required/',
             '/profile/preferences/',
             '/logout/',
+            '/access/restricted/',
         ]
 
         self.exempt_patterns = [

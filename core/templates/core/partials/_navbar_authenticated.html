@@ -56,7 +56,6 @@
             {% endif %}
           {% elif user.role == 'admin' %}
             {% include 'core/partials/_navbar_admin_settings_desktop.html' %}
-            {% include 'core/partials/_nav_health_forms_desktop.html' with include_document_request_link=False %}
           {% endif %}
         </div>
       </div>
@@ -237,7 +236,6 @@
           {% endif %}
         {% elif user.role == 'admin' %}
           {% include 'core/partials/_navbar_admin_settings_mobile.html' %}
-          {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}
           <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if nav_active.messaging %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
           <a href="{% url 'core:user_management' %}" class="mobile-link {% if nav_active.user_management %}active{% endif %}">User Management</a>
         {% endif %}

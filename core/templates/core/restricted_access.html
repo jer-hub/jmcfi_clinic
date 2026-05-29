@@ -1,0 +1,141 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div
+  class="min-h-[70vh] flex items-center justify-center px-4 py-12 sm:px-6"
+  x-data="restrictedAccessPage()"
+  x-init="show = true"
+  x-cloak
+>
+  <div
+    class="w-full max-w-lg transition-all duration-500 ease-out"
+    :class="show ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-3'"
+    role="alertdialog"
+    aria-labelledby="restricted-access-heading"
+    aria-describedby="restricted-access-body"
+  >
+    <div class="bg-white rounded-card shadow-xl border border-gray-200 overflow-hidden">
+      <div class="px-8 pt-10 pb-6 text-center">
+        <span
+          class="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 {{ icon_bg }}"
+          aria-hidden="true"
+        >
+          <i class="fas {{ icon }} text-2xl"></i>
+        </span>
+        <h1 id="restricted-access-heading" class="text-2xl font-bold text-gray-900 tracking-tight">
+          {{ headline }}
+        </h1>
+        <p id="restricted-access-body" class="mt-3 text-sm text-gray-600 leading-relaxed">
+          {{ body }}
+        </p>
+      </div>
+
+      <div class="px-8 pb-8 flex flex-col sm:flex-row gap-3 justify-center">
+        {% if access_is_authenticated and access_home_url %}
+        <a
+          href="{{ access_home_url }}"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+        >
+          <i class="fas fa-house" aria-hidden="true"></i>
+          Go to dashboard
+        </a>
+        {% else %}
+        <a
+          href="{{ access_login_url }}"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+        >
+          <i class="fas fa-right-to-bracket" aria-hidden="true"></i>
+          Log in
+        </a>
+        {% endif %}
+
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-primary-700 bg-primary-50 border border-primary-200 hover:bg-primary-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+          @click="helpOpen = true"
+        >
+          <i class="fas fa-circle-question" aria-hidden="true"></i>
+          Request access
+        </button>
+      </div>
+    </div>
+
+    {% if access_show_admin_signin_footer %}
+    <p class="mt-6 text-center text-xs text-gray-500">
+      Admin?
+      <a href="{{ access_admin_login_url }}" class="font-medium text-primary-700 hover:text-primary-800">Secure admin sign-in</a>
+    </p>
+    {% elif access_is_admin %}
+    <p class="mt-6 text-center text-xs text-gray-500">
+      Signed in as administrator.
+      {% if access_home_url %}
+      <a href="{{ access_home_url }}" class="font-medium text-primary-700 hover:text-primary-800">Back to admin dashboard</a>
+      {% endif %}
+    </p>
+    {% elif access_is_authenticated %}
+    <p class="mt-6 text-center text-xs text-gray-500">
+      Signed in{% if access_user_role %} as {{ access_user_role }}{% endif %}.
+    </p>
+    {% endif %}
+  </div>
+
+  <div
+    x-show="helpOpen"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="restricted-help-title"
+    @keydown.escape.window="helpOpen = false"
+    style="display: none;"
+  >
+    <div
+      @click.outside="helpOpen = false"
+      class="w-full max-w-md bg-white rounded-card shadow-2xl border border-gray-200 p-6"
+      x-transition:enter="transition ease-out duration-200"
+      x-transition:enter-start="opacity-0 scale-95 translate-y-2"
+      x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+    >
+      <h2 id="restricted-help-title" class="text-lg font-semibold text-gray-900">Need access?</h2>
+      <p class="mt-2 text-sm text-gray-600">
+        Contact your clinic administrator or IT office with the page you tried to open
+        {% if access_next %}<span class="font-mono text-xs text-gray-500 block mt-2 break-all">{{ access_next }}</span>{% endif %}
+      </p>
+      <div class="mt-6 flex justify-end gap-2">
+        <button
+          type="button"
+          class="px-4 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100"
+          @click="helpOpen = false"
+        >
+          Close
+        </button>
+        {% if not access_is_authenticated %}
+        <a
+          href="{{ access_login_url }}"
+          class="px-4 py-2 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700"
+        >
+          Log in
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function restrictedAccessPage() {
+    return {
+      show: false,
+      helpOpen: false,
+    };
+  }
+</script>
+{% endblock %}

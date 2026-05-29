@@ -45,7 +45,11 @@ class HealthFormsAdminAccessTests(TestCase):
 
 	def test_admin_is_redirected_from_health_forms_list(self):
 		response = self.client.get(reverse('health_forms_services:forms_list'))
-		self.assertRedirects(response, reverse('core:dashboard'))
+		self.assertRedirects(
+			response,
+			reverse('core:restricted_access')
+			+ '?reason=clinical_admin_blocked&next=%2Fhealth-forms%2F',
+		)
 
 
 @override_settings(

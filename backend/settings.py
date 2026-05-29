@@ -74,6 +74,8 @@ MIDDLEWARE = [
     "core.middleware.RoleFeatureAccessMiddleware",
     "core.middleware.RoleMiddleware",
     "core.middleware.ProfileCompleteMiddleware",  # Require complete profile for access
+    "core.access_middleware.HtmxAccessResponseMiddleware",
+    "core.htmx_utils.HTMXMiddleware",
 ]
 
 # Provider specific settings
@@ -202,8 +204,9 @@ AUTH_USER_MODEL = "core.User"
 
 SITE_ID = 1
 LOGIN_URL = 'account_login'  # Redirect to login page if not authenticated
-LOGIN_REDIRECT_URL = 'core:dashboard' 
+LOGIN_REDIRECT_URL = 'core:dashboard'
 LOGOUT_REDIRECT_URL = 'account_login'  # Redirect to login page after logout
+CSRF_FAILURE_VIEW = 'core.views.csrf_failure'
 
 # Session Configuration
 # Session timeout settings (in seconds)

@@ -2,9 +2,10 @@
 from functools import wraps
 
 from django.contrib import messages
-from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 
+from .access_control import AccessReason, access_denied_response
+from .htmx_utils import is_htmx_request
 from .roles import role_matches
 from .settings_service import admin_blocks_clinical_namespaces
 from .utils import is_profile_complete, role_home_url_name
@@ -30,40 +31,27 @@ def role_required(*roles):
         @wraps(view_func)
         def wrapped_view(request, *args, **kwargs):
             if not request.user.is_authenticated:
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse(
-                        {'success': False, 'error': 'Authentication required.'},
-                        status=401,
-                    )
-                messages.error(request, 'You must be logged in to access this page.')
-                return redirect('account_login')
+                if not is_htmx_request(request):
+                    messages.error(request, 'You must be logged in to access this page.')
+                return access_denied_response(
+                    request,
+                    status_code=401,
+                    reason=AccessReason.UNAUTHENTICATED,
+                )
 
             if _blocks_admin_in_clinical_namespace(request, roles):
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse(
-                        {
-                            'success': False,
-                            'error': 'Admin access is not permitted for clinical application pages.',
-                        },
-                        status=403,
-                    )
-                messages.error(
+                return access_denied_response(
                     request,
-                    'Admin access is not permitted for clinical application pages.',
+                    status_code=403,
+                    reason=AccessReason.CLINICAL_ADMIN_BLOCKED,
                 )
-                return redirect(role_home_url_name(request.user))
 
             if not role_matches(request.user.role, *roles):
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                    return JsonResponse(
-                        {
-                            'success': False,
-                            'error': f'Access denied. Required role(s): {", ".join(roles)}.',
-                        },
-                        status=403,
-                    )
-                messages.error(request, 'Access denied. You do not have permission to access this page.')
-                return redirect(role_home_url_name(request.user))
+                return access_denied_response(
+                    request,
+                    status_code=403,
+                    reason=AccessReason.FORBIDDEN,
+                )
             return view_func(request, *args, **kwargs)
 
         wrapped_view.required_roles = roles
@@ -78,12 +66,21 @@ def admin_required(view_func):
     @wraps(view_func)
     def wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            messages.error(request, 'You must be logged in to access this page.')
-            return redirect('core:admin_login')
+            if not is_htmx_request(request):
+                messages.error(request, 'You must be logged in to access this page.')
+            return access_denied_response(
+                request,
+                status_code=401,
+                reason=AccessReason.UNAUTHENTICATED,
+                use_admin_login=True,
+            )
 
         if request.user.role != 'admin':
-            messages.error(request, 'You do not have permission to access this page.')
-            return redirect(role_home_url_name(request.user))
+            return access_denied_response(
+                request,
+                status_code=403,
+                reason=AccessReason.FORBIDDEN,
+            )
 
         return view_func(request, *args, **kwargs)
 
@@ -96,15 +93,38 @@ def profile_required(view_func):
     @wraps(view_func)
     def wrapped_view(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect('account_login')
+            return access_denied_response(
+                request,
+                status_code=401,
+                reason=AccessReason.UNAUTHENTICATED,
+            )
 
         if request.user.is_superuser:
             return view_func(request, *args, **kwargs)
 
         if not is_profile_complete(request.user):
-            messages.warning(request, 'Please complete your profile before accessing this page.')
-            return redirect('core:edit_profile')
+            messages.warning(
+                request,
+                'Please complete your profile before accessing this page.',
+            )
+            return redirect('core:profile_required')
 
         return view_func(request, *args, **kwargs)
+
+    return wrapped_view
+
+
+def htmx_login_required(view_func):
+    """Drop-in replacement for @login_required with HTMX-safe 401 responses."""
+
+    @wraps(view_func)
+    def wrapped_view(request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return view_func(request, *args, **kwargs)
+        return access_denied_response(
+            request,
+            status_code=401,
+            reason=AccessReason.UNAUTHENTICATED,
+        )
 
     return wrapped_view

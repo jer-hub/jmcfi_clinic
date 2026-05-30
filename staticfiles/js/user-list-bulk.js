@@ -113,9 +113,20 @@ function userListBulk() {
       }
     },
 
+    selectedUserIds() {
+      return Object.keys(this.selected);
+    },
+
+    syncBulkActionSelect(form) {
+      const actionSelect = form?.querySelector('[name="action"]');
+      if (actionSelect && this.bulkAction) {
+        actionSelect.value = this.bulkAction;
+      }
+    },
+
     injectUserIdsIntoForm(form) {
       form.querySelectorAll('input.js-bulk-hidden-id').forEach((node) => node.remove());
-      Object.keys(this.selected).forEach((id) => {
+      this.selectedUserIds().forEach((id) => {
         const input = document.createElement('input');
         input.type = 'hidden';
         input.name = 'user_ids';
@@ -123,6 +134,26 @@ function userListBulk() {
         input.className = 'js-bulk-hidden-id';
         form.appendChild(input);
       });
+    },
+
+    applyBulkRequestParameters(params) {
+      this.syncSelectedFromDom();
+      const ids = this.selectedUserIds();
+      const action = this.bulkAction || params.action;
+      if (action) {
+        params.action = action;
+      }
+      if (ids.length) {
+        params.user_ids = ids;
+      }
+    },
+
+    onBulkConfigRequest(event) {
+      const form = event.detail?.elt;
+      if (!form || form.id !== 'user-bulk-form') {
+        return;
+      }
+      this.applyBulkRequestParameters(event.detail.parameters);
     },
 
     onTableSwapped(event) {
@@ -166,7 +197,9 @@ function userListBulk() {
       }
       this._bulkDeleteConfirmed = false;
 
-      this.injectUserIdsIntoForm(event.target);
+      const form = event.target;
+      this.syncBulkActionSelect(form);
+      this.injectUserIdsIntoForm(form);
     },
 
     quickSoftDelete() {
@@ -188,6 +221,7 @@ function userListBulk() {
       }
       this.bulkAction = 'delete';
       this._bulkDeleteConfirmed = true;
+      this.syncBulkActionSelect(form);
       this.injectUserIdsIntoForm(form);
       if (typeof htmx !== 'undefined' && form.getAttribute('hx-post')) {
         htmx.trigger(form, 'submit');

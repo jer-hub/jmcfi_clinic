@@ -1,6 +1,5 @@
 {% comment %}HTMX: replaces #cal-calendar-main (outerHTML).{% endcomment %}
 {% include "components/calendar/_calendar_period_nav.html" with calendar_nav_oob=True %}
-{% include "components/calendar/_calendar_today_btn.html" with calendar_nav_oob=True %}
 {% if calendar_show_week_view %}
 {% include "components/calendar/_view_mode_toggle.html" with calendar_nav_oob=True %}
 {% endif %}

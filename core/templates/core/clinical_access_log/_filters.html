@@ -1,0 +1,58 @@
+<form method="get" class="flex flex-wrap items-end gap-x-4 gap-y-3">
+  <div class="min-w-0 w-full sm:w-auto sm:min-w-[10rem]">
+    <label for="clinical-filter-action" class="block text-xs font-medium text-gray-700 mb-1">Action</label>
+    <select id="clinical-filter-action" name="action"
+            class="form-select form-select--compact w-full">
+      <option value="">All Actions</option>
+      {% for value, label in action_choices %}
+      <option value="{{ value }}" {% if action_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="min-w-0 w-full sm:w-auto sm:min-w-[10rem]">
+    <label for="clinical-filter-resource" class="block text-xs font-medium text-gray-700 mb-1">Resource</label>
+    <select id="clinical-filter-resource" name="resource_type"
+            class="form-select form-select--compact w-full">
+      <option value="">All Resources</option>
+      {% for value, label in resource_type_choices %}
+      <option value="{{ value }}" {% if resource_type_filter == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if show_patient_filter %}
+  <div class="min-w-0 w-full sm:w-auto sm:min-w-[12rem]">
+    <label for="clinical-filter-patient" class="block text-xs font-medium text-gray-700 mb-1">Patient</label>
+    <input id="clinical-filter-patient" type="text" name="patient" value="{{ patient_filter }}"
+           placeholder="Name or email"
+           class="form-input form-input--compact w-full">
+  </div>
+  {% endif %}
+  <div class="min-w-0 w-full sm:w-auto sm:min-w-[12rem]">
+    <label for="clinical-filter-actor" class="block text-xs font-medium text-gray-700 mb-1">Actor</label>
+    <input id="clinical-filter-actor" type="text" name="actor" value="{{ actor_filter }}"
+           placeholder="Name or email"
+           class="form-input form-input--compact w-full">
+  </div>
+  <div class="min-w-0 w-full sm:w-auto">
+    <label for="clinical-filter-from" class="block text-xs font-medium text-gray-700 mb-1">From</label>
+    <input id="clinical-filter-from" type="date" name="date_from" value="{{ date_from }}"
+           class="form-input form-input--compact w-full">
+  </div>
+  <div class="min-w-0 w-full sm:w-auto">
+    <label for="clinical-filter-to" class="block text-xs font-medium text-gray-700 mb-1">To</label>
+    <input id="clinical-filter-to" type="date" name="date_to" value="{{ date_to }}"
+           class="form-input form-input--compact w-full">
+  </div>
+  <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+    <button type="submit"
+            class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
+      Filter
+    </button>
+    {% if has_active_filters %}
+    <a href="{{ clear_url }}"
+       class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">
+      Clear
+    </a>
+    {% endif %}
+  </div>
+</form>

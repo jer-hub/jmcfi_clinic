@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from .models import (
     AccountProvisioningAudit,
     ClinicSettings,
+    ClinicalAccessLog,
     CollegeDepartment,
     CourseProgram,
     Notification,
@@ -136,3 +137,30 @@ class SettingsChangeLogAdmin(admin.ModelAdmin):
     readonly_fields = (
         'setting_type', 'role', 'field_name', 'old_value', 'new_value', 'changed_by', 'created_at',
     )
+
+
+@admin.register(ClinicalAccessLog)
+class ClinicalAccessLogAdmin(admin.ModelAdmin):
+    list_display = (
+        'created_at', 'action', 'resource_type', 'resource_id', 'patient', 'actor', 'ip_address',
+    )
+    list_filter = ('action', 'resource_type', 'created_at')
+    search_fields = (
+        'resource_label', 'patient__email', 'patient__first_name', 'patient__last_name',
+        'actor__email', 'request_path',
+    )
+    ordering = ['-created_at']
+    date_hierarchy = 'created_at'
+    readonly_fields = (
+        'actor', 'patient', 'action', 'resource_type', 'resource_id', 'resource_label',
+        'ip_address', 'request_path', 'metadata', 'created_at',
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

@@ -46,6 +46,13 @@ def _settings_hub_cards(clinic):
             'icon_wrap': 'bg-muted-100 text-muted-600',
         },
         {
+            'title': 'Clinical access log',
+            'description': 'Review who viewed or changed medical and dental records.',
+            'url': reverse('core:clinical_access_log'),
+            'icon': 'fa-shield-heart',
+            'icon_wrap': 'bg-primary-50 text-primary-600',
+        },
+        {
             'title': 'Appointment settings',
             'description': 'Assign doctors to each appointment type for student booking.',
             'url': reverse('appointments:appointment_type_settings'),

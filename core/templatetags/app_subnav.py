@@ -475,6 +475,12 @@ def settings_subnav(context):
             active=active == 'appointments',
         ),
         nav_item('Audit log', 'core:settings_audit', icon='fa-clock-rotate-left', active=active == 'audit'),
+        nav_item(
+            'Clinical access',
+            'core:clinical_access_log',
+            icon='fa-shield-heart',
+            active=active == 'clinical_audit',
+        ),
     ]
     return enrich_subnav(items, always_show_nav=True)
 
@@ -535,6 +541,10 @@ def core_admin_subnav(context):
     if vn == 'core:user_audit_log':
         return _user_management_breadcrumb_subnav(
             context, 'Audit log', section_icon='fa-clock-rotate-left',
+        )
+    if vn == 'core:patient_clinical_access_log':
+        return _user_management_breadcrumb_subnav(
+            context, 'Clinical access', section_icon='fa-shield-heart',
         )
     if vn == 'core:user_reset_password':
         return _user_management_breadcrumb_subnav(

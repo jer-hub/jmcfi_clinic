@@ -1,0 +1,2 @@
+-- Optional seed data for local Supabase (buckets are created in migrations)
+-- Run automatically on: supabase db reset

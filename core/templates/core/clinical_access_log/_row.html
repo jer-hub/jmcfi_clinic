@@ -1,0 +1,37 @@
+{% load user_filters %}
+<tr class="hover:bg-gray-50">
+  <td class="px-4 py-3 whitespace-nowrap text-gray-600">
+    {{ log.created_at|date:"Y-m-d H:i" }}
+  </td>
+  <td class="px-4 py-3 whitespace-nowrap">
+    {% include "core/clinical_access_log/_action_badge.html" with log=log %}
+  </td>
+  <td class="px-4 py-3 text-gray-900">
+    <div>{{ log.get_resource_type_display }}</div>
+    <div class="text-xs text-gray-500 mt-0.5">
+      #{{ log.resource_id }}{% if log.resource_label %} · {{ log.resource_label|truncatewords:8 }}{% endif %}
+    </div>
+  </td>
+  {% if show_patient_column %}
+  <td class="px-4 py-3 whitespace-nowrap text-gray-900">
+    {{ log.patient.get_full_name|default:log.patient.email }}
+  </td>
+  {% endif %}
+  <td class="px-4 py-3 whitespace-nowrap text-gray-600">
+    {% if log.actor %}
+      {{ log.actor.get_full_name|default:log.actor.email }}
+    {% else %}
+      <span class="text-gray-400 italic">System</span>
+    {% endif %}
+  </td>
+  <td class="px-4 py-3 whitespace-nowrap text-gray-500 font-mono text-xs">
+    {{ log.ip_address|default:"—" }}
+  </td>
+  <td class="px-4 py-3 text-gray-500 max-w-xs truncate"{% if log.metadata %} title="{{ log.metadata|format_audit_meta }}"{% endif %}>
+    {% if log.metadata %}
+      {{ log.metadata|format_audit_meta }}
+    {% else %}
+      —
+    {% endif %}
+  </td>
+</tr>

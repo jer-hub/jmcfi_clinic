@@ -68,7 +68,8 @@ JMCFI Clinic is a Django application for clinic operations at an educational ins
 | Backend | Django 5.2, Channels 4.3 |
 | Auth | django-allauth (Google OAuth) |
 | Frontend | HTMX 1.9, Alpine.js 3.x, Tailwind CSS (CDN) |
-| Database | SQLite (dev) / PostgreSQL (prod) |
+| Database | SQLite (default tests) / Supabase Postgres via `DATABASE_URL` |
+| File storage | Local `media/` or Supabase Storage (S3-compatible) |
 | Package manager | [uv](https://github.com/astral-sh/uv) (`pyproject.toml`) |
 | Static files | WhiteNoise |
 
@@ -204,6 +205,7 @@ jmcfi_clinic/
 | Area | Location |
 |------|----------|
 | Django settings | `backend/settings.py` |
+| Supabase (Postgres + Storage) | [`docs/SUPABASE.md`](docs/SUPABASE.md) — copy [`.env.example`](.env.example) to `.env` |
 | Clinic & role settings | Admin UI → Settings, or `ClinicSettings` / `RoleSettings` models |
 | Profile required fields | `core/profile_policy.py` |
 | Google OAuth | `.env` + `core/adapters.py` |
@@ -242,6 +244,7 @@ python manage.py migrate
 
 | Document | Description |
 |----------|-------------|
+| `docs/SUPABASE.md` | Local Supabase CLI, Postgres, and Storage setup |
 | `core/GOOGLE_STUDENT_PROFILE_POLICY.md` | Patient profile completion on Google signup |
 | `appointments/APPOINTMENT_SCHEDULING_POLICY.md` | Scheduling rules |
 | `document_request/DOCUMENT_REQUEST_POLICY.md` | Document request workflow |

@@ -1,0 +1,13 @@
+{% if log.action == 'view' %}
+  {% include "components/status_badge.html" with label=log.get_action_display variant="info" size="sm" %}
+{% elif log.action == 'create' %}
+  {% include "components/status_badge.html" with label=log.get_action_display variant="success" size="sm" %}
+{% elif log.action == 'edit' %}
+  {% include "components/status_badge.html" with label=log.get_action_display variant="warning" size="sm" %}
+{% elif log.action == 'delete' %}
+  {% include "components/status_badge.html" with label=log.get_action_display variant="danger" size="sm" %}
+{% elif log.action == 'export' %}
+  {% include "components/status_badge.html" with label=log.get_action_display variant="primary" size="sm" %}
+{% else %}
+  {% include "components/status_badge.html" with label=log.get_action_display variant="muted" size="sm" %}
+{% endif %}

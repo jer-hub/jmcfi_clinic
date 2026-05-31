@@ -32,6 +32,7 @@ CORE_SETTINGS_URL_NAMES = frozenset(
         "settings_roles",
         "settings_role_edit",
         "settings_audit",
+        "clinical_access_log",
     }
 )
 

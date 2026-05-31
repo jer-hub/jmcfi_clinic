@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Stack
 
-Django 5.2 · Channels 4.3 · django-allauth (Google OAuth) · HTMX 1.9 · Alpine.js 3.x · Tailwind CSS (CDN) · Font Awesome 6.4 · WhiteNoise · pdfkit · python-docx · `uv` package manager · SQLite (dev) / PostgreSQL (prod)
+Django 5.2 · Channels 4.3 · django-allauth (Google OAuth) · HTMX 1.9 · Alpine.js 3.x · Tailwind CSS (CDN) · Font Awesome 6.4 · WhiteNoise · pdfkit · python-docx · `uv` package manager · SQLite (tests/default) · Supabase Postgres (`DATABASE_URL`) · Supabase Storage (`USE_SUPABASE_STORAGE`) — see `docs/SUPABASE.md`
 
 ## App Map
 

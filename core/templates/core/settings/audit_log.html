@@ -6,8 +6,7 @@
 {% include "core/settings/_page_open.html" %}
   {% include "core/settings/_subnav.html" %}
 
-  {% url 'core:settings_hub' as hub_url %}
-  {% include "components/page_header.html" with title="Settings audit log" subtitle="Recent changes to clinic and role configuration." icon="fa-clock-rotate-left" back_url=hub_url back_label="Settings overview" %}
+  {% include "components/page_header.html" with title="Settings audit log" subtitle="Recent changes to clinic and role configuration." icon="fa-clock-rotate-left" %}
 
   <div class="bg-white border border-gray-200 rounded-card shadow-sm overflow-hidden">
   {% if logs %}

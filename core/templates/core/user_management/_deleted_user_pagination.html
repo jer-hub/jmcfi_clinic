@@ -1,0 +1,27 @@
+{% comment %}
+  Pagination for deleted users list. Preserves search/role filters without view context.
+{% endcomment %}
+{% if page_obj.paginator.num_pages > 1 %}
+<nav class="flex items-center justify-between gap-4 px-4 py-3 bg-white border-t border-gray-200" aria-label="Pagination">
+  <p class="hidden sm:block text-sm text-gray-500">
+    Showing <span class="font-medium text-gray-700">{{ page_obj.start_index }}</span>
+    to <span class="font-medium text-gray-700">{{ page_obj.end_index }}</span>
+    of <span class="font-medium text-gray-700">{{ page_obj.paginator.count }}</span>
+  </p>
+  <div class="flex items-center gap-2">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if role_filter %}&role={{ role_filter|urlencode }}{% endif %}"
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        <i class="fas fa-chevron-left text-[0.65rem]"></i> Previous
+      </a>
+    {% endif %}
+    <span class="text-sm text-gray-500 px-2">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query|urlencode }}{% endif %}{% if role_filter %}&role={{ role_filter|urlencode }}{% endif %}"
+         class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        Next <i class="fas fa-chevron-right text-[0.65rem]"></i>
+      </a>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}

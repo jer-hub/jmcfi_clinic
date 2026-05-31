@@ -30,6 +30,7 @@ from .forms import (
 )
 import json
 from core.decorators import role_required
+from core.clinical_audit import log_clinical_access, _dental_record_label
 from core.htmx_utils import htmx_add_toast, htmx_add_trigger, is_htmx_request
 from core.roles import is_patient_role
 from appointments.models import Appointment
@@ -41,6 +42,18 @@ def _is_json_request(request):
     return content_type.startswith('application/json')
 
 User = get_user_model()
+
+
+def _audit_dental(request, record, action, **metadata):
+    log_clinical_access(
+        request,
+        action=action,
+        resource_type='dental_record',
+        resource_id=record.id,
+        patient=record.patient,
+        resource_label=_dental_record_label(record),
+        metadata=metadata or None,
+    )
 
 
 def _is_missed_pending_appointment(appointment) -> bool:
@@ -278,6 +291,8 @@ def dental_record_detail(request, record_id):
         messages.warning(request, 'This dental record is still being processed. You will be able to view it once it is marked as completed by the clinic staff.')
         return redirect('dental_records:dental_record_list')
     
+    _audit_dental(request, dental_record, 'view')
+    
     # Get related records if they exist
     try:
         examination = dental_record.examination
@@ -432,6 +447,8 @@ def dental_record_create(request):
                     DentalSystemsReview.objects.create(dental_record=dental_record)
                     DentalHistory.objects.create(dental_record=dental_record)
                     
+                    _audit_dental(request, dental_record, 'create')
+                    
                     messages.success(request, 'Dental record created successfully. You can now fill in the clinical details.')
                     return redirect('dental_records:dental_record_edit', record_id=dental_record.id)
             except Exception as e:
@@ -542,6 +559,7 @@ def dental_record_edit(request, record_id):
             form = FormClass(request.POST, instance=instance)
             if form.is_valid():
                 form.save()
+                _audit_dental(request, dental_record, 'edit', section=form_type)
                 if is_htmx:
                     return JsonResponse({'success': True, 'message': success_msg})
                 messages.success(request, success_msg)
@@ -561,6 +579,13 @@ def dental_record_edit(request, record_id):
                     procedure_done=progress_procedure,
                     dentist=request.user,
                     remarks=progress_remarks,
+                )
+                _audit_dental(
+                    request,
+                    dental_record,
+                    'edit',
+                    subresource='progress_note',
+                    operation='create',
                 )
                 messages.success(request, 'Progress note added successfully.')
             else:
@@ -635,6 +660,7 @@ def complete_appointment(request, record_id):
     if dental_record.appointment.status != 'completed':
         dental_record.appointment.status = 'completed'
         dental_record.appointment.save()
+        _audit_dental(request, dental_record, 'edit', section='status')
         messages.success(request, 'Appointment marked as completed successfully.')
     else:
         messages.info(request, 'Appointment is already completed.')
@@ -710,6 +736,7 @@ def mark_record_completed(request, record_id):
                 appointment_marked_completed = True
 
     if new_status == 'completed':
+        _audit_dental(request, dental_record, 'edit', section='status')
         if appointment_marked_completed:
             msg = 'Dental record and associated appointment marked as completed.'
         else:
@@ -829,6 +856,18 @@ def dental_record_delete(request, record_id):
     
     if request.method == 'POST':
         patient_name = dental_record.patient.get_full_name()
+        exam_date = (
+            dental_record.date_of_examination.isoformat()
+            if dental_record.date_of_examination
+            else ''
+        )
+        _audit_dental(
+            request,
+            dental_record,
+            'delete',
+            patient_name=patient_name,
+            exam_date=exam_date,
+        )
         dental_record.delete()
         messages.success(request, f'Dental record for {patient_name} deleted successfully.')
         return redirect('dental_records:dental_record_list')
@@ -924,6 +963,8 @@ def student_dental_intake(request, appointment_id):
                     DentalHealthQuestionnaire.objects.create(dental_record=dental_record)
                     DentalSystemsReview.objects.create(dental_record=dental_record)
                     DentalHistory.objects.create(dental_record=dental_record)
+
+                _audit_dental(request, dental_record, 'create')
 
                 messages.success(
                     request,
@@ -1047,6 +1088,13 @@ def progress_note_create(request, record_id):
         dentist=request.user,
         remarks=remarks,
     )
+    _audit_dental(
+        request,
+        dental_record,
+        'edit',
+        subresource='progress_note',
+        operation='create',
+    )
     return JsonResponse({
         'success': True,
         'note': {
@@ -1069,6 +1117,13 @@ def progress_note_delete(request, record_id, note_id):
 
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
     note = get_object_or_404(ProgressNote, pk=note_id, dental_record=dental_record)
+    _audit_dental(
+        request,
+        dental_record,
+        'edit',
+        subresource='progress_note',
+        operation='delete',
+    )
     note.delete()
     return JsonResponse({'success': True})
 
@@ -1078,6 +1133,8 @@ def progress_note_delete(request, record_id, note_id):
 def dental_record_export_json(request, record_id):
     """Export dental record as JSON for AI processing or backup"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    _audit_dental(request, dental_record, 'export', format='json')
     
     # Build comprehensive JSON structure
     data = {
@@ -1469,6 +1526,14 @@ def dental_chart_api_update_tooth(request, record_id):
             # Remove surface if not set
             ToothSurface.objects.filter(tooth=tooth, surface=surface_name).delete()
     
+    _audit_dental(
+        request,
+        dental_record,
+        'edit',
+        subresource='dental_chart',
+        operation='update_tooth',
+    )
+    
     # Return HTMX response with updated table and chart data
     if is_htmx:
         teeth = DentalChart.objects.filter(dental_record=dental_record).prefetch_related('surfaces').order_by('tooth_number')
@@ -1521,6 +1586,13 @@ def dental_chart_api_delete_tooth(request, record_id, tooth_id):
     is_htmx = request.headers.get('HX-Request')
     
     tooth_number = tooth.tooth_number
+    _audit_dental(
+        request,
+        dental_record,
+        'edit',
+        subresource='dental_chart',
+        operation='delete_tooth',
+    )
     tooth.delete()
     
     if is_htmx:
@@ -1591,6 +1663,14 @@ def dental_chart_api_update_surface(request, record_id, tooth_id):
         }
     )
     
+    _audit_dental(
+        request,
+        dental_record,
+        'edit',
+        subresource='dental_chart',
+        operation='update_surface',
+    )
+    
     return JsonResponse({
         'success': True,
         'created': created,
@@ -1614,6 +1694,13 @@ def dental_chart_api_delete_surface(request, record_id, tooth_id, surface_id):
     tooth = get_object_or_404(DentalChart, pk=tooth_id, dental_record=dental_record)
     surface = get_object_or_404(ToothSurface, pk=surface_id, tooth=tooth)
     
+    _audit_dental(
+        request,
+        dental_record,
+        'edit',
+        subresource='dental_chart',
+        operation='delete_surface',
+    )
     surface.delete()
     
     return JsonResponse({'success': True})
@@ -1698,6 +1785,15 @@ def dental_chart_api_bulk_update(request, record_id):
         except (ValueError, TypeError):
             errors.append(f'Invalid tooth number: {tooth_number}')
     
+    if updated_teeth:
+        _audit_dental(
+            request,
+            dental_record,
+            'edit',
+            subresource='dental_chart',
+            operation='bulk_update',
+        )
+    
     if is_htmx:
         # Return HTMX response with updated teeth table and chart data
         teeth = DentalChart.objects.filter(dental_record=dental_record).order_by('tooth_number')
@@ -1776,6 +1872,14 @@ def dental_chart_api_save_snapshot(request, record_id):
         notes=notes,
         chart_data=chart_data,
         created_by=request.user,
+    )
+    
+    _audit_dental(
+        request,
+        dental_record,
+        'edit',
+        subresource='dental_chart',
+        operation='save_snapshot',
     )
     
     return JsonResponse({
@@ -1888,6 +1992,8 @@ def dental_chart_api_compare_snapshots(request, record_id):
 def dental_chart_api_export(request, record_id):
     """Export the dental chart data as JSON"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
+    
+    _audit_dental(request, dental_record, 'export', format='json', subresource='dental_chart')
     
     teeth = dental_record.dental_chart.all().prefetch_related('surfaces')
     

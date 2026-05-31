@@ -6,8 +6,7 @@
 {% include "core/settings/_page_open.html" %}
   {% include "core/settings/_subnav.html" %}
 
-  {% url 'core:settings_hub' as hub_url %}
-  {% include "components/page_header.html" with title="Role settings" subtitle="Session length, profile requirements, and feature flags per role." icon="fa-user-shield" back_url=hub_url back_label="Settings overview" %}
+  {% include "components/page_header.html" with title="Role settings" subtitle="Session length, profile requirements, and feature flags per role." icon="fa-user-shield" %}
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     {% for card in role_cards %}

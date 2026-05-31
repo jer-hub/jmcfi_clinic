@@ -20,6 +20,7 @@ from django.db.models import Q
 from .models import MedicalRecord
 from core.notification_delivery import notify_user
 from appointments.models import Appointment
+from core.clinical_audit import log_clinical_access, _medical_record_label
 from core.decorators import role_required
 from dental_records.models import DentalRecord
 from health_forms_services.models import Prescription
@@ -630,12 +631,21 @@ def medical_record_detail_page(request, record_id):
         messages.error(request, 'Access denied')
         return redirect('medical_records:medical_records')
 
+    log_clinical_access(
+        request,
+        action='view',
+        resource_type='medical_record',
+        resource_id=record.id,
+        patient=record.patient,
+        resource_label=_medical_record_label(record),
+    )
+
     bc_label = record.patient.get_full_name()
     bc_label += f' — {record.created_at.strftime("%b %d, %Y")}'
 
     context = {
         'record': record,
-        'title': f'Medical Record — {record.patient.get_full_name()}',
+        'title': 'Medical Record',
         'breadcrumbs': [
             {'label': 'Medical Records', 'url': reverse('medical_records:medical_records')},
             {'label': bc_label},
@@ -658,6 +668,15 @@ def medical_record_detail(request, record_id):
     elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user:
         return JsonResponse({'error': 'Access denied'}, status=403) if not is_htmx else HttpResponse('Access denied', status=403)
     
+    log_clinical_access(
+        request,
+        action='view',
+        resource_type='medical_record',
+        resource_id=record.id,
+        patient=record.patient,
+        resource_label=_medical_record_label(record),
+    )
+
     # Format vital signs for display
     vital_signs_display = []
     if record.vital_signs:
@@ -836,6 +855,15 @@ def create_medical_record(request, appointment_id):
                 locked_appointment.status = 'completed'
                 locked_appointment.save(update_fields=['status', 'updated_at'])
             
+            log_clinical_access(
+                request,
+                action='create',
+                resource_type='medical_record',
+                resource_id=medical_record.id,
+                patient=medical_record.patient,
+                resource_label=_medical_record_label(medical_record),
+            )
+
             # Create notification for student
             notify_user(
                 appointment.patient,
@@ -910,6 +938,15 @@ def create_medical_record_for_patient(request):
                     prescription_form,
                     medical_record,
                 )
+
+            log_clinical_access(
+                request,
+                action='create',
+                resource_type='medical_record',
+                resource_id=medical_record.id,
+                patient=medical_record.patient,
+                resource_label=_medical_record_label(medical_record),
+            )
 
             notify_user(
                 patient,

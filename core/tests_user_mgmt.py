@@ -572,6 +572,22 @@ class AdminDeletedUsersBulkActionTests(TestCase):
         self.assertIn('HX-Trigger', response.headers)
         self.assertIn('error', response.headers['HX-Trigger'])
 
+    def test_deleted_list_bulk_apply_uses_confirmation_modal(self):
+        response = self.client.get(reverse('core:deleted_user_management'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertContains(response, 'deleted-users-bulk-form')
+        self.assertContains(response, 'deletedUsersBulkForm')
+        self.assertContains(response, '@click="openBulkConfirm()"')
+        self.assertContains(response, 'Restore selected users?')
+        self.assertContains(response, 'Delete permanently?')
+        self.assertContains(response, "getElementById('deleted-users-bulk-form')")
+        self.assertContains(response, 'actionLabel: \'Restore\'')
+        self.assertContains(response, 'actionLabel: \'Delete permanently\'')
+        apply_idx = content.find('openBulkConfirm')
+        self.assertGreater(apply_idx, -1)
+        self.assertIn('type="button"', content[max(0, apply_idx - 250):apply_idx + 80])
+
 
 class AdminDeletedUserPermanentDeleteTests(TestCase):
     """Tests for permanently deleting a single deleted user."""
@@ -609,6 +625,20 @@ class AdminDeletedUserPermanentDeleteTests(TestCase):
         self.assertIn('user-toast', response.headers['HX-Trigger'])
         self.assertContains(response, 'Deleted Accounts')
         self.assertFalse(User.objects.filter(id=self.target_user.id).exists())
+
+    def test_deleted_list_permanent_delete_uses_confirmation_modal(self):
+        response = self.client.get(reverse('core:deleted_user_management'))
+        self.assertEqual(response.status_code, 200)
+        form_id = f'deleted-user-permanent-delete-form-{self.target_user.id}'
+        self.assertContains(response, form_id)
+        self.assertContains(response, "title: 'Delete permanently?'")
+        self.assertContains(response, 'open-modal')
+        self.assertContains(response, self.target_user.email)
+        self.assertContains(
+            response,
+            f"getElementById('deleted-user-permanent-delete-form-{self.target_user.id}')",
+        )
+        self.assertContains(response, 'actionLabel: \'Delete permanently\'')
 
 
 class AdminUserDetailTests(TestCase):

@@ -5,8 +5,7 @@
 {% block subnav %}{% include "core/settings/_subnav.html" %}{% endblock %}
 
 {% block page_header %}
-  {% url 'core:settings_hub' as hub_url %}
-  {% include "components/page_header.html" with title="Clinic settings" subtitle="Branding, scheduling defaults, authentication, and maintenance." icon="fa-hospital" back_url=hub_url back_label="Settings overview" %}
+  {% include "components/page_header.html" with title="Clinic settings" subtitle="Branding, scheduling defaults, authentication, and maintenance." icon="fa-hospital" %}
 {% endblock %}
 
 {% block form_open %}

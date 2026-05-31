@@ -682,6 +682,64 @@
         });
       };
 
+      /** Deleted accounts: confirm before bulk restore or permanent delete. */
+      function deletedUsersBulkForm() {
+        return {
+          selectedCount() {
+            return document.querySelectorAll(
+              'input[name="user_ids"][form="deleted-users-bulk-form"]:checked',
+            ).length;
+          },
+          openBulkConfirm() {
+            const count = this.selectedCount();
+            if (count === 0) {
+              window.dispatchEvent(
+                new CustomEvent('user-toast', {
+                  bubbles: true,
+                  detail: { message: 'Select at least one deleted user.', type: 'error' },
+                }),
+              );
+              return;
+            }
+            const actionEl = document.getElementById('bulk_action');
+            const action = actionEl ? actionEl.value : 'restore';
+            const form = document.getElementById('deleted-users-bulk-form');
+            const countLabel = count === 1 ? '1 user selected' : count + ' users selected';
+            const submitBulk = () => {
+              if (form && typeof htmx !== 'undefined') {
+                htmx.trigger(form, 'submit');
+              } else if (form) {
+                if (form.requestSubmit) form.requestSubmit();
+                else form.submit();
+              }
+            };
+            if (action === 'restore') {
+              window.__jmcfiDispatchOpenModal({
+                type: 'warning',
+                title: 'Restore selected users?',
+                subtitle: countLabel,
+                message:
+                  'Selected accounts will be restored and can sign in again. Associated data remains intact.',
+                actionLabel: 'Restore',
+                size: 'sm',
+                onConfirm: submitBulk,
+              });
+            } else if (action === 'delete_permanently') {
+              window.__jmcfiDispatchOpenModal({
+                type: 'danger',
+                title: 'Delete permanently?',
+                subtitle: countLabel,
+                message:
+                  'Selected accounts and all associated data will be permanently removed. This action cannot be undone.',
+                actionLabel: 'Delete permanently',
+                size: 'sm',
+                onConfirm: submitBulk,
+              });
+            }
+          },
+        };
+      }
+
       /** Dental record edit/list: open mark-completed confirm modal (completed status cannot be reverted). */
       window.__jmcfiDentalStatusModal = function (btn) {
         var rid = btn && btn.getAttribute('data-record-id');
@@ -947,6 +1005,7 @@
       function jmcfiInitAlpineAfterHtmxSwap(target) {
         if (!target || !target.id || typeof Alpine === 'undefined') return;
         if (
+          target.id === 'deleted-users-shell' ||
           target.id === 'jmcfi-mr-detail-header' ||
           target.id === 'jmcfi-mr-list-table-fragment' ||
           target.id === 'jmcfi-dental-edit-action-bar' ||
@@ -961,7 +1020,7 @@
           } catch (e) {
             console.warn('Alpine.initTree after HTMX swap failed', e);
           }
-          if (typeof htmx !== 'undefined' && (target.id === 'jmcfi-mr-list-table-fragment' || target.id === 'jmcfi-dr-list-table-fragment' || target.id === 'jmcfi-appt-list-table-fragment' || target.id === 'jmcfi-doc-list-table-fragment')) {
+          if (typeof htmx !== 'undefined' && (target.id === 'deleted-users-shell' || target.id === 'jmcfi-mr-list-table-fragment' || target.id === 'jmcfi-dr-list-table-fragment' || target.id === 'jmcfi-appt-list-table-fragment' || target.id === 'jmcfi-doc-list-table-fragment')) {
             try {
               htmx.process(target);
             } catch (e2) {

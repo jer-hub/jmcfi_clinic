@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from . import user_mgmt_views
 from . import settings_views
+from . import clinical_audit_views
 
 app_name = "core"
 
@@ -59,4 +60,6 @@ urlpatterns = [
     path('settings/roles/', settings_views.settings_roles, name='settings_roles'),
     path('settings/roles/<str:role>/', settings_views.settings_role_edit, name='settings_role_edit'),
     path('settings/audit/', settings_views.settings_audit, name='settings_audit'),
+    path('settings/clinical-audit/', clinical_audit_views.clinical_access_log, name='clinical_access_log'),
+    path('users/<int:user_id>/clinical-access-log/', clinical_audit_views.patient_clinical_access_log, name='patient_clinical_access_log'),
 ]

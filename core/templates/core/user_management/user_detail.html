@@ -122,6 +122,10 @@
                             <i class="fas fa-clipboard-list w-4 h-4 mr-2"></i>
                             View Audit Log
                         </a>
+                        <a href="{% url 'core:patient_clinical_access_log' viewed_user.id %}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-shield-heart w-4 h-4 mr-2"></i>
+                            Clinical Access Log
+                        </a>
                         <div class="mt-3 pt-3 border-t border-gray-200">
                             <button type="button"
                                     x-data="{}"

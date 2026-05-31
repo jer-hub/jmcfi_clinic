@@ -13,6 +13,10 @@ venv
 # Local environment secrets
 .env
 
+# Supabase CLI local state
+supabase/.branches
+supabase/.temp
+
 # Media files (uploaded content)
 media/
 

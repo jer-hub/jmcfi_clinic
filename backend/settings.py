@@ -1,4 +1,7 @@
+import sys
 from pathlib import Path
+
+import dj_database_url
 from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -168,12 +171,42 @@ else:
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
+_SQLITE_DATABASE = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+DATABASE_URL = config("DATABASE_URL", default="")
+TEST_DATABASE_URL = config("TEST_DATABASE_URL", default="")
+
+_running_tests = "test" in sys.argv
+_use_test_db_url = _running_tests and bool(TEST_DATABASE_URL)
+
+if _running_tests and not TEST_DATABASE_URL:
+    DATABASES = _SQLITE_DATABASE
+elif _use_test_db_url:
+    DATABASES = {
+        "default": dj_database_url.parse(
+            TEST_DATABASE_URL,
+            conn_max_age=0,
+        )
+    }
+elif DATABASE_URL:
+    _local_supabase = DATABASE_URL.startswith(
+        "postgresql://postgres:postgres@127.0.0.1"
+    ) or DATABASE_URL.startswith("postgresql://postgres:postgres@localhost")
+    DATABASES = {
+        "default": dj_database_url.parse(
+            DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=not _local_supabase,
+        )
+    }
+else:
+    DATABASES = _SQLITE_DATABASE
 
 
 # Password validation
@@ -243,6 +276,48 @@ STATIC_ROOT = BASE_DIR / "static"
 # Media files (uploaded files)
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Supabase Storage (S3-compatible) — server-side only; never expose keys to the browser
+USE_SUPABASE_STORAGE = config("USE_SUPABASE_STORAGE", default=False, cast=bool)
+SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")
+SUPABASE_STORAGE_BUCKET = config("SUPABASE_STORAGE_BUCKET", default="clinic-private")
+SUPABASE_PUBLIC_STORAGE_BUCKET = config(
+    "SUPABASE_PUBLIC_STORAGE_BUCKET", default="clinic-public"
+)
+SUPABASE_S3_ACCESS_KEY_ID = config("SUPABASE_S3_ACCESS_KEY_ID", default="")
+SUPABASE_S3_SECRET_ACCESS_KEY = config("SUPABASE_S3_SECRET_ACCESS_KEY", default="")
+SUPABASE_S3_REGION = config("SUPABASE_S3_REGION", default="local")
+
+if SUPABASE_URL:
+    SUPABASE_S3_ENDPOINT_URL = f"{SUPABASE_URL}/storage/v1/s3"
+else:
+    SUPABASE_S3_ENDPOINT_URL = config("SUPABASE_S3_ENDPOINT_URL", default="")
+
+_FILESYSTEM_STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {
+            "location": MEDIA_ROOT,
+            "base_url": MEDIA_URL,
+        },
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+if USE_SUPABASE_STORAGE and SUPABASE_S3_ENDPOINT_URL and SUPABASE_S3_ACCESS_KEY_ID:
+    STORAGES = {
+        "default": {
+            "BACKEND": "core.storage.SupabasePrivateStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+else:
+    STORAGES = _FILESYSTEM_STORAGES
+    USE_SUPABASE_STORAGE = False
 
 # PDF generation engine path (wkhtmltopdf)
 WKHTMLTOPDF_CMD = config("WKHTMLTOPDF_CMD", default="")

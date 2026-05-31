@@ -696,3 +696,53 @@ class SettingsChangeLog(models.Model):
         target = self.role or self.get_setting_type_display()
         return f'{target}.{self.field_name} @ {self.created_at:%Y-%m-%d %H:%M}'
 
+
+class ClinicalAccessLog(models.Model):
+    """Append-only audit trail for medical and dental record access."""
+
+    class Action(models.TextChoices):
+        VIEW = 'view', 'View'
+        CREATE = 'create', 'Create'
+        EDIT = 'edit', 'Edit'
+        DELETE = 'delete', 'Delete'
+        EXPORT = 'export', 'Export'
+
+    class ResourceType(models.TextChoices):
+        MEDICAL_RECORD = 'medical_record', 'Medical Record'
+        DENTAL_RECORD = 'dental_record', 'Dental Record'
+
+    actor = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='clinical_access_actions',
+    )
+    patient = models.ForeignKey(
+        User,
+        on_delete=models.PROTECT,
+        related_name='clinical_access_logs',
+    )
+    action = models.CharField(max_length=10, choices=Action.choices)
+    resource_type = models.CharField(max_length=20, choices=ResourceType.choices)
+    resource_id = models.PositiveIntegerField()
+    resource_label = models.CharField(max_length=255, blank=True, default='')
+    ip_address = models.CharField(max_length=45, blank=True, default='')
+    request_path = models.CharField(max_length=500, blank=True, default='')
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Clinical access log'
+        verbose_name_plural = 'Clinical access logs'
+        indexes = [
+            models.Index(fields=['patient', '-created_at']),
+            models.Index(fields=['resource_type', 'resource_id']),
+            models.Index(fields=['actor', '-created_at']),
+        ]
+
+    def __str__(self):
+        actor_email = self.actor.email if self.actor else 'system'
+        return f'{actor_email} {self.action} {self.resource_type}:{self.resource_id}'
+

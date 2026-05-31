@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}
+
+{% block title %}{% if viewed_user %}{{ viewed_user.get_full_name }} — {% endif %}Clinical Access Log{% endblock %}
+
+{% block content %}
+{% include "core/settings/_page_open.html" %}
+  {% if viewed_user %}
+    {% include "core/_subnav.html" %}
+  {% else %}
+    {% include "core/settings/_subnav.html" %}
+  {% endif %}
+
+  {% if viewed_user %}
+    {% with patient_subtitle="PHI access history for "|add:viewed_user.get_full_name|add:" ("|add:viewed_user.email|add:")." %}
+      {% include "components/page_header.html" with title="Clinical access log" subtitle=patient_subtitle icon="fa-shield-heart" %}
+    {% endwith %}
+  {% else %}
+    {% include "components/page_header.html" with title="Clinical access log" subtitle="Who accessed or changed medical and dental records." icon="fa-shield-heart" %}
+  {% endif %}
+
+  <div class="bg-white border border-gray-200 rounded-card shadow-sm overflow-hidden">
+    <div class="px-4 py-4 border-b border-gray-100 bg-gray-50/30">
+      {% include "core/clinical_access_log/_filters.html" %}
+    </div>
+
+    {% include "core/clinical_access_log/_table.html" %}
+
+    {% include "components/pagination.html" with page_obj=logs querystring=pagination_querystring %}
+  </div>
+{% include "core/settings/_page_close.html" %}
+{% endblock %}

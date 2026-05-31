@@ -5,7 +5,8 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
-from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 import os
 import uuid
 from core.decorators import role_required
@@ -35,16 +36,8 @@ def upload_image(request):
     ext = os.path.splitext(image.name)[1].lower()
     filename = f"health_tips/{uuid.uuid4().hex}{ext}"
     
-    # Save file
-    upload_path = os.path.join(settings.MEDIA_ROOT, filename)
-    os.makedirs(os.path.dirname(upload_path), exist_ok=True)
-    
-    with open(upload_path, 'wb+') as destination:
-        for chunk in image.chunks():
-            destination.write(chunk)
-    
-    # Return URL for EasyMDE
-    image_url = f"{settings.MEDIA_URL}{filename}"
+    saved_name = default_storage.save(filename, ContentFile(image.read()))
+    image_url = default_storage.url(saved_name)
     return JsonResponse({'data': {'filePath': image_url}})
 
 

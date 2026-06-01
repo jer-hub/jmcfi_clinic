@@ -99,7 +99,7 @@ class CourseProgramAdmin(admin.ModelAdmin):
 
 @admin.register(CollegeDepartment)
 class CollegeDepartmentAdmin(admin.ModelAdmin):
-    list_display = ('name', 'is_active', 'updated_at')
+    list_display = ('name', 'course_optional', 'is_active', 'updated_at')
     search_fields = ('name',)
     list_filter = ('is_active',)
 

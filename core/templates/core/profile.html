@@ -944,6 +944,7 @@
 const COURSE_OPTIONS_BY_COLLEGE = {{ course_options_by_college_json|safe }};
 const COLLEGE_OPTIONS = {{ college_options_json|safe }};
 const YEAR_LEVEL_OPTIONS_BY_COLLEGE = {{ year_level_options_by_college_json|safe }};
+const COURSE_OPTIONAL_BY_COLLEGE = {{ course_optional_by_college_json|safe }};
 
 function quickEditModal() {
     return {
@@ -1022,7 +1023,7 @@ function quickEditModal() {
         },
 
         isCourseOptionalForCollege(collegeName) {
-            return ['IBED - Primary', 'IBED - Junior High School', 'IBED - Junior Highschool'].includes((collegeName || '').trim());
+            return !!COURSE_OPTIONAL_BY_COLLEGE[(collegeName || '').trim()];
         },
 
         parseListValue(value) {

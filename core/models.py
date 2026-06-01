@@ -347,6 +347,10 @@ class CourseProgram(models.Model):
 
 class CollegeDepartment(models.Model):
     name = models.CharField(max_length=120, unique=True)
+    course_optional = models.BooleanField(
+        default=False,
+        help_text='When true, Course/Program is not required for this college.',
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

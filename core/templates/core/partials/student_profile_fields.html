@@ -6,7 +6,8 @@
          '{{ form.year_level.value|default_if_none:""|escapejs }}',
          {{ college_options_json|safe }},
          {{ course_options_by_college_json|safe }},
-         {{ year_level_options_by_college_json|safe }}
+         {{ year_level_options_by_college_json|safe }},
+         {{ course_optional_by_college_json|safe }}
      )"
      x-init="init()">
     <!-- Demographics Section -->

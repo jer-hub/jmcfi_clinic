@@ -26,19 +26,6 @@
         </div>
         {% endif %}
 
-        {% if missing_fields %}
-        <div class="mb-6 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3">
-          <p class="text-sm font-semibold text-warning-900 mb-2">Still required for access</p>
-          <ul class="text-sm text-warning-800 space-y-1">
-            {% for field_name, label in missing_fields %}
-              <li class="flex items-center gap-2">
-                <i class="fas fa-circle text-[0.4rem]"></i>{{ label }}
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-        {% endif %}
-
         {% if form.errors %}
         <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
           <p class="text-sm font-semibold text-red-900 mb-2">Could not save — please fix these issues:</p>
@@ -245,7 +232,7 @@ function profileImagePreview() {
     };
 }
 
-function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel, collegeOptions, courseOptionsByCollege, yearLevelOptionsByCollege) {
+function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel, collegeOptions, courseOptionsByCollege, yearLevelOptionsByCollege, courseOptionalByCollege) {
     return {
         department: initialDepartment || '',
         course: initialCourse || '',
@@ -253,6 +240,7 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
         collegeOptions: collegeOptions || [],
         courseOptionsByCollege: courseOptionsByCollege || {},
         yearLevelOptionsByCollege: yearLevelOptionsByCollege || {},
+        courseOptionalByCollege: courseOptionalByCollege || {},
 
         init() {
             this.syncSelections();
@@ -267,7 +255,7 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
         },
 
         get isCourseOptional() {
-            return ['IBED - Primary', 'IBED - Junior High School', 'IBED - Junior Highschool'].includes((this.department || '').trim());
+            return !!this.courseOptionalByCollege[(this.department || '').trim()];
         },
 
         onDepartmentChange() {

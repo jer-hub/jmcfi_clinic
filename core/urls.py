@@ -4,6 +4,7 @@ from . import user_mgmt_views
 from . import settings_views
 from . import clinical_audit_views
 from . import media_views
+from . import academic_settings_views
 
 app_name = "core"
 
@@ -64,6 +65,12 @@ urlpatterns = [
     path('settings/roles/', settings_views.settings_roles, name='settings_roles'),
     path('settings/roles/<str:role>/', settings_views.settings_role_edit, name='settings_role_edit'),
     path('settings/audit/', settings_views.settings_audit, name='settings_audit'),
+    path('settings/academic/', academic_settings_views.settings_academic_hub, name='settings_academic_hub'),
+    path('settings/academic/colleges/', academic_settings_views.settings_colleges, name='settings_colleges'),
+    path('settings/academic/colleges/new/', academic_settings_views.settings_college_create, name='settings_college_create'),
+    path('settings/academic/colleges/<int:pk>/edit/', academic_settings_views.settings_college_edit, name='settings_college_edit'),
+    path('settings/academic/colleges/<int:pk>/courses/', academic_settings_views.settings_college_courses, name='settings_college_courses'),
+    path('settings/academic/colleges/<int:pk>/year-levels/', academic_settings_views.settings_college_year_levels, name='settings_college_year_levels'),
     path('settings/clinical-audit/', clinical_audit_views.clinical_access_log, name='clinical_access_log'),
     path('users/<int:user_id>/clinical-access-log/', clinical_audit_views.patient_clinical_access_log, name='patient_clinical_access_log'),
 ]

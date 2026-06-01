@@ -39,6 +39,13 @@ def _settings_hub_cards(clinic):
             'meta': '4 roles configured',
         },
         {
+            'title': 'Academic catalog',
+            'description': 'Colleges, courses, and year levels for patient profiles.',
+            'url': reverse('core:settings_academic_hub'),
+            'icon': 'fa-graduation-cap',
+            'icon_wrap': 'bg-success-50 text-success-600',
+        },
+        {
             'title': 'Audit log',
             'description': 'Review who changed clinic and role settings.',
             'url': reverse('core:settings_audit'),

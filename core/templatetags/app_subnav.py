@@ -469,6 +469,12 @@ def settings_subnav(context):
             active=active in ('roles', 'role'),
         ),
         nav_item(
+            'Academic',
+            'core:settings_academic_hub',
+            icon='fa-graduation-cap',
+            active=active == 'academic',
+        ),
+        nav_item(
             'Appointments',
             'appointments:appointment_type_settings',
             icon='fa-calendar-check',

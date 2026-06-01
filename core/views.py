@@ -53,6 +53,11 @@ from .profile_policy import (
     is_profile_field_value_complete,
     normalize_profile_field_name,
 )
+from .academic_catalog import (
+    is_course_optional_for_department,
+    patient_catalog_context,
+    year_levels_by_college,
+)
 from .utils import (
     get_user_profile, paginate_queryset,
     get_missing_profile_fields, get_client_ip,
@@ -138,26 +143,6 @@ def _log_provisioning_action(request, actor, target_user, action, metadata=None)
         ip_address=_get_client_ip(request),
         metadata=metadata or {},
     )
-
-
-def _year_levels_by_college():
-    """Build mapping of college/department name to allowed year-level labels."""
-    mapping = {}
-    queryset = YearLevelOption.objects.filter(is_active=True).select_related('college_department')
-    for item in queryset:
-        mapping.setdefault(item.college_department.name, []).append(item.name)
-    return mapping
-
-
-OPTIONAL_COURSE_DEPARTMENTS = {
-    'IBED - Primary',
-    'IBED - Junior High School',
-    'IBED - Junior Highschool',
-}
-
-
-def _is_course_optional_for_department(department_name):
-    return (department_name or '').strip() in OPTIONAL_COURSE_DEPARTMENTS
 
 
 # =====================
@@ -597,30 +582,22 @@ def profile_view(request):
         else:
             completion_percentage = 100
     
-    course_queryset = CourseProgram.objects.filter(is_active=True).select_related('college_department')
-    course_options = list(course_queryset.values_list('name', flat=True))
-    college_options = list(
-        CollegeDepartment.objects.filter(is_active=True)
-        .values_list('name', flat=True)
-    )
-    year_level_options_by_college = _year_levels_by_college()
+    catalog = patient_catalog_context()
+    year_level_options_by_college = year_levels_by_college()
     active_college = profile.department if profile and role_matches(request.user.role, ROLE_PATIENT) else ''
     year_level_options = year_level_options_by_college.get(active_college, [])
-    course_options_by_college = {}
-    for course in course_queryset:
-        college_name = course.college_department.name
-        course_options_by_college.setdefault(college_name, []).append(course.name)
 
     context = {
         'user': request.user,
         'profile': profile,
         'completion_percentage': completion_percentage,
-        'course_options': course_options,
-        'college_options': college_options,
-        'course_options_by_college_json': json.dumps(course_options_by_college),
-        'college_options_json': json.dumps(college_options),
+        'course_options': catalog['course_options'],
+        'college_options': catalog['college_options'],
+        'course_options_by_college_json': catalog['course_options_by_college_json'],
+        'college_options_json': catalog['college_options_json'],
+        'course_optional_by_college_json': catalog['course_optional_by_college_json'],
         'year_level_options': year_level_options,
-        'year_level_options_by_college_json': json.dumps(year_level_options_by_college),
+        'year_level_options_by_college_json': catalog['year_level_options_by_college_json'],
     }
     
     return render(request, 'core/profile.html', context)
@@ -667,7 +644,7 @@ def quick_edit_profile(request):
             if department not in valid_colleges:
                 raise ValueError('Invalid College selection.')
 
-            course_is_optional = _is_course_optional_for_department(department)
+            course_is_optional = is_course_optional_for_department(department)
             if not course and not course_is_optional:
                 raise ValueError('Course/Program is required.')
 
@@ -826,7 +803,7 @@ def quick_edit_profile(request):
 
         if role_matches(request.user.role, ROLE_PATIENT) and field_name in ['course', 'year_level', 'department']:
             selected_college_name = selected_college or profile.department
-            course_is_optional = _is_course_optional_for_department(selected_college_name)
+            course_is_optional = is_course_optional_for_department(selected_college_name)
 
             if not field_value and not (field_name == 'course' and course_is_optional):
                 raise ValueError(f'{field_name.replace("_", " ").title()} is required.')
@@ -1127,17 +1104,9 @@ def edit_profile(request):
                 f'Welcome to JMCFI Clinic! Please complete your profile to get started.')
             request.session['profile_welcome_shown'] = True
     
-    course_queryset = CourseProgram.objects.filter(is_active=True).select_related('college_department')
-    college_options = list(
-        CollegeDepartment.objects.filter(is_active=True)
-        .values_list('name', flat=True)
-    )
-    course_options_by_college = {}
-    for course in course_queryset:
-        college_name = course.college_department.name
-        course_options_by_college.setdefault(college_name, []).append(course.name)
-
-    year_level_options_by_college = _year_levels_by_college()
+    catalog = patient_catalog_context()
+    course_options_by_college = json.loads(catalog['course_options_by_college_json'])
+    year_level_options_by_college = json.loads(catalog['year_level_options_by_college_json'])
     selected_department = ''
     if role_matches(request.user.role, ROLE_PATIENT) and 'department' in form.fields:
         selected_department = (form['department'].value() or '').strip()
@@ -1150,13 +1119,13 @@ def edit_profile(request):
         'user': request.user,
         'is_first_time': is_first_time,
         'dental_record': dental_record,
-        'missing_fields': get_missing_profile_fields(request.user),
-        'college_options': college_options,
+        'college_options': catalog['college_options'],
         'initial_course_options': initial_course_options,
         'initial_year_level_options': initial_year_level_options,
-        'college_options_json': json.dumps(college_options),
-        'course_options_by_college_json': json.dumps(course_options_by_college),
-        'year_level_options_by_college_json': json.dumps(year_level_options_by_college),
+        'college_options_json': catalog['college_options_json'],
+        'course_options_by_college_json': catalog['course_options_by_college_json'],
+        'year_level_options_by_college_json': catalog['year_level_options_by_college_json'],
+        'course_optional_by_college_json': catalog['course_optional_by_college_json'],
     }
     
     return render(request, 'core/edit_profile.html', context)

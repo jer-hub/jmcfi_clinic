@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+
+{% block title %}Academic Catalog - {{ clinic_name }}{% endblock %}
+
+{% block content %}
+{% include "core/settings/_page_open.html" %}
+  {% include "core/settings/_subnav.html" %}
+
+  {% include "components/page_header.html" with title="Academic catalog" subtitle="Manage colleges, courses, and year levels for patient profiles." icon="fa-graduation-cap" %}
+
+  <div class="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="rounded-card border border-gray-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-gray-500">Active colleges</p>
+      <p class="mt-1 text-2xl font-bold text-gray-900">{{ counts.colleges }}</p>
+    </div>
+    <div class="rounded-card border border-gray-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-gray-500">Active courses</p>
+      <p class="mt-1 text-2xl font-bold text-gray-900">{{ counts.courses }}</p>
+    </div>
+    <div class="rounded-card border border-gray-200 bg-white p-5 shadow-sm">
+      <p class="text-sm text-gray-500">Active year levels</p>
+      <p class="mt-1 text-2xl font-bold text-gray-900">{{ counts.year_levels }}</p>
+    </div>
+  </div>
+
+  <div class="rounded-card border border-gray-200 bg-white p-6 shadow-sm">
+    <h2 class="text-base font-semibold text-gray-900 mb-4">Manage catalog</h2>
+    <p class="text-sm text-gray-600 mb-4">
+      Colleges and departments drive patient profile dropdowns. Courses and year levels are scoped to each college.
+    </p>
+    {% url 'core:settings_colleges' as colleges_url %}
+    {% include "components/button.html" with label="Colleges & departments" icon="fa-building-columns" variant="primary" as="a" href=colleges_url %}
+  </div>
+{% include "core/settings/_page_close.html" %}
+{% endblock %}

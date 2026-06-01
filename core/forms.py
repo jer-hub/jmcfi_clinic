@@ -13,14 +13,10 @@ from .models import (
     YearLevelOption,
 )
 from .profile_policy import apply_profile_required_fields_to_form, sync_widget_required_attrs
+from .academic_catalog import is_course_optional_for_department
 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
-OPTIONAL_COURSE_DEPARTMENTS = {
-    'IBED - Primary',
-    'IBED - Junior High School',
-    'IBED - Junior Highschool',
-}
 
 
 # ---------------------------------------------------------------------------
@@ -241,7 +237,7 @@ class StudentProfileForm(forms.ModelForm):
             self.add_error('department', 'Select a valid College/Department.')
             return cleaned_data
 
-        course_is_optional = department in OPTIONAL_COURSE_DEPARTMENTS
+        course_is_optional = is_course_optional_for_department(department)
         if not course and not course_is_optional:
             self.add_error('course', 'Course/Program is required for the selected College/Department.')
 

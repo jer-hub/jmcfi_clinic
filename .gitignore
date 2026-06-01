@@ -10,8 +10,10 @@ wheels/
 .venv
 venv
 
-# Local environment secrets
+# Local environment secrets (never commit — copy from .env.example)
 .env
+.env.*
+!.env.example
 
 # Supabase CLI local state
 supabase/.branches

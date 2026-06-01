@@ -1,0 +1,355 @@
+{
+  "version": 1,
+  "colleges": [
+    {
+      "name": "College of Allied Health Sciences",
+      "course_optional": false,
+      "is_active": true
+    },
+    {
+      "name": "College of Arts and Sciences",
+      "course_optional": false,
+      "is_active": true
+    },
+    {
+      "name": "College of Education",
+      "course_optional": false,
+      "is_active": true
+    },
+    {
+      "name": "College of Information Technology",
+      "course_optional": false,
+      "is_active": true
+    },
+    {
+      "name": "College of Information Technology Education",
+      "course_optional": false,
+      "is_active": true
+    },
+    {
+      "name": "College of Nursing",
+      "course_optional": false,
+      "is_active": true
+    },
+    {
+      "name": "IBED - Junior High School",
+      "course_optional": true,
+      "is_active": true
+    },
+    {
+      "name": "IBED - Primary",
+      "course_optional": true,
+      "is_active": true
+    },
+    {
+      "name": "IBED - Senior High School",
+      "course_optional": false,
+      "is_active": true
+    }
+  ],
+  "courses": [
+    {
+      "college": "College of Allied Health Sciences",
+      "name": "BS Medical Technology",
+      "is_active": true
+    },
+    {
+      "college": "College of Allied Health Sciences",
+      "name": "BS Physical Therapy",
+      "is_active": true
+    },
+    {
+      "college": "College of Arts and Sciences",
+      "name": "BS Psychology",
+      "is_active": true
+    },
+    {
+      "college": "College of Education",
+      "name": "BS Education",
+      "is_active": true
+    },
+    {
+      "college": "College of Information Technology",
+      "name": "BS Entertainment Multimedia and Computing",
+      "is_active": false
+    },
+    {
+      "college": "College of Information Technology",
+      "name": "BS Information Technology",
+      "is_active": false
+    },
+    {
+      "college": "College of Information Technology Education",
+      "name": "BS in Entertainment Multimedia and Computing",
+      "is_active": true
+    },
+    {
+      "college": "College of Information Technology Education",
+      "name": "BS in Information Technology",
+      "is_active": true
+    },
+    {
+      "college": "College of Nursing",
+      "name": "BS Midwifery",
+      "is_active": true
+    },
+    {
+      "college": "College of Nursing",
+      "name": "BS Nursing",
+      "is_active": true
+    },
+    {
+      "college": "IBED - Senior High School",
+      "name": "K-12 ABM",
+      "is_active": true
+    },
+    {
+      "college": "IBED - Senior High School",
+      "name": "K-12 Arts and Design",
+      "is_active": true
+    },
+    {
+      "college": "IBED - Senior High School",
+      "name": "K-12 GAS",
+      "is_active": true
+    },
+    {
+      "college": "IBED - Senior High School",
+      "name": "K-12 HUMSS",
+      "is_active": true
+    },
+    {
+      "college": "IBED - Senior High School",
+      "name": "K-12 STEM",
+      "is_active": true
+    },
+    {
+      "college": "IBED - Senior High School",
+      "name": "K-12 Sports",
+      "is_active": true
+    },
+    {
+      "college": "IBED - Senior High School",
+      "name": "K-12 TVL",
+      "is_active": true
+    }
+  ],
+  "year_levels": [
+    {
+      "college": "College of Allied Health Sciences",
+      "name": "1st Year",
+      "sort_order": 1,
+      "is_active": false
+    },
+    {
+      "college": "College of Allied Health Sciences",
+      "name": "2nd Year",
+      "sort_order": 2,
+      "is_active": false
+    },
+    {
+      "college": "College of Allied Health Sciences",
+      "name": "3rd Year",
+      "sort_order": 3,
+      "is_active": false
+    },
+    {
+      "college": "College of Allied Health Sciences",
+      "name": "4th Year",
+      "sort_order": 4,
+      "is_active": false
+    },
+    {
+      "college": "College of Arts and Sciences",
+      "name": "1st Year",
+      "sort_order": 1,
+      "is_active": true
+    },
+    {
+      "college": "College of Arts and Sciences",
+      "name": "2nd Year",
+      "sort_order": 2,
+      "is_active": true
+    },
+    {
+      "college": "College of Arts and Sciences",
+      "name": "3rd Year",
+      "sort_order": 3,
+      "is_active": true
+    },
+    {
+      "college": "College of Arts and Sciences",
+      "name": "4th Year",
+      "sort_order": 4,
+      "is_active": true
+    },
+    {
+      "college": "College of Education",
+      "name": "1st Year",
+      "sort_order": 1,
+      "is_active": true
+    },
+    {
+      "college": "College of Education",
+      "name": "2nd Year",
+      "sort_order": 2,
+      "is_active": true
+    },
+    {
+      "college": "College of Education",
+      "name": "3rd Year",
+      "sort_order": 3,
+      "is_active": true
+    },
+    {
+      "college": "College of Education",
+      "name": "4th Year",
+      "sort_order": 4,
+      "is_active": true
+    },
+    {
+      "college": "College of Information Technology",
+      "name": "1st Year",
+      "sort_order": 1,
+      "is_active": false
+    },
+    {
+      "college": "College of Information Technology",
+      "name": "2nd Year",
+      "sort_order": 2,
+      "is_active": false
+    },
+    {
+      "college": "College of Information Technology",
+      "name": "3rd Year",
+      "sort_order": 3,
+      "is_active": false
+    },
+    {
+      "college": "College of Information Technology",
+      "name": "4th Year",
+      "sort_order": 4,
+      "is_active": false
+    },
+    {
+      "college": "College of Information Technology Education",
+      "name": "1",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Information Technology Education",
+      "name": "2",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Information Technology Education",
+      "name": "3",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Information Technology Education",
+      "name": "4",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Nursing",
+      "name": "1st Year",
+      "sort_order": 1,
+      "is_active": true
+    },
+    {
+      "college": "College of Nursing",
+      "name": "2nd Year",
+      "sort_order": 2,
+      "is_active": true
+    },
+    {
+      "college": "College of Nursing",
+      "name": "3rd Year",
+      "sort_order": 3,
+      "is_active": true
+    },
+    {
+      "college": "College of Nursing",
+      "name": "4th Year",
+      "sort_order": 4,
+      "is_active": true
+    },
+    {
+      "college": "IBED - Junior High School",
+      "name": "Grade 7",
+      "sort_order": 1,
+      "is_active": false
+    },
+    {
+      "college": "IBED - Junior High School",
+      "name": "Grade 8",
+      "sort_order": 2,
+      "is_active": false
+    },
+    {
+      "college": "IBED - Junior High School",
+      "name": "Grade 9",
+      "sort_order": 3,
+      "is_active": false
+    },
+    {
+      "college": "IBED - Junior High School",
+      "name": "Grade 10",
+      "sort_order": 4,
+      "is_active": false
+    },
+    {
+      "college": "IBED - Primary",
+      "name": "Grade 1",
+      "sort_order": 1,
+      "is_active": true
+    },
+    {
+      "college": "IBED - Primary",
+      "name": "Grade 2",
+      "sort_order": 2,
+      "is_active": true
+    },
+    {
+      "college": "IBED - Primary",
+      "name": "Grade 3",
+      "sort_order": 3,
+      "is_active": true
+    },
+    {
+      "college": "IBED - Primary",
+      "name": "Grade 4",
+      "sort_order": 4,
+      "is_active": true
+    },
+    {
+      "college": "IBED - Primary",
+      "name": "Grade 5",
+      "sort_order": 5,
+      "is_active": true
+    },
+    {
+      "college": "IBED - Primary",
+      "name": "Grade 6",
+      "sort_order": 6,
+      "is_active": true
+    },
+    {
+      "college": "IBED - Senior High School",
+      "name": "Grade 11",
+      "sort_order": 1,
+      "is_active": true
+    },
+    {
+      "college": "IBED - Senior High School",
+      "name": "Grade 12",
+      "sort_order": 2,
+      "is_active": true
+    }
+  ]
+}

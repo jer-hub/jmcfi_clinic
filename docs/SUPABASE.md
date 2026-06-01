@@ -70,7 +70,31 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-### 4. Migrate existing local media (optional)
+Migration `core.0023_enable_supabase_rls` (Postgres only) enables **RLS** on all `public` tables and revokes `anon` / `authenticated` access so PostgREST cannot read Django data. Django continues to use the `postgres` DB user and is unchanged. Re-run after manual schema work if needed:
+
+```bash
+python manage.py enable_supabase_rls
+```
+
+### 4. Copy academic catalog from SQLite (optional)
+
+If colleges / courses / year levels exist in local `db.sqlite3` but not in Supabase yet:
+
+```bash
+# 1. Export from SQLite (works even when DATABASE_URL points at Supabase)
+uv run python manage.py academic_catalog_transfer export --from-sqlite -o data/academic_catalog.json
+
+# 2. Ensure Supabase schema is up to date
+#    DATABASE_URL=postgresql://... in .env
+uv run python manage.py migrate
+
+# 3. Import into Postgres (add --clear to replace existing catalog rows)
+uv run python manage.py academic_catalog_transfer import -i data/academic_catalog.json
+```
+
+The dump is name-keyed JSON (`data/academic_catalog.json`) so IDs can differ between SQLite and Postgres. Patient profile `department` / `course` / `year_level` text fields are unchanged by this command.
+
+### 5. Migrate existing local media (optional)
 
 If you have files under `media/` from SQLite + filesystem dev:
 
@@ -138,8 +162,13 @@ TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 | Images 404 in dev without Supabase | Expected when `USE_SUPABASE_STORAGE=True`; files are in Storage, not `/media/` |
 | Broken image icon / S3 URL 403–404 in browser | Supabase S3 presign URLs are not browser-safe; private files are served via `/storage/private/<path>` (authenticated proxy) |
 
+## Security (Supabase linter / PostgREST)
+
+Hosted projects run the [database linter](https://supabase.com/docs/guides/database/database-linter). Errors such as **RLS Disabled in Public** or **Sensitive Columns Exposed** mean tables in `public` are reachable via the Supabase API without row policies.
+
+This app does **not** use PostgREST for app data—only Django ORM. After `migrate` on Postgres, ensure `0023_enable_supabase_rls` has been applied (or run `python manage.py enable_supabase_rls`). That enables RLS on every `public` table, adds an explicit **deny-all** policy (`jmcfi_deny_postgrest_access`) for `anon` / `authenticated`, and revokes direct grants. New tables get the same treatment via a Postgres event trigger. This clears linter errors for missing RLS and satisfies the informational “RLS enabled, no policy” check.
+
 ## Follow-ups (not implemented)
 
 - **Channels / Redis**: Supabase does not provide Redis; use Upstash or self-hosted Redis for production WebSockets.
-- **Row Level Security**: Optional if exposing PostgREST; Django uses direct DB credentials today.
 - **Supabase Auth**: Would replace `core/adapters.py`—deferred.

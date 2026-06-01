@@ -12,6 +12,7 @@ from .models import (
     CourseProgram,
     YearLevelOption,
 )
+from .profile_policy import apply_profile_required_fields_to_form, sync_widget_required_attrs
 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
@@ -195,24 +196,25 @@ class StudentProfileForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         # Add empty choice for select fields
         self.fields['blood_type'].empty_label = "Select your blood type"
         self.fields['gender'].empty_label = "Select gender"
         self.fields['civil_status'].empty_label = "Select civil status"
-        
-        # Set required fields
-        required_fields = [
-            'patient_id', 'middle_name', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth', 'age',
-            'address', 'phone', 'emergency_contact', 'emergency_phone',
-            'year_level', 'department', 'blood_type'
-        ]
-        for field_name in required_fields:
-            if field_name in self.fields:
-                self.fields[field_name].required = True
 
-        # Required student contact fields prefill +63.
+        role = 'patient'
+        if self.user is not None:
+            role = getattr(self.user, 'role', None) or 'patient'
+        elif self.instance and self.instance.pk and getattr(self.instance, 'user', None):
+            role = getattr(self.instance.user, 'role', None) or 'patient'
+        apply_profile_required_fields_to_form(self, role)
+
         for contact_field in ['phone', 'emergency_phone']:
+            if contact_field not in self.fields:
+                continue
+            if not self.fields[contact_field].required:
+                continue
             current_value = self.initial.get(contact_field)
             if not current_value and self.instance and self.instance.pk:
                 current_value = getattr(self.instance, contact_field, '')
@@ -220,7 +222,10 @@ class StudentProfileForm(forms.ModelForm):
                 self.initial[contact_field] = '+63'
 
     def clean_phone(self):
-        return clean_strict_ph_number(self.cleaned_data.get('phone'), required=True)
+        return clean_strict_ph_number(
+            self.cleaned_data.get('phone'),
+            required=self.fields['phone'].required,
+        )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -260,10 +265,15 @@ class StudentProfileForm(forms.ModelForm):
         return clean_strict_ph_number(self.cleaned_data.get('telephone_number'), required=False)
 
     def clean_emergency_phone(self):
-        return clean_strict_ph_number(self.cleaned_data.get('emergency_phone'), required=True)
+        return clean_strict_ph_number(
+            self.cleaned_data.get('emergency_phone'),
+            required=self.fields['emergency_phone'].required,
+        )
 
     def clean_patient_id(self):
-        patient_id = self.cleaned_data.get('patient_id')
+        patient_id = (self.cleaned_data.get('patient_id') or '').strip()
+        if not self.fields['patient_id'].required:
+            return patient_id
         if not patient_id or patient_id.startswith('TEMP_'):
             raise forms.ValidationError('Please provide a valid patient ID.')
         return patient_id
@@ -404,41 +414,20 @@ class StaffProfileForm(forms.ModelForm):
         self.fields['blood_type'].empty_label = "Select your blood type (optional)"
         self.fields['gender'].empty_label = "Select gender"
         self.fields['civil_status'].empty_label = "Select civil status"
-        
-        # Set required fields
-        required_fields = [
-            'staff_id', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth', 'age',
-            'address', 'phone', 'emergency_contact', 
-            'department', 'position'
-        ]
-        for field_name in required_fields:
-            if field_name in self.fields:
-                self.fields[field_name].required = True
 
-        # Required staff contact field prefill +63.
+        apply_profile_required_fields_to_form(self, role)
+
+        # Prefill +63 only for required phone fields (avoid HTML5 pattern blocking optional phones).
         current_phone = self.initial.get('phone')
         if not current_phone and self.instance and self.instance.pk:
             current_phone = getattr(self.instance, 'phone', '')
-        if not current_phone:
+        if self.fields['phone'].required and not current_phone:
             self.initial['phone'] = '+63'
 
-        # Doctor onboarding: force doctor-only credentials and hide unrelated health-self fields.
         if role == 'doctor':
-            if 'license_number' in self.fields:
-                self.fields['license_number'].required = True
-            if 'ptr_no' in self.fields:
-                self.fields['ptr_no'].required = True
-            if 'position' in self.fields:
-                self.fields['position'].required = True
-
             for hidden_field in ['blood_type', 'allergies', 'medical_conditions']:
                 if hidden_field in self.fields:
                     self.fields.pop(hidden_field)
-        else:
-            if 'license_number' in self.fields:
-                self.fields['license_number'].required = False
-            if 'ptr_no' in self.fields:
-                self.fields['ptr_no'].required = False
 
         if role == 'admin':
             # Admin profiles should not collect professional or medical-health details.
@@ -454,27 +443,59 @@ class StaffProfileForm(forms.ModelForm):
             ]:
                 if hidden_field in self.fields:
                     self.fields.pop(hidden_field)
+            # Demographics are optional for admin unless listed in role policy.
+            for optional_admin_field in [
+                'middle_name',
+                'gender',
+                'civil_status',
+                'date_of_birth',
+                'place_of_birth',
+                'age',
+                'address',
+                'telephone_number',
+                'emergency_contact',
+                'emergency_phone',
+            ]:
+                if optional_admin_field in self.fields:
+                    self.fields[optional_admin_field].required = False
+            sync_widget_required_attrs(self)
 
     def clean_phone(self):
-        return clean_strict_ph_number(self.cleaned_data.get('phone'), required=True)
+        return clean_strict_ph_number(
+            self.cleaned_data.get('phone'),
+            required=self.fields['phone'].required,
+        )
 
     def clean_telephone_number(self):
         return clean_strict_ph_number(self.cleaned_data.get('telephone_number'), required=False)
 
     def clean_emergency_phone(self):
-        return clean_strict_ph_number(self.cleaned_data.get('emergency_phone'), required=False)
+        required = (
+            self.fields['emergency_phone'].required
+            if 'emergency_phone' in self.fields
+            else False
+        )
+        return clean_strict_ph_number(self.cleaned_data.get('emergency_phone'), required=required)
 
     def clean_staff_id(self):
-        staff_id = self.cleaned_data.get('staff_id')
+        staff_id = (self.cleaned_data.get('staff_id') or '').strip()
+        if 'staff_id' not in self.fields:
+            return staff_id
+        if not self.fields['staff_id'].required:
+            return staff_id
         if not staff_id or staff_id.startswith('TEMP_'):
             raise forms.ValidationError('Please provide a valid staff ID.')
         return staff_id
 
     def clean_department(self):
-        department = self.cleaned_data.get('department')
-        if not department or not department.strip():
+        department = (self.cleaned_data.get('department') or '').strip()
+        if 'department' not in self.fields:
+            return department
+        if not self.fields['department'].required:
+            return department
+        if not department:
             raise forms.ValidationError('Department is required.')
-        return department.strip()
+        return department
 
 
 class UserCreationForm(forms.ModelForm):

@@ -1,9 +1,11 @@
 import hashlib
 import re
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.contrib.messages import get_messages
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -23,7 +25,7 @@ def _complete_staff_like_profile(user, staff_id):
 	profile, _ = StaffProfile.objects.get_or_create(user=user)
 	profile.staff_id = staff_id
 	profile.department = 'Clinic Operations'
-	profile.phone = '09123456789'
+	profile.phone = '+639123456789'
 	profile.save(update_fields=['staff_id', 'department', 'phone'])
 	profile.refresh_from_db()
 
@@ -405,6 +407,69 @@ class AdminProfileCompletionRequirementTests(TestCase):
 
 		self.assertRedirects(response, reverse('core:profile_required'))
 
+	def test_partial_phone_prefix_is_not_profile_complete(self):
+		profile, _ = StaffProfile.objects.get_or_create(user=self.admin_user)
+		profile.staff_id = 'ADM-PARTIAL-PHONE'
+		profile.phone = '+63'
+		profile.save(update_fields=['staff_id', 'phone'])
+		self.admin_user.first_name = 'Admin'
+		self.admin_user.last_name = 'User'
+		self.admin_user.save(update_fields=['first_name', 'last_name'])
+		self.client.force_login(self.admin_user)
+
+		response = self.client.get(reverse('core:dashboard'))
+		self.assertRedirects(response, reverse('core:profile_required'))
+
+	def test_admin_can_save_minimal_required_profile(self):
+		StaffProfile.objects.get_or_create(user=self.admin_user)
+		self.client.force_login(self.admin_user)
+		response = self.client.post(
+			reverse('core:edit_profile'),
+			{
+				'first_name': 'Clinic',
+				'last_name': 'Admin',
+				'staff_id': 'ADM-MIN-001',
+				'phone': '+639171234567',
+			},
+		)
+		self.assertRedirects(response, reverse('core:profile'))
+		self.admin_user.refresh_from_db()
+		self.assertEqual(self.admin_user.first_name, 'Clinic')
+		self.assertEqual(self.admin_user.staff_profile.phone, '+639171234567')
+
+		dashboard = self.client.get(reverse('core:dashboard'))
+		self.assertEqual(dashboard.status_code, 200)
+
+	def test_admin_profile_image_url_is_root_absolute(self):
+		"""Relative MEDIA_URL breaks image display on nested routes like /profile/."""
+		from PIL import Image
+
+		StaffProfile.objects.get_or_create(user=self.admin_user)
+		self.client.force_login(self.admin_user)
+		buffer = BytesIO()
+		Image.new('RGB', (8, 8), color='red').save(buffer, format='JPEG')
+		image = SimpleUploadedFile(
+			'avatar.jpg',
+			buffer.getvalue(),
+			content_type='image/jpeg',
+		)
+		response = self.client.post(
+			reverse('core:edit_profile'),
+			{
+				'first_name': 'Clinic',
+				'last_name': 'Admin',
+				'staff_id': 'ADM-IMG-001',
+				'phone': '+639171234567',
+				'profile_image': image,
+			},
+		)
+		self.assertRedirects(response, reverse('core:profile'))
+		self.admin_user.refresh_from_db()
+		image_url = self.admin_user.staff_profile.profile_image.url
+		self.assertTrue(image_url.startswith('/media/'), image_url)
+		profile_response = self.client.get(reverse('core:profile'))
+		self.assertContains(profile_response, image_url)
+
 	def test_admin_profile_page_hides_medical_and_professional_tabs(self):
 		_complete_staff_like_profile(self.admin_user, 'ADM-PROFILE-004')
 		self.admin_user.first_name = 'Admin'
@@ -434,6 +499,9 @@ class AdminProfileCompletionRequirementTests(TestCase):
 		self.assertNotContains(response, 'name="blood_type"')
 		self.assertNotContains(response, 'name="allergies"')
 		self.assertNotContains(response, 'name="medical_conditions"')
+		# Optional demographics must not use HTML5 required (blocks submit inside collapsed details).
+		self.assertNotContains(response, 'name="gender" required')
+		self.assertNotContains(response, 'name="date_of_birth" required')
 
 	def test_admin_quick_edit_rejects_medical_and_professional_fields(self):
 		_complete_staff_like_profile(self.admin_user, 'ADM-PROFILE-006')

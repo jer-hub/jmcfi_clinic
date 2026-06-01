@@ -274,7 +274,7 @@ STATICFILES_DIRS = [BASE_DIR / "staticfiles"]
 STATIC_ROOT = BASE_DIR / "static"
 
 # Media files (uploaded files)
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Supabase Storage (S3-compatible) — server-side only; never expose keys to the browser
@@ -286,7 +286,14 @@ SUPABASE_PUBLIC_STORAGE_BUCKET = config(
 )
 SUPABASE_S3_ACCESS_KEY_ID = config("SUPABASE_S3_ACCESS_KEY_ID", default="")
 SUPABASE_S3_SECRET_ACCESS_KEY = config("SUPABASE_S3_SECRET_ACCESS_KEY", default="")
-SUPABASE_S3_REGION = config("SUPABASE_S3_REGION", default="local")
+
+from core.supabase_config import resolve_supabase_s3_region
+
+SUPABASE_S3_REGION = resolve_supabase_s3_region(
+    config("SUPABASE_S3_REGION", default=""),
+    SUPABASE_URL,
+    config("DATABASE_URL", default=""),
+)
 
 if SUPABASE_URL:
     SUPABASE_S3_ENDPOINT_URL = f"{SUPABASE_URL}/storage/v1/s3"

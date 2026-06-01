@@ -3,6 +3,7 @@ from . import views
 from . import user_mgmt_views
 from . import settings_views
 from . import clinical_audit_views
+from . import media_views
 
 app_name = "core"
 
@@ -29,6 +30,9 @@ urlpatterns = [
     path('profile/quick-edit/', views.quick_edit_profile, name='quick_edit_profile'),
     path('profile/required/', views.profile_required, name='profile_required'),
     path('profile/preferences/', settings_views.profile_preferences, name='profile_preferences'),
+
+    # Private uploads (Supabase proxy for browser-safe URLs)
+    path('storage/private/<path:path>', media_views.private_storage_serve, name='private_storage'),
     
     # User Management (Admin Only)
     path('users/', views.user_management, name='user_management'),

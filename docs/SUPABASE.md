@@ -82,11 +82,33 @@ python manage.py migrate_media_to_supabase
 ## Production (hosted Supabase)
 
 1. Create a Supabase project and link it in the dashboard.
-2. Use the **connection pooler** URL (transaction mode, port `6543`) for `DATABASE_URL` in production, e.g.:
+2. Set `DATABASE_URL` and `SUPABASE_URL=https://[project-ref].supabase.co` in `.env` (never commit `.env`).
 
-   `postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
+### Postgres connection modes
 
-3. Set `USE_SUPABASE_STORAGE=True` with production S3 keys and `SUPABASE_URL=https://[project-ref].supabase.co`.
+| Mode | Host pattern | Port | When to use |
+|------|----------------|------|-------------|
+| **Direct** | `db.[project-ref].supabase.co` | `5432` | IPv6-capable networks; simplest for local dev against hosted DB |
+| **Session pooler** | `aws-0-[region]` or `aws-1-[region]` `.pooler.supabase.com` (user `postgres.[project-ref]`) | `5432` | **IPv4-only** networks (use if direct `db.*` fails DNS or is unreachable) |
+| **Transaction pooler** | same pooler host | `6543` | Serverless / many short-lived connections (Django with `conn_max_age` is usually fine on session or direct) |
+
+Example **direct** URL:
+
+`postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres`
+
+Example **session pooler** (IPv4-friendly, port 5432):
+
+`postgresql://postgres.[project-ref]:[password]@aws-1-[region].pooler.supabase.com:5432/postgres` (or `aws-0-…` — copy from dashboard)
+
+Example **transaction pooler** (port 6543):
+
+`postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
+
+Copy the exact pooler host and region from **Supabase Dashboard → Project Settings → Database → Connection string**.
+
+Django enables SSL for any non-local `DATABASE_URL` (`backend/settings.py`).
+
+3. Set `USE_SUPABASE_STORAGE=True` with production S3 keys when using remote buckets.
 4. Do **not** serve `/media/` from Django when storage is remote (`backend/urls.py` already guards this).
 
 ## Tests and CI
@@ -106,9 +128,15 @@ TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 | Symptom | Likely cause |
 |---------|----------------|
 | `connection refused` on port 54322 | Run `supabase start` or fix `DATABASE_URL` |
+| `could not translate host name` for `db.*.supabase.co` | Direct host is often **IPv6-only** (AAAA, no A record). Use **Session pooler** on port `5432` with user `postgres.[project-ref]`; host is `aws-0-[region]` or `aws-1-[region]` from **Connect → Session pooler** (not `db.*`) |
+| Direct DB (`db.*.supabase.co:5432`) times out / no route | Same as above, or enable Supabase **IPv4 add-on** for direct access |
+| Pooler: `Tenant or user not found` | Wrong **region** or pooler prefix (`aws-0` vs `aws-1`) — copy the full string from the dashboard |
+| SSL / certificate errors to hosted Postgres | Ensure `DATABASE_URL` is not the local `127.0.0.1:54322` URL; remote URLs get `ssl_require` automatically |
 | Upload fails with S3 error | Missing or wrong `SUPABASE_S3_*` keys; bucket not created |
+| `SignatureDoesNotMatch` or `403` on `HeadObject` | **Hosted** projects must not use `SUPABASE_S3_REGION=local` — set your project's AWS region (e.g. `ap-southeast-1`, from Dashboard → Storage) or rely on pooler-host inference in `core/supabase_config.py` |
 | `migrate_media_to_supabase` errors | `USE_SUPABASE_STORAGE=False` or credentials unset |
 | Images 404 in dev without Supabase | Expected when `USE_SUPABASE_STORAGE=True`; files are in Storage, not `/media/` |
+| Broken image icon / S3 URL 403–404 in browser | Supabase S3 presign URLs are not browser-safe; private files are served via `/storage/private/<path>` (authenticated proxy) |
 
 ## Follow-ups (not implemented)
 

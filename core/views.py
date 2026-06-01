@@ -48,6 +48,11 @@ from .notification_delivery import (
 )
 from .roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, filter_users_by_role, normalize_role, role_matches
 from .settings_service import get_effective_session_timeout, get_profile_required_fields
+from .profile_policy import (
+    USER_PROFILE_FIELDS,
+    is_profile_field_value_complete,
+    normalize_profile_field_name,
+)
 from .utils import (
     get_user_profile, paginate_queryset,
     get_missing_profile_fields, get_client_ip,
@@ -343,12 +348,9 @@ def accept_invite(request, token):
 @login_required
 def profile_required(request):
     """View to show profile completion required page – access to all services is blocked."""
-    # Returns a list of (field_name, friendly_label) tuples
     missing = get_missing_profile_fields(request.user)
-    # Pass only the labels to the template
-    missing_labels = [label for _field, label in missing]
     return render(request, 'core/profile_required.html', {
-        'missing_fields': missing_labels,
+        'missing_fields': missing,
     })
 
 
@@ -585,11 +587,11 @@ def profile_view(request):
         if required_fields:
             filled_count = 0
             for field in required_fields:
-                if field in {'first_name', 'last_name'}:
+                if field in USER_PROFILE_FIELDS:
                     value = getattr(request.user, field, None)
                 else:
-                    value = getattr(profile, field, None)
-                if value and (not isinstance(value, str) or value.strip()):
+                    value = getattr(profile, normalize_profile_field_name(field), None)
+                if is_profile_field_value_complete(field, value):
                     filled_count += 1
             completion_percentage = int((filled_count / len(required_fields)) * 100)
         else:
@@ -1148,6 +1150,7 @@ def edit_profile(request):
         'user': request.user,
         'is_first_time': is_first_time,
         'dental_record': dental_record,
+        'missing_fields': get_missing_profile_fields(request.user),
         'college_options': college_options,
         'initial_course_options': initial_course_options,
         'initial_year_level_options': initial_year_level_options,

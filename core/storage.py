@@ -1,6 +1,7 @@
 """Supabase Storage (S3-compatible) backends for django-storages."""
 
 from django.conf import settings
+from django.urls import reverse
 from storages.backends.s3 import S3Storage
 
 
@@ -16,7 +17,7 @@ def _supabase_s3_options(bucket_name: str) -> dict:
         "signature_version": "s3v4",
         "file_overwrite": False,
         "default_acl": "private",
-        "querystring_auth": True,
+        "querystring_auth": False,
         "querystring_expire": 3600,
     }
 
@@ -28,6 +29,10 @@ class SupabasePrivateStorage(S3Storage):
         options = _supabase_s3_options(settings.SUPABASE_STORAGE_BUCKET)
         options.update(settings_dict)
         super().__init__(**options)
+
+    def url(self, name, parameters=None, expire=None):
+        """Browser-safe URL via authenticated Django proxy (S3 presign is not)."""
+        return reverse("core:private_storage", kwargs={"path": name})
 
 
 class SupabasePublicStorage(S3Storage):

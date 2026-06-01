@@ -23,10 +23,16 @@
         <div class="rounded-lg border border-warning-200 bg-warning-50 px-4 py-3">
           <p class="text-sm font-semibold text-warning-900 mb-2">Missing required fields</p>
           <ul class="text-sm text-warning-800 space-y-1">
-            {% for label in missing_fields %}
-              <li class="flex items-center gap-2"><i class="fas fa-circle text-[0.4rem]"></i>{{ label }}</li>
+            {% for field_name, label in missing_fields %}
+              <li class="flex items-center gap-2">
+                <i class="fas fa-circle text-[0.4rem]"></i>
+                <span>{{ label }}</span>
+              </li>
             {% endfor %}
           </ul>
+          <p class="mt-3 text-xs text-warning-800/90">
+            Phone numbers must be a full Philippine mobile in <code class="font-mono">+63XXXXXXXXXX</code> format.
+          </p>
         </div>
         {% endif %}
 

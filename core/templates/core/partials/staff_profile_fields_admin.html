@@ -1,0 +1,33 @@
+<div class="space-y-6">
+  {% include "core/partials/_profile_form_section.html" with title="Required Information" icon="fa-id-badge" description="Complete these fields to unlock clinic access." grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" %}
+      {% include "components/forms/field.html" with field=form.staff_id %}
+      <div>{% include "partials/phone_field.html" with field=form.phone label="Mobile Phone Number" required=form.phone.field.required icon_color="blue" %}</div>
+  {% include "core/partials/_profile_form_section_end.html" %}
+
+  <details class="rounded-lg border border-gray-200 bg-gray-50/50 px-4 py-3">
+    <summary class="cursor-pointer text-sm font-semibold text-gray-700 select-none">
+      Optional details (demographics &amp; emergency contact)
+    </summary>
+    <div class="mt-4 space-y-6">
+      {% include "core/partials/_profile_form_section.html" with title="Personal & Demographic Information" icon="fa-user-check" %}
+          {% include "components/forms/field.html" with field=form.middle_name %}
+          {% include "components/forms/field.html" with field=form.gender %}
+          {% include "components/forms/field.html" with field=form.civil_status %}
+          {% include "components/forms/field.html" with field=form.date_of_birth %}
+          {% include "components/forms/field.html" with field=form.age %}
+          <div class="md:col-span-2 lg:col-span-3">
+            {% include "components/forms/field.html" with field=form.place_of_birth %}
+          </div>
+      {% include "core/partials/_profile_form_section_end.html" %}
+
+      {% include "core/partials/_profile_form_section.html" with title="Additional Contact Information" icon="fa-address-book" grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" %}
+          <div class="md:col-span-2">
+            {% include "components/forms/field.html" with field=form.address %}
+          </div>
+          {% include "components/forms/field.html" with field=form.telephone_number label="Landline / Telephone" required=False help_text="Optional. Use +63XXXXXXXXXX when provided." %}
+          {% include "components/forms/field.html" with field=form.emergency_contact help_text="Full name of person to contact in an emergency." %}
+          <div>{% include "partials/phone_field.html" with field=form.emergency_phone label="Emergency Contact Number" required=False icon_color="orange" %}</div>
+      {% include "core/partials/_profile_form_section_end.html" %}
+    </div>
+  </details>
+</div>

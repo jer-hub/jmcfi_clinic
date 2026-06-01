@@ -26,6 +26,32 @@
         </div>
         {% endif %}
 
+        {% if missing_fields %}
+        <div class="mb-6 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3">
+          <p class="text-sm font-semibold text-warning-900 mb-2">Still required for access</p>
+          <ul class="text-sm text-warning-800 space-y-1">
+            {% for field_name, label in missing_fields %}
+              <li class="flex items-center gap-2">
+                <i class="fas fa-circle text-[0.4rem]"></i>{{ label }}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        {% if form.errors %}
+        <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <p class="text-sm font-semibold text-red-900 mb-2">Could not save — please fix these issues:</p>
+          <ul class="text-sm text-red-800 space-y-1 list-disc list-inside">
+            {% for field, errors in form.errors.items %}
+              {% for error in errors %}
+                <li>{% if field != '__all__' %}<span class="font-medium">{{ field|title }}:</span> {% endif %}{{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
         <div class="bg-white border border-gray-200 rounded-card shadow-sm overflow-hidden">
             <form method="post" enctype="multipart/form-data" class="space-y-0">
                 {% csrf_token %}

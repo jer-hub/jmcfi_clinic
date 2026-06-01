@@ -182,7 +182,7 @@
       @click.outside="mobileOpen = false; mobilePanel = ''">
       <div class="px-1 space-y-1">
         <div class="flex items-center gap-3 px-2 py-2.5 bg-gray-50 rounded-lg mb-2">
-          {% include "components/avatar.html" with user=user size="sm" %}
+          {% include "components/avatar.html" with user=user size="sm" class="ring-2 ring-white shadow-sm" loading="eager" %}
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-gray-900 truncate">{{ user.get_full_name }}</p>
             <p class="text-xs text-gray-500">{{ user.get_role_display }}</p>

@@ -9,8 +9,11 @@ from datetime import datetime, timedelta
 from django.contrib.auth import get_user_model
 from .roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, normalize_role, role_matches
 from .settings_service import get_profile_required_fields
-
-USER_PROFILE_FIELDS = frozenset({'first_name', 'last_name'})
+from .profile_policy import (
+    USER_PROFILE_FIELDS,
+    is_profile_field_value_complete,
+    normalize_profile_field_name,
+)
 
 User = get_user_model()
 
@@ -108,15 +111,12 @@ def _profile_field_value(user, profile, field):
         return getattr(user, field, None)
     if profile is None:
         return None
-    return getattr(profile, field, None)
+    model_field = normalize_profile_field_name(field)
+    return getattr(profile, model_field, None)
 
 
-def _profile_field_filled(value) -> bool:
-    if value is None:
-        return False
-    if isinstance(value, str):
-        return bool(value.strip())
-    return True
+def _profile_field_filled(value, *, field: str = '') -> bool:
+    return is_profile_field_value_complete(field, value)
 
 
 def is_profile_complete(user):
@@ -128,7 +128,10 @@ def is_profile_complete(user):
 
         required_fields = get_profile_required_fields(user.role)
         for field in required_fields:
-            if not _profile_field_filled(_profile_field_value(user, profile, field)):
+            if not _profile_field_filled(
+                _profile_field_value(user, profile, field),
+                field=field,
+            ):
                 return False
         return True
     except Exception:
@@ -172,7 +175,10 @@ def get_missing_profile_fields(user):
 
     missing = []
     for field in required_fields:
-        if not _profile_field_filled(_profile_field_value(user, profile, field)):
+        if not _profile_field_filled(
+            _profile_field_value(user, profile, field),
+            field=field,
+        ):
             missing.append((field, FIELD_LABELS.get(field, field.replace('_', ' ').title())))
     return missing
 

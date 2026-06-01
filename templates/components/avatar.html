@@ -1,45 +1,43 @@
 {% comment %}
-  User avatar — profile photo when available, otherwise initials.
+  User avatar — initials placeholder with optional photo overlay on successful load.
 
   Context:
     user         – User object (preferred)
     name         – fallback display name if no user
     image_url    – optional explicit image URL (overrides user profile photo)
     size         – xs | sm | md | lg (default "md")
+    class        – optional extra classes on the outer circle (e.g. ring-2 ring-white)
+    loading      – lazy | eager (default "lazy")
 {% endcomment %}
 {% with fallback_name=name|default:"?" %}
 {% with display_name=user.get_full_name|default:user.email|default:fallback_name %}
-{% with initials=user.get_initials|default:display_name|slice:':1'|upper %}
+{% with initials=user.get_initials|default:display_name|slice:":2"|upper %}
 {% with photo_url=image_url|default:user.get_profile_image_url %}
 {% with size_class=size|default:"md" %}
-<span class="inline-flex shrink-0 rounded-full overflow-hidden
+<span class="relative inline-flex shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-primary-500 to-primary-700
              {% if size_class == 'xs' %}h-6 w-6
              {% elif size_class == 'sm' %}h-8 w-8
              {% elif size_class == 'lg' %}h-12 w-12
-             {% else %}h-10 w-10{% endif %}"
-      aria-label="{{ display_name }}">
+             {% else %}h-10 w-10{% endif %}
+             {{ class|default:'' }}"
+      aria-label="{{ display_name }}"
+      role="img">
+  <span class="flex h-full w-full items-center justify-center font-semibold text-white select-none
+               {% if size_class == 'xs' %}text-[0.65rem]
+               {% elif size_class == 'sm' %}text-xs
+               {% elif size_class == 'lg' %}text-base
+               {% else %}text-sm{% endif %}"
+        aria-hidden="true">
+    {{ initials }}
+  </span>
   {% if photo_url %}
   <img src="{{ photo_url }}"
        alt=""
-       class="h-full w-full object-cover"
-       loading="lazy"
+       class="avatar-photo absolute inset-0 h-full w-full object-cover opacity-0 pointer-events-none"
+       loading="{{ loading|default:'lazy' }}"
        decoding="async"
-       onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');">
-  <span class="hidden h-full w-full items-center justify-center font-semibold text-white bg-gradient-to-br from-primary-500 to-primary-700
-               {% if size_class == 'xs' %}text-[0.65rem]
-               {% elif size_class == 'sm' %}text-xs
-               {% elif size_class == 'lg' %}text-base
-               {% else %}text-sm{% endif %}">
-    {{ initials }}
-  </span>
-  {% else %}
-  <span class="flex h-full w-full items-center justify-center font-semibold text-white bg-gradient-to-br from-primary-500 to-primary-700
-               {% if size_class == 'xs' %}text-[0.65rem]
-               {% elif size_class == 'sm' %}text-xs
-               {% elif size_class == 'lg' %}text-base
-               {% else %}text-sm{% endif %}">
-    {{ initials }}
-  </span>
+       onload="this.classList.remove('opacity-0','pointer-events-none')"
+       onerror="this.remove()">
   {% endif %}
 </span>
 {% endwith %}

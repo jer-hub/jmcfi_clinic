@@ -156,6 +156,11 @@
         z-index: 40;
       }
 
+      /* Keep hash / error scroll targets below sticky navbar */
+      html {
+        scroll-padding-top: 7rem;
+      }
+
       .site-nav-shell {
         max-width: 80rem;
         margin-left: auto;
@@ -1116,8 +1121,79 @@
           return null;
         }
 
+        function syncScrollPadding() {
+          const nav = document.querySelector('.site-nav-root');
+          const navHeight = nav ? nav.offsetHeight : 80;
+          const padding = navHeight + 40;
+          document.documentElement.style.setProperty('scroll-padding-top', padding + 'px');
+          return padding;
+        }
+
+        function getFieldScrollTarget(field) {
+          if (!field) return null;
+          const wrapper = field.closest('.space-y-1, .form-group');
+          if (wrapper && wrapper.contains(field)) return wrapper;
+          const labelled = field.closest('div');
+          return labelled || field;
+        }
+
+        function scrollElementIntoView(el) {
+          if (!el) return;
+          syncScrollPadding();
+          el.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+        }
+
+        function focusFormFieldTarget(field) {
+          if (!field) return;
+          const scrollTarget = getFieldScrollTarget(field);
+          scrollElementIntoView(scrollTarget);
+          if (typeof field.focus === 'function') {
+            window.setTimeout(function () {
+              try {
+                field.focus({ preventScroll: true });
+              } catch (err) {
+                field.focus();
+              }
+            }, 400);
+          }
+        }
+
+        function scrollToFirstFormError(form) {
+          const hash = window.location.hash;
+          if (hash) {
+            const hashTarget = document.querySelector(hash);
+            if (hashTarget && form.contains(hashTarget)) {
+              focusFormFieldTarget(hashTarget);
+              return;
+            }
+          }
+
+          const firstInvalid = form.querySelector(
+            'input.form-field-error, select.form-field-error, textarea.form-field-error'
+          );
+          if (firstInvalid) {
+            focusFormFieldTarget(firstInvalid);
+            return;
+          }
+
+          const summary = document.getElementById('form-errors-summary');
+          if (summary) {
+            scrollElementIntoView(summary);
+            summary.focus({ preventScroll: true });
+          }
+        }
+
+        syncScrollPadding();
+
+        let scrolledToError = false;
+        let formToScroll = null;
+
         forms.forEach((form) => {
-          const errorNodes = form.querySelectorAll('.errorlist, p.text-red-600, p[class*="text-red-600"]');
+          const errorNodes = form.querySelectorAll(
+            '.errorlist, p.text-red-600, p[class*="text-red-600"], p.text-danger-600, p[class*="text-danger-600"]'
+          );
+
+          let formHasErrors = false;
 
           errorNodes.forEach((errorNode) => {
             if (errorNode.classList.contains('nonfield')) return;
@@ -1137,7 +1213,48 @@
             if (!field) return;
 
             field.classList.add('form-field-error');
+            formHasErrors = true;
           });
+
+          if (!scrolledToError && (formHasErrors || document.getElementById('form-errors-summary'))) {
+            formToScroll = form;
+            scrolledToError = true;
+          }
+        });
+
+        if (formToScroll) {
+          window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(function () {
+              syncScrollPadding();
+              window.setTimeout(function () {
+                scrollToFirstFormError(formToScroll);
+              }, 100);
+            });
+          });
+        }
+
+        document.addEventListener('click', function (event) {
+          const link = event.target.closest('a[href^="#id_"]');
+          if (!link) return;
+          const id = link.getAttribute('href').slice(1);
+          const field = document.getElementById(id);
+          if (!field || !field.closest('form')) return;
+          event.preventDefault();
+          focusFormFieldTarget(field);
+          if (history.replaceState) {
+            history.replaceState(null, '', '#' + id);
+          } else {
+            window.location.hash = id;
+          }
+        });
+
+        window.addEventListener('hashchange', function () {
+          const hash = window.location.hash;
+          if (!hash) return;
+          const target = document.querySelector(hash);
+          if (target && target.closest('form')) {
+            focusFormFieldTarget(target);
+          }
         });
       });
     </script>

@@ -82,6 +82,20 @@ form p[class*="text-red-600"]:not(:empty) {
     border-radius: 9999px;
 }
 
+/* Offset anchored fields below sticky site nav (native hash / fallback) */
+html {
+    scroll-padding-top: 7rem;
+}
+
+form .space-y-1,
+form .form-group,
+form input,
+form select,
+form textarea,
+#form-errors-summary {
+    scroll-margin-top: 7rem;
+}
+
 /* Universal visual state for fields with errors */
 form input.form-field-error,
 form select.form-field-error,

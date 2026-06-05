@@ -27,23 +27,34 @@
         {% endif %}
 
         {% if form.errors %}
-        <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+        <div id="form-errors-summary"
+             class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 scroll-mt-24"
+             tabindex="-1"
+             role="alert">
           <p class="text-sm font-semibold text-red-900 mb-2">Could not save — please fix these issues:</p>
           <ul class="text-sm text-red-800 space-y-1 list-disc list-inside">
-            {% for field, errors in form.errors.items %}
-              {% for error in errors %}
-                <li>{% if field != '__all__' %}<span class="font-medium">{{ field|title }}:</span> {% endif %}{{ error }}</li>
-              {% endfor %}
+            {% for bound_field in form %}
+              {% if bound_field.errors %}
+                {% for error in bound_field.errors %}
+                  <li>
+                    <a href="#{{ bound_field.id_for_label }}"
+                       class="font-medium text-red-900 underline underline-offset-2 decoration-red-300 hover:text-red-700 hover:decoration-red-500">
+                      {{ bound_field.label }}:
+                    </a>
+                    {{ error }}
+                  </li>
+                {% endfor %}
+              {% endif %}
             {% endfor %}
           </ul>
         </div>
         {% endif %}
 
-        <div class="bg-white border border-gray-200 rounded-card shadow-sm overflow-hidden">
-            <form method="post" enctype="multipart/form-data" class="space-y-0">
+        <div class="bg-white border border-gray-100 rounded-card overflow-hidden">
+            <form method="post" enctype="multipart/form-data" class="space-y-0 edit-profile-form">
                 {% csrf_token %}
 
-                <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 bg-gray-50/80 border-b border-gray-200" x-data="profileImagePreview()">
+                <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 bg-gray-50/50 border-b border-gray-100" x-data="profileImagePreview()">
                     <div class="flex flex-col lg:flex-row items-center space-y-6 lg:space-y-0 lg:space-x-10">
                         <div class="flex-shrink-0">
                             <div class="relative group">
@@ -165,12 +176,8 @@
                     {% endif %}
                 </div>
 
-                <div class="px-4 sm:px-6 lg:px-8 py-4 border-t border-gray-200 bg-gray-50/60">
+                <div class="px-4 sm:px-6 lg:px-8 py-4 border-t border-gray-100 bg-gray-50/40">
                     <div class="flex flex-wrap items-center justify-end gap-3">
-                      {% if not is_first_time %}
-                        {% url 'core:profile' as profile_cancel_url %}
-                        {% include "components/button.html" with label="Cancel" icon="fa-xmark" variant="secondary" as="a" href=profile_cancel_url %}
-                      {% endif %}
                       {% if is_first_time %}
                         {% include "components/button.html" with label="Create Profile" icon="fa-check" variant="primary" type="submit" %}
                       {% else %}
@@ -183,7 +190,29 @@
     </div>
 </div>
 
+<style>
+  .edit-profile-form input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  .edit-profile-form select,
+  .edit-profile-form textarea {
+    border-color: #e5e7eb;
+    box-shadow: none;
+  }
+  .edit-profile-form input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):focus,
+  .edit-profile-form select:focus,
+  .edit-profile-form textarea:focus {
+    border-color: #c4b5fd;
+    box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.08);
+  }
+</style>
+
 <script>
+window.__jmcfiAcademicCatalog = {
+    colleges: {{ college_options_json|safe }},
+    coursesByCollege: {{ course_options_by_college_json|safe }},
+    yearLevelsByCollege: {{ year_level_options_by_college_json|safe }},
+    courseOptionalByCollege: {{ course_optional_by_college_json|safe }},
+};
+
 function profileImagePreview() {
     return {
         previewSrc: '',
@@ -232,18 +261,22 @@ function profileImagePreview() {
     };
 }
 
-function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel, collegeOptions, courseOptionsByCollege, yearLevelOptionsByCollege, courseOptionalByCollege) {
+function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel) {
+    const catalog = window.__jmcfiAcademicCatalog || {};
     return {
         department: initialDepartment || '',
         course: initialCourse || '',
         yearLevel: initialYearLevel || '',
-        collegeOptions: collegeOptions || [],
-        courseOptionsByCollege: courseOptionsByCollege || {},
-        yearLevelOptionsByCollege: yearLevelOptionsByCollege || {},
-        courseOptionalByCollege: courseOptionalByCollege || {},
+        collegeOptions: catalog.colleges || [],
+        courseOptionsByCollege: catalog.coursesByCollege || {},
+        yearLevelOptionsByCollege: catalog.yearLevelsByCollege || {},
+        courseOptionalByCollege: catalog.courseOptionalByCollege || {},
 
         init() {
             this.syncSelections();
+            this.$nextTick(() => {
+                this.refreshDependentSelects();
+            });
         },
 
         get filteredCourseOptions() {
@@ -258,8 +291,43 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
             return !!this.courseOptionalByCollege[(this.department || '').trim()];
         },
 
+        populateSelect(selectEl, placeholder, options, selected) {
+            if (!selectEl) return;
+            const keep = selected && options.includes(selected) ? selected : '';
+            selectEl.innerHTML = '';
+            const blank = document.createElement('option');
+            blank.value = '';
+            blank.textContent = placeholder;
+            selectEl.appendChild(blank);
+            options.forEach((value) => {
+                const opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = value;
+                selectEl.appendChild(opt);
+            });
+            selectEl.value = keep;
+        },
+
+        refreshDependentSelects() {
+            this.populateSelect(
+                this.$refs.courseSelect,
+                'Select course/program',
+                this.filteredCourseOptions,
+                this.course
+            );
+            this.populateSelect(
+                this.$refs.yearLevelSelect,
+                'Select year level',
+                this.filteredYearLevelOptions,
+                this.yearLevel
+            );
+            this.course = this.$refs.courseSelect ? this.$refs.courseSelect.value : this.course;
+            this.yearLevel = this.$refs.yearLevelSelect ? this.$refs.yearLevelSelect.value : this.yearLevel;
+        },
+
         onDepartmentChange() {
             this.syncSelections();
+            this.refreshDependentSelects();
         },
 
         syncSelections() {

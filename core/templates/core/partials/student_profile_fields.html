@@ -3,15 +3,11 @@
      x-data="studentAcademicEditForm(
          '{{ form.department.value|default_if_none:""|escapejs }}',
          '{{ form.course.value|default_if_none:""|escapejs }}',
-         '{{ form.year_level.value|default_if_none:""|escapejs }}',
-         {{ college_options_json|safe }},
-         {{ course_options_by_college_json|safe }},
-         {{ year_level_options_by_college_json|safe }},
-         {{ course_optional_by_college_json|safe }}
+         '{{ form.year_level.value|default_if_none:""|escapejs }}'
      )"
      x-init="init()">
     <!-- Demographics Section -->
-     <div class="border-b-2 border-gray-200 pb-8">
+     <div class="border-b border-gray-100 pb-8">
         <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
             <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mr-3 shadow-md">
                 <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -151,7 +147,7 @@
     </div>
 
     <!-- Contact Information Section -->
-    <div class="border-b-2 border-gray-200 pb-8">
+    <div class="border-b border-gray-100 pb-8">
         <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
             <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center mr-3 shadow-md">
                 <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -161,72 +157,19 @@
             <span>Contact Information</span>
         </h3>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Address -->
-            <div class="form-group md:col-span-2">
-                <label for="{{ form.address.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Complete Residential Address <span class="text-red-600">*</span>
-                </label>
-                {{ form.address }}
-                {% if form.address.errors %}
-                    {% for error in form.address.errors %}
-                        <p class="mt-2 text-sm text-red-600 flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            {{ error }}
-                        </p>
-                    {% endfor %}
-                {% endif %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-start">
+            <div class="md:col-span-2">
+                {% include "components/forms/field.html" with field=form.address label="Complete Residential Address" %}
             </div>
-
-            <!-- Mobile Phone -->
-            {% include "partials/phone_field.html" with field=form.phone label="Mobile Phone Number" required=True icon_color="blue" %}
-
-            <!-- Telephone Number -->
-            <div class="form-group">
-                <label for="{{ form.telephone_number.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Telephone Number <span class="text-gray-400 text-xs">(Optional)</span>
-                </label>
-                {{ form.telephone_number }}
-                {% if form.telephone_number.errors %}
-                    {% for error in form.telephone_number.errors %}
-                        <p class="mt-2 text-sm text-red-600 flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            {{ error }}
-                        </p>
-                    {% endfor %}
-                {% endif %}
-            </div>
-
-            <!-- Emergency Contact Name -->
-            <div class="form-group">
-                <label for="{{ form.emergency_contact.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Emergency Contact Person <span class="text-red-600">*</span>
-                </label>
-                {{ form.emergency_contact }}
-                <p class="mt-1 text-xs text-gray-500">Full name of person to contact in emergency</p>
-                {% if form.emergency_contact.errors %}
-                    {% for error in form.emergency_contact.errors %}
-                        <p class="mt-2 text-sm text-red-600 flex items-center">
-                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                            </svg>
-                            {{ error }}
-                        </p>
-                    {% endfor %}
-                {% endif %}
-            </div>
-
-            <!-- Emergency Contact Phone -->
-            {% include "partials/phone_field.html" with field=form.emergency_phone label="Emergency Contact Number" required=True icon_color="orange" %}
+            {% include "components/forms/field.html" with field=form.phone label="Mobile Phone Number" help_text="Use format +63XXXXXXXXXX (e.g., +639171234567)." %}
+            {% include "components/forms/field.html" with field=form.telephone_number label="Telephone Number" required=False help_text="Optional landline number." %}
+            {% include "components/forms/field.html" with field=form.emergency_contact label="Emergency Contact Person" help_text="Full name of person to contact in emergency." %}
+            {% include "components/forms/field.html" with field=form.emergency_phone label="Emergency Contact Number" help_text="Use format +63XXXXXXXXXX (e.g., +639171234567)." %}
         </div>
     </div>
 
     <!-- Institutional Information Section -->
-    <div class="border-b-2 border-gray-200 pb-8">
+    <div class="border-b border-gray-100 pb-8">
         <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
             <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mr-3 shadow-md">
                 <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -246,12 +189,12 @@
                         id="{{ form.department.id_for_label }}"
                         x-model="department"
                         @change="onDepartmentChange()"
-                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                        class="form-select"
                         required>
                     <option value="">Select college/department</option>
-                    <template x-for="option in collegeOptions" :key="option">
-                        <option :value="option" x-text="option"></option>
-                    </template>
+                    {% for college in college_options %}
+                    <option value="{{ college }}"{% if form.department.value == college %} selected{% endif %}>{{ college }}</option>
+                    {% endfor %}
                 </select>
                 <p class="mt-1 text-xs text-gray-500">Select your college/department first</p>
                 {% if form.department.errors %}
@@ -275,13 +218,11 @@
                 </label>
                 <select name="course"
                         id="{{ form.course.id_for_label }}"
+                        x-ref="courseSelect"
                         x-model="course"
                         :required="!isCourseOptional"
-                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                        class="form-select">
                     <option value="">Select course/program</option>
-                    <template x-for="option in filteredCourseOptions" :key="option">
-                        <option :value="option" x-text="option"></option>
-                    </template>
                 </select>
                 <p class="mt-1 text-xs text-gray-500">Filtered by selected college/department</p>
                 {% if form.course.errors %}
@@ -303,13 +244,11 @@
                 </label>
                 <select name="year_level"
                         id="{{ form.year_level.id_for_label }}"
+                        x-ref="yearLevelSelect"
                         x-model="yearLevel"
                         required
-                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                        class="form-select">
                     <option value="">Select year level</option>
-                    <template x-for="option in filteredYearLevelOptions" :key="option">
-                        <option :value="option" x-text="option"></option>
-                    </template>
                 </select>
                 <p class="mt-1 text-xs text-gray-500">Filtered by selected college/department</p>
                 {% if form.year_level.errors %}
@@ -361,13 +300,13 @@
                 <label for="{{ form.allergies.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Allergies <span class="text-gray-400 text-xs">(Optional)</span>
                 </label>
-                <div class="space-y-3 rounded-lg border border-gray-200 bg-white p-3">
+                <div class="space-y-3 rounded-lg border border-gray-100 bg-gray-50/30 p-3">
                     <div class="flex gap-2">
                         <input type="text"
                                x-model="listInput"
                                @keydown.enter.prevent="addItem()"
                                placeholder="Type allergy then press Enter"
-                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                               class="form-input flex-1">
                         <button type="button"
                                 @click="addItem()"
                                 class="px-3 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 text-sm font-medium">Add</button>
@@ -402,13 +341,13 @@
                 <label for="{{ form.medical_conditions.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Pre-existing Medical Conditions <span class="text-gray-400 text-xs">(Optional)</span>
                 </label>
-                <div class="space-y-3 rounded-lg border border-gray-200 bg-white p-3">
+                <div class="space-y-3 rounded-lg border border-gray-100 bg-gray-50/30 p-3">
                     <div class="flex gap-2">
                         <input type="text"
                                x-model="listInput"
                                @keydown.enter.prevent="addItem()"
                                placeholder="Type condition then press Enter"
-                               class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                               class="form-input flex-1">
                         <button type="button"
                                 @click="addItem()"
                                 class="px-3 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 text-sm font-medium">Add</button>

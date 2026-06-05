@@ -36,6 +36,12 @@ STAFF_PROFILE_REQUIRED_FIELDS = [
     'first_name',
     'last_name',
     'staff_id',
+    'middle_name',
+    'gender',
+    'civil_status',
+    'date_of_birth',
+    'place_of_birth',
+    'age',
     'department',
     'phone',
 ]

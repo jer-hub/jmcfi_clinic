@@ -28,9 +28,27 @@ def _complete_staff_profile(user, staff_id='STAFF-001'):
         profile.staff_id = staff_id
     elif staff_id:
         profile.staff_id = staff_id
+    profile.middle_name = 'M'
+    profile.gender = 'male'
+    profile.civil_status = 'single'
+    profile.date_of_birth = '2000-01-01'
+    profile.place_of_birth = 'Davao'
+    profile.age = 26
     profile.department = 'Clinic Operations'
     profile.phone = '+639123456789'
-    profile.save(update_fields=['staff_id', 'department', 'phone'])
+    profile.save(
+        update_fields=[
+            'staff_id',
+            'middle_name',
+            'gender',
+            'civil_status',
+            'date_of_birth',
+            'place_of_birth',
+            'age',
+            'department',
+            'phone',
+        ]
+    )
     profile.refresh_from_db()
     user.__dict__.pop('staff_profile', None)
     user._state.fields_cache.pop('staff_profile', None)

@@ -4,7 +4,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
-from .form_widgets import INPUT_CLASS, SELECT_CLASS, TEXTAREA_CLASS
+from .form_widgets import CHECKBOX_CLASS, INPUT_CLASS, SELECT_CLASS, TEXTAREA_CLASS
 from .models import (
     StudentProfile,
     StaffProfile,
@@ -105,7 +105,7 @@ class StudentProfileForm(forms.ModelForm):
         ]
         widgets = {
             'patient_id': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm font-mono',
+                'class': INPUT_CLASS + ' font-mono',
                 'placeholder': 'Enter your patient ID',
                 'required': True
             }),
@@ -117,36 +117,36 @@ class StudentProfileForm(forms.ModelForm):
                 '@change': 'handleFileChange($event)',
             }),
             'middle_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'Middle Name',
                 'required': True,
             }),
             'gender': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': SELECT_CLASS,
                 'required': True
             }),
             'civil_status': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': SELECT_CLASS,
                 'required': True
             }),
             'date_of_birth': forms.DateInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'type': 'date',
                 'required': True
             }),
             'place_of_birth': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'City/Province',
                 'required': True
             }),
             'age': forms.NumberInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'min': '0',
                 'max': '150',
                 'required': True
             }),
             'address': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
+                'class': TEXTAREA_CLASS + ' resize-none',
                 'rows': 3,
                 'placeholder': 'Complete residential address',
                 'required': True
@@ -156,36 +156,36 @@ class StudentProfileForm(forms.ModelForm):
                 'required': False,
             }),
             'emergency_contact': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'Emergency contact name',
                 'required': True
             }),
             'course': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'e.g., BS Computer Science',
                 'required': True
             }),
             'year_level': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'e.g., 1st Year, 2nd Year',
                 'required': True
             }),
             'department': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'College/Department',
                 'required': True
             }),
             'blood_type': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': SELECT_CLASS,
                 'required': True
             }),
             'allergies': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
+                'class': TEXTAREA_CLASS + ' resize-none',
                 'rows': 4,
                 'placeholder': 'List any allergies (food, medication, environmental, etc.) or write "None"'
             }),
             'medical_conditions': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
+                'class': TEXTAREA_CLASS + ' resize-none',
                 'rows': 4,
                 'placeholder': 'List any existing medical conditions or chronic illnesses or write "None"'
             }),
@@ -306,7 +306,7 @@ class StaffProfileForm(forms.ModelForm):
         ]
         widgets = {
             'staff_id': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm font-mono',
+                'class': INPUT_CLASS + ' font-mono',
                 'placeholder': 'Enter your staff ID',
                 'required': True
             }),
@@ -318,35 +318,35 @@ class StaffProfileForm(forms.ModelForm):
                 '@change': 'handleFileChange($event)',
             }),
             'middle_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'Middle Name'
             }),
             'gender': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': SELECT_CLASS,
                 'required': True
             }),
             'civil_status': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': SELECT_CLASS,
                 'required': True
             }),
             'date_of_birth': forms.DateInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'type': 'date',
                 'required': True
             }),
             'place_of_birth': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'City/Province',
                 'required': True
             }),
             'age': forms.NumberInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'min': '0',
                 'max': '150',
                 'required': True
             }),
             'address': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
+                'class': TEXTAREA_CLASS + ' resize-none',
                 'rows': 3,
                 'placeholder': 'Complete residential address',
                 'required': True
@@ -355,43 +355,43 @@ class StaffProfileForm(forms.ModelForm):
                 **PHONE_WIDGET_ATTRS,
             }),
             'emergency_contact': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'Emergency contact name',
                 'required': True
             }),
             'blood_type': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm'
+                'class': SELECT_CLASS,
             }),
             'allergies': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
+                'class': TEXTAREA_CLASS + ' resize-none',
                 'rows': 4,
                 'placeholder': 'List any allergies (food, medication, environmental, etc.) or write "None"'
             }),
             'medical_conditions': forms.Textarea(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm resize-none',
+                'class': TEXTAREA_CLASS + ' resize-none',
                 'rows': 4,
                 'placeholder': 'List any existing medical conditions or chronic illnesses or write "None"'
             }),
             'department': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'e.g., Cardiology, General Medicine',
                 'required': True
             }),
             'position': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'Your position/title',
                 'required': True
             }),
             'specialization': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm',
+                'class': INPUT_CLASS,
                 'placeholder': 'Your area of specialization'
             }),
             'license_number': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm font-mono',
+                'class': INPUT_CLASS + ' font-mono',
                 'placeholder': 'Medical license number'
             }),
             'ptr_no': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 sm:text-sm font-mono',
+                'class': INPUT_CLASS + ' font-mono',
                 'placeholder': 'PTR No. / Professional Tax Receipt'
             }),
         }
@@ -502,21 +502,21 @@ class UserCreationForm(forms.ModelForm):
         initial=False,
         label='Activate account now',
         widget=forms.CheckboxInput(attrs={
-            'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
+            'class': CHECKBOX_CLASS,
         })
     )
     
     password1 = forms.CharField(
         label='Password',
         widget=forms.PasswordInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+            'class': INPUT_CLASS,
             'placeholder': 'Enter password'
         })
     )
     password2 = forms.CharField(
         label='Confirm Password',
         widget=forms.PasswordInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+            'class': INPUT_CLASS,
             'placeholder': 'Confirm password'
         })
     )
@@ -526,23 +526,23 @@ class UserCreationForm(forms.ModelForm):
         fields = ['username', 'email', 'first_name', 'last_name', 'role']
         widgets = {
             'username': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+                'class': INPUT_CLASS,
                 'placeholder': 'Enter username'
             }),
             'email': forms.EmailInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+                'class': INPUT_CLASS,
                 'placeholder': 'Enter email address'
             }),
             'first_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+                'class': INPUT_CLASS,
                 'placeholder': 'Enter first name'
             }),
             'last_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+                'class': INPUT_CLASS,
                 'placeholder': 'Enter last name'
             }),
             'role': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500'
+                'class': SELECT_CLASS
             })
         }
     
@@ -648,26 +648,26 @@ class UserEditForm(forms.ModelForm):
         fields = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active']
         widgets = {
             'username': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+                'class': INPUT_CLASS,
                 'placeholder': 'Enter username'
             }),
             'email': forms.EmailInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+                'class': INPUT_CLASS,
                 'placeholder': 'Enter email address'
             }),
             'first_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+                'class': INPUT_CLASS,
                 'placeholder': 'Enter first name'
             }),
             'last_name': forms.TextInput(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+                'class': INPUT_CLASS,
                 'placeholder': 'Enter last name'
             }),
             'role': forms.Select(attrs={
-                'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500'
+                'class': SELECT_CLASS
             }),
             'is_active': forms.CheckboxInput(attrs={
-                'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
+                'class': CHECKBOX_CLASS,
             })
         }
     
@@ -716,14 +716,14 @@ class PasswordResetForm(forms.Form):
     new_password1 = forms.CharField(
         label='New Password',
         widget=forms.PasswordInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+            'class': INPUT_CLASS,
             'placeholder': 'Enter new password'
         })
     )
     new_password2 = forms.CharField(
         label='Confirm New Password',
         widget=forms.PasswordInput(attrs={
-            'class': 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500',
+            'class': INPUT_CLASS,
             'placeholder': 'Confirm new password'
         })
     )

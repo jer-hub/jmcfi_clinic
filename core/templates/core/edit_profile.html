@@ -141,8 +141,8 @@
                     </div>
                 </div>
 
-                <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
-                    {% include "core/partials/_profile_form_section.html" with title="Account Name" icon="fa-id-card" description="Your legal name as shown on clinic records." grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" %}
+                <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
+                    {% include "core/partials/_profile_form_section.html" with title="Account Name" icon="fa-id-card" icon_theme="purple" description="Your legal name as shown on clinic records." grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" %}
                         <div class="space-y-1">
                           <label for="id_first_name" class="block text-sm font-medium text-gray-700">
                             First Name <span class="text-danger-500">*</span>
@@ -189,21 +189,6 @@
         </div>
     </div>
 </div>
-
-<style>
-  .edit-profile-form input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
-  .edit-profile-form select,
-  .edit-profile-form textarea {
-    border-color: #e5e7eb;
-    box-shadow: none;
-  }
-  .edit-profile-form input:not([type="file"]):not([type="checkbox"]):not([type="radio"]):focus,
-  .edit-profile-form select:focus,
-  .edit-profile-form textarea:focus {
-    border-color: #c4b5fd;
-    box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.08);
-  }
-</style>
 
 <script>
 window.__jmcfiAcademicCatalog = {

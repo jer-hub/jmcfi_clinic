@@ -420,6 +420,16 @@ class StaffProfileForm(forms.ModelForm):
         if self.fields['phone'].required and not current_phone:
             self.initial['phone'] = '+63'
 
+        current_emergency_phone = self.initial.get('emergency_phone')
+        if not current_emergency_phone and self.instance and self.instance.pk:
+            current_emergency_phone = getattr(self.instance, 'emergency_phone', '')
+        if (
+            'emergency_phone' in self.fields
+            and self.fields['emergency_phone'].required
+            and not current_emergency_phone
+        ):
+            self.initial['emergency_phone'] = '+63'
+
         if role == 'doctor':
             for hidden_field in ['blood_type', 'allergies', 'medical_conditions']:
                 if hidden_field in self.fields:

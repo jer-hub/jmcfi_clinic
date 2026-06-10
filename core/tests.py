@@ -30,8 +30,11 @@ def _complete_staff_like_profile(user, staff_id):
 	profile.date_of_birth = '2000-01-01'
 	profile.place_of_birth = 'Davao'
 	profile.age = 26
+	profile.address = '123 Clinic St, Davao'
 	profile.department = 'Clinic Operations'
 	profile.phone = '+639123456789'
+	profile.emergency_contact = 'Emergency Person'
+	profile.emergency_phone = '+639123456780'
 	profile.save(
 		update_fields=[
 			'staff_id',
@@ -41,8 +44,11 @@ def _complete_staff_like_profile(user, staff_id):
 			'date_of_birth',
 			'place_of_birth',
 			'age',
+			'address',
 			'department',
 			'phone',
+			'emergency_contact',
+			'emergency_phone',
 		]
 	)
 	profile.refresh_from_db()

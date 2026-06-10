@@ -42,8 +42,11 @@ STAFF_PROFILE_REQUIRED_FIELDS = [
     'date_of_birth',
     'place_of_birth',
     'age',
-    'department',
+    'address',
     'phone',
+    'emergency_contact',
+    'emergency_phone',
+    'department',
 ]
 
 # Admin profile fields required before service access.

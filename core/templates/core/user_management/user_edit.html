@@ -1,0 +1,62 @@
+{% extends 'core/base.html' %}
+{% load role_tags %}
+
+{% block title %}Edit User - JMCFI Clinic{% endblock title %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 pt-0">
+    {% include 'core/_subnav.html' %}
+
+    <div class="mb-8">
+      {% include "components/page_header.html" with title="Edit User" subtitle="Update account and profile information" icon="fa-pen-to-square" %}
+    </div>
+
+    {% if user_form.non_field_errors or form.non_field_errors %}
+    <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ user_form.non_field_errors }}
+      {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <div class="bg-white border border-gray-100 rounded-card overflow-hidden">
+      <form method="post" enctype="multipart/form-data" class="space-y-0">
+        {% csrf_token %}
+
+        {% include "core/partials/_profile_photo_section.html" with subject_user=viewed_user %}
+
+        <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
+          {% include "core/partials/_profile_form_section.html" with title="Account" icon="fa-user-gear" icon_theme="indigo" description="Login credentials and account status." grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" %}
+            {% include "components/forms/field.html" with field=user_form.username %}
+            {% include "components/forms/field.html" with field=user_form.email icon="fa-envelope" %}
+            {% include "components/forms/field.html" with field=user_form.first_name %}
+            {% include "components/forms/field.html" with field=user_form.last_name %}
+            {% include "components/forms/field.html" with field=user_form.role %}
+            {% include "components/forms/field.html" with field=user_form.is_active label="Account active" %}
+          {% include "core/partials/_profile_form_section_end.html" %}
+
+          {% with user=viewed_user %}
+            {% if user|is_patient_role %}
+              {% include 'core/partials/student_profile_fields.html' %}
+            {% elif user.role == 'staff' or user.role == 'doctor' or user.role == 'admin' %}
+              {% include 'core/partials/staff_profile_fields.html' %}
+            {% endif %}
+          {% endwith %}
+        </div>
+
+        <div class="px-4 sm:px-6 lg:px-8 py-4 border-t border-gray-100 bg-gray-50/40">
+          <div class="flex flex-wrap items-center justify-end gap-3">
+            {% url 'core:user_detail' viewed_user.id as cancel_url %}
+            {% include "components/forms/form_actions.html" with submit_label="Save Changes" submit_icon="fa-floppy-disk" cancel_url=cancel_url %}
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+{% include "core/partials/_profile_form_scripts.html" %}
+</script>
+{% endblock content %}
+

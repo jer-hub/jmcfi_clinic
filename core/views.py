@@ -64,6 +64,13 @@ from .utils import (
     resolve_notification_url, student_display_name, patient_search_q,
     user_visible_notifications,
 )
+from .profile_forms import (
+    get_or_create_profile,
+    instantiate_profile_form,
+    patient_catalog_context_for_form,
+    profile_form_class,
+    swap_profile_for_role_change,
+)
 from .decorators import admin_required, role_required
 from .user_management_services import (
     build_active_user_list_context,
@@ -587,9 +594,16 @@ def profile_view(request):
     active_college = profile.department if profile and role_matches(request.user.role, ROLE_PATIENT) else ''
     year_level_options = year_level_options_by_college.get(active_college, [])
 
+    dental_record = None
+    try:
+        dental_record = DentalRecord.objects.filter(patient=request.user).latest('created_at')
+    except DentalRecord.DoesNotExist:
+        pass
+
     context = {
         'user': request.user,
         'profile': profile,
+        'dental_record': dental_record,
         'completion_percentage': completion_percentage,
         'course_options': catalog['course_options'],
         'college_options': catalog['college_options'],
@@ -976,11 +990,9 @@ def edit_profile(request):
     profile = get_user_profile(request.user)
     is_first_time = profile is None
     
-    if role_matches(request.user.role, ROLE_PATIENT):
-        form_class = StudentProfileForm
-    elif request.user.role in ['staff', 'doctor', 'admin']:
-        form_class = StaffProfileForm
-    else:
+    try:
+        form_class = profile_form_class(request.user)
+    except ValueError:
         messages.error(request, 'Profile editing not available for your role.')
         return redirect('core:dashboard')
     
@@ -1104,28 +1116,19 @@ def edit_profile(request):
                 f'Welcome to JMCFI Clinic! Please complete your profile to get started.')
             request.session['profile_welcome_shown'] = True
     
-    catalog = patient_catalog_context()
-    course_options_by_college = json.loads(catalog['course_options_by_college_json'])
-    year_level_options_by_college = json.loads(catalog['year_level_options_by_college_json'])
-    selected_department = ''
-    if role_matches(request.user.role, ROLE_PATIENT) and 'department' in form.fields:
-        selected_department = (form['department'].value() or '').strip()
-    initial_course_options = course_options_by_college.get(selected_department, [])
-    initial_year_level_options = year_level_options_by_college.get(selected_department, [])
+    catalog_context = {}
+    if role_matches(request.user.role, ROLE_PATIENT):
+        catalog_context = patient_catalog_context_for_form(form, request.user)
 
     context = {
         'form': form,
         'profile': profile,
         'user': request.user,
+        'subject_user': request.user,
         'is_first_time': is_first_time,
         'dental_record': dental_record,
-        'college_options': catalog['college_options'],
-        'initial_course_options': initial_course_options,
-        'initial_year_level_options': initial_year_level_options,
-        'college_options_json': catalog['college_options_json'],
-        'course_options_by_college_json': catalog['course_options_by_college_json'],
-        'year_level_options_by_college_json': catalog['year_level_options_by_college_json'],
-        'course_optional_by_college_json': catalog['course_optional_by_college_json'],
+        'include_academic_catalog': role_matches(request.user.role, ROLE_PATIENT),
+        **catalog_context,
     }
     
     return render(request, 'core/edit_profile.html', context)
@@ -1245,68 +1248,78 @@ def user_create(request):
     return render(request, 'core/user_management/user_form.html', context)
 
 
+def _lock_user_edit_form_for_admin_target(form, is_admin_user):
+    if is_admin_user:
+        form.fields['role'].disabled = True
+        form.fields['role'].choices = [('admin', 'Admin')]
+        form.fields['is_active'].disabled = True
+
+
+def _user_edit_context(viewed_user, user_form, profile_form, profile, is_admin_user):
+    context = {
+        'user_form': user_form,
+        'form': profile_form,
+        'viewed_user': viewed_user,
+        'profile': profile,
+        'is_admin_user': is_admin_user,
+        'include_academic_catalog': role_matches(viewed_user.role, ROLE_PATIENT),
+    }
+    if role_matches(viewed_user.role, ROLE_PATIENT):
+        context.update(patient_catalog_context_for_form(profile_form, viewed_user))
+    return context
+
+
 @login_required
 @admin_required
 def user_edit(request, user_id):
-    """Edit an existing user"""
+    """Edit an existing user (account + full profile)."""
     user = get_object_or_404(User, id=user_id)
     is_admin_user = user.role == 'admin'
 
+    try:
+        profile = get_or_create_profile(user)
+    except ValueError:
+        messages.error(request, f'Profile editing not available for role {user.role!r}.')
+        return redirect('core:user_detail', user_id=user.id)
+
     if request.method == 'POST':
-        form = UserEditForm(request.POST, instance=user)
-        if is_admin_user:
-            form.fields['role'].disabled = True
-            form.fields['role'].choices = [('admin', 'Admin')]
-            form.fields['is_active'].disabled = True
-        if form.is_valid():
-            old_role = user.role
-            user = form.save()
+        old_role = user.role
+        user_form = UserEditForm(request.POST, instance=user)
+        _lock_user_edit_form_for_admin_target(user_form, is_admin_user)
+        profile_form = instantiate_profile_form(
+            user, profile=profile, data=request.POST, files=request.FILES,
+        )
 
-            if old_role != user.role:
-                if role_matches(old_role, ROLE_PATIENT) and not role_matches(user.role, ROLE_PATIENT):
-                    if hasattr(user, 'patient_profile'):
-                        user.patient_profile.delete()
-                    if not hasattr(user, 'staff_profile'):
-                        StaffProfile.objects.create(
-                            user=user,
-                            staff_id=f'TEMP_{user.id}',
-                            phone='',
-                            department='Pending',
-                        )
-                elif role_matches(old_role, 'staff', 'doctor') and role_matches(user.role, ROLE_PATIENT):
-                    if hasattr(user, 'staff_profile'):
-                        user.staff_profile.delete()
-                    if not hasattr(user, 'patient_profile'):
-                        StudentProfile.objects.create(
-                            user=user,
-                            patient_id=f'TEMP_{user.id}',
-                            phone='',
-                            emergency_contact='',
-                            emergency_phone='',
-                            date_of_birth='2000-01-01',
-                        )
+        if user_form.is_valid():
+            role_changed = user_form.cleaned_data['role'] != old_role
+            if role_changed:
+                user = user_form.save()
+                swap_profile_for_role_change(user, old_role)
+                messages.info(
+                    request,
+                    f'Role changed from {old_role} to {user.role}. Please update their profile.',
+                )
+                return redirect('core:user_edit', user_id=user.id)
 
-                messages.info(request, f'Role changed from {old_role} to {user.role}. Please update their profile.')
+            if profile_form.is_valid():
+                with transaction.atomic():
+                    user = user_form.save()
+                    profile = profile_form.save(commit=False)
+                    profile.user = user
+                    profile.save()
+                messages.success(request, 'User updated successfully!')
+                return redirect('core:user_detail', user_id=user.id)
 
-            messages.success(request, 'User updated successfully!')
-            return redirect('core:user_detail', user_id=user.id)
+            messages.error(request, 'Please correct the errors below.')
         else:
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = UserEditForm(instance=user)
-        if is_admin_user:
-            form.fields['role'].disabled = True
-            form.fields['role'].choices = [('admin', 'Admin')]
-            form.fields['is_active'].disabled = True
+        user_form = UserEditForm(instance=user)
+        _lock_user_edit_form_for_admin_target(user_form, is_admin_user)
+        profile_form = instantiate_profile_form(user, profile=profile)
 
-    context = {
-        'form': form,
-        'action': 'Edit',
-        'viewed_user': user,
-        'is_admin_user': is_admin_user,
-    }
-
-    return render(request, 'core/user_management/user_form.html', context)
+    context = _user_edit_context(user, user_form, profile_form, profile, is_admin_user)
+    return render(request, 'core/user_management/user_edit.html', context)
 
 
 @login_required

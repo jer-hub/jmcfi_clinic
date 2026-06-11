@@ -1,0 +1,69 @@
+{% load role_tags %}
+<div class="bg-gradient-to-br from-primary-600 via-primary-600 to-primary-800 px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 pb-10 sm:pb-12">
+  <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+    <div class="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 min-w-0 flex-1">
+      <div class="relative flex-shrink-0 group">
+        {% if profile and profile.profile_image %}
+          <img src="{{ profile.profile_image.url }}"
+               alt="Profile picture"
+               class="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover border-4 border-white/40 shadow-lg"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white/20 border-4 border-white/40 shadow-lg items-center justify-center hidden">
+            <span class="text-white text-3xl font-bold">
+              {{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}
+            </span>
+          </div>
+        {% else %}
+          <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-white/20 border-4 border-white/40 shadow-lg flex items-center justify-center">
+            <span class="text-white text-3xl font-bold">
+              {{ user.first_name.0|default:"U" }}{{ user.last_name.0|default:"" }}
+            </span>
+          </div>
+        {% endif %}
+        <a href="{% url 'core:edit_profile' %}"
+           class="absolute bottom-0 right-0 bg-white rounded-full p-1.5 shadow-md hover:shadow-lg transition-all hover:scale-105"
+           aria-label="Change profile photo">
+          <i class="fas fa-pen text-primary-600 text-xs"></i>
+        </a>
+      </div>
+
+      <div class="text-center sm:text-left min-w-0 flex-1">
+        <h1 class="text-xl sm:text-2xl font-bold text-white tracking-tight" data-profile-field="full_name">
+          {{ user.first_name }}
+          {% if profile.middle_name %}{{ profile.middle_name }} {% endif %}
+          {{ user.last_name }}
+        </h1>
+        <div class="mt-2 flex flex-wrap justify-center sm:justify-start gap-2">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white backdrop-blur-sm">
+            <i class="fas fa-user mr-1.5 text-[10px]"></i>
+            {{ user.get_role_display }}
+          </span>
+          {% if profile %}
+            {% if user|is_patient_role and profile.patient_id %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white font-mono">
+                ID: {{ profile.patient_id }}
+              </span>
+            {% elif user.role == 'staff' or user.role == 'doctor' %}
+              {% if profile.staff_id %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 text-white font-mono">
+                ID: {{ profile.staff_id }}
+              </span>
+              {% endif %}
+            {% endif %}
+            {% if user.role != 'doctor' and profile.blood_type %}
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/90 text-white">
+                <i class="fas fa-heart mr-1 text-[10px]"></i>
+                {{ profile.blood_type }}
+              </span>
+            {% endif %}
+          {% endif %}
+        </div>
+        <p class="text-white/85 mt-2 text-sm truncate">{{ user.email }}</p>
+      </div>
+    </div>
+
+    <div class="flex-shrink-0 w-full sm:w-auto">
+      {% include "core/partials/profile/_profile_hero_actions.html" %}
+    </div>
+  </div>
+</div>

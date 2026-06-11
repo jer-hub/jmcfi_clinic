@@ -1,0 +1,45 @@
+{% load role_tags %}
+<nav class="overflow-x-auto" aria-label="Profile sections">
+  <div class="inline-flex min-w-full sm:min-w-0 p-1 bg-white border border-gray-200 shadow-sm rounded-lg gap-0.5">
+    <button type="button"
+            @click="activeTab = 'personal'"
+            :class="activeTab === 'personal' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
+      <i class="fas fa-user text-xs"></i>
+      Personal
+    </button>
+    <button type="button"
+            @click="activeTab = 'contact'"
+            :class="activeTab === 'contact' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
+      <i class="fas fa-phone text-xs"></i>
+      Contact
+    </button>
+    {% if user.role != 'doctor' and user.role != 'admin' %}
+    <button type="button"
+            @click="activeTab = 'medical'"
+            :class="activeTab === 'medical' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
+      <i class="fas fa-notes-medical text-xs"></i>
+      Medical
+    </button>
+    {% endif %}
+    {% if user|is_patient_role %}
+    <button type="button"
+            @click="activeTab = 'academic'"
+            :class="activeTab === 'academic' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
+      <i class="fas fa-graduation-cap text-xs"></i>
+      Academic
+    </button>
+    {% elif user.role == 'staff' or user.role == 'doctor' %}
+    <button type="button"
+            @click="activeTab = 'professional'"
+            :class="activeTab === 'professional' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
+      <i class="fas fa-briefcase-medical text-xs"></i>
+      Professional
+    </button>
+    {% endif %}
+  </div>
+</nav>

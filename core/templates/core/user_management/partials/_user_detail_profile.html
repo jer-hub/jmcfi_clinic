@@ -1,0 +1,114 @@
+{% load role_tags %}
+{% if profile %}
+<div class="space-y-3">
+  <details class="group rounded-lg border border-gray-100 overflow-hidden" open>
+    <summary class="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none hover:bg-gray-50/80 list-none [&::-webkit-details-marker]:hidden">
+      <span class="w-7 h-7 rounded-md bg-primary-50 border border-primary-100 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+        <i class="fas fa-id-card text-primary-600 text-xs"></i>
+      </span>
+      <span class="text-sm font-semibold text-gray-900 flex-1">Personal & demographic</span>
+      <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform group-open:rotate-180"></i>
+    </summary>
+    <div class="px-4 border-t border-gray-100">
+      {% if viewed_user|is_patient_role %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Patient ID" icon="fa-hashtag" value=profile.patient_id is_last=False %}
+      {% else %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Staff ID" icon="fa-hashtag" value=profile.staff_id is_last=False %}
+      {% endif %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Middle name" icon="fa-user" value=profile.middle_name|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Gender" icon="fa-venus-mars" value=profile.get_gender_display|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Civil status" icon="fa-heart" value=profile.get_civil_status_display|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Date of birth" icon="fa-cake-candles" value=profile.date_of_birth|date:"F d, Y"|default:"Not provided" is_last=False %}
+      <div class="flex items-start gap-3 py-3.5 border-b border-gray-100">
+        <div class="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5" aria-hidden="true">
+          <i class="fas fa-hourglass-half text-gray-500 text-sm"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-medium text-gray-500">Age</p>
+          <p class="text-sm font-medium text-gray-900 mt-0.5">{% if profile.age %}{{ profile.age }} years old{% else %}Not provided{% endif %}</p>
+        </div>
+      </div>
+      {% include "core/partials/profile/_profile_field_row.html" with label="Place of birth" icon="fa-map-pin" value=profile.place_of_birth|default:"Not provided" is_last=True %}
+    </div>
+  </details>
+
+  <details class="group rounded-lg border border-gray-100 overflow-hidden" open>
+    <summary class="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none hover:bg-gray-50/80 list-none [&::-webkit-details-marker]:hidden">
+      <span class="w-7 h-7 rounded-md bg-blue-50 border border-blue-100 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+        <i class="fas fa-address-book text-blue-600 text-xs"></i>
+      </span>
+      <span class="text-sm font-semibold text-gray-900 flex-1">Contact information</span>
+      <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform group-open:rotate-180"></i>
+    </summary>
+    <div class="px-4 border-t border-gray-100">
+      {% if profile.address %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Address" icon="fa-location-dot" value=profile.address|linebreaksbr render="linebreaks" is_last=False %}
+      {% else %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Address" icon="fa-location-dot" value="Not provided" is_last=False %}
+      {% endif %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Mobile phone" icon="fa-mobile-screen" value=profile.phone|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Telephone" icon="fa-phone" value=profile.telephone_number|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Emergency contact" icon="fa-user-injured" value=profile.emergency_contact|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Emergency phone" icon="fa-phone-volume" value=profile.emergency_phone|default:"Not provided" is_last=True %}
+    </div>
+  </details>
+
+  {% if viewed_user|is_patient_role %}
+  <details class="group rounded-lg border border-gray-100 overflow-hidden">
+    <summary class="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none hover:bg-gray-50/80 list-none [&::-webkit-details-marker]:hidden">
+      <span class="w-7 h-7 rounded-md bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+        <i class="fas fa-graduation-cap text-indigo-600 text-xs"></i>
+      </span>
+      <span class="text-sm font-semibold text-gray-900 flex-1">Academic information</span>
+      <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform group-open:rotate-180"></i>
+    </summary>
+    <div class="px-4 border-t border-gray-100">
+      {% include "core/partials/profile/_profile_field_row.html" with label="Department / college" icon="fa-building-columns" value=profile.department|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Course / program" icon="fa-book" value=profile.course|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Year level" icon="fa-layer-group" value=profile.year_level|default:"Not provided" is_last=True %}
+    </div>
+  </details>
+  {% endif %}
+
+  {% if viewed_user.role == 'staff' or viewed_user.role == 'doctor' or viewed_user.role == 'admin' %}
+  <details class="group rounded-lg border border-gray-100 overflow-hidden">
+    <summary class="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none hover:bg-gray-50/80 list-none [&::-webkit-details-marker]:hidden">
+      <span class="w-7 h-7 rounded-md bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+        <i class="fas fa-briefcase-medical text-indigo-600 text-xs"></i>
+      </span>
+      <span class="text-sm font-semibold text-gray-900 flex-1">Professional information</span>
+      <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform group-open:rotate-180"></i>
+    </summary>
+    <div class="px-4 border-t border-gray-100">
+      {% include "core/partials/profile/_profile_field_row.html" with label="Department" icon="fa-building" value=profile.department|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Position" icon="fa-id-badge" value=profile.position|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Specialization" icon="fa-stethoscope" value=profile.specialization|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="License number" icon="fa-certificate" value=profile.license_number|default:"Not provided" is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="PTR number" icon="fa-file-invoice" value=profile.ptr_no|default:"Not provided" is_last=True %}
+    </div>
+  </details>
+  {% endif %}
+
+  {% if viewed_user.role != 'doctor' and viewed_user.role != 'admin' %}
+  <details class="group rounded-lg border border-gray-100 overflow-hidden">
+    <summary class="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none hover:bg-gray-50/80 list-none [&::-webkit-details-marker]:hidden">
+      <span class="w-7 h-7 rounded-md bg-red-50 border border-red-100 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+        <i class="fas fa-heart-pulse text-red-600 text-xs"></i>
+      </span>
+      <span class="text-sm font-semibold text-gray-900 flex-1">Medical & health</span>
+      <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform group-open:rotate-180"></i>
+    </summary>
+    <div class="px-4 border-t border-gray-100">
+      {% include "core/partials/profile/_profile_field_row.html" with label="Blood type" icon="fa-droplet" value=profile.blood_type|default:"Not provided" is_last=False %}
+      {% include "core/user_management/partials/_user_detail_list_field_row.html" with label="Allergies" icon="fa-triangle-exclamation" value=profile.allergies is_last=False %}
+      {% include "core/user_management/partials/_user_detail_list_field_row.html" with label="Medical conditions" icon="fa-notes-medical" value=profile.medical_conditions is_last=True %}
+    </div>
+  </details>
+  {% endif %}
+</div>
+{% else %}
+<div class="rounded-lg border border-amber-100 bg-amber-50/50 px-4 py-4 text-sm text-amber-900">
+  <i class="fas fa-circle-info mr-1.5"></i>
+  No profile record exists for this user yet. Use <strong>Edit User</strong> to create one.
+</div>
+{% endif %}

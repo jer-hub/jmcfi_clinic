@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from .decorators import admin_required
 from .models import RoleSettings, SettingsChangeLog, User
 from .settings_audit import log_form_field_changes
@@ -205,17 +206,29 @@ def settings_audit(request):
     )
 
 
+def _preferences_return_url(request):
+    """Post-save destination: safe ?next= or profile overview."""
+    next_url = (request.POST.get('next') or request.GET.get('next') or '').strip()
+    if next_url and url_has_allowed_host_and_scheme(
+        url=next_url,
+        allowed_hosts={request.get_host()},
+    ):
+        return next_url
+    return reverse('core:profile')
+
+
 @login_required
 def profile_preferences(request):
     """Personal notification and UI preferences (all roles)."""
     prefs = get_user_preferences(request.user)
+    return_url = _preferences_return_url(request)
 
     if request.method == 'POST':
         form = UserPreferencesForm(request.POST, instance=prefs)
         if form.is_valid():
             form.save()
             messages.success(request, 'Your preferences were saved.')
-            return redirect('core:profile_preferences')
+            return redirect(_preferences_return_url(request))
         messages.error(request, 'Please correct the errors below.')
     else:
         form = UserPreferencesForm(instance=prefs)
@@ -225,5 +238,6 @@ def profile_preferences(request):
         'core/settings/preferences.html',
         {
             'form': form,
+            'return_url': return_url,
         },
     )

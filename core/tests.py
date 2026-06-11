@@ -17,6 +17,34 @@ from .models import AccountProvisioningAudit
 User = get_user_model()
 
 
+def _complete_student_profile(user, patient_id):
+	user.first_name = user.first_name or 'Test'
+	user.last_name = user.last_name or 'Student'
+	user.save(update_fields=['first_name', 'last_name'])
+
+	profile, _ = StudentProfile.objects.get_or_create(user=user)
+	profile.patient_id = patient_id
+	profile.middle_name = 'M'
+	profile.phone = '+639123456789'
+	profile.emergency_contact = 'Emergency Contact'
+	profile.emergency_phone = '+639987654321'
+	profile.date_of_birth = '2000-01-01'
+	profile.department = 'College of Science'
+	profile.course = 'BS Computer Science'
+	profile.year_level = '1st Year'
+	profile.gender = 'male'
+	profile.civil_status = 'single'
+	profile.place_of_birth = 'Manila'
+	profile.age = 23
+	profile.address = 'Manila'
+	profile.blood_type = 'O+'
+	profile.save()
+	profile.refresh_from_db()
+
+	user.__dict__.pop('patient_profile', None)
+	user._state.fields_cache.pop('patient_profile', None)
+
+
 def _complete_staff_like_profile(user, staff_id):
 	user.first_name = user.first_name or 'Test'
 	user.last_name = user.last_name or 'User'
@@ -549,6 +577,82 @@ class AdminProfileCompletionRequirementTests(TestCase):
 		profile.refresh_from_db()
 		self.assertEqual(profile.position, 'Operations Lead')
 		self.assertEqual(profile.allergies, 'Dust')
+
+
+class ProfilePageRefactorTests(TestCase):
+	"""Smoke tests for decomposed profile page template and quick-edit."""
+
+	def setUp(self):
+		self.admin_user = User.objects.create_user(
+			email='admin-profile-refactor@jmcfi.edu.ph',
+			password='AdminProfile123!',
+			role='admin',
+			is_active=True,
+		)
+		_complete_staff_like_profile(self.admin_user, 'ADM-REFACTOR-001')
+		self.admin_user.first_name = 'Admin'
+		self.admin_user.last_name = 'User'
+		self.admin_user.save(update_fields=['first_name', 'last_name'])
+
+		self.staff_user = User.objects.create_user(
+			email='staff-profile-refactor@jmcfi.edu.ph',
+			password='StaffProfile123!',
+			role='staff',
+			is_active=True,
+		)
+		_complete_staff_like_profile(self.staff_user, 'STF-REFACTOR-001')
+
+		self.patient_user = User.objects.create_user(
+			email='patient-profile-refactor@jmcfi.edu.ph',
+			password='PatientProfile123!',
+			role='patient',
+			is_active=True,
+		)
+		_complete_student_profile(self.patient_user, 'PAT-REFACTOR-001')
+		self.patient_user.first_name = 'Pat'
+		self.patient_user.last_name = 'Ient'
+		self.patient_user.save(update_fields=['first_name', 'last_name'])
+
+	def test_profile_page_uses_decomposed_template_and_primary_styling(self):
+		self.client.force_login(self.admin_user)
+		response = self.client.get(reverse('core:profile'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'quickEditModal')
+		self.assertContains(response, 'window.__jmcfiAcademicCatalog')
+		self.assertContains(response, 'text-primary-700')
+		self.assertContains(response, 'quickEditModal')
+		self.assertContains(response, 'rounded-card')
+		self.assertNotContains(response, 'studentAcademicEditForm')
+
+	def test_patient_profile_shows_academic_tab(self):
+		self.client.force_login(self.patient_user)
+		response = self.client.get(reverse('core:profile'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, "activeTab === 'academic'")
+		self.assertContains(response, 'Quick Edit Academic')
+
+	def test_staff_profile_shows_professional_tab(self):
+		self.client.force_login(self.staff_user)
+		response = self.client.get(reverse('core:profile'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, "activeTab === 'professional'")
+
+	def test_quick_edit_post_updates_profile_field(self):
+		self.client.force_login(self.staff_user)
+		response = self.client.post(
+			reverse('core:quick_edit_profile'),
+			{'field_name': 'address', 'field_value': '789 Refactored Street'},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+
+		self.assertEqual(response.status_code, 200)
+		payload = response.json()
+		self.assertTrue(payload['success'])
+		self.staff_user.staff_profile.refresh_from_db()
+		self.assertEqual(self.staff_user.staff_profile.address, '789 Refactored Street')
 
 
 @override_settings(

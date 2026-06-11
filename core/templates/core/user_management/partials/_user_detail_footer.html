@@ -1,0 +1,14 @@
+<div class="px-4 sm:px-6 lg:px-8 py-4 border-t border-gray-100 bg-gray-50/60">
+  <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-gray-500">
+    <span class="inline-flex items-center gap-1.5">
+      <i class="fas fa-envelope text-gray-400"></i>
+      {{ viewed_user.email }}
+    </span>
+    {% if profile %}
+    <span class="inline-flex items-center gap-1.5">
+      <i class="fas fa-clock-rotate-left text-gray-400"></i>
+      Profile updated {{ profile.updated_at|date:"M d, Y" }}
+    </span>
+    {% endif %}
+  </div>
+</div>

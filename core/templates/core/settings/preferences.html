@@ -8,6 +8,9 @@
 
 {% block form_open %}
 <form method="post" novalidate>{% csrf_token %}
+  {% if request.GET.next %}
+    <input type="hidden" name="next" value="{{ request.GET.next }}">
+  {% endif %}
 {% endblock %}
 
 {% block form_body %}
@@ -43,5 +46,6 @@
 {% endblock %}
 
 {% block submit_bar %}
-  {% include "components/forms/form_actions.html" with submit_label="Save preferences" submit_icon="fa-floppy-disk" %}
+  {% url 'core:profile' as profile_url %}
+  {% include "components/forms/form_actions.html" with submit_label="Save preferences" submit_icon="fa-floppy-disk" cancel_url=return_url|default:profile_url cancel_label="Back to profile" %}
 {% endblock %}

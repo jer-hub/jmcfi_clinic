@@ -1,0 +1,182 @@
+{% if include_academic_catalog %}
+window.__jmcfiAcademicCatalog = {
+    colleges: {{ college_options_json|safe }},
+    coursesByCollege: {{ course_options_by_college_json|safe }},
+    yearLevelsByCollege: {{ year_level_options_by_college_json|safe }},
+    courseOptionalByCollege: {{ course_optional_by_college_json|safe }},
+};
+{% endif %}
+
+function profileImagePreview() {
+    return {
+        previewSrc: '',
+        fileName: '',
+        hasImage: {% if profile and profile.profile_image %}true{% else %}false{% endif %},
+        hasImageUrl: '{% if profile and profile.profile_image %}{{ profile.profile_image.url|escapejs }}{% endif %}',
+
+        handleFileChange(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!validTypes.includes(file.type)) {
+                window.alert('Please select a valid image file (JPG, PNG, or GIF).');
+                event.target.value = '';
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                window.alert('File size must be less than 5MB.');
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (readerEvent) => {
+                this.previewSrc = readerEvent.target.result;
+                this.hasImage = true;
+            };
+            reader.readAsDataURL(file);
+            this.fileName = file.name;
+        },
+
+        removeImage() {
+            if (!window.confirm('Are you sure you want to remove your profile picture?')) return;
+
+            const fileInput = this.$refs.profileImageInput;
+            if (fileInput) {
+                fileInput.value = '';
+            }
+
+            this.previewSrc = '';
+            this.fileName = '';
+            this.hasImage = false;
+        },
+    };
+}
+
+{% if include_academic_catalog %}
+function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel) {
+    const catalog = window.__jmcfiAcademicCatalog || {};
+    return {
+        department: initialDepartment || '',
+        course: initialCourse || '',
+        yearLevel: initialYearLevel || '',
+        collegeOptions: catalog.colleges || [],
+        courseOptionsByCollege: catalog.coursesByCollege || {},
+        yearLevelOptionsByCollege: catalog.yearLevelsByCollege || {},
+        courseOptionalByCollege: catalog.courseOptionalByCollege || {},
+
+        init() {
+            this.syncSelections();
+            this.$nextTick(() => {
+                this.refreshDependentSelects();
+            });
+        },
+
+        get filteredCourseOptions() {
+            return this.courseOptionsByCollege[this.department] || [];
+        },
+
+        get filteredYearLevelOptions() {
+            return this.yearLevelOptionsByCollege[this.department] || [];
+        },
+
+        get isCourseOptional() {
+            return !!this.courseOptionalByCollege[(this.department || '').trim()];
+        },
+
+        populateSelect(selectEl, placeholder, options, selected) {
+            if (!selectEl) return;
+            const keep = selected && options.includes(selected) ? selected : '';
+            selectEl.innerHTML = '';
+            const blank = document.createElement('option');
+            blank.value = '';
+            blank.textContent = placeholder;
+            selectEl.appendChild(blank);
+            options.forEach((value) => {
+                const opt = document.createElement('option');
+                opt.value = value;
+                opt.textContent = value;
+                selectEl.appendChild(opt);
+            });
+            selectEl.value = keep;
+        },
+
+        refreshDependentSelects() {
+            this.populateSelect(
+                this.$refs.courseSelect,
+                'Select course/program',
+                this.filteredCourseOptions,
+                this.course
+            );
+            this.populateSelect(
+                this.$refs.yearLevelSelect,
+                'Select year level',
+                this.filteredYearLevelOptions,
+                this.yearLevel
+            );
+            this.course = this.$refs.courseSelect ? this.$refs.courseSelect.value : this.course;
+            this.yearLevel = this.$refs.yearLevelSelect ? this.$refs.yearLevelSelect.value : this.yearLevel;
+        },
+
+        onDepartmentChange() {
+            this.syncSelections();
+            this.refreshDependentSelects();
+        },
+
+        syncSelections() {
+            if (this.course && !this.filteredCourseOptions.includes(this.course)) {
+                this.course = '';
+            }
+
+            if (this.yearLevel && !this.filteredYearLevelOptions.includes(this.yearLevel)) {
+                this.yearLevel = '';
+            }
+        },
+    };
+}
+{% endif %}
+
+function studentListField(initialValue) {
+    return {
+        listItems: [],
+        listInput: '',
+        validationError: '',
+        serializedValue: initialValue || '',
+
+        init() {
+            this.listItems = (this.serializedValue || '')
+                .split(/[\n,;]+/)
+                .map((item) => item.trim())
+                .filter((item, index, items) => item && items.indexOf(item) === index);
+            this.syncValue();
+        },
+
+        syncValue() {
+            this.serializedValue = this.listItems.join('\n');
+        },
+
+        addItem() {
+            const item = (this.listInput || '').trim();
+            if (!item) return;
+            if (item.length > 120) {
+                this.validationError = 'Each item must be 120 characters or fewer.';
+                return;
+            }
+
+            if (!this.listItems.includes(item)) {
+                this.listItems.push(item);
+            }
+
+            this.listInput = '';
+            this.validationError = '';
+            this.syncValue();
+        },
+
+        removeItem(index) {
+            this.listItems.splice(index, 1);
+            this.syncValue();
+        },
+    };
+}

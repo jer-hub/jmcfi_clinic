@@ -126,8 +126,21 @@ class ProfilePreferencesViewTests(TestCase):
                 'compact_nav': 'on',
             },
         )
-        self.assertRedirects(response, reverse('core:profile_preferences'))
+        self.assertRedirects(response, reverse('core:profile'))
         prefs.refresh_from_db()
         self.assertFalse(prefs.email_notifications)
         self.assertTrue(prefs.in_app_notifications)
         self.assertTrue(prefs.compact_nav)
+
+    def test_preferences_post_redirects_to_safe_next_url(self):
+        next_path = reverse('core:dashboard')
+        response = self.client.post(
+            reverse('core:profile_preferences') + f'?next={next_path}',
+            {
+                'email_notifications': 'on',
+                'in_app_notifications': 'on',
+                'compact_nav': '',
+                'next': next_path,
+            },
+        )
+        self.assertRedirects(response, next_path)

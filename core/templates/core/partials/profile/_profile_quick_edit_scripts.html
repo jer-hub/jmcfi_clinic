@@ -1,0 +1,353 @@
+window.__jmcfiAcademicCatalog = {
+    colleges: {{ college_options_json|safe }},
+    coursesByCollege: {{ course_options_by_college_json|safe }},
+    yearLevelsByCollege: {{ year_level_options_by_college_json|safe }},
+    courseOptionalByCollege: {{ course_optional_by_college_json|safe }},
+};
+
+function quickEditModal() {
+    return {
+        isOpen: false,
+        fieldName: '',
+        fieldLabel: '',
+        fieldValue: '',
+        fieldType: 'text',
+        fieldOptions: [],
+        listItems: [],
+        listInput: '',
+        selectedCollege: '',
+        academicCollege: '',
+        academicCourse: '',
+        academicYearLevel: '',
+        isSaving: false,
+        currentValues: {},
+        validationError: '',
+        currentUserRole: '{{ user.role|escapejs }}',
+        
+        init() {
+            // Listen for the custom event
+            window.addEventListener('open-quick-edit', (e) => {
+                this.openModal(
+                    e.detail.field,
+                    e.detail.label,
+                    e.detail.value,
+                    e.detail.type || 'text',
+                    e.detail.options || [],
+                    e.detail.selectedCollege || ''
+                );
+            });
+        },
+        
+        openModal(fieldName, fieldLabel, currentValue, fieldType = 'text', options = [], selectedCollege = '') {
+            this.fieldName = fieldName;
+            this.fieldLabel = fieldLabel;
+            this.fieldValue = this.currentValues[fieldName] ?? (currentValue || '');
+            this.fieldType = fieldType;
+            this.fieldOptions = options;
+            this.selectedCollege = selectedCollege || this.currentValues.department || '{{ profile.department|default:""|escapejs }}';
+            this.listItems = [];
+            this.listInput = '';
+            if (fieldType === 'list') {
+                this.listItems = this.parseListValue(this.fieldValue);
+            }
+            if (fieldType === 'course_select' && !this.selectedCollege) {
+                this.selectedCollege = this.currentValues.department || '{{ profile.department|default:""|escapejs }}';
+            }
+            if (fieldType === 'academic_bundle') {
+                this.academicCollege = this.currentValues.department || '{{ profile.department|default:""|escapejs }}';
+                this.academicCourse = this.currentValues.course || '{{ profile.course|default:""|escapejs }}';
+                this.academicYearLevel = this.currentValues.year_level || '{{ profile.year_level|default:""|escapejs }}';
+            }
+            this.validationError = '';
+            this.isOpen = true;
+        },
+
+        get collegeFieldOptions() {
+            return (window.__jmcfiAcademicCatalog || {}).colleges || [];
+        },
+
+        get yearLevelFieldOptions() {
+            const selected = this.academicCollege || this.currentValues.department || '';
+            return ((window.__jmcfiAcademicCatalog || {}).yearLevelsByCollege || {})[selected] || [];
+        },
+
+        get filteredCourseOptions() {
+            const selected = this.selectedCollege || this.currentValues.department || '';
+            const items = ((window.__jmcfiAcademicCatalog || {}).coursesByCollege || {})[selected] || [];
+            return items;
+        },
+
+        get filteredAcademicCourseOptions() {
+            return ((window.__jmcfiAcademicCatalog || {}).coursesByCollege || {})[this.academicCollege] || [];
+        },
+
+        isCourseOptionalForCollege(collegeName) {
+            return !!((window.__jmcfiAcademicCatalog || {}).courseOptionalByCollege || {})[(collegeName || '').trim()];
+        },
+
+        parseListValue(value) {
+            return (value || '')
+                .split(/[\n,;]+/)
+                .map((item) => item.trim())
+                .filter((item, idx, arr) => item && arr.indexOf(item) === idx);
+        },
+
+        addListItem() {
+            const item = (this.listInput || '').trim();
+            if (!item) return;
+            if (item.length > 120) {
+                this.validationError = 'Each list item must be 120 characters or fewer.';
+                return;
+            }
+            if (!this.listItems.includes(item)) {
+                this.listItems.push(item);
+            }
+            this.listInput = '';
+            this.validationError = '';
+        },
+
+        removeListItem(index) {
+            this.listItems.splice(index, 1);
+        },
+
+        validateField() {
+            this.validationError = '';
+            const value = (this.fieldValue || '').toString().trim();
+
+            if (['first_name', 'last_name'].includes(this.fieldName)) {
+                if (!value) {
+                    this.validationError = 'This field is required.';
+                    return false;
+                }
+                if (!/^[A-Za-z][A-Za-z .'-]*$/.test(value)) {
+                    this.validationError = 'Name contains invalid characters.';
+                    return false;
+                }
+            }
+
+            if (this.fieldName === 'middle_name' && value && !/^[A-Za-z][A-Za-z .'-]*$/.test(value)) {
+                this.validationError = 'Middle Name contains invalid characters.';
+                return false;
+            }
+
+            if (['phone', 'telephone_number', 'emergency_phone'].includes(this.fieldName)) {
+                const requiredPhone = this.fieldName === 'phone' || (this.fieldName === 'emergency_phone' && this.currentUserRole === 'patient' || this.currentUserRole === 'student');
+                if (requiredPhone && !value) {
+                    this.validationError = 'This field is required.';
+                    return false;
+                }
+                if (value && !/^\+63\d{10}$/.test(value)) {
+                    this.validationError = 'Use +63 followed by 10 digits (e.g., +639171234567).';
+                    return false;
+                }
+            }
+
+            if (this.fieldName === 'address') {
+                if (!value) {
+                    this.validationError = 'Address is required.';
+                    return false;
+                }
+                if (value.length < 5) {
+                    this.validationError = 'Address must be at least 5 characters.';
+                    return false;
+                }
+                if (value.length > 500) {
+                    this.validationError = 'Address must be 500 characters or fewer.';
+                    return false;
+                }
+            }
+
+            if (this.fieldType === 'course_select') {
+                if (!this.selectedCollege) {
+                    this.validationError = 'Select College first.';
+                    return false;
+                }
+                const courseOptional = this.isCourseOptionalForCollege(this.selectedCollege || this.currentValues.department || '');
+                if (!value && !courseOptional) {
+                    this.validationError = 'Course/Program is required.';
+                    return false;
+                }
+                if (value && !this.filteredCourseOptions.includes(value)) {
+                    this.validationError = 'Invalid Course/Program for selected College.';
+                    return false;
+                }
+            }
+
+            if (this.fieldType === 'academic_bundle') {
+                if (!this.academicCollege) {
+                    this.validationError = 'College is required.';
+                    return false;
+                }
+                if (!this.academicYearLevel) {
+                    this.validationError = 'Year Level is required.';
+                    return false;
+                }
+                if (!this.yearLevelFieldOptions.includes(this.academicYearLevel)) {
+                    this.validationError = 'Invalid Year Level selection.';
+                    return false;
+                }
+                const courseOptional = this.isCourseOptionalForCollege(this.academicCollege);
+                if (!this.academicCourse && !courseOptional) {
+                    this.validationError = 'Course/Program is required.';
+                    return false;
+                }
+                if (this.academicCourse && !this.filteredAcademicCourseOptions.includes(this.academicCourse)) {
+                    this.validationError = 'Course/Program not related to selected College.';
+                    return false;
+                }
+            }
+
+            if (['allergies', 'medical_conditions'].includes(this.fieldName)) {
+                const list = this.fieldType === 'list' ? this.listItems : this.parseListValue(value);
+                if (list.length > 30) {
+                    this.validationError = 'Maximum 30 items allowed.';
+                    return false;
+                }
+                if (list.some((item) => item.length > 120)) {
+                    this.validationError = 'Each list item must be 120 characters or fewer.';
+                    return false;
+                }
+            }
+
+            if (this.fieldName === 'age' && value) {
+                const parsed = Number(value);
+                if (!Number.isInteger(parsed) || parsed < 0 || parsed > 150) {
+                    this.validationError = 'Age must be whole number between 0 and 150.';
+                    return false;
+                }
+            }
+
+            if (this.fieldName === 'date_of_birth' && value) {
+                const chosen = new Date(value + 'T00:00:00');
+                const now = new Date();
+                now.setHours(0, 0, 0, 0);
+                if (chosen > now) {
+                    this.validationError = 'Date of Birth cannot be in future.';
+                    return false;
+                }
+            }
+
+            return true;
+        },
+
+        async submitQuickEdit() {
+            if (!this.fieldName) return;
+            if (!this.validateField()) return;
+
+            this.isSaving = true;
+            const formData = new FormData();
+            formData.append('field_name', this.fieldName);
+            const payloadValue = this.fieldType === 'list'
+                ? this.listItems.join('\n')
+                : (this.fieldValue || '');
+            formData.append('field_value', payloadValue);
+            if (this.fieldType === 'course_select') {
+                formData.append('selected_college', this.selectedCollege || '');
+            }
+            if (this.fieldType === 'academic_bundle') {
+                formData.append('department', this.academicCollege || '');
+                formData.append('course', this.academicCourse || '');
+                formData.append('year_level', this.academicYearLevel || '');
+            }
+
+            const csrfInput = this.$refs.quickEditForm.querySelector('input[name="csrfmiddlewaretoken"]');
+            if (csrfInput) {
+                formData.append('csrfmiddlewaretoken', csrfInput.value);
+            }
+
+            try {
+                const response = await fetch('{% url "core:quick_edit_profile" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                const payload = await response.json();
+                if (!response.ok || !payload.success) {
+                    throw new Error(payload.error || 'Unable to save changes.');
+                }
+
+                if (payload.field_name === 'academic_bundle' && payload.academic_payload) {
+                    this.currentValues.department = payload.academic_payload.department;
+                    this.currentValues.course = payload.academic_payload.course;
+                    this.currentValues.year_level = payload.academic_payload.year_level;
+                    this.applyFieldUpdate('department', payload.academic_payload.department, payload.academic_payload.department, '');
+                    this.applyFieldUpdate('course', payload.academic_payload.course, payload.academic_payload.course, '');
+                    this.applyFieldUpdate('year_level', payload.academic_payload.year_level, payload.academic_payload.year_level, '');
+                } else {
+                    this.currentValues[payload.field_name] = payload.raw_value;
+                    this.applyFieldUpdate(payload.field_name, payload.display_value, payload.raw_value, payload.full_name || '');
+                }
+                this.closeModal();
+            } catch (error) {
+                alert(error.message || 'Unable to save changes.');
+            } finally {
+                this.isSaving = false;
+            }
+        },
+
+        applyFieldUpdate(fieldName, displayValue, rawValue, fullName) {
+            const fallbackByField = {
+                phone: 'Not provided',
+                address: 'Not provided',
+                emergency_contact: 'Not provided',
+                emergency_phone: 'Not provided',
+                allergies: 'No allergies recorded',
+                medical_conditions: 'No medical conditions recorded',
+            };
+
+            if (['first_name', 'middle_name', 'last_name'].includes(fieldName) && fullName) {
+                document.querySelectorAll('[data-profile-field="full_name"]').forEach((el) => {
+                    el.textContent = fullName;
+                });
+            }
+
+            document.querySelectorAll(`[data-profile-field="${fieldName}"]`).forEach((el) => {
+                if (el.dataset.render === 'linebreaks') {
+                    const value = rawValue || fallbackByField[fieldName] || 'Not specified';
+                    const escaped = value
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/\n/g, '<br>');
+                    el.innerHTML = escaped;
+                } else if (el.dataset.render === 'list') {
+                    const items = this.parseListValue(rawValue);
+                    if (items.length === 0) {
+                        el.className = 'text-gray-400 text-sm italic';
+                        el.textContent = el.dataset.emptyLabel || fallbackByField[fieldName] || 'Not specified';
+                    } else {
+                        el.className = 'mt-2 space-y-1 text-sm text-gray-700 list-disc pl-5';
+                        el.innerHTML = items.map((item) => {
+                            const safe = item
+                                .replace(/&/g, '&amp;')
+                                .replace(/</g, '&lt;')
+                                .replace(/>/g, '&gt;');
+                            return `<li>${safe}</li>`;
+                        }).join('');
+                    }
+                } else {
+                    el.textContent = displayValue || fallbackByField[fieldName] || 'Not specified';
+                }
+            });
+        },
+        
+        closeModal() {
+            this.isOpen = false;
+            this.fieldName = '';
+            this.fieldLabel = '';
+            this.fieldValue = '';
+            this.fieldType = 'text';
+            this.fieldOptions = [];
+            this.listItems = [];
+            this.listInput = '';
+            this.selectedCollege = '';
+            this.academicCollege = '';
+            this.academicCourse = '';
+            this.academicYearLevel = '';
+            this.validationError = '';
+        }
+    }
+}

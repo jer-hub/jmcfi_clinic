@@ -698,6 +698,167 @@ class AdminUserDetailTests(TestCase):
         self.assertContains(response, reverse('core:user_management'))
 
 
+class AdminUserEditProfileTests(TestCase):
+    """Tests for admin edit user with full profile mirror."""
+
+    def setUp(self):
+        self.admin_user = User.objects.create_user(
+            email='admin-profile-edit@test.com',
+            password='AdminPass123!',
+            role='admin',
+            is_staff=True,
+            is_active=True,
+        )
+        _complete_staff_like_profile(self.admin_user, 'ADM-PROF-EDIT')
+        self.client.force_login(self.admin_user)
+
+    def test_get_patient_edit_shows_academic_section(self):
+        patient = User.objects.create_user(
+            email='patient-profile-edit@test.com',
+            password='PatientPass123!',
+            role='patient',
+            first_name='Pat',
+            last_name='Ient',
+            is_active=True,
+        )
+        _complete_student_profile(patient, 'PAT-PROF-001')
+
+        response = self.client.get(
+            reverse('core:user_edit', kwargs={'user_id': patient.id}),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'core/user_management/user_edit.html')
+        self.assertContains(response, 'Academic Information')
+        self.assertContains(response, 'studentAcademicEditForm')
+
+    def test_get_staff_edit_shows_staff_sections(self):
+        staff = User.objects.create_user(
+            email='staff-profile-edit@test.com',
+            password='StaffPass123!',
+            role='staff',
+            first_name='St',
+            last_name='Aff',
+            is_active=True,
+        )
+        _complete_staff_like_profile(staff, 'STAFF-PROF-001')
+
+        response = self.client.get(
+            reverse('core:user_edit', kwargs={'user_id': staff.id}),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Staff ID')
+        self.assertContains(response, 'Professional Information')
+        self.assertContains(response, 'Contact Information')
+
+    def test_post_updates_staff_profile_fields(self):
+        staff = User.objects.create_user(
+            email='staff-post-edit@test.com',
+            password='StaffPass123!',
+            role='staff',
+            first_name='St',
+            last_name='Aff',
+            is_active=True,
+        )
+        _complete_staff_like_profile(staff, 'STAFF-OLD')
+        profile = staff.staff_profile
+
+        response = self.client.post(
+            reverse('core:user_edit', kwargs={'user_id': staff.id}),
+            {
+                'email': staff.email,
+                'first_name': staff.first_name,
+                'last_name': staff.last_name,
+                'role': 'staff',
+                'is_active': 'on',
+                'staff_id': 'STAFF-NEW',
+                'middle_name': profile.middle_name,
+                'gender': profile.gender,
+                'civil_status': profile.civil_status,
+                'date_of_birth': profile.date_of_birth,
+                'place_of_birth': profile.place_of_birth,
+                'age': profile.age,
+                'address': '456 Updated Avenue, Davao',
+                'phone': '+639171234567',
+                'emergency_contact': profile.emergency_contact,
+                'emergency_phone': profile.emergency_phone,
+                'department': profile.department,
+            },
+        )
+        self.assertRedirects(
+            response,
+            reverse('core:user_detail', kwargs={'user_id': staff.id}),
+        )
+        profile.refresh_from_db()
+        self.assertEqual(profile.staff_id, 'STAFF-NEW')
+        self.assertEqual(profile.phone, '+639171234567')
+        self.assertEqual(profile.address, '456 Updated Avenue, Davao')
+
+    def test_post_role_change_recreates_profile_stub(self):
+        staff = User.objects.create_user(
+            email='role-change-staff@test.com',
+            password='StaffPass123!',
+            role='staff',
+            first_name='Role',
+            last_name='Change',
+            is_active=True,
+        )
+        _complete_staff_like_profile(staff, 'STAFF-ROLE-OLD')
+        profile = staff.staff_profile
+
+        response = self.client.post(
+            reverse('core:user_edit', kwargs={'user_id': staff.id}),
+            {
+                'email': staff.email,
+                'first_name': staff.first_name,
+                'last_name': staff.last_name,
+                'role': 'patient',
+                'is_active': 'on',
+                'staff_id': 'SHOULD-NOT-APPLY',
+                'middle_name': profile.middle_name,
+                'gender': profile.gender,
+                'civil_status': profile.civil_status,
+                'date_of_birth': profile.date_of_birth,
+                'place_of_birth': profile.place_of_birth,
+                'age': profile.age,
+                'address': profile.address,
+                'phone': profile.phone,
+                'emergency_contact': profile.emergency_contact,
+                'emergency_phone': profile.emergency_phone,
+                'department': profile.department,
+            },
+        )
+        self.assertRedirects(
+            response,
+            reverse('core:user_edit', kwargs={'user_id': staff.id}),
+        )
+        staff.refresh_from_db()
+        self.assertEqual(staff.role, 'patient')
+        self.assertFalse(StaffProfile.objects.filter(user=staff).exists())
+        patient_profile = StudentProfile.objects.get(user=staff)
+        self.assertTrue(patient_profile.patient_id.startswith('TEMP_'))
+        self.assertNotEqual(patient_profile.patient_id, 'SHOULD-NOT-APPLY')
+
+    def test_admin_target_role_and_active_fields_locked(self):
+        admin_target = User.objects.create_user(
+            email='admin-target-edit@test.com',
+            password='AdminPass123!',
+            role='admin',
+            first_name='Ad',
+            last_name='Min',
+            is_active=True,
+        )
+        _complete_staff_like_profile(admin_target, 'ADM-TARGET-001')
+
+        response = self.client.get(
+            reverse('core:user_edit', kwargs={'user_id': admin_target.id}),
+        )
+        self.assertEqual(response.status_code, 200)
+        user_form = response.context['user_form']
+        self.assertTrue(user_form.fields['role'].disabled)
+        self.assertTrue(user_form.fields['is_active'].disabled)
+        self.assertContains(response, 'disabled')
+
+
 class AdminUserEditSubnavTests(TestCase):
     def setUp(self):
         self.admin_user = User.objects.create_user(

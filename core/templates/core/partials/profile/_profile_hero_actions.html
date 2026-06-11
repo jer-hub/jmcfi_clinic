@@ -1,0 +1,20 @@
+{% comment %}Action buttons for the profile hero (on primary background).{% endcomment %}
+<div class="flex flex-wrap items-center justify-center sm:justify-end gap-2">
+  <a href="{% url 'core:profile_preferences' %}"
+     class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg text-white bg-white/10 border border-white/25 hover:bg-white/20 transition-colors">
+    <i class="fas fa-sliders mr-2 opacity-90"></i>
+    Preferences
+  </a>
+  <a href="{% url 'core:edit_profile' %}"
+     class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg text-primary-700 bg-white hover:bg-white/90 shadow-sm transition-colors">
+    <i class="fas fa-pen-to-square mr-2"></i>
+    Edit Profile
+  </a>
+  {% if user.role != 'admin' %}
+  <a href="{% url 'appointments:appointment_list' %}"
+     class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-lg text-white bg-white/10 border border-white/25 hover:bg-white/20 transition-colors">
+    <i class="fas fa-calendar-days mr-2 opacity-90"></i>
+    Appointments
+  </a>
+  {% endif %}
+</div>

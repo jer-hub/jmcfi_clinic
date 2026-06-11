@@ -1,0 +1,55 @@
+{% if stats %}
+<div class="grid grid-cols-2 sm:grid-cols-3 {% if stats|length > 4 %}lg:grid-cols-5{% else %}lg:grid-cols-4{% endif %} gap-3">
+  {% for key, value in stats.items %}
+  <div class="rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+    <div class="flex items-start gap-2.5">
+      <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0
+        {% if 'Completed' in key %}bg-emerald-50 border border-emerald-100 text-emerald-600
+        {% elif 'Pending' in key %}bg-amber-50 border border-amber-100 text-amber-600
+        {% elif 'Medical' in key %}bg-blue-50 border border-blue-100 text-blue-600
+        {% elif 'Certificate' in key %}bg-violet-50 border border-violet-100 text-violet-600
+        {% elif 'Provisioning' in key or 'Users' in key or 'Activations' in key %}bg-indigo-50 border border-indigo-100 text-indigo-600
+        {% else %}bg-primary-50 border border-primary-100 text-primary-600{% endif %}">
+        {% if key == 'Total Appointments' %}
+          <i class="fas fa-calendar-days text-sm" aria-hidden="true"></i>
+        {% elif key == 'Completed Appointments' %}
+          <i class="fas fa-calendar-check text-sm" aria-hidden="true"></i>
+        {% elif key == 'Pending Appointments' %}
+          <i class="fas fa-clock text-sm" aria-hidden="true"></i>
+        {% elif key == 'Medical Records' %}
+          <i class="fas fa-file-medical text-sm" aria-hidden="true"></i>
+        {% elif key == 'Certificate Requests' or key == 'Certificates Processed' %}
+          <i class="fas fa-certificate text-sm" aria-hidden="true"></i>
+        {% elif key == 'Provisioning Actions' %}
+          <i class="fas fa-user-gear text-sm" aria-hidden="true"></i>
+        {% elif key == 'Users Touched' %}
+          <i class="fas fa-users text-sm" aria-hidden="true"></i>
+        {% elif key == 'Active Users' %}
+          <i class="fas fa-user-check text-sm" aria-hidden="true"></i>
+        {% elif key == 'Pending Activations' %}
+          <i class="fas fa-hourglass-half text-sm" aria-hidden="true"></i>
+        {% else %}
+          <i class="fas fa-chart-simple text-sm" aria-hidden="true"></i>
+        {% endif %}
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-xl font-bold text-gray-900 tabular-nums leading-none">{{ value }}</p>
+        <p class="text-[11px] font-medium text-gray-500 mt-1 leading-tight">
+          {% if key == 'Total Appointments' %}Appointments
+          {% elif key == 'Completed Appointments' %}Completed
+          {% elif key == 'Pending Appointments' %}Pending
+          {% elif key == 'Medical Records' %}Medical records
+          {% elif key == 'Certificate Requests' %}Cert. requests
+          {% elif key == 'Certificates Processed' %}Certificates
+          {% elif key == 'Provisioning Actions' %}Provisioned
+          {% elif key == 'Users Touched' %}Users touched
+          {% elif key == 'Active Users' %}Active users
+          {% elif key == 'Pending Activations' %}Pending activations
+          {% else %}{{ key }}{% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

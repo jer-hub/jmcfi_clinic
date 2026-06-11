@@ -1,0 +1,54 @@
+{% comment %}Admin controls on the Overview tab for non-admin users.{% endcomment %}
+{% if viewed_user.role != 'admin' and not viewed_user.is_deleted %}
+<div class="rounded-lg border border-gray-100 overflow-hidden">
+  <div class="px-4 py-3 bg-gray-50/60 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div>
+      <p class="text-sm font-medium text-gray-900">Account controls</p>
+      <p class="text-xs text-gray-500">Suspend access or manage credentials</p>
+    </div>
+    <form method="POST" action="{% url 'core:user_toggle_status' viewed_user.id %}"
+          id="toggle-status-form"
+          x-data
+          hx-post="{% url 'core:user_toggle_status' viewed_user.id %}"
+          hx-swap="none"
+          hx-trigger="change"
+          hx-on="htmx:responseError: this.querySelector('.js-account-toggle').checked = !this.querySelector('.js-account-toggle').checked">
+      {% csrf_token %}
+      <label class="inline-flex items-center cursor-pointer gap-3 flex-shrink-0">
+        <input type="checkbox"
+               class="sr-only peer js-account-toggle"
+               {% if viewed_user.is_active %}checked{% endif %}
+               data-user-id="{{ viewed_user.id }}">
+        <div class="relative w-11 h-6 flex-shrink-0 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+        <span class="js-status-label text-sm font-medium text-gray-700 whitespace-nowrap">
+          {% if viewed_user.is_active %}Active{% else %}Inactive{% endif %}
+        </span>
+      </label>
+    </form>
+  </div>
+  <div class="px-4 py-3 flex flex-wrap gap-2">
+    {% if viewed_user.onboarding_status == 'pending_activation' %}
+    <form method="POST" action="{% url 'core:user_resend_invite' viewed_user.id %}" class="inline">
+      {% csrf_token %}
+      <button type="submit"
+              class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-amber-800 bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors">
+        <i class="fas fa-rotate mr-1.5 text-xs"></i>
+        Regenerate invite
+      </button>
+    </form>
+    {% endif %}
+    <a href="{% url 'core:user_reset_password' viewed_user.id %}"
+       class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors">
+      <i class="fas fa-key mr-1.5 text-xs"></i>
+      Reset password
+    </a>
+    <button type="button"
+            x-data="{}"
+            @click="$dispatch('open-modal', {type:'danger', title:'Delete User', subtitle:'{{ viewed_user.get_full_name|escapejs }} ({{ viewed_user.email|escapejs }})', size:'lg', hxUrl:'{% url 'core:user_delete' viewed_user.id %}', actionLabel:'Soft Delete User', hasForm:true})"
+            class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-red-700 bg-white border border-red-200 hover:bg-red-50 transition-colors">
+      <i class="fas fa-trash-can mr-1.5 text-xs"></i>
+      Soft delete
+    </button>
+  </div>
+</div>
+{% endif %}

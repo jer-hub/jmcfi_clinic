@@ -1,0 +1,13 @@
+<div x-show="activeTab === 'overview'" x-cloak class="space-y-5">
+  {% include "core/user_management/partials/_user_detail_stats_grid.html" %}
+
+  <div class="rounded-lg border border-gray-100 px-4">
+    {% include "core/partials/profile/_profile_field_row.html" with label="Username" icon="fa-at" value=viewed_user.username|default:"Not set" is_last=False %}
+    {% include "core/partials/profile/_profile_field_row.html" with label="Onboarding" icon="fa-circle-check" value=viewed_user.get_onboarding_status_display is_last=False %}
+    {% include "core/partials/profile/_profile_field_row.html" with label="Staff site access" icon="fa-shield-halved" value=viewed_user.is_staff|yesno:"Yes,No" is_last=False %}
+    {% include "core/partials/profile/_profile_field_row.html" with label="Member since" icon="fa-user-plus" value=viewed_user.date_joined|date:"M d, Y" is_last=False %}
+    {% include "core/partials/profile/_profile_field_row.html" with label="Last login" icon="fa-right-to-bracket" value=viewed_user.last_login|date:"M d, Y g:i A"|default:"Never" is_last=True %}
+  </div>
+
+  {% include "core/user_management/partials/_user_detail_admin_actions.html" %}
+</div>

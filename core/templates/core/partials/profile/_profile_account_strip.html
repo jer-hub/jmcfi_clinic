@@ -1,0 +1,19 @@
+{% comment %}Compact account metadata below the main profile card.{% endcomment %}
+<div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+  <div class="bg-white border border-gray-100 rounded-card px-4 py-3 flex items-center justify-between sm:block">
+    <span class="text-xs font-medium text-gray-500 uppercase tracking-wide">Account</span>
+    {% if user.is_active %}
+      <span class="inline-flex items-center mt-0 sm:mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+    {% else %}
+      <span class="inline-flex items-center mt-0 sm:mt-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Inactive</span>
+    {% endif %}
+  </div>
+  <div class="bg-white border border-gray-100 rounded-card px-4 py-3">
+    <span class="text-xs font-medium text-gray-500 uppercase tracking-wide block">Last login</span>
+    <span class="text-sm font-medium text-gray-900 mt-1 block">{{ user.last_login|date:"M d, Y g:i A"|default:"Never" }}</span>
+  </div>
+  <div class="bg-white border border-gray-100 rounded-card px-4 py-3">
+    <span class="text-xs font-medium text-gray-500 uppercase tracking-wide block">Member since</span>
+    <span class="text-sm font-medium text-gray-900 mt-1 block">{{ user.date_joined|date:"M d, Y" }}</span>
+  </div>
+</div>

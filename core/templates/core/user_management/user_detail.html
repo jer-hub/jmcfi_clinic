@@ -1,298 +1,115 @@
 {% extends 'core/base.html' %}
 
+{% load role_tags %}
+
+
+
 {% block title %}{{ viewed_user.get_full_name }} - User Details{% endblock title %}
 
+
+
 {% block content %}
-<div class="min-h-screen bg-gray-50 pt-0 pb-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {% include "core/_subnav.html" %}
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Left Column - User Info -->
-            <div class="lg:col-span-1 space-y-6">
-                <!-- Profile Card -->
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-6 py-6">
-                        <div class="flex flex-col items-center">
-                            <div class="h-24 w-24 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-3xl">
-                                {{ viewed_user.first_name.0|upper }}{{ viewed_user.last_name.0|upper }}
-                            </div>
-                            <h3 class="mt-4 text-xl font-bold text-gray-900">{{ viewed_user.get_full_name }}</h3>
-                            <p class="text-sm text-gray-500">{% if viewed_user.username %}@{{ viewed_user.username }}{% else %}{{ viewed_user.email }}{% endif %}</p>
-                            <div class="mt-4 flex items-center space-x-2">
-                                <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full
-                                    {% if viewed_user.role == 'admin' %}bg-red-100 text-red-800
-                                    {% elif viewed_user.role == 'staff' or viewed_user.role == 'doctor' %}bg-purple-100 text-purple-800
-                                    {% else %}bg-blue-100 text-blue-800{% endif %}">
-                                    {{ viewed_user.get_role_display }}
-                                </span>
-                                {% if viewed_user.onboarding_status == 'pending_activation' %}
-                                    <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
-                                        Pending Activation
-                                    </span>
-                                {% elif viewed_user.is_active %}
-                                    <span class="js-user-status-badge px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                                        Active
-                                    </span>
-                                {% else %}
-                                    <span class="js-user-status-badge px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                                        Suspended
-                                    </span>
-                                {% endif %}
-                            </div>
-                        </div>
+<div class="min-h-screen bg-gray-50">
 
-                        <dl class="mt-6 space-y-4">
-                            <div>
-                                <dt class="text-xs font-medium text-gray-500 uppercase">Email</dt>
-                                <dd class="mt-1 text-sm text-gray-900">{{ viewed_user.email }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs font-medium text-gray-500 uppercase">Date Joined</dt>
-                                <dd class="mt-1 text-sm text-gray-900">{{ viewed_user.date_joined|date:"M d, Y" }}</dd>
-                            </div>
-                            <div>
-                                <dt class="text-xs font-medium text-gray-500 uppercase">Last Login</dt>
-                                <dd class="mt-1 text-sm text-gray-900">
-                                    {% if viewed_user.last_login %}
-                                        {{ viewed_user.last_login|date:"M d, Y - g:i A" }}
-                                    {% else %}
-                                        Never
-                                    {% endif %}
-                                </dd>
-                            </div>
-                        </dl>
-                    </div>
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 pt-0">
 
-                                        <!-- Actions -->
-                    {% if viewed_user.role != 'admin' %}
-                    <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 space-y-2">
-                        {% if viewed_user.is_deleted %}
-                        <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-2">
-                            <p class="text-sm font-medium text-red-800">⚠️ This user has been soft-deleted.</p>
-                            <form method="POST" action="{% url 'core:user_restore' viewed_user.id %}" class="mt-2">
-                                {% csrf_token %}
-                                <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700">
-                                    <i class="fas fa-rotate-left w-4 h-4 mr-2"></i>
-                                    Restore User
-                                </button>
-                            </form>
-                        </div>
-                        {% else %}
-                        <a href="{% url 'core:user_edit' viewed_user.id %}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
-                            <i class="fas fa-pen-to-square w-4 h-4 mr-2"></i>
-                            Edit User
-                        </a>
-                        <form method="POST" action="{% url 'core:user_toggle_status' viewed_user.id %}"
-                              id="toggle-status-form" class="w-full"
-                              x-data
-                              hx-post="{% url 'core:user_toggle_status' viewed_user.id %}"
-                              hx-swap="none"
-                              hx-trigger="change"
-                              hx-on="htmx:responseError: this.querySelector('.js-account-toggle').checked = !this.querySelector('.js-account-toggle').checked">
-                            {% csrf_token %}
-                            <div class="flex items-center justify-between px-4 py-2 border border-gray-300 rounded-lg bg-white">
-                                <span class="text-sm font-medium text-gray-700">Account Status</span>
-                                <label class="relative inline-flex items-center cursor-pointer gap-3">
-                                    <input type="checkbox"
-                                           class="sr-only peer js-account-toggle"
-                                           {% if viewed_user.is_active %}checked{% endif %}
-                                           data-user-id="{{ viewed_user.id }}">
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                                    <span class="js-status-label text-sm font-medium text-gray-600">
-                                        {% if viewed_user.is_active %}Active{% else %}Inactive{% endif %}
-                                    </span>
-                                </label>
-                            </div>
-                        </form>
-                        {% if viewed_user.onboarding_status == 'pending_activation' %}
-                        <form method="POST" action="{% url 'core:user_resend_invite' viewed_user.id %}" class="w-full">
-                            {% csrf_token %}
-                            <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 border border-amber-300 text-sm font-medium rounded-md text-amber-700 bg-white hover:bg-amber-50">
-                                <i class="fas fa-rotate w-4 h-4 mr-2"></i>
-                                Regenerate Invite Link
-                            </button>
-                        </form>
-                        {% endif %}
-                        <a href="{% url 'core:user_reset_password' viewed_user.id %}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            <i class="fas fa-key w-4 h-4 mr-2"></i>
-                            Reset Password
-                        </a>
-                        <a href="{% url 'core:user_audit_log' viewed_user.id %}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            <i class="fas fa-clipboard-list w-4 h-4 mr-2"></i>
-                            View Audit Log
-                        </a>
-                        <a href="{% url 'core:patient_clinical_access_log' viewed_user.id %}" class="w-full inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            <i class="fas fa-shield-heart w-4 h-4 mr-2"></i>
-                            Clinical Access Log
-                        </a>
-                        <div class="mt-3 pt-3 border-t border-gray-200">
-                            <button type="button"
-                                    x-data="{}"
-                                    @click="$dispatch('open-modal', {type:'danger', title:'Delete User', subtitle:'{{ viewed_user.get_full_name|escapejs }} ({{ viewed_user.email|escapejs }})', size:'lg', hxUrl:'{% url 'core:user_delete' viewed_user.id %}', actionLabel:'Soft Delete User', hasForm:true})"
-                                    class="w-full inline-flex justify-center items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50">
-                                <i class="fas fa-trash-can w-4 h-4 mr-2"></i>
-                                Soft Delete User
-                            </button>
-                        </div>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </div>
+    {% include "core/_subnav.html" %}
 
-                <!-- Statistics -->
-                {% if stats %}
-                <div class="bg-white rounded-lg shadow p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Statistics</h3>
-                    <dl class="space-y-3">
-                        {% for key, value in stats.items %}
-                        <div class="flex justify-between items-center">
-                            <dt class="text-sm text-gray-600">{{ key }}</dt>
-                            <dd class="text-sm font-semibold text-gray-900">{{ value }}</dd>
-                        </div>
-                        {% endfor %}
-                    </dl>
-                </div>
-                {% endif %}
-            </div>
 
-            <!-- Right Column - Details & Activity -->
-            <div class="lg:col-span-2 space-y-6">
-                <!-- Profile Information -->
-                {% if profile %}
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Profile Information</h3>
-                    </div>
-                    <div class="px-6 py-4">
-                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {% load role_tags %}{% if viewed_user|is_patient_role %}
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Patient ID</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.patient_id }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Date of Birth</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.date_of_birth|date:"M d, Y" }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Phone</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.phone }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Blood Type</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.blood_type }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Emergency Contact</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.emergency_contact }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Emergency Phone</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.emergency_phone }}</dd>
-                                </div>
-                            {% elif viewed_user.role == 'staff' or viewed_user.role == 'doctor' or viewed_user.role == 'admin' %}
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Staff ID</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.staff_id }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Department</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.department }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Specialization</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.specialization|default:"N/A" }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">License Number</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.license_number|default:"N/A" }}</dd>
-                                </div>
-                                <div>
-                                    <dt class="text-xs font-medium text-gray-500 uppercase">Phone</dt>
-                                    <dd class="mt-1 text-sm text-gray-900">{{ profile.phone }}</dd>
-                                </div>
-                            {% endif %}
-                        </dl>
-                    </div>
-                </div>
-                {% endif %}
 
-                <!-- Recent Activity -->
-                {% if recent_activity %}
-                <div class="bg-white rounded-lg shadow">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Recent Activity</h3>
-                    </div>
-                    <div class="px-6 py-4">
-                        {% if recent_activity.appointments %}
-                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Recent Appointments</h4>
-                            <div class="space-y-2 mb-6">
-                                {% for apt in recent_activity.appointments %}
-                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                                    <div>
-                                        <p class="text-sm font-medium text-gray-900">{{ apt.get_appointment_type_display }}</p>
-                                        <p class="text-xs text-gray-500">{{ apt.date|date:"M d, Y" }} - {{ apt.time|time:"g:i A" }}</p>
-                                    </div>
-                                    <span class="px-2 py-1 text-xs rounded-full
-                                        {% if apt.status == 'completed' %}bg-green-100 text-green-800
-                                        {% elif apt.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                        {% elif apt.status == 'cancelled' %}bg-red-100 text-red-800
-                                        {% else %}bg-blue-100 text-blue-800{% endif %}">
-                                        {{ apt.get_status_display }}
-                                    </span>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
+    {% if viewed_user.is_deleted %}
 
-                        {% if not recent_activity.appointments %}
-                            <p class="text-sm text-gray-500 text-center py-4">No recent activity</p>
-                        {% endif %}
+    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-start gap-2">
 
-                        {% if recent_activity.audit_logs %}
-                            <h4 class="text-sm font-semibold text-gray-700 mb-3">Recent Audit Log</h4>
-                            <div class="space-y-2">
-                                {% for audit in recent_activity.audit_logs %}
-                                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg gap-3">
-                                    <div class="min-w-0">
-                                        <p class="text-sm font-medium text-gray-900">{{ audit.get_action_display }}</p>
-                                        <p class="text-xs text-gray-500 truncate">Target: {{ audit.target_user.get_full_name|default:audit.target_user.email }}</p>
-                                    </div>
-                                    <span class="text-xs text-gray-500 whitespace-nowrap">{{ audit.created_at|date:"M d, Y" }}</span>
-                                </div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
+      <i class="fas fa-triangle-exclamation mt-0.5 flex-shrink-0"></i>
+
+      <span>This user has been soft-deleted. Restore the account to allow login and editing.</span>
+
     </div>
+
+    {% endif %}
+
+
+
+    <div class="bg-white border border-gray-100 rounded-card overflow-hidden shadow-sm">
+
+      {% include "core/user_management/partials/_user_detail_hero.html" %}
+
+
+
+      <div x-data="{ activeTab: 'overview' }" class="px-4 sm:px-6 lg:px-8 pb-6">
+
+        <div class="-mt-4 mb-5 relative z-10">
+
+          {% include "core/user_management/partials/_user_detail_tab_nav.html" %}
+
+        </div>
+
+        {% include "core/user_management/partials/_user_detail_tab_overview.html" %}
+
+        {% include "core/user_management/partials/_user_detail_tab_profile.html" %}
+
+        {% include "core/user_management/partials/_user_detail_tab_activity.html" %}
+
+      </div>
+
+
+
+      {% include "core/user_management/partials/_user_detail_footer.html" %}
+
+    </div>
+
+  </div>
+
 </div>
 
 {% endblock content %}
 
+
+
 {% block scripts %}
+
 <script>
+
 document.addEventListener('updateStatus', (e) => {
-    const userId = e.detail?.id;
-    if (!userId || userId !== '{{ viewed_user.id }}') return;
 
-    const badge = document.querySelector('.js-user-status-badge');
-    const label = document.querySelector('.js-status-label');
-    const toggle = document.querySelector('.js-account-toggle');
-    const isActive = toggle && toggle.checked;
+  const userId = e.detail?.id;
 
-    if (badge) {
-        badge.className = 'js-user-status-badge px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ' +
-            (isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800');
-        badge.textContent = isActive ? 'Active' : 'Suspended';
-    }
-    if (label) {
-        label.textContent = isActive ? 'Active' : 'Inactive';
-    }
+  if (!userId || userId !== '{{ viewed_user.id }}') return;
+
+
+
+  const badge = document.querySelector('.js-user-status-badge');
+
+  const label = document.querySelector('.js-status-label');
+
+  const toggle = document.querySelector('.js-account-toggle');
+
+  const isActive = toggle && toggle.checked;
+
+
+
+  if (badge) {
+
+    badge.className = 'js-user-status-badge inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' +
+
+      (isActive ? 'bg-emerald-400/90 text-emerald-950' : 'bg-red-400/90 text-red-950');
+
+    badge.textContent = isActive ? 'Active' : 'Suspended';
+
+  }
+
+  if (label) {
+
+    label.textContent = isActive ? 'Active' : 'Inactive';
+
+  }
+
 });
+
 </script>
+
 {% endblock scripts %}
+
+

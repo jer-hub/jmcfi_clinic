@@ -1,17 +1,13 @@
 {% extends 'core/base.html' %}
 
-{% block title %}{{ action }} User - JMCFI Clinic{% endblock title %}
+{% block title %}Create User - JMCFI Clinic{% endblock title %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 pt-0 pb-8">
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
     {% include "core/_subnav.html" %}
 
-    {% if action == 'Create' %}
-      {% include "components/page_header.html" with title="Create User" subtitle="Add a new user to the system" icon="fa-user-plus" header_mb="mb-6" %}
-    {% else %}
-      {% include "components/page_header.html" with title="Edit User" subtitle="Update user information" icon="fa-pen-to-square" header_mb="mb-6" %}
-    {% endif %}
+    {% include "components/page_header.html" with title="Create User" subtitle="Add a new user to the system" icon="fa-user-plus" header_mb="mb-6" %}
 
     <div class="bg-white rounded-card shadow-sm border border-gray-200">
       <form method="POST" class="p-6 space-y-6">
@@ -68,7 +64,6 @@
             {% endif %}
           </div>
 
-          {% if action == 'Create' %}
           <div>
             <label for="{{ form.activate_now.id_for_label }}" class="flex items-center space-x-2 mt-8">
               {{ form.activate_now }}
@@ -79,28 +74,8 @@
             {% endif %}
             <p class="mt-1 text-xs text-gray-500">If unchecked, user is created as pending activation.</p>
           </div>
-          {% endif %}
-
-          {% if action == 'Edit' %}
-          <div class="flex items-center space-x-3 mt-8">
-            <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox"
-                     name="{{ form.is_active.name }}"
-                     class="sr-only peer"
-                     {% if viewed_user.is_active %}checked{% endif %}>
-              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-            </label>
-            <span class="text-sm font-medium text-gray-700">
-              {% if viewed_user.is_active %}Account Active{% else %}Activate Account{% endif %}
-            </span>
-            {% if form.is_active.errors %}
-              <p class="mt-1 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
-            {% endif %}
-          </div>
-          {% endif %}
         </div>
 
-        {% if action == 'Create' %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-200">
           <div>
             <label for="{{ form.password1.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
@@ -123,20 +98,14 @@
             {% endif %}
           </div>
         </div>
-        {% endif %}
 
         <div class="flex items-center justify-end gap-3 pt-6 border-t border-gray-200">
-          {% if viewed_user %}
-            {% url 'core:user_detail' viewed_user.id as cancel_url %}
-          {% else %}
-            {% url 'core:user_management' as cancel_url %}
-          {% endif %}
-          {% include "components/forms/form_actions.html" with submit_label=action|add:" User" submit_icon="fa-check" cancel_url=cancel_url %}
+          {% url 'core:user_management' as cancel_url %}
+          {% include "components/forms/form_actions.html" with submit_label="Create User" submit_icon="fa-check" cancel_url=cancel_url %}
         </div>
       </form>
     </div>
 
-    {% if action == 'Create' %}
     <div class="mt-6 bg-info-50 border border-info-200 rounded-card p-4">
       <h3 class="text-sm font-medium text-info-800 mb-2">
         <i class="fas fa-circle-info mr-1"></i> Note
@@ -148,7 +117,6 @@
         <li>A welcome notification will be sent to the user</li>
       </ul>
     </div>
-    {% endif %}
   </div>
 </div>
 {% endblock content %}

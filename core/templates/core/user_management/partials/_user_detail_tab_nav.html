@@ -1,0 +1,25 @@
+<nav class="overflow-x-auto" aria-label="User detail sections">
+  <div class="inline-flex min-w-full sm:min-w-0 p-1 bg-white border border-gray-200 shadow-sm rounded-lg gap-0.5">
+    <button type="button"
+            @click="activeTab = 'overview'"
+            :class="activeTab === 'overview' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
+      <i class="fas fa-gauge-high text-xs"></i>
+      Overview
+    </button>
+    <button type="button"
+            @click="activeTab = 'profile'"
+            :class="activeTab === 'profile' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
+      <i class="fas fa-id-card text-xs"></i>
+      Profile
+    </button>
+    <button type="button"
+            @click="activeTab = 'activity'"
+            :class="activeTab === 'activity' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
+      <i class="fas fa-clock-rotate-left text-xs"></i>
+      Activity
+    </button>
+  </div>
+</nav>

@@ -1,0 +1,206 @@
+<!-- Quick Edit Modal -->
+<div x-data="quickEditModal()" x-cloak>
+    <template x-teleport="body">
+        <div x-show="isOpen" 
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 overflow-y-auto" 
+             aria-labelledby="modal-title" 
+             role="dialog" 
+             aria-modal="true"
+             @keydown.escape.window="closeModal()">
+            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <!-- Background overlay -->
+                <div class="fixed inset-0 bg-gray-900/50 transition-opacity" @click="closeModal()"></div>
+
+                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+                <!-- Modal panel -->
+                <div x-show="isOpen"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                     class="inline-block align-bottom bg-white rounded-card text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <form method="post" action="{% url 'core:quick_edit_profile' %}" @submit.prevent="submitQuickEdit" x-ref="quickEditForm">
+                        {% csrf_token %}
+                        <div class="bg-primary-600 px-4 py-4 sm:px-6">
+                            <h3 class="text-lg leading-6 font-bold text-white flex items-center" id="modal-title">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                                Quick Edit - <span x-text="fieldLabel" class="ml-1"></span>
+                            </h3>
+                        </div>
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <input type="hidden" name="field_name" x-model="fieldName">
+                            <div class="mt-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2" x-text="fieldLabel"></label>
+                                
+                                <!-- Text Input -->
+                                <template x-if="fieldType === 'text'">
+                                    <input type="text" 
+                                           name="field_value" 
+                                           x-model="fieldValue"
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                </template>
+
+                                <!-- Tel Input -->
+                                <template x-if="fieldType === 'tel'">
+                                    <input type="tel" 
+                                           name="field_value" 
+                                           x-model="fieldValue"
+                                           placeholder="+639171234567"
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                </template>
+
+                                <!-- Number Input -->
+                                <template x-if="fieldType === 'number'">
+                                    <input type="number" 
+                                           name="field_value" 
+                                           x-model="fieldValue"
+                                           min="0" max="150"
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                </template>
+                                
+                                <!-- Textarea -->
+                                <template x-if="fieldType === 'textarea'">
+                                    <textarea name="field_value" 
+                                              x-model="fieldValue"
+                                              rows="3"
+                                              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"></textarea>
+                                </template>
+
+                                <!-- List Input (chips) -->
+                                <template x-if="fieldType === 'list'">
+                                    <div class="space-y-3">
+                                        <div class="flex gap-2">
+                                            <input type="text"
+                                                   x-model="listInput"
+                                                   @keydown.enter.prevent="addListItem()"
+                                                   placeholder="Type item then press Enter"
+                                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            <button type="button"
+                                                    @click="addListItem()"
+                                                    class="px-3 py-2 bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200 text-sm font-medium">Add</button>
+                                        </div>
+                                        <div class="flex flex-wrap gap-2" x-show="listItems.length > 0">
+                                            <template x-for="(item, idx) in listItems" :key="idx">
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-gray-900 text-xs border border-primary-200">
+                                                    <span x-text="item"></span>
+                                                    <button type="button" @click="removeListItem(idx)" class="text-primary-600 hover:text-primary-900">x</button>
+                                                </span>
+                                            </template>
+                                        </div>
+                                        <p class="text-xs text-gray-500">Enter one item at a time. Press Enter or Add.</p>
+                                    </div>
+                                </template>
+                                
+                                <!-- Date Input -->
+                                <template x-if="fieldType === 'date'">
+                                    <input type="date" 
+                                           name="field_value" 
+                                           x-model="fieldValue"
+                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                </template>
+                                
+                                <!-- Select Input -->
+                                <template x-if="fieldType === 'select'">
+                                    <select name="field_value" 
+                                            x-model="fieldValue"
+                                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                        <template x-for="option in fieldOptions" :key="option.value">
+                                            <option :value="option.value" x-text="option.label"></option>
+                                        </template>
+                                    </select>
+                                </template>
+
+                                <!-- Dependent Course Select -->
+                                <template x-if="fieldType === 'course_select'">
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 mb-1">College</label>
+                                            <select x-model="selectedCollege" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                <option value="">Select college</option>
+                                                <template x-for="option in collegeFieldOptions" :key="option">
+                                                    <option :value="option" x-text="option"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 mb-1">Course/Program</label>
+                                            <select name="field_value" x-model="fieldValue" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                <option value="">Select course/program</option>
+                                                <template x-for="option in filteredCourseOptions" :key="option">
+                                                    <option :value="option" x-text="option"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- Combined Academic Inputs -->
+                                <template x-if="fieldType === 'academic_bundle'">
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 mb-1">College/Department</label>
+                                            <select x-model="academicCollege"
+                                                    @change="if (!filteredAcademicCourseOptions.includes(academicCourse)) { academicCourse = '' }; if (!yearLevelFieldOptions.includes(academicYearLevel)) { academicYearLevel = '' }"
+                                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                <option value="">Select college</option>
+                                                <template x-for="option in collegeFieldOptions" :key="option">
+                                                    <option :value="option" x-text="option"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 mb-1">Course/Program</label>
+                                            <select x-model="academicCourse"
+                                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                <option value="">Select course/program</option>
+                                                <template x-for="option in filteredAcademicCourseOptions" :key="option">
+                                                    <option :value="option" x-text="option"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-500 mb-1">Year Level</label>
+                                            <select x-model="academicYearLevel"
+                                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                <option value="">Select year level</option>
+                                                <template x-for="option in yearLevelFieldOptions" :key="option">
+                                                    <option :value="option" x-text="option"></option>
+                                                </template>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <p x-show="validationError" x-text="validationError" class="mt-2 text-sm text-red-600"></p>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                            <button type="submit"
+                                    :disabled="isSaving"
+                                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:w-auto sm:text-sm">
+                                <span x-show="!isSaving">Save Changes</span>
+                                <span x-show="isSaving">Saving...</span>
+                            </button>
+                            <button type="button" 
+                                    @click="closeModal()"
+                                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>

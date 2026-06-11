@@ -1,0 +1,26 @@
+{% load role_tags %}
+{% comment %}
+  Read-only list field (allergies, medical conditions).
+
+  label (required), value — raw text field from profile
+  icon (optional), is_last (optional)
+{% endcomment %}
+<div class="flex items-start gap-3 py-3.5 {% if not is_last %}border-b border-gray-100{% endif %}">
+  {% if icon %}
+  <div class="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5" aria-hidden="true">
+    <i class="fas {{ icon }} text-gray-500 text-sm"></i>
+  </div>
+  {% endif %}
+  <div class="flex-1 min-w-0">
+    <p class="text-xs font-medium text-gray-500">{{ label }}</p>
+    {% if value %}
+    <ul class="mt-1 space-y-0.5 text-sm text-gray-900 list-disc pl-4">
+      {% for item in value|split_list_items %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-sm font-medium text-gray-900 mt-0.5">None recorded</p>
+    {% endif %}
+  </div>
+</div>

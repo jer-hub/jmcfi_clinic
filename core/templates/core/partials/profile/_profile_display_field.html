@@ -14,13 +14,15 @@
 <div class="{{ tile_class|default:'bg-gray-50/50 border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors' }} group relative {{ grid_class|default:'' }}">
   <div class="flex items-center justify-between">
     <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ label }}</label>
-    {% if quick_edit_click %}
+    {% if edit_field %}
+    {% include "core/partials/profile/_profile_quick_edit_button.html" with label=label edit_field=edit_field edit_label=edit_label edit_type=edit_type edit_raw=edit_raw variant=variant chip_text=chip_text %}
+    {% elif quick_edit_click %}
     <button type="button"
             @click="{{ quick_edit_click }}"
-            class="opacity-0 group-hover:opacity-100 text-primary-600 hover:text-primary-800 transition-opacity">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-      </svg>
+            class="profile-quick-edit-btn inline-flex items-center justify-center flex-shrink-0 w-9 h-9 min-w-[2.25rem] min-h-[2.25rem] rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/20 transition-colors"
+            aria-label="Edit {{ label }}">
+      <i class="fas fa-pen text-xs" aria-hidden="true"></i>
+      <span class="sr-only">Edit</span>
     </button>
     {% endif %}
   </div>

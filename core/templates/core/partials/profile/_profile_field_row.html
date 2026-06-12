@@ -31,25 +31,12 @@
     {% endif %}
   </div>
   {% if extra_actions %}
-  <div class="flex-shrink-0 flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+  <div class="flex-shrink-0 flex items-center gap-1.5 self-center">
     {{ extra_actions }}
   </div>
   {% elif editable %}
-  <button type="button"
-          {% if edit_type == 'select' and edit_field == 'gender' %}
-          @click="$dispatch('open-quick-edit', {field: 'gender', label: 'Gender', value: '{{ edit_raw|default:""|escapejs }}', type: 'select', options: [{value: '', label: 'Select gender'}, {value: 'male', label: 'Male'}, {value: 'female', label: 'Female'}, {value: 'other', label: 'Other'}]})"
-          {% elif edit_type == 'select' and edit_field == 'civil_status' %}
-          @click="$dispatch('open-quick-edit', {field: 'civil_status', label: 'Civil Status', value: '{{ edit_raw|default:""|escapejs }}', type: 'select', options: [{value: '', label: 'Select civil status'}, {value: 'single', label: 'Single'}, {value: 'married', label: 'Married'}, {value: 'widowed', label: 'Widowed'}, {value: 'separated', label: 'Separated'}]})"
-          {% elif edit_type == 'textarea' %}
-          @click="$dispatch('open-quick-edit', {field: '{{ edit_field }}', label: '{{ edit_label }}', value: '{{ edit_raw|default:""|escapejs }}', type: 'textarea'})"
-          {% elif edit_type == 'date' %}
-          @click="$dispatch('open-quick-edit', {field: '{{ edit_field }}', label: '{{ edit_label }}', value: '{{ edit_raw|default:"" }}', type: 'date'})"
-          {% else %}
-          @click="$dispatch('open-quick-edit', {field: '{{ edit_field }}', label: '{{ edit_label }}', value: '{{ edit_raw|default:""|escapejs }}', type: '{{ edit_type }}'})"
-          {% endif %}
-          class="flex-shrink-0 p-2 -mr-1 rounded-md text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-          aria-label="Edit {{ label }}">
-    <i class="fas fa-pen text-xs"></i>
-  </button>
+  <div class="flex-shrink-0 self-center">
+    {% include "core/partials/profile/_profile_quick_edit_button.html" with label=label edit_field=edit_field edit_label=edit_label edit_type=edit_type edit_raw=edit_raw %}
+  </div>
   {% endif %}
 </div>

@@ -16,16 +16,10 @@
             {{ user.last_name }}
           </p>
         </div>
-        <div class="flex-shrink-0 flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-          <button type="button"
-                  @click="$dispatch('open-quick-edit', {field: 'first_name', label: 'First Name', value: '{{ user.first_name|default:""|escapejs }}', type: 'text'})"
-                  class="text-primary-600 hover:text-primary-800 transition-colors px-1.5 py-0.5 rounded text-[10px] font-semibold border border-primary-200 bg-white">FN</button>
-          <button type="button"
-                  @click="$dispatch('open-quick-edit', {field: 'middle_name', label: 'Middle Name', value: '{{ profile.middle_name|default:""|escapejs }}', type: 'text'})"
-                  class="text-primary-600 hover:text-primary-800 transition-colors px-1.5 py-0.5 rounded text-[10px] font-semibold border border-primary-200 bg-white">MN</button>
-          <button type="button"
-                  @click="$dispatch('open-quick-edit', {field: 'last_name', label: 'Last Name', value: '{{ user.last_name|default:""|escapejs }}', type: 'text'})"
-                  class="text-primary-600 hover:text-primary-800 transition-colors px-1.5 py-0.5 rounded text-[10px] font-semibold border border-primary-200 bg-white">LN</button>
+        <div class="flex-shrink-0 flex items-center gap-1.5 self-center">
+          {% include "core/partials/profile/_profile_quick_edit_button.html" with variant="chip" chip_text="FN" label="First name" edit_field="first_name" edit_label="First Name" edit_type="text" edit_raw=user.first_name %}
+          {% include "core/partials/profile/_profile_quick_edit_button.html" with variant="chip" chip_text="MN" label="Middle name" edit_field="middle_name" edit_label="Middle Name" edit_type="text" edit_raw=profile.middle_name %}
+          {% include "core/partials/profile/_profile_quick_edit_button.html" with variant="chip" chip_text="LN" label="Last name" edit_field="last_name" edit_label="Last Name" edit_type="text" edit_raw=user.last_name %}
         </div>
       </div>
 
@@ -41,12 +35,9 @@
             {% if profile.age %}{{ profile.age }} years old{% else %}Not specified{% endif %}
           </p>
         </div>
-        <button type="button"
-                @click="$dispatch('open-quick-edit', {field: 'age', label: 'Age', value: '{{ profile.age|default:"" }}', type: 'number'})"
-                class="flex-shrink-0 p-2 -mr-1 rounded-md text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-colors sm:opacity-0 sm:group-hover:opacity-100"
-                aria-label="Edit Age">
-          <i class="fas fa-pen text-xs"></i>
-        </button>
+        <div class="flex-shrink-0 self-center">
+          {% include "core/partials/profile/_profile_quick_edit_button.html" with label="Age" edit_field="age" edit_label="Age" edit_type="number" edit_raw=profile.age %}
+        </div>
       </div>
       {% include "core/partials/profile/_profile_field_row.html" with label="Civil status" icon="fa-heart" field_name="civil_status" value=profile.get_civil_status_display|default:"Not specified" editable=True edit_field="civil_status" edit_label="Civil Status" edit_type="select" edit_raw=profile.civil_status is_last=False %}
       {% include "core/partials/profile/_profile_field_row.html" with label="Place of birth" icon="fa-map-pin" field_name="place_of_birth" value=profile.place_of_birth|default:"Not specified" editable=True edit_field="place_of_birth" edit_label="Place of Birth" edit_type="text" edit_raw=profile.place_of_birth is_last=True %}

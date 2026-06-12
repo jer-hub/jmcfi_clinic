@@ -6,26 +6,14 @@
                                 <div class="bg-gray-50/50 border border-gray-100 rounded-lg p-4 group relative">
                                     <div class="flex items-center justify-between">
                                         <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Department</label>
-                                        <button type="button"
-                                                @click="$dispatch('open-quick-edit', {field: 'department', label: 'Department', value: '{{ profile.department|default:""|escapejs }}', type: 'text'})"
-                                                class="opacity-0 group-hover:opacity-100 text-teal-600 hover:text-teal-800 transition-opacity">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
+                                        {% include "core/partials/profile/_profile_quick_edit_button.html" with label="Department" edit_field="department" edit_label="Department" edit_type="text" edit_raw=profile.department %}
                                     </div>
                                     <p class="text-gray-900 font-medium mt-1" data-profile-field="department">{{ profile.department|default:"Not specified" }}</p>
                                 </div>
                                 <div class="bg-gray-50/50 border border-gray-100 rounded-lg p-4 group relative">
                                     <div class="flex items-center justify-between">
                                         <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Position</label>
-                                        <button type="button"
-                                                @click="$dispatch('open-quick-edit', {field: 'position', label: 'Position', value: '{{ profile.position|default:""|escapejs }}', type: 'text'})"
-                                                class="opacity-0 group-hover:opacity-100 text-teal-600 hover:text-teal-800 transition-opacity">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
+                                        {% include "core/partials/profile/_profile_quick_edit_button.html" with label="Position" edit_field="position" edit_label="Position" edit_type="text" edit_raw=profile.position %}
                                     </div>
                                     <p class="text-gray-900 font-medium mt-1" data-profile-field="position">{{ profile.position|default:"Not specified" }}</p>
                                 </div>
@@ -33,13 +21,7 @@
                                 <div class="bg-gray-50/50 border border-gray-100 rounded-lg p-4 group relative">
                                     <div class="flex items-center justify-between">
                                         <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">Specialization</label>
-                                        <button type="button"
-                                                @click="$dispatch('open-quick-edit', {field: 'specialization', label: 'Specialization', value: '{{ profile.specialization|default:""|escapejs }}', type: 'text'})"
-                                                class="opacity-0 group-hover:opacity-100 text-teal-600 hover:text-teal-800 transition-opacity">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
+                                        {% include "core/partials/profile/_profile_quick_edit_button.html" with label="Specialization" edit_field="specialization" edit_label="Specialization" edit_type="text" edit_raw=profile.specialization %}
                                     </div>
                                     <p class="text-gray-900 font-medium mt-1" data-profile-field="specialization">{{ profile.specialization }}</p>
                                 </div>
@@ -47,13 +29,7 @@
                                 <div class="bg-gray-50/50 border border-gray-100 rounded-lg p-4{% if not profile.license_number %} border border-yellow-300{% endif %} group relative">
                                     <div class="flex items-center justify-between">
                                         <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">License Number</label>
-                                        <button type="button"
-                                                @click="$dispatch('open-quick-edit', {field: 'license_number', label: 'License Number', value: '{{ profile.license_number|default:""|escapejs }}', type: 'text'})"
-                                                class="opacity-0 group-hover:opacity-100 text-teal-600 hover:text-teal-800 transition-opacity">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
+                                        {% include "core/partials/profile/_profile_quick_edit_button.html" with label="License Number" edit_field="license_number" edit_label="License Number" edit_type="text" edit_raw=profile.license_number %}
                                     </div>
                                     {% if profile.license_number %}
                                     <p class="text-gray-900 font-medium mt-1 font-mono" data-profile-field="license_number">{{ profile.license_number }}</p>
@@ -67,13 +43,7 @@
                                 <div class="bg-gray-50/50 border border-gray-100 rounded-lg p-4{% if not profile.ptr_no %} border border-yellow-300{% endif %} group relative">
                                     <div class="flex items-center justify-between">
                                         <label class="text-xs font-medium text-gray-500 uppercase tracking-wider">PTR No. <span class="normal-case">(Professional Tax Receipt)</span></label>
-                                        <button type="button"
-                                                @click="$dispatch('open-quick-edit', {field: 'ptr_no', label: 'PTR No.', value: '{{ profile.ptr_no|default:""|escapejs }}', type: 'text'})"
-                                                class="opacity-0 group-hover:opacity-100 text-teal-600 hover:text-teal-800 transition-opacity">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                        </button>
+                                        {% include "core/partials/profile/_profile_quick_edit_button.html" with label="PTR No." edit_field="ptr_no" edit_label="PTR No." edit_type="text" edit_raw=profile.ptr_no %}
                                     </div>
                                     {% if profile.ptr_no %}
                                     <p class="text-gray-900 font-medium mt-1 font-mono" data-profile-field="ptr_no">{{ profile.ptr_no }}</p>

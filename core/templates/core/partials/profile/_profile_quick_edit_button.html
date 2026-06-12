@@ -1,0 +1,30 @@
+{% comment %}
+  Quick-edit trigger — profile field rows and inline edits.
+
+  label (required), edit_field, edit_label, edit_type, edit_raw
+  variant — icon (default) | chip
+  chip_text — short label when variant is chip
+{% endcomment %}
+<button type="button"
+        {% if edit_type == 'select' and edit_field == 'gender' %}
+        @click="$dispatch('open-quick-edit', {field: 'gender', label: 'Gender', value: '{{ edit_raw|default:""|escapejs }}', type: 'select', options: [{value: '', label: 'Select gender'}, {value: 'male', label: 'Male'}, {value: 'female', label: 'Female'}, {value: 'other', label: 'Other'}]})"
+        {% elif edit_type == 'select' and edit_field == 'civil_status' %}
+        @click="$dispatch('open-quick-edit', {field: 'civil_status', label: 'Civil Status', value: '{{ edit_raw|default:""|escapejs }}', type: 'select', options: [{value: '', label: 'Select civil status'}, {value: 'single', label: 'Single'}, {value: 'married', label: 'Married'}, {value: 'widowed', label: 'Widowed'}, {value: 'separated', label: 'Separated'}]})"
+        {% elif edit_type == 'select' and edit_field == 'blood_type' %}
+        @click="$dispatch('open-quick-edit', {field: 'blood_type', label: 'Blood Type', value: '{{ edit_raw|default:""|escapejs }}', type: 'select', options: [{value: '', label: 'Select blood type'}, {value: 'A+', label: 'A+'}, {value: 'A-', label: 'A-'}, {value: 'B+', label: 'B+'}, {value: 'B-', label: 'B-'}, {value: 'AB+', label: 'AB+'}, {value: 'AB-', label: 'AB-'}, {value: 'O+', label: 'O+'}, {value: 'O-', label: 'O-'}]})"
+        {% elif edit_type == 'textarea' %}
+        @click="$dispatch('open-quick-edit', {field: '{{ edit_field }}', label: '{{ edit_label }}', value: '{{ edit_raw|default:""|escapejs }}', type: 'textarea'})"
+        {% elif edit_type == 'date' %}
+        @click="$dispatch('open-quick-edit', {field: '{{ edit_field }}', label: '{{ edit_label }}', value: '{{ edit_raw|default:"" }}', type: 'date'})"
+        {% else %}
+        @click="$dispatch('open-quick-edit', {field: '{{ edit_field }}', label: '{{ edit_label }}', value: '{{ edit_raw|default:""|escapejs }}', type: '{{ edit_type }}'})"
+        {% endif %}
+        class="{% if variant == 'chip' %}profile-quick-edit-chip inline-flex items-center justify-center flex-shrink-0 min-w-8 h-8 px-2 rounded-lg border border-gray-200 bg-white text-primary-600 text-[0.625rem] font-semibold tracking-wide hover:text-primary-700 hover:border-primary-200 hover:bg-primary-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/20 transition-colors{% else %}profile-quick-edit-btn inline-flex items-center justify-center flex-shrink-0 w-9 h-9 min-w-[2.25rem] min-h-[2.25rem] rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-primary-600 hover:border-primary-200 hover:bg-primary-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/20 transition-colors{% endif %}"
+        aria-label="Edit {{ label }}">
+  {% if variant == 'chip' %}
+  <span>{{ chip_text }}</span>
+  {% else %}
+  <i class="fas fa-pen text-xs" aria-hidden="true"></i>
+  <span class="sr-only">Edit</span>
+  {% endif %}
+</button>

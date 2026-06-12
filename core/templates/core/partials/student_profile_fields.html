@@ -8,15 +8,7 @@
      x-init="init()">
     <!-- Demographics Section -->
      <div class="border-b border-gray-100 pb-8">
-        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mr-3 shadow-md">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                </svg>
-            </div>
-            <span>Personal & Demographic Information</span>
-        </h3>
-        
+        {% include "core/partials/_form_section_header.html" with title="Personal & Demographic Information" icon="fa-user" icon_theme="purple" %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Patient ID -->
             <div class="form-group lg:col-span-1">
@@ -148,15 +140,7 @@
 
     <!-- Contact Information Section -->
     <div class="border-b border-gray-100 pb-8">
-        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center mr-3 shadow-md">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
-                </svg>
-            </div>
-            <span>Contact Information</span>
-        </h3>
-        
+        {% include "core/partials/_form_section_header.html" with title="Contact Information" icon="fa-address-book" icon_theme="blue" %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-start">
             <div class="md:col-span-2">
                 {% include "components/forms/field.html" with field=form.address label="Complete Residential Address" %}
@@ -170,15 +154,7 @@
 
     <!-- Institutional Information Section -->
     <div class="border-b border-gray-100 pb-8">
-        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center mr-3 shadow-md">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z"/>
-                </svg>
-            </div>
-            <span>Academic Information</span>
-        </h3>
-        
+        {% include "core/partials/_form_section_header.html" with title="Academic Information" icon="fa-graduation-cap" icon_theme="indigo" %}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Department -->
             <div class="form-group">
@@ -267,15 +243,7 @@
 
     <!-- Medical Information Section -->
     <div>
-        <h3 class="text-xl font-bold text-gray-900 mb-6 flex items-center">
-            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-red-500 to-pink-500 flex items-center justify-center mr-3 shadow-md">
-                <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 01-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15.586 13H14a1 1 0 01-1-1z" clip-rule="evenodd"/>
-                </svg>
-            </div>
-            <span>Medical & Health Information</span>
-        </h3>
-        
+        {% include "core/partials/_form_section_header.html" with title="Medical & Health Information" icon="fa-heart-pulse" icon_theme="red" %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Blood Type -->
             <div class="form-group">

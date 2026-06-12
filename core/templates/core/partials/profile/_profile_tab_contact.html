@@ -3,7 +3,7 @@
   <div class="space-y-6">
     {% include "core/partials/profile/_profile_view_section.html" with title="How to reach you" icon="fa-address-book" description="Contact details used for clinic notifications and records." %}
 
-    <div class="rounded-lg border border-gray-100 px-4">
+    <div class="rounded-lg border border-gray-100 p-4 pt-2">
       {% include "core/partials/profile/_profile_field_row.html" with label="Email address" icon="fa-envelope" value=user.email is_last=False %}
       {% include "core/partials/profile/_profile_field_row.html" with label="Mobile phone" icon="fa-mobile-screen" field_name="phone" value_tag="span" value=profile.phone|default:"Not provided" editable=True edit_field="phone" edit_label="Mobile Phone" edit_type="tel" edit_raw=profile.phone is_last=False %}
       {% if profile.telephone_number %}
@@ -12,8 +12,8 @@
       {% include "core/partials/profile/_profile_field_row.html" with label="Address" icon="fa-location-dot" field_name="address" render="linebreaks" value=profile.address|default:"Not provided"|linebreaksbr editable=True edit_field="address" edit_label="Address" edit_type="textarea" edit_raw=profile.address is_last=True %}
     </div>
 
-    <div class="rounded-lg border border-red-100 bg-red-50/40 px-4 pb-1">
-      {% include "core/partials/profile/_profile_view_section.html" with title="Emergency contact" icon="fa-triangle-exclamation" margin_top=False description="Someone we can call if you need urgent help." %}
+    <div class="rounded-lg border border-red-100 bg-red-50/40 p-4">
+      {% include "core/partials/profile/_profile_view_section.html" with title="Emergency contact" icon="fa-triangle-exclamation" icon_theme="red" margin_top=False description="Someone we can call if you need urgent help." %}
       {% include "core/partials/profile/_profile_field_row.html" with label="Contact person" icon="fa-user" field_name="emergency_contact" value=profile.emergency_contact|default:"Not provided" editable=True edit_field="emergency_contact" edit_label="Emergency Contact" edit_type="text" edit_raw=profile.emergency_contact is_last=False %}
       {% include "core/partials/profile/_profile_field_row.html" with label="Contact number" icon="fa-phone-volume" field_name="emergency_phone" value=profile.emergency_phone|default:"Not provided" editable=True edit_field="emergency_phone" edit_label="Emergency Phone" edit_type="tel" edit_raw=profile.emergency_phone is_last=True %}
     </div>

@@ -27,8 +27,8 @@
                      x-transition:leave="transition ease-in duration-200"
                      x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                      x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                     class="inline-block align-bottom bg-white rounded-card text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                    <form method="post" action="{% url 'core:quick_edit_profile' %}" @submit.prevent="submitQuickEdit" x-ref="quickEditForm">
+                     class="inline-block align-bottom bg-white border border-gray-100 rounded-card text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                    <form method="post" action="{% url 'core:quick_edit_profile' %}" @submit.prevent="submitQuickEdit" x-ref="quickEditForm" class="quick-edit-form">
                         {% csrf_token %}
                         <div class="bg-primary-600 px-4 py-4 sm:px-6">
                             <h3 class="text-lg leading-6 font-bold text-white flex items-center" id="modal-title">
@@ -48,7 +48,7 @@
                                     <input type="text" 
                                            name="field_value" 
                                            x-model="fieldValue"
-                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                           class="form-input" :class="{ 'form-field-error': !!validationError }" @input="validationError = ''">
                                 </template>
 
                                 <!-- Tel Input -->
@@ -57,7 +57,7 @@
                                            name="field_value" 
                                            x-model="fieldValue"
                                            placeholder="+639171234567"
-                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                           class="form-input" :class="{ 'form-field-error': !!validationError }" @input="validationError = ''">
                                 </template>
 
                                 <!-- Number Input -->
@@ -66,7 +66,7 @@
                                            name="field_value" 
                                            x-model="fieldValue"
                                            min="0" max="150"
-                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                           class="form-input" :class="{ 'form-field-error': !!validationError }" @input="validationError = ''">
                                 </template>
                                 
                                 <!-- Textarea -->
@@ -74,7 +74,7 @@
                                     <textarea name="field_value" 
                                               x-model="fieldValue"
                                               rows="3"
-                                              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"></textarea>
+                                              class="form-textarea" :class="{ 'form-field-error': !!validationError }" @input="validationError = ''"></textarea>
                                 </template>
 
                                 <!-- List Input (chips) -->
@@ -85,14 +85,14 @@
                                                    x-model="listInput"
                                                    @keydown.enter.prevent="addListItem()"
                                                    placeholder="Type item then press Enter"
-                                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                   class="form-input flex-1" :class="{ 'form-field-error': !!validationError }" @input="validationError = ''">
                                             <button type="button"
                                                     @click="addListItem()"
-                                                    class="px-3 py-2 bg-primary-100 text-primary-700 rounded-md hover:bg-primary-200 text-sm font-medium">Add</button>
+                                                    class="px-3 py-2 bg-white border border-gray-200 text-primary-700 rounded-lg hover:bg-gray-50 text-sm font-medium">Add</button>
                                         </div>
                                         <div class="flex flex-wrap gap-2" x-show="listItems.length > 0">
                                             <template x-for="(item, idx) in listItems" :key="idx">
-                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-gray-900 text-xs border border-primary-200">
+                                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary-50 text-gray-900 text-xs border border-gray-100">
                                                     <span x-text="item"></span>
                                                     <button type="button" @click="removeListItem(idx)" class="text-primary-600 hover:text-primary-900">x</button>
                                                 </span>
@@ -107,14 +107,14 @@
                                     <input type="date" 
                                            name="field_value" 
                                            x-model="fieldValue"
-                                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                           class="form-input" :class="{ 'form-field-error': !!validationError }" @input="validationError = ''">
                                 </template>
                                 
                                 <!-- Select Input -->
                                 <template x-if="fieldType === 'select'">
                                     <select name="field_value" 
                                             x-model="fieldValue"
-                                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            class="form-select" :class="{ 'form-field-error': !!validationError }" @change="validationError = ''">
                                         <template x-for="option in fieldOptions" :key="option.value">
                                             <option :value="option.value" x-text="option.label"></option>
                                         </template>
@@ -126,7 +126,7 @@
                                     <div class="space-y-3">
                                         <div>
                                             <label class="block text-xs font-medium text-gray-500 mb-1">College</label>
-                                            <select x-model="selectedCollege" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            <select x-model="selectedCollege" class="form-select" :class="{ 'form-field-error': !!validationError }" @change="validationError = ''">
                                                 <option value="">Select college</option>
                                                 <template x-for="option in collegeFieldOptions" :key="option">
                                                     <option :value="option" x-text="option"></option>
@@ -135,7 +135,7 @@
                                         </div>
                                         <div>
                                             <label class="block text-xs font-medium text-gray-500 mb-1">Course/Program</label>
-                                            <select name="field_value" x-model="fieldValue" class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            <select name="field_value" x-model="fieldValue" class="form-select" :class="{ 'form-field-error': !!validationError }" @change="validationError = ''">
                                                 <option value="">Select course/program</option>
                                                 <template x-for="option in filteredCourseOptions" :key="option">
                                                     <option :value="option" x-text="option"></option>
@@ -152,7 +152,7 @@
                                             <label class="block text-xs font-medium text-gray-500 mb-1">College/Department</label>
                                             <select x-model="academicCollege"
                                                     @change="if (!filteredAcademicCourseOptions.includes(academicCourse)) { academicCourse = '' }; if (!yearLevelFieldOptions.includes(academicYearLevel)) { academicYearLevel = '' }"
-                                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                    class="form-select" :class="{ 'form-field-error': !!validationError }" @change="validationError = ''">
                                                 <option value="">Select college</option>
                                                 <template x-for="option in collegeFieldOptions" :key="option">
                                                     <option :value="option" x-text="option"></option>
@@ -162,7 +162,7 @@
                                         <div>
                                             <label class="block text-xs font-medium text-gray-500 mb-1">Course/Program</label>
                                             <select x-model="academicCourse"
-                                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                    class="form-select" :class="{ 'form-field-error': !!validationError }" @change="validationError = ''">
                                                 <option value="">Select course/program</option>
                                                 <template x-for="option in filteredAcademicCourseOptions" :key="option">
                                                     <option :value="option" x-text="option"></option>
@@ -172,7 +172,7 @@
                                         <div>
                                             <label class="block text-xs font-medium text-gray-500 mb-1">Year Level</label>
                                             <select x-model="academicYearLevel"
-                                                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                    class="form-select" :class="{ 'form-field-error': !!validationError }" @change="validationError = ''">
                                                 <option value="">Select year level</option>
                                                 <template x-for="option in yearLevelFieldOptions" :key="option">
                                                     <option :value="option" x-text="option"></option>
@@ -182,19 +182,19 @@
                                     </div>
                                 </template>
 
-                                <p x-show="validationError" x-text="validationError" class="mt-2 text-sm text-red-600"></p>
+                                <p x-show="validationError" x-text="validationError" class="quick-edit-field-error mt-2" role="alert"></p>
                             </div>
                         </div>
-                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                        <div class="bg-gray-50/60 px-4 py-3 border-t border-gray-100 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
                             <button type="submit"
                                     :disabled="isSaving"
-                                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:w-auto sm:text-sm">
+                                    class="w-full inline-flex justify-center rounded-lg px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-1 disabled:opacity-60 sm:w-auto sm:text-sm">
                                 <span x-show="!isSaving">Save Changes</span>
                                 <span x-show="isSaving">Saving...</span>
                             </button>
                             <button type="button" 
                                     @click="closeModal()"
-                                    class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:w-auto sm:text-sm">
+                                    class="mt-3 w-full inline-flex justify-center rounded-lg border border-gray-200 px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:ring-offset-1 sm:mt-0 sm:w-auto sm:text-sm">
                                 Cancel
                             </button>
                         </div>

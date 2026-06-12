@@ -1,0 +1,28 @@
+{% if not reorder_prefill and low_stock_items %}
+<div class="rounded-lg border border-amber-200 bg-amber-50/40 p-4">
+  <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2 mb-1">
+    <i class="fas fa-triangle-exclamation text-amber-600 text-xs"></i> Low stock
+  </h3>
+  <p class="text-xs text-gray-600 mb-3">Click to add a line item with suggested reorder quantity.</p>
+  <ul class="space-y-2 max-h-64 overflow-y-auto">
+    {% for item in low_stock_items %}
+    <li>
+      <button type="button"
+              class="w-full text-left rounded-lg border border-amber-100 bg-white px-3 py-2 hover:border-amber-300 hover:bg-amber-50/80 transition-colors po-add-low-stock"
+              data-medicine-id="{{ item.id }}"
+              data-suggested-qty="{{ item.suggested_qty }}">
+        <p class="text-sm font-medium text-gray-900 truncate">{{ item.name }}</p>
+        <p class="text-xs text-gray-500">{{ item.current_stock }} {{ item.unit_display }} left · suggest {{ item.suggested_qty }}</p>
+      </button>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% elif reorder_prefill %}
+<div class="rounded-lg border border-emerald-200 bg-emerald-50/40 p-4">
+  <h3 class="text-sm font-semibold text-emerald-900 flex items-center gap-2 mb-1">
+    <i class="fas fa-boxes-stacked text-emerald-600 text-xs"></i> Reorder prefill
+  </h3>
+  <p class="text-xs text-emerald-800">{{ prefill_lines|length }} low-stock item{{ prefill_lines|length|pluralize }} added. Review quantities before saving.</p>
+</div>
+{% endif %}

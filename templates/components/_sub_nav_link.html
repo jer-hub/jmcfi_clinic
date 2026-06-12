@@ -6,9 +6,11 @@
 {% endcomment %}
 <a href="{{ item.url }}"
    role="tab"
+   aria-selected="{% if item.active %}true{% else %}false{% endif %}"
    {% if item.active %}aria-current="page"{% endif %}
-   class="nav-link whitespace-nowrap{% if item.active %} active{% endif %}">
-  {% if item.icon %}<i class="fas {{ item.icon }} text-sm opacity-80" aria-hidden="true"></i>{% endif %}
+   title="{{ item.label }}"
+   class="nav-link whitespace-nowrap shrink-0{% if item.active %} active{% endif %}">
+  {% if item.icon %}<i class="fas {{ item.icon }} nav-link-icon" aria-hidden="true"></i>{% endif %}
   <span>{{ item.label }}</span>
   {% if item.badge or item.badge == 0 %}
     <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold

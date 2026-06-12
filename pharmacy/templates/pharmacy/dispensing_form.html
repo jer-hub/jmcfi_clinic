@@ -5,8 +5,8 @@
 <div class="min-h-screen bg-gray-50 pt-0 pb-8 sm:pb-12">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     {% include 'pharmacy/_subnav.html' %}
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
 
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
       <div class="bg-gradient-to-r from-primary-50 to-primary-100 px-6 py-5 sm:px-8">
         <div class="flex items-center gap-4">
           <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
@@ -14,51 +14,300 @@
           </div>
           <div>
             <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
-            <p class="text-sm text-gray-600 mt-1">Select medicine, batch, and patient to dispense</p>
+            <p class="text-sm text-gray-600 mt-1">Search patient, select medicine and batch, then confirm dispense</p>
           </div>
         </div>
       </div>
 
-      <form method="post" class="p-6 sm:p-8 space-y-6" id="dispensing-form">
+      <form method="post"
+            id="dispensing-form"
+            class="p-6 sm:p-8"
+            x-data="dispensingForm()"
+            x-init="init()"
+            @batch-options-loaded.window="onBatchOptionsLoaded()">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-          {% for error in form.non_field_errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          {% for error in form.non_field_errors %}
+          <p class="text-sm text-red-700">{{ error }}</p>
+          {% endfor %}
         </div>
         {% endif %}
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {% for field in form %}
-          <div class="{% if field.name in 'reason' %}sm:col-span-2{% endif %}">
-            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-              {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
-            </label>
-            {{ field }}
-            {% if field.help_text %}<p class="mt-1 text-xs text-gray-500">{{ field.help_text }}</p>{% endif %}
-            {% if field.errors %}{% for error in field.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
-          </div>
-          {% endfor %}
-        </div>
+        <div class="lg:grid lg:grid-cols-3 lg:gap-8">
+          <div class="lg:col-span-2 space-y-8">
 
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-          <a href="{% url 'pharmacy:dispensing_list' %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</a>
-          <button type="submit" class="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm">
-            <i class="fas fa-hand-holding-medical mr-2"></i>Dispense
-          </button>
+            {# Section 1: Patient #}
+            <section>
+              {% include 'core/partials/_form_section_header.html' with title="Patient" description="Search by name, email, or patient ID." icon="fa-user" icon_theme="primary" %}
+              {% include 'pharmacy/partials/_dispensing_patient_picker.html' %}
+            </section>
+
+            {# Section 2: Medicine & stock #}
+            <section>
+              {% include 'core/partials/_form_section_header.html' with title="Medicine & stock" description="Choose medicine, batch (FEFO recommended), and quantity." icon="fa-pills" icon_theme="emerald" %}
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="sm:col-span-2">
+                  <label for="id_medicine" class="block text-sm font-medium text-gray-700 mb-1">
+                    Medicine<span class="text-red-500">*</span>
+                  </label>
+                  {{ form.medicine }}
+                  {% if form.medicine.help_text %}<p class="mt-1 text-xs text-gray-500">{{ form.medicine.help_text }}</p>{% endif %}
+                  {% for error in form.medicine.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+                </div>
+                <div>
+                  <label for="id_batch" class="block text-sm font-medium text-gray-700 mb-1">
+                    Batch<span class="text-red-500">*</span>
+                  </label>
+                  <select name="batch" id="id_batch" class="form-select mt-1 block w-full rounded-xl border border-gray-200 bg-white px-4 py-3 pr-10 text-sm text-gray-900 shadow-sm" @change="onBatchChange()">
+                    <option value="" disabled selected>Select a medicine first…</option>
+                    {% for choice in form.batch.field.choices %}
+                    {% if choice.0 %}
+                    <option value="{{ choice.0 }}"{% if form.batch.value|stringformat:"s" == choice.0|stringformat:"s" %} selected{% endif %}>{{ choice.1 }}</option>
+                    {% endif %}
+                    {% endfor %}
+                  </select>
+                  {% for error in form.batch.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+                </div>
+                <div>
+                  <label for="id_quantity" class="block text-sm font-medium text-gray-700 mb-1">
+                    Quantity<span class="text-red-500">*</span>
+                    <span class="text-xs text-gray-400 font-normal" x-show="medicineMeta?.unit_display" x-text="'(' + (medicineMeta?.unit_display || '') + ')'"></span>
+                  </label>
+                  {{ form.quantity }}
+                  {% for error in form.quantity.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+                </div>
+              </div>
+              <div class="mt-4">
+                {% include 'pharmacy/partials/_dispensing_stock_summary.html' %}
+              </div>
+            </section>
+
+            {# Section 3: Prescription #}
+            <section>
+              {% include 'core/partials/_form_section_header.html' with title="Prescription" description="Required for medicines that need a prescription." icon="fa-file-prescription" icon_theme="indigo" %}
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label for="id_prescription_reference" class="block text-sm font-medium text-gray-700 mb-1">
+                    Prescription reference
+                  </label>
+                  {{ form.prescription_reference }}
+                  {% for error in form.prescription_reference.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+                </div>
+                <div>
+                  <label for="id_prescribing_doctor" class="block text-sm font-medium text-gray-700 mb-1">
+                    Prescribing doctor
+                  </label>
+                  {{ form.prescribing_doctor }}
+                  {% for error in form.prescribing_doctor.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+                </div>
+              </div>
+            </section>
+
+            {# Section 4: Notes #}
+            <section>
+              {% include 'core/partials/_form_section_header.html' with title="Notes" description="Optional reason or notes for this dispense." icon="fa-note-sticky" icon_theme="blue" %}
+              <div>
+                <label for="id_reason" class="block text-sm font-medium text-gray-700 mb-1">Reason</label>
+                {{ form.reason }}
+                {% for error in form.reason.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+              </div>
+            </section>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+              <a href="{% url 'pharmacy:dispensing_list' %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</a>
+              <button type="button"
+                      class="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm"
+                      @click="$dispatch('open-modal', {
+                        type: 'warning',
+                        title: 'Confirm Dispense',
+                        message: 'Dispense this medicine to the selected patient? Stock will be deducted immediately.',
+                        actionLabel: 'Dispense',
+                        onConfirm: () => document.getElementById('dispensing-form').requestSubmit()
+                      })">
+                <i class="fas fa-hand-holding-medical mr-2"></i>Dispense
+              </button>
+            </div>
+          </div>
+
+          <aside class="mt-8 lg:mt-0">
+            {% include 'pharmacy/partials/_dispensing_recent_sidebar.html' %}
+          </aside>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+{% if selected_patient %}{{ selected_patient|json_script:"dispensing-selected-patient" }}{% else %}<script id="dispensing-selected-patient" type="application/json">null</script>{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.getElementById('id_medicine')?.addEventListener('change', function () {
-  const base = this.dataset.batchApiBase;
-  if (!base || !this.value) return;
-  this.setAttribute('hx-get', base.replace('/0/', '/' + this.value + '/'));
-});
+function dispensingPatientPicker() {
+  return {
+    query: '',
+    loading: false,
+    results: [],
+    showResults: false,
+    selectedPatient: null,
+    searchUrl: '{{ patient_search_url|escapejs }}',
+
+    initFromContext() {
+      const el = document.getElementById('dispensing-selected-patient');
+      if (el && el.textContent) {
+        try {
+          const initial = JSON.parse(el.textContent);
+          if (initial && initial.id) {
+            this.selectedPatient = initial;
+          }
+        } catch (e) { /* ignore */ }
+      }
+    },
+
+    searchPatients() {
+      const q = (this.query || '').trim();
+      if (q.length < 2) {
+        this.results = [];
+        this.showResults = false;
+        this.loading = false;
+        return;
+      }
+      this.loading = true;
+      this.showResults = true;
+      fetch(`${this.searchUrl}?q=${encodeURIComponent(q)}`, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => { this.results = Array.isArray(data) ? data : []; })
+        .catch(() => { this.results = []; })
+        .finally(() => { this.loading = false; });
+    },
+
+    selectPatient(row) {
+      this.selectedPatient = {
+        id: row.id,
+        name: row.name || row.text,
+        email: row.email || '',
+        patient_id: row.patient_id || '',
+      };
+      this.showResults = false;
+      this.query = '';
+    },
+
+    clearPatient() {
+      this.selectedPatient = null;
+      this.$nextTick(() => this.$refs.searchInput?.focus());
+    },
+  };
+}
+
+function dispensingForm() {
+  return {
+    medicineMeta: null,
+    batches: [],
+    selectedBatch: null,
+    quantity: 1,
+    medicineApiBase: '{{ medicine_api_base|escapejs }}',
+    batchApiBase: '{{ batch_api_base|escapejs }}',
+
+    get remainingQty() {
+      if (!this.selectedBatch || !this.quantity) return null;
+      return this.selectedBatch.quantity - this.quantity;
+    },
+
+    init() {
+      const qtyEl = document.getElementById('id_quantity');
+      if (qtyEl) {
+        this.quantity = parseInt(qtyEl.value, 10) || 1;
+        qtyEl.addEventListener('input', () => {
+          this.quantity = parseInt(qtyEl.value, 10) || 0;
+        });
+      }
+      const medEl = document.getElementById('id_medicine');
+      if (medEl?.value) {
+        this.loadMedicineMeta(medEl.value);
+        this.loadBatches(medEl.value, false);
+      }
+      medEl?.addEventListener('change', () => {
+        const id = medEl.value;
+        if (id) {
+          this.loadMedicineMeta(id);
+          this.loadBatches(id, true);
+        } else {
+          this.medicineMeta = null;
+          this.batches = [];
+          this.selectedBatch = null;
+          this.resetBatchSelect();
+        }
+      });
+      this.onBatchChange();
+    },
+
+    loadMedicineMeta(medicineId) {
+      const url = this.medicineApiBase.replace('/0/', `/${medicineId}/`);
+      fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => { this.medicineMeta = data; })
+        .catch(() => { this.medicineMeta = null; });
+    },
+
+    loadBatches(medicineId, autoSelectFefo) {
+      const url = this.batchApiBase.replace('/0/', `/${medicineId}/`);
+      fetch(url, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json', 'HX-Request': 'true' },
+      })
+        .then((r) => r.text())
+        .then((html) => {
+          const batchEl = document.getElementById('id_batch');
+          if (!batchEl) return;
+          batchEl.innerHTML = html;
+          if (autoSelectFefo) {
+            const fefo = batchEl.querySelector('option[data-fefo]');
+            if (fefo) {
+              batchEl.value = fefo.value;
+            }
+          }
+          this.onBatchChange();
+          window.dispatchEvent(new CustomEvent('batch-options-loaded'));
+        });
+    },
+
+    resetBatchSelect() {
+      const batchEl = document.getElementById('id_batch');
+      if (batchEl) {
+        batchEl.innerHTML = '<option value="" disabled selected>Select a medicine first…</option>';
+      }
+    },
+
+    onBatchOptionsLoaded() {
+      this.onBatchChange();
+    },
+
+    onBatchChange() {
+      const batchEl = document.getElementById('id_batch');
+      const medEl = document.getElementById('id_medicine');
+      if (!batchEl || !medEl?.value) {
+        this.selectedBatch = null;
+        return;
+      }
+      const batchId = batchEl.value;
+      if (!batchId) {
+        this.selectedBatch = null;
+        return;
+      }
+      const url = this.batchApiBase.replace('/0/', `/${medEl.value}/`);
+      fetch(url, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => {
+          this.batches = data;
+          this.selectedBatch = data.find((b) => String(b.id) === String(batchId)) || null;
+        });
+    },
+  };
+}
 </script>
 {% endblock %}

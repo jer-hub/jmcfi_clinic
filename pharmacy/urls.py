@@ -27,12 +27,15 @@ urlpatterns = [
     # Suppliers
     path('suppliers/', views.supplier_list, name='supplier_list'),
     path('suppliers/add/', views.supplier_create, name='supplier_create'),
+    path('suppliers/<int:supplier_id>/', views.supplier_detail, name='supplier_detail'),
     path('suppliers/<int:supplier_id>/edit/', views.supplier_edit, name='supplier_edit'),
 
     # Purchase Orders
     path('orders/', views.purchase_order_list, name='purchase_order_list'),
     path('orders/add/', views.purchase_order_create, name='purchase_order_create'),
     path('orders/<int:order_id>/', views.purchase_order_detail, name='purchase_order_detail'),
+    path('orders/<int:order_id>/edit/', views.purchase_order_edit, name='purchase_order_edit'),
+    path('orders/<int:order_id>/submit/', views.purchase_order_submit, name='purchase_order_submit'),
     path('orders/<int:order_id>/approve/', views.purchase_order_approve, name='purchase_order_approve'),
     path('orders/<int:order_id>/receive/', views.purchase_order_receive, name='purchase_order_receive'),
 
@@ -51,4 +54,5 @@ urlpatterns = [
 
     # AJAX
     path('api/batches/<int:medicine_id>/', views.api_batches_for_medicine, name='api_batches_for_medicine'),
+    path('api/medicine/<int:medicine_id>/', views.api_medicine_detail, name='api_medicine_detail'),
 ]

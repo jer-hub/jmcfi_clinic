@@ -1,0 +1,55 @@
+{% comment %}Live stock summary — parent Alpine scope provides medicineMeta, selectedBatch, quantity.{% endcomment %}
+<div class="rounded-lg border border-gray-200 bg-gray-50 p-4"
+     x-show="medicineMeta"
+     x-cloak>
+  <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+    <i class="fas fa-boxes-stacked mr-1"></i> Stock summary
+  </h4>
+  <dl class="space-y-2 text-sm">
+    <div class="flex justify-between gap-4">
+      <dt class="text-gray-500">Medicine</dt>
+      <dd class="font-medium text-gray-900 text-right" x-text="medicineMeta?.name || '—'"></dd>
+    </div>
+    <div class="flex justify-between gap-4" x-show="medicineMeta?.strength">
+      <dt class="text-gray-500">Strength</dt>
+      <dd class="text-gray-900 text-right" x-text="medicineMeta?.strength"></dd>
+    </div>
+    <div class="flex justify-between gap-4">
+      <dt class="text-gray-500">Available stock</dt>
+      <dd class="text-gray-900 text-right">
+        <span x-text="medicineMeta?.current_stock ?? '—'"></span>
+        <span x-text="medicineMeta?.unit_display || ''"></span>
+      </dd>
+    </div>
+    <template x-if="selectedBatch">
+      <div class="pt-2 border-t border-gray-200 space-y-2">
+        <div class="flex justify-between gap-4">
+          <dt class="text-gray-500">Batch</dt>
+          <dd class="font-medium text-gray-900 text-right" x-text="selectedBatch.batch_number"></dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt class="text-gray-500">Batch qty</dt>
+          <dd class="text-gray-900 text-right" x-text="selectedBatch.quantity"></dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt class="text-gray-500">Expiry</dt>
+          <dd class="text-gray-900 text-right" x-text="selectedBatch.expiry_date"></dd>
+        </div>
+        <div class="flex justify-between gap-4" x-show="quantity > 0">
+          <dt class="text-gray-500">After dispense</dt>
+          <dd class="font-semibold text-right"
+              :class="remainingQty < 0 ? 'text-red-600' : 'text-emerald-700'"
+              x-text="remainingQty >= 0 ? remainingQty + ' remaining' : 'Insufficient stock'"></dd>
+        </div>
+      </div>
+    </template>
+  </dl>
+  <div x-show="medicineMeta?.requires_prescription"
+       class="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+    <i class="fas fa-file-prescription mr-1"></i>
+    Prescription required — provide a reference or prescribing doctor below.
+  </div>
+</div>
+<p class="text-sm text-gray-400 italic" x-show="!medicineMeta" x-cloak>
+  Select a medicine to see stock details.
+</p>

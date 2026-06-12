@@ -14,80 +14,204 @@
           </div>
           <div>
             <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
-            <p class="text-sm text-gray-600 mt-1">Set up your purchase order and add line items</p>
+            <p class="text-sm text-gray-600 mt-1">Select supplier, add line items, then confirm the order</p>
           </div>
         </div>
       </div>
 
-      <form method="post" class="p-6 sm:p-8 space-y-8">
+      <form method="post" id="purchase-order-form" class="p-6 sm:p-8">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
-        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           {% for error in form.non_field_errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}
         </div>
         {% endif %}
 
-        <!-- Order Details -->
-        <div>
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Details</h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {% for field in form %}
-            <div class="{% if field.name == 'notes' %}sm:col-span-2{% endif %}">
-              <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-                {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
-              </label>
-              {{ field }}
-              {% if field.errors %}{% for error in field.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
-            </div>
-            {% endfor %}
-          </div>
-        </div>
+        <div class="lg:grid lg:grid-cols-3 lg:gap-8">
+          <div class="lg:col-span-2 space-y-8">
 
-        <!-- Line Items -->
-        <div>
-          <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Items</h2>
-          {{ formset.management_form }}
-          {% if formset.non_form_errors %}
-          <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            {% for error in formset.non_form_errors %}<p class="text-sm text-red-700">{{ error }}</p>{% endfor %}
-          </div>
-          {% endif %}
-
-          <div id="formset-container" class="space-y-4">
-            {% for item_form in formset %}
-            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50 formset-row">
-              {% if item_form.instance.pk %}{{ item_form.DELETE }}{% endif %}
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Medicine</label>
-                  {{ item_form.medicine }}
+            <section>
+              {% include 'core/partials/_form_section_header.html' with title="Order details" description="Supplier and delivery expectations." icon="fa-file-invoice" %}
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div class="sm:col-span-2">
+                  <label for="{{ form.supplier.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+                    Supplier<span class="text-red-500">*</span>
+                  </label>
+                  {{ form.supplier }}
+                  <p class="mt-1 text-xs text-gray-500">
+                    Need a new vendor?
+                    <a href="{% url 'pharmacy:supplier_create' %}" class="text-primary-600 hover:text-primary-800 font-medium">Add supplier</a>
+                  </p>
+                  {% for error in form.supplier.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                  {{ item_form.quantity_ordered }}
+                  <label for="{{ form.order_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Order date<span class="text-red-500">*</span></label>
+                  {{ form.order_date }}
+                  {% for error in form.order_date.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">Unit Cost (₱)</label>
-                  {{ item_form.unit_cost }}
+                  <label for="{{ form.expected_delivery.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Expected delivery</label>
+                  {{ form.expected_delivery }}
+                  {% for error in form.expected_delivery.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+                </div>
+                <div class="sm:col-span-2">
+                  <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  {{ form.notes }}
+                  {% for error in form.notes.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
                 </div>
               </div>
-              {% for field in item_form %}
-                {% if field.errors %}{% for error in field.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
-              {% endfor %}
-            </div>
-            {% endfor %}
-          </div>
-        </div>
+            </section>
 
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-          <a href="{% url 'pharmacy:purchase_order_list' %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</a>
-          <button type="submit" class="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm">
-            <i class="fas fa-save mr-2"></i>Save Order
-          </button>
+            <section>
+              {% include 'core/partials/_form_section_header.html' with title="Line items" description="Add medicines, quantities, and unit costs." icon="fa-pills" icon_theme="emerald" %}
+              {% include 'pharmacy/partials/_po_line_items_formset.html' %}
+            </section>
+
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+              <a href="{% if order %}{% url 'pharmacy:purchase_order_detail' order_id=order.pk %}{% else %}{% url 'pharmacy:purchase_order_list' %}{% endif %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</a>
+              <button type="button"
+                      id="po-submit-btn"
+                      class="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm">
+                <i class="fas fa-save mr-2"></i>{% if is_edit %}Update Order{% else %}Save Order{% endif %}
+              </button>
+            </div>
+          </div>
+
+          <aside class="mt-8 lg:mt-0 space-y-4">
+            {% include 'pharmacy/partials/_po_order_summary.html' %}
+            {% include 'pharmacy/partials/_po_supplier_sidebar.html' %}
+            {% include 'pharmacy/partials/_po_low_stock_sidebar.html' %}
+          </aside>
         </div>
       </form>
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const form = document.getElementById('purchase-order-form');
+  const body = document.getElementById('po-formset-body');
+  const totalEl = document.getElementById('po-order-total');
+  const totalFormsInput = document.getElementById('id_items-TOTAL_FORMS');
+  const template = document.getElementById('po-empty-form-template');
+  const addBtn = document.getElementById('po-add-line');
+  const submitBtn = document.getElementById('po-submit-btn');
+  const prefix = 'items';
+
+  function parseMoney(val) {
+    const n = parseFloat(String(val || '0').replace(/,/g, ''));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function formatMoney(n) {
+    return '₱' + n.toFixed(2);
+  }
+
+  function rowTotal(row) {
+    const qty = parseMoney(row.querySelector('.po-line-qty')?.value);
+    const cost = parseMoney(row.querySelector('.po-line-cost')?.value);
+    return qty * cost;
+  }
+
+  function updateTotals() {
+    let orderTotal = 0;
+    body.querySelectorAll('.po-formset-row').forEach((row) => {
+      if (row.style.display === 'none') return;
+      const deleteInput = row.querySelector('input[name$="-DELETE"]');
+      if (deleteInput && deleteInput.value === 'on') return;
+      const line = rowTotal(row);
+      const lineEl = row.querySelector('.po-line-total');
+      if (lineEl) lineEl.textContent = formatMoney(line);
+      orderTotal += line;
+    });
+    if (totalEl) totalEl.textContent = formatMoney(orderTotal);
+  }
+
+  function bindRow(row) {
+    row.querySelectorAll('.po-line-qty, .po-line-cost, .po-line-medicine').forEach((el) => {
+      el.addEventListener('input', updateTotals);
+      el.addEventListener('change', updateTotals);
+    });
+    const removeBtn = row.querySelector('.po-remove-row');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        const deleteInput = row.querySelector('input[name$="-DELETE"]');
+        if (deleteInput) {
+          deleteInput.value = 'on';
+          row.style.display = 'none';
+        } else {
+          row.remove();
+          reindexForms();
+        }
+        updateTotals();
+      });
+    }
+  }
+
+  function reindexForms() {
+    const rows = body.querySelectorAll('.po-formset-row:not([style*="display: none"])');
+    rows.forEach((row, idx) => {
+      row.dataset.formIndex = idx;
+      row.querySelectorAll('input, select, textarea').forEach((el) => {
+        if (!el.name) return;
+        el.name = el.name.replace(new RegExp(prefix + '-\\d+-'), prefix + '-' + idx + '-');
+        el.id = el.id.replace(new RegExp('id_' + prefix + '-\\d+-'), 'id_' + prefix + '-' + idx + '-');
+      });
+    });
+    if (totalFormsInput) totalFormsInput.value = body.querySelectorAll('.po-formset-row').length;
+  }
+
+  function addRow(medicineId, suggestedQty) {
+    const index = parseInt(totalFormsInput.value, 10);
+    const html = template.innerHTML.replace(/__prefix__/g, index);
+    body.insertAdjacentHTML('beforeend', html);
+    const row = body.lastElementChild;
+    if (medicineId) {
+      const medSelect = row.querySelector('.po-line-medicine');
+      if (medSelect) medSelect.value = String(medicineId);
+    }
+    if (suggestedQty) {
+      const qtyInput = row.querySelector('.po-line-qty');
+      if (qtyInput) qtyInput.value = String(suggestedQty);
+    }
+    totalFormsInput.value = index + 1;
+    bindRow(row);
+    updateTotals();
+  }
+
+  body.querySelectorAll('.po-formset-row').forEach(bindRow);
+  updateTotals();
+
+  if (addBtn) {
+    addBtn.addEventListener('click', () => addRow());
+  }
+
+  document.querySelectorAll('.po-add-low-stock').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      addRow(btn.dataset.medicineId, btn.dataset.suggestedQty);
+    });
+  });
+
+  if (submitBtn) {
+    submitBtn.addEventListener('click', () => {
+      const supplierSelect = document.getElementById('id_supplier');
+      const supplierName = supplierSelect?.selectedOptions?.[0]?.text || 'this supplier';
+      window.dispatchEvent(new CustomEvent('open-modal', {
+        bubbles: true,
+        detail: {
+          type: 'warning',
+          title: {% if is_edit %}'Update Purchase Order'{% else %}'Create Purchase Order'{% endif %},
+          message: `Save this purchase order for ${supplierName}? You can submit it for approval from the order detail page.`,
+          actionLabel: {% if is_edit %}'Update Order'{% else %}'Save Order'{% endif %},
+          onConfirm: () => form.requestSubmit(),
+        },
+      }));
+    });
+  }
+})();
+</script>
 {% endblock %}

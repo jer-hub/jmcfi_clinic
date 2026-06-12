@@ -239,6 +239,19 @@ def apply_stock_adjustment(adjustment: StockAdjustment, user) -> None:
     )
 
 
+def medicine_detail_payload(medicine) -> dict:
+    """JSON-serializable medicine metadata for dispensing form."""
+    return {
+        'id': medicine.pk,
+        'name': str(medicine),
+        'unit': medicine.unit,
+        'unit_display': medicine.get_unit_display(),
+        'strength': medicine.strength or '',
+        'requires_prescription': medicine.requires_prescription,
+        'current_stock': medicine.current_stock,
+    }
+
+
 def available_batches_payload(medicine_id: int) -> list[dict]:
     """JSON-serializable batches for dispensing form API."""
     today = timezone.now().date()

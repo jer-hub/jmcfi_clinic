@@ -1,8 +1,11 @@
 {% comment %}
-  Section sub-navigation — compact segmented tabs or breadcrumbs.
+  Section sub-navigation — compact tabs, dropdowns, wrapped tabs, grouped rows, or breadcrumbs.
 
   Context:
-    items – list of {label, url, icon?, active?, badge?}
+    items – flat tab list {label, url, icon?, active?, badge?}
+    dropdowns – flyout menus [{label, items: [...], active?}]
+    groups – labeled tab groups [{label, items: [...]}]
+    nav_layout – grouped | wrapped | compact (default compact)
     show_breadcrumbs – auto-set by enrich_subnav / inclusion tags
     bc_crumbs – breadcrumb trail when show_breadcrumbs
     nav_mb – margin below nav (default mb-6 tabs / mb-4 crumbs)
@@ -10,19 +13,42 @@
 {% endcomment %}
 
 {% if show_breadcrumbs %}
-<nav class="{{ nav_mb|default:'mb-4' }} w-fit max-w-full overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm"
+<nav class="{{ nav_mb|default:'mb-4' }} w-fit max-w-full overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm"
      aria-label="{{ nav_aria_label|default:'Section navigation' }}">
   <div class="px-3 py-2.5 min-w-max">
     {% include "components/breadcrumbs.html" with crumbs=bc_crumbs embedded=True %}
   </div>
 </nav>
-{% elif items %}
-<nav class="{{ nav_mb|default:'mb-6' }} w-fit max-w-full overflow-x-auto"
+{% elif groups %}
+<nav class="{{ nav_mb|default:'mb-6' }} w-full max-w-full"
+     aria-label="{{ nav_aria_label|default:'Section navigation' }}">
+  <div class="rounded-card border border-gray-100 bg-white shadow-sm overflow-hidden divide-y divide-gray-100">
+    {% for group in groups %}
+    <div class="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-4">
+      {% if group.label %}
+      <p class="text-[0.6875rem] font-semibold uppercase tracking-wider text-gray-400 sm:w-[5.75rem] shrink-0 sm:pt-0.5">
+        {{ group.label }}
+      </p>
+      {% endif %}
+      <div role="tablist" class="flex flex-wrap items-center gap-1 min-w-0 {% if group.label %}flex-1{% endif %}">
+        {% for item in group.items %}
+          {% include "components/_sub_nav_link.html" with item=item %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</nav>
+{% elif items or dropdowns %}
+<nav class="{{ nav_mb|default:'mb-6' }} w-full max-w-full{% if nav_layout != 'wrapped' and not dropdowns %} overflow-x-auto{% endif %}"
      aria-label="{{ nav_aria_label|default:'Section navigation' }}">
   <div role="tablist"
-       class="inline-flex min-w-max items-center gap-0.5 rounded-xl border border-gray-200 bg-gray-100/90 p-1 shadow-sm">
+       class="{% if nav_layout == 'wrapped' %}flex flex-wrap items-center gap-1.5 w-full{% else %}inline-flex min-w-max items-center gap-1{% endif %}{% if dropdowns %} overflow-visible{% endif %} rounded-xl border border-gray-100 bg-white p-2 shadow-sm">
     {% for item in items %}
       {% include "components/_sub_nav_link.html" with item=item %}
+    {% endfor %}
+    {% for dropdown in dropdowns %}
+      {% include "components/_sub_nav_dropdown.html" with dropdown=dropdown menu_id=forloop.counter %}
     {% endfor %}
   </div>
 </nav>

@@ -1,0 +1,56 @@
+{% comment %}
+  Sub-navigation dropdown trigger + flyout menu.
+
+  Context:
+    dropdown – dict with label, items[], active (bool), icon? (optional)
+    menu_id – unique id suffix for aria attributes
+{% endcomment %}
+<div class="relative shrink-0"
+     x-data="{ open: false, routeActive: {% if dropdown.active %}true{% else %}false{% endif %} }"
+     @click.outside="open = false"
+     @keydown.escape.window="open && (open = false)">
+  <button type="button"
+          id="subnav-trigger-{{ menu_id }}"
+          role="tab"
+          aria-selected="{% if dropdown.active %}true{% else %}false{% endif %}"
+          title="{{ dropdown.label }}"
+          class="nav-link nav-link-dropdown whitespace-nowrap shrink-0"
+          @click="open = !open"
+          @keydown.enter.prevent="open = !open"
+          @keydown.space.prevent="open = !open"
+          @keydown.arrow-down.prevent="open = true; $nextTick(() => $refs.menu?.querySelector('[role=menuitem]')?.focus())"
+          x-bind:class="{ active: open || routeActive }"
+          aria-haspopup="true"
+          :aria-expanded="open.toString()"
+          aria-controls="subnav-menu-{{ menu_id }}">
+    {% if dropdown.icon %}<i class="fas {{ dropdown.icon }} nav-link-icon" aria-hidden="true"></i>{% endif %}
+    <span>{{ dropdown.label }}</span>
+    <span class="nav-link-chevron" aria-hidden="true">
+      <i class="fas fa-chevron-down transition-transform duration-200 ease-out"
+         :class="open ? 'rotate-180' : ''"></i>
+    </span>
+  </button>
+  <div id="subnav-menu-{{ menu_id }}"
+       x-ref="menu"
+       x-show="open"
+       x-cloak
+       x-transition:enter="transition ease-out duration-200"
+       x-transition:enter-start="opacity-0 -translate-y-1"
+       x-transition:enter-end="opacity-100 translate-y-0"
+       x-transition:leave="transition ease-in duration-150"
+       x-transition:leave-start="opacity-100 translate-y-0"
+       x-transition:leave-end="opacity-0 -translate-y-1"
+       role="menu"
+       aria-labelledby="subnav-trigger-{{ menu_id }}"
+       class="absolute left-0 top-full z-50 mt-1.5 min-w-[11rem] origin-top-left rounded-xl border border-gray-100 bg-white p-1.5 shadow-sm">
+    {% for item in dropdown.items %}
+    <a href="{{ item.url }}"
+       role="menuitem"
+       {% if item.active %}aria-current="page"{% endif %}
+       class="dropdown-item flex items-center gap-2{% if item.active %} font-semibold text-primary-700 bg-primary-50{% endif %}">
+      {% if item.icon %}<i class="fas {{ item.icon }} nav-link-icon" aria-hidden="true"></i>{% endif %}
+      <span>{{ item.label }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>

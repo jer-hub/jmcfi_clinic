@@ -71,6 +71,77 @@ class DispensingCreateViewTest(TestCase):
         self.assertEqual(self.batch.quantity, 8)
         self.assertEqual(Dispensing.objects.count(), 0)
 
+    def test_post_staff_as_patient_rejected(self):
+        response = self.client.post(self.url, {
+            'patient': self.staff.pk,
+            'medicine': self.medicine.pk,
+            'batch': self.batch.pk,
+            'quantity': 1,
+            'prescription_reference': '',
+            'prescribing_doctor': '',
+            'reason': '',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Dispensing.objects.count(), 0)
+        self.assertContains(response, 'valid patient')
+
+    def test_post_rx_medicine_without_prescription_fails(self):
+        self.medicine.requires_prescription = True
+        self.medicine.save(update_fields=['requires_prescription'])
+        response = self.client.post(self.url, {
+            'patient': self.patient.pk,
+            'medicine': self.medicine.pk,
+            'batch': self.batch.pk,
+            'quantity': 1,
+            'prescription_reference': '',
+            'prescribing_doctor': '',
+            'reason': '',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Dispensing.objects.count(), 0)
+        self.assertContains(response, 'prescription')
+
+    def test_post_medicine_batch_mismatch_fails(self):
+        other = Medicine.objects.create(
+            name='Other Med',
+            unit='tablet',
+            reorder_level=1,
+            max_stock_level=100,
+        )
+        future = timezone.now().date() + datetime.timedelta(days=200)
+        Batch.objects.create(
+            medicine=other,
+            batch_number='OTHER-B1',
+            quantity=5,
+            expiry_date=future,
+        )
+        response = self.client.post(self.url, {
+            'patient': self.patient.pk,
+            'medicine': other.pk,
+            'batch': self.batch.pk,
+            'quantity': 1,
+            'prescription_reference': '',
+            'prescribing_doctor': '',
+            'reason': '',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Dispensing.objects.count(), 0)
+        self.assertContains(response, 'does not belong')
+
+    def test_patient_query_prefill_renders_selected_patient(self):
+        response = self.client.get(f'{self.url}?patient={self.patient.pk}')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'dispensing-selected-patient')
+        self.assertContains(response, self.patient.email)
+
+    def test_form_renders_sectioned_layout_and_confirm_modal(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'dispensing-patient-search')
+        self.assertContains(response, 'Stock summary')
+        self.assertContains(response, 'Confirm Dispense')
+        self.assertContains(response, 'Recent dispensings')
+
 
 @pharmacy_test_settings
 class StockAdjustmentCreateViewTest(TestCase):

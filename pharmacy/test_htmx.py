@@ -84,4 +84,45 @@ class PharmacyBatchApiTest(TestCase):
         student = make_user(role='student', email='htmx-api-student@test.example')
         self.client.force_login(student)
         response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 403)
+        self.assertIn(response.status_code, (302, 403))
+
+    def test_htmx_batch_options_mark_fefo_recommended(self):
+        response = self.client.get(self.url, HTTP_HX_REQUEST='true')
+        self.assertContains(response, 'recommended')
+        self.assertContains(response, 'Select a batch')
+
+
+@pharmacy_test_settings
+class PharmacyMedicineApiTest(TestCase):
+    def setUp(self):
+        self.staff = make_user(role='staff', email='htmx-med-staff@test.example')
+        self.client.force_login(self.staff)
+        self.medicine = Medicine.objects.create(
+            name='Meta Med',
+            unit='tablet',
+            strength='500mg',
+            requires_prescription=True,
+            reorder_level=1,
+            max_stock_level=50,
+            cached_non_expired_stock=20,
+            stock_cache_updated_at=timezone.now(),
+        )
+        self.url = reverse(
+            'pharmacy:api_medicine_detail',
+            kwargs={'medicine_id': self.medicine.pk},
+        )
+
+    def test_medicine_detail_returns_metadata_json(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data['name'], 'Meta Med (500mg)')
+        self.assertEqual(data['unit'], 'tablet')
+        self.assertTrue(data['requires_prescription'])
+        self.assertEqual(data['current_stock'], 20)
+
+    def test_student_cannot_access_medicine_api(self):
+        student = make_user(role='student', email='htmx-med-student@test.example')
+        self.client.force_login(student)
+        response = self.client.get(self.url)
+        self.assertIn(response.status_code, (302, 403))

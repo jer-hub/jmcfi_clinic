@@ -26,6 +26,44 @@ def create_purchase_order(*, form, formset, user) -> PurchaseOrder:
 
 
 @transaction.atomic
+def update_purchase_order(*, order: PurchaseOrder, form, formset, user) -> PurchaseOrder:
+    order = PurchaseOrder.objects.select_for_update().get(pk=order.pk)
+    if order.status != 'draft':
+        raise ValueError('Only draft purchase orders can be edited.')
+    po = form.save(commit=False)
+    po.pk = order.pk
+    po.ordered_by = order.ordered_by
+    po.status = order.status
+    po.order_number = order.order_number
+    po.save()
+    formset.instance = po
+    formset.save()
+    log_action(
+        'order_created',
+        user,
+        details=f'PO {po.order_number} updated.',
+    )
+    return po
+
+
+@transaction.atomic
+def submit_purchase_order(order: PurchaseOrder, user) -> bool:
+    order = PurchaseOrder.objects.select_for_update().get(pk=order.pk)
+    if order.status != 'draft':
+        return False
+    if not order.items.exists():
+        return False
+    order.status = 'submitted'
+    order.save(update_fields=['status', 'updated_at'])
+    log_action(
+        'order_created',
+        user,
+        details=f'PO {order.order_number} submitted for approval.',
+    )
+    return True
+
+
+@transaction.atomic
 def approve_purchase_order(order: PurchaseOrder, user) -> bool:
     order = PurchaseOrder.objects.select_for_update().get(pk=order.pk)
     if order.status not in ('draft', 'submitted'):

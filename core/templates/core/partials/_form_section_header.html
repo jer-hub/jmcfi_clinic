@@ -1,0 +1,30 @@
+{% comment %}
+  Compact section heading — shared by profile view tabs and edit forms.
+
+  title (required), description (optional), icon — FA class (optional)
+  icon_theme — primary (default) | purple | blue | indigo | emerald | red
+  margin_class — wrapper spacing (default: mb-4)
+{% endcomment %}
+<div class="{{ margin_class|default:'mb-4' }}">
+  <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+    {% if icon %}
+    <span class="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 border
+      {% if icon_theme == 'blue' %}bg-blue-50 border-blue-100
+      {% elif icon_theme == 'indigo' %}bg-indigo-50 border-indigo-100
+      {% elif icon_theme == 'emerald' %}bg-emerald-50 border-emerald-100
+      {% elif icon_theme == 'red' %}bg-red-50 border-red-100
+      {% else %}bg-primary-50 border-primary-100{% endif %}" aria-hidden="true">
+      <i class="fas {{ icon }} text-xs
+        {% if icon_theme == 'blue' %}text-blue-600
+        {% elif icon_theme == 'indigo' %}text-indigo-600
+        {% elif icon_theme == 'emerald' %}text-emerald-600
+        {% elif icon_theme == 'red' %}text-red-600
+        {% else %}text-primary-600{% endif %}"></i>
+    </span>
+    {% endif %}
+    {{ title }}
+  </h3>
+  {% if description %}
+  <p class="text-sm text-gray-500 mt-1 {% if icon %}ml-9{% endif %}">{{ description }}</p>
+  {% endif %}
+</div>

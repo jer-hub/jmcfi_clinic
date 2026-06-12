@@ -42,7 +42,7 @@ class PharmacyFullRouteAccessTest(TestCase):
             quantity=5,
             expiry_date=future,
         )
-        cls.supplier = Supplier.objects.create(name='Route Supplier')
+        cls.supplier = Supplier.objects.create(name='Route Supplier', email='route@supplier.test')
         cls.order = PurchaseOrder.objects.create(
             supplier=cls.supplier,
             ordered_by=cls.staff,
@@ -76,9 +76,11 @@ class PharmacyFullRouteAccessTest(TestCase):
             ('pharmacy:supplier_list', {}),
             ('pharmacy:supplier_create', {}),
             ('pharmacy:supplier_edit', {'supplier_id': self.supplier.pk}),
+            ('pharmacy:supplier_detail', {'supplier_id': self.supplier.pk}),
             ('pharmacy:purchase_order_list', {}),
             ('pharmacy:purchase_order_create', {}),
             ('pharmacy:purchase_order_detail', {'order_id': self.order.pk}),
+            ('pharmacy:purchase_order_edit', {'order_id': self.order.pk}),
             ('pharmacy:dispensing_list', {}),
             ('pharmacy:dispensing_create', {}),
             ('pharmacy:adjustment_list', {}),

@@ -5,18 +5,21 @@
 <div class="min-h-screen bg-gray-50 pt-0 pb-8 sm:pb-12">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     {% include 'pharmacy/_subnav.html' %}
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="bg-white rounded-lg shadow-lg overflow-hidden max-w-3xl">
 
       <div class="bg-gradient-to-r from-primary-50 to-primary-100 px-6 py-5 sm:px-8">
         <div class="flex items-center gap-4">
           <div class="w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-lg">
             <i class="fas fa-truck text-white text-xl"></i>
           </div>
-          <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+          <div>
+            <h1 class="text-2xl font-bold text-gray-900">{{ title }}</h1>
+            <p class="text-sm text-gray-600 mt-1">Vendor contact and procurement details</p>
+          </div>
         </div>
       </div>
 
-      <form method="post" class="p-6 sm:p-8 space-y-6">
+      <form method="post" class="p-6 sm:p-8 space-y-8">
         {% csrf_token %}
         {% if form.non_field_errors %}
         <div class="bg-red-50 border border-red-200 rounded-lg p-4">
@@ -24,20 +27,68 @@
         </div>
         {% endif %}
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {% for field in form %}
-          <div class="{% if field.name in 'address,notes' %}sm:col-span-2{% endif %}">
-            <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
-              {{ field.label }}{% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+        <section>
+          {% include 'core/partials/_form_section_header.html' with title="Company" description="Legal or trading name of the supplier." icon="fa-building" %}
+          <div>
+            <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">
+              {{ form.name.label }}<span class="text-red-500">*</span>
             </label>
-            {{ field }}
-            {% if field.errors %}{% for error in field.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}{% endif %}
+            {{ form.name }}
+            {% for error in form.name.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
           </div>
-          {% endfor %}
-        </div>
+        </section>
+
+        <section>
+          {% include 'core/partials/_form_section_header.html' with title="Contact" description="At least one of email or phone is required." icon="fa-address-card" icon_theme="blue" %}
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div class="sm:col-span-2">
+              <label for="{{ form.contact_person.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.contact_person.label }}</label>
+              {{ form.contact_person }}
+              {% for error in form.contact_person.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+              <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.email.label }}</label>
+              {{ form.email }}
+              {% for error in form.email.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+              <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.phone.label }}</label>
+              {{ form.phone }}
+              {% for error in form.phone.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+          </div>
+        </section>
+
+        <section>
+          {% include 'core/partials/_form_section_header.html' with title="Address & notes" icon="fa-location-dot" icon_theme="emerald" %}
+          <div class="space-y-6">
+            <div>
+              <label for="{{ form.address.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.address.label }}</label>
+              {{ form.address }}
+              {% for error in form.address.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+            <div>
+              <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1">{{ form.notes.label }}</label>
+              {{ form.notes }}
+              {% for error in form.notes.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+          </div>
+        </section>
+
+        <section>
+          {% include 'core/partials/_form_section_header.html' with title="Status" icon="fa-toggle-on" %}
+          <label for="{{ form.is_active.id_for_label }}" class="flex items-start gap-3 rounded-lg border border-gray-200 p-3">
+            <div class="pt-0.5">{{ form.is_active }}</div>
+            <div>
+              <p class="text-sm font-medium text-gray-800">{{ form.is_active.label }}</p>
+              <p class="text-xs text-gray-500 mt-0.5">Inactive suppliers are hidden from new purchase orders.</p>
+              {% for error in form.is_active.errors %}<p class="mt-1 text-xs text-red-600">{{ error }}</p>{% endfor %}
+            </div>
+          </label>
+        </section>
 
         <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-          <a href="{% url 'pharmacy:supplier_list' %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</a>
+          <a href="{% if supplier %}{% url 'pharmacy:supplier_detail' supplier_id=supplier.pk %}{% else %}{% url 'pharmacy:supplier_list' %}{% endif %}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</a>
           <button type="submit" class="px-6 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm">
             <i class="fas fa-save mr-2"></i>Save Supplier
           </button>

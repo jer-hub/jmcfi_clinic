@@ -33,18 +33,24 @@
           <h2 class="text-lg font-semibold text-gray-900">
             <i class="fas fa-exclamation-triangle text-amber-500 mr-2"></i>Low Stock Alerts
           </h2>
-          <a href="{% url 'pharmacy:medicine_list' %}?stock=low" class="text-sm text-primary-600 hover:text-primary-800">View All →</a>
+          <div class="flex items-center gap-3">
+            <a href="{% url 'pharmacy:purchase_order_create' %}?reorder=1" class="text-sm font-medium text-amber-700 hover:text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">Create reorder PO</a>
+            <a href="{% url 'pharmacy:medicine_list' %}?stock=low" class="text-sm text-primary-600 hover:text-primary-800">View All →</a>
+          </div>
         </div>
         <div class="divide-y divide-gray-100">
           {% for med in low_stock_medicines|slice:":5" %}
-          <div class="px-6 py-3 flex items-center justify-between hover:bg-amber-50/30">
-            <div>
+          <div class="px-6 py-3 flex items-center justify-between hover:bg-amber-50/30 gap-3">
+            <div class="min-w-0 flex-1">
               <p class="font-medium text-gray-900">{{ med.name }}</p>
               <p class="text-xs text-gray-500">{{ med.get_unit_display }} · Reorder at {{ med.reorder_level }}</p>
             </div>
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-              {{ med.display_stock }} left
-            </span>
+            <div class="flex items-center gap-2 shrink-0">
+              <a href="{% url 'pharmacy:purchase_order_create' %}?medicines={{ med.pk }}" class="text-xs font-medium text-primary-600 hover:text-primary-800" title="Add to new PO">Order</a>
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                {{ med.display_stock }} left
+              </span>
+            </div>
           </div>
           {% empty %}
           <div class="px-6 py-8 text-center text-gray-400">
@@ -142,51 +148,6 @@
           </div>
           {% endfor %}
         </div>
-      </div>
-    </div>
-
-    <!-- Quick Navigation -->
-    <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">Quick Links</h2>
-      </div>
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 p-6">
-        <a href="{% url 'pharmacy:medicine_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
-          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
-            <i class="fas fa-capsules text-primary-600"></i>
-          </div>
-          <span class="text-sm font-medium text-gray-700">Medicines</span>
-        </a>
-        <a href="{% url 'pharmacy:batch_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
-          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
-            <i class="fas fa-boxes-stacked text-primary-600"></i>
-          </div>
-          <span class="text-sm font-medium text-gray-700">Batches</span>
-        </a>
-        <a href="{% url 'pharmacy:supplier_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
-          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
-            <i class="fas fa-truck text-primary-600"></i>
-          </div>
-          <span class="text-sm font-medium text-gray-700">Suppliers</span>
-        </a>
-        <a href="{% url 'pharmacy:purchase_order_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
-          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
-            <i class="fas fa-file-invoice text-primary-600"></i>
-          </div>
-          <span class="text-sm font-medium text-gray-700">Orders</span>
-        </a>
-        <a href="{% url 'pharmacy:audit_log_list' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
-          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
-            <i class="fas fa-clipboard-list text-primary-600"></i>
-          </div>
-          <span class="text-sm font-medium text-gray-700">Audit Log</span>
-        </a>
-        <a href="{% url 'pharmacy:compliance_report' %}" class="flex flex-col items-center p-4 rounded-lg hover:bg-primary-50 transition-colors text-center">
-          <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center mb-2">
-            <i class="fas fa-chart-bar text-primary-600"></i>
-          </div>
-          <span class="text-sm font-medium text-gray-700">Reports</span>
-        </a>
       </div>
     </div>
 

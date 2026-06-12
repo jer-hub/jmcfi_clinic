@@ -5,7 +5,14 @@ from django.urls import reverse
 
 from core.roles import ROLE_PATIENT, role_matches
 from core.settings_service import get_role_features
-from core.subnav_helpers import breadcrumb_subnav, enrich_subnav, is_active, nav_item, view_name
+from core.subnav_helpers import (
+    breadcrumb_subnav,
+    enrich_subnav,
+    is_active,
+    nav_dropdown,
+    nav_item,
+    view_name,
+)
 from core.utils import analytics_home_url_name
 
 register = template.Library()
@@ -90,7 +97,7 @@ def medical_records_subnav(context):
             )
         )
     _append_patient_new_appointment(items, context['request'])
-    return enrich_subnav(items, always_show_nav=True, nav_mb='mb-4')
+    return enrich_subnav(items, always_show_nav=True)
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
@@ -115,7 +122,7 @@ def dental_records_subnav(context):
             )
         )
     _append_patient_new_appointment(items, context['request'])
-    return enrich_subnav(items, always_show_nav=True, nav_mb='mb-4')
+    return enrich_subnav(items, always_show_nav=True)
 
 
 def _document_requests_list_crumb():
@@ -195,7 +202,7 @@ def document_request_subnav(context):
                 active=vn == 'document_request:clinician_signature',
             )
         )
-    return enrich_subnav(items, always_show_nav=True, nav_mb='mb-4')
+    return enrich_subnav(items, always_show_nav=True)
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
@@ -397,37 +404,104 @@ def analytics_subnav(context):
             ]
         )
     if role_matches(user.role, ROLE_PATIENT):
-        return enrich_subnav([], nav_mb='mb-4')
-    return enrich_subnav(items, always_show_nav=True, nav_mb='mb-4')
+        return enrich_subnav([])
+    return enrich_subnav(items, always_show_nav=True)
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
 def pharmacy_subnav(context):
     vn = view_name(context['request'])
     return enrich_subnav(
-        [
-            nav_item('Dashboard', 'pharmacy:dashboard', icon='fa-gauge-high', active=vn == 'pharmacy:dashboard'),
-            nav_item('Medicines', 'pharmacy:medicine_list', icon='fa-capsules', active='medicine' in vn),
-            nav_item('Categories', 'pharmacy:category_list', icon='fa-tags', active='category' in vn),
-            nav_item('Batches', 'pharmacy:batch_list', icon='fa-boxes-stacked', active='batch' in vn),
-            nav_item('Suppliers', 'pharmacy:supplier_list', icon='fa-truck-field', active='supplier' in vn),
-            nav_item('Orders', 'pharmacy:purchase_order_list', icon='fa-file-invoice', active='purchase_order' in vn),
+        items=[
             nav_item(
-                'Dispensing',
-                'pharmacy:dispensing_list',
-                icon='fa-hand-holding-medical',
-                active='dispensing' in vn,
+                'Dashboard',
+                'pharmacy:dashboard',
+                icon='fa-gauge-high',
+                active=vn == 'pharmacy:dashboard',
             ),
-            nav_item('Adjustments', 'pharmacy:adjustment_list', icon='fa-sliders', active='adjustment' in vn),
-            nav_item('Audit Log', 'pharmacy:audit_log_list', icon='fa-clipboard-list', active='audit_log' in vn),
-            nav_item(
-                'Reports',
-                'pharmacy:compliance_report',
-                icon='fa-chart-column',
-                active='compliance_report' in vn or 'cost_analysis' in vn,
+        ],
+        dropdowns=[
+            nav_dropdown(
+                'Catalog',
+                icon='fa-book-medical',
+                items=[
+                    nav_item(
+                        'Medicines',
+                        'pharmacy:medicine_list',
+                        icon='fa-capsules',
+                        active='medicine' in vn,
+                    ),
+                    nav_item(
+                        'Categories',
+                        'pharmacy:category_list',
+                        icon='fa-tags',
+                        active='category' in vn,
+                    ),
+                    nav_item(
+                        'Batches',
+                        'pharmacy:batch_list',
+                        icon='fa-boxes-stacked',
+                        active='batch' in vn,
+                    ),
+                ],
+            ),
+            nav_dropdown(
+                'Supply',
+                icon='fa-truck-field',
+                items=[
+                    nav_item(
+                        'Suppliers',
+                        'pharmacy:supplier_list',
+                        icon='fa-truck-field',
+                        active='supplier' in vn,
+                    ),
+                    nav_item(
+                        'Orders',
+                        'pharmacy:purchase_order_list',
+                        icon='fa-file-invoice',
+                        active='purchase_order' in vn,
+                    ),
+                ],
+            ),
+            nav_dropdown(
+                'Operations',
+                icon='fa-gears',
+                items=[
+                    nav_item(
+                        'Dispensing',
+                        'pharmacy:dispensing_list',
+                        icon='fa-hand-holding-medical',
+                        active='dispensing' in vn,
+                    ),
+                    nav_item(
+                        'Adjustments',
+                        'pharmacy:adjustment_list',
+                        icon='fa-sliders',
+                        active='adjustment' in vn,
+                    ),
+                ],
+            ),
+            nav_dropdown(
+                'Records',
+                icon='fa-folder-open',
+                items=[
+                    nav_item(
+                        'Audit Log',
+                        'pharmacy:audit_log_list',
+                        icon='fa-clipboard-list',
+                        active='audit_log' in vn,
+                    ),
+                    nav_item(
+                        'Reports',
+                        'pharmacy:compliance_report',
+                        icon='fa-chart-column',
+                        active='compliance_report' in vn or 'cost_analysis' in vn,
+                    ),
+                ],
             ),
         ],
         always_show_nav=True,
+        nav_aria_label='Pharmacy sections',
     )
 
 

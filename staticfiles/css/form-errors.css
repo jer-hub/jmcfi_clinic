@@ -106,7 +106,23 @@ form textarea.form-field-error {
 
 form input.form-field-error:focus,
 form select.form-field-error:focus,
-form textarea.form-field-error:focus {
+form textarea.form-field-error:focus,
+.quick-edit-form .form-input.form-field-error:focus,
+.quick-edit-form .form-textarea.form-field-error:focus,
+.quick-edit-form .form-select.form-field-error:focus {
     border-color: #dc2626 !important;
     box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12) !important;
+}
+
+.quick-edit-form .form-input.form-field-error,
+.quick-edit-form .form-textarea.form-field-error,
+.quick-edit-form .form-select.form-field-error {
+    border-color: #ef4444 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.08);
+}
+
+.quick-edit-form .quick-edit-field-error {
+    color: #dc2626;
+    font-size: 0.875rem;
+    line-height: 1.4;
 }

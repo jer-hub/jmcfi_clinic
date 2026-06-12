@@ -43,7 +43,26 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 p-6">
+      <!-- Workflow stepper -->
+      <div class="px-6 pt-6">
+        <ol class="flex flex-wrap items-center gap-2 text-xs font-medium sm:gap-0">
+          {% for step in workflow_steps %}
+          <li class="flex items-center">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+              {% if step.is_current %}bg-primary-100 text-primary-800 ring-2 ring-primary-300
+              {% elif step.is_complete %}bg-emerald-50 text-emerald-700
+              {% else %}bg-gray-100 text-gray-500{% endif %}">
+              {% if step.is_complete and not step.is_current %}<i class="fas fa-check text-[10px]"></i>{% endif %}
+              {{ step.label }}
+            </span>
+            {% if not forloop.last %}<span class="hidden sm:inline mx-2 text-gray-300">→</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+        <div class="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div>
           <p class="text-xs text-gray-500 uppercase tracking-wider">Ordered By</p>
           <p class="text-sm font-medium text-gray-900">{{ order.ordered_by.first_name }} {{ order.ordered_by.last_name }}</p>
@@ -60,6 +79,14 @@
           <p class="text-xs text-gray-500 uppercase tracking-wider">Total Cost</p>
           <p class="text-xl font-bold text-gray-900">₱{{ order.total_cost|floatformat:2 }}</p>
         </div>
+        </div>
+        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 h-fit">
+          <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Supplier</p>
+          <a href="{% url 'pharmacy:supplier_detail' supplier_id=order.supplier_id %}" class="text-sm font-semibold text-primary-700 hover:text-primary-900">{{ order.supplier.name }}</a>
+          {% if order.supplier.contact_person %}<p class="text-xs text-gray-600 mt-1">{{ order.supplier.contact_person }}</p>{% endif %}
+          {% if order.supplier.email %}<p class="text-xs text-gray-600 mt-1"><a href="mailto:{{ order.supplier.email }}" class="text-primary-600">{{ order.supplier.email }}</a></p>{% endif %}
+          {% if order.supplier.phone %}<p class="text-xs text-gray-600"><a href="tel:{{ order.supplier.phone }}" class="text-primary-600">{{ order.supplier.phone }}</a></p>{% endif %}
+        </div>
       </div>
 
       {% if order.notes %}
@@ -70,8 +97,29 @@
       {% endif %}
 
       <!-- Action Buttons -->
+      <div class="px-6 pb-6 flex flex-wrap gap-3">
+      {% if order.status == 'draft' %}
+        <a href="{% url 'pharmacy:purchase_order_edit' order_id=order.pk %}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+          <i class="fas fa-edit mr-2"></i>Edit Draft
+        </a>
+        <form id="po-submit-form-{{ order.pk }}" method="post" action="{% url 'pharmacy:purchase_order_submit' order_id=order.pk %}" class="hidden"
+              hx-post="{% url 'pharmacy:purchase_order_submit' order_id=order.pk %}" hx-swap="none">
+          {% csrf_token %}
+        </form>
+        <button type="button"
+                class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm"
+                @click="$dispatch('open-modal', {
+                  type: 'info',
+                  title: 'Submit for Approval',
+                  subtitle: 'PO-{{ order.order_number }}',
+                  message: 'Submit this draft purchase order for approval?',
+                  actionLabel: 'Submit',
+                  onConfirm: () => htmx.trigger(document.getElementById('po-submit-form-{{ order.pk }}'), 'submit')
+                })">
+          <i class="fas fa-paper-plane mr-2"></i>Submit for Approval
+        </button>
+      {% endif %}
       {% if order.status in 'draft,submitted' %}
-      <div class="px-6 pb-6">
         <form id="po-approve-form-{{ order.pk }}" method="post" action="{% url 'pharmacy:purchase_order_approve' order_id=order.pk %}" class="hidden"
               hx-post="{% url 'pharmacy:purchase_order_approve' order_id=order.pk %}" hx-swap="none">
           {% csrf_token %}
@@ -88,11 +136,9 @@
                 })">
           <i class="fas fa-check mr-2"></i>Approve Order
         </button>
-      </div>
       {% endif %}
 
       {% if order.status == 'approved' %}
-      <div class="px-6 pb-6">
         <form id="po-receive-form-{{ order.pk }}" method="post" action="{% url 'pharmacy:purchase_order_receive' order_id=order.pk %}" class="hidden"
               hx-post="{% url 'pharmacy:purchase_order_receive' order_id=order.pk %}" hx-swap="none">
           {% csrf_token %}
@@ -109,8 +155,8 @@
                 })">
           <i class="fas fa-box-open mr-2"></i>Mark as Received
         </button>
-      </div>
       {% endif %}
+      </div>
     </div>
 
     <!-- Order Items -->

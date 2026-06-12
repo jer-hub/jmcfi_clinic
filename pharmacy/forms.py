@@ -1,7 +1,11 @@
 from django import forms
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 from django.urls import reverse
 from django.utils import timezone
+
+from core.roles import PATIENT_ROLE_VALUES
+
 from .models import (
     Medicine, MedicineCategory, Batch, Supplier,
     PurchaseOrder, PurchaseOrderItem, Dispensing, StockAdjustment,
@@ -197,6 +201,29 @@ class SupplierForm(forms.ModelForm):
             'is_active': forms.CheckboxInput(attrs={'class': CHECKBOX_CLASS}),
         }
 
+    def clean(self):
+        cleaned = super().clean()
+        name = (cleaned.get('name') or '').strip()
+        email = (cleaned.get('email') or '').strip()
+        phone = (cleaned.get('phone') or '').strip()
+        if name:
+            cleaned['name'] = name
+            qs = Supplier.objects.filter(name__iexact=name)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                self.add_error('name', 'A supplier with this name already exists.')
+        if email:
+            cleaned['email'] = email
+        if phone:
+            cleaned['phone'] = phone
+        if not email and not phone:
+            self.add_error(
+                'email',
+                'Provide at least an email or phone number for supplier contact.',
+            )
+        return cleaned
+
 
 class PurchaseOrderForm(forms.ModelForm):
     class Meta:
@@ -211,7 +238,21 @@ class PurchaseOrderForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['supplier'].queryset = Supplier.objects.filter(is_active=True)
+        self.fields['supplier'].queryset = Supplier.objects.filter(is_active=True).order_by('name')
+        self.fields['supplier'].label_from_instance = (
+            lambda s: f"{s.name} ({s.contact_person})" if s.contact_person else s.name
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        order_date = cleaned.get('order_date')
+        expected = cleaned.get('expected_delivery')
+        if order_date and expected and expected < order_date:
+            self.add_error(
+                'expected_delivery',
+                'Expected delivery must be on or after the order date.',
+            )
+        return cleaned
 
 
 class PurchaseOrderItemForm(forms.ModelForm):
@@ -219,28 +260,98 @@ class PurchaseOrderItemForm(forms.ModelForm):
         model = PurchaseOrderItem
         fields = ['medicine', 'quantity_ordered', 'unit_cost']
         widgets = {
-            'medicine': forms.Select(attrs={'class': SELECT_CLASS}),
-            'quantity_ordered': forms.NumberInput(attrs={'class': INPUT_CLASS}),
-            'unit_cost': forms.NumberInput(attrs={'class': INPUT_CLASS, 'step': '0.01'}),
+            'medicine': forms.Select(attrs={'class': SELECT_CLASS + ' po-line-medicine'}),
+            'quantity_ordered': forms.NumberInput(attrs={
+                'class': INPUT_CLASS + ' po-line-qty', 'min': '1',
+            }),
+            'unit_cost': forms.NumberInput(attrs={
+                'class': INPUT_CLASS + ' po-line-cost', 'step': '0.01', 'min': '0',
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['medicine'].queryset = Medicine.objects.filter(is_active=True)
+        self.fields['medicine'].queryset = Medicine.objects.filter(is_active=True).order_by('name')
+        self.fields['medicine'].label_from_instance = (
+            lambda m: (
+                f"{m} — {m.current_stock} {m.get_unit_display()} "
+                f"(reorder at {m.reorder_level})"
+            )
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        qty = cleaned.get('quantity_ordered')
+        cost = cleaned.get('unit_cost')
+        if qty is not None and qty < 1:
+            self.add_error('quantity_ordered', 'Quantity must be at least 1.')
+        if cost is not None and cost < 0:
+            self.add_error('unit_cost', 'Unit cost cannot be negative.')
+        return cleaned
+
+
+class BasePurchaseOrderItemFormSet(forms.BaseInlineFormSet):
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        medicine_ids = []
+        has_line = False
+        for form in self.forms:
+            if not hasattr(form, 'cleaned_data'):
+                continue
+            if form.cleaned_data.get('DELETE'):
+                continue
+            medicine = form.cleaned_data.get('medicine')
+            if not medicine:
+                continue
+            has_line = True
+            if medicine.pk in medicine_ids:
+                raise forms.ValidationError(
+                    'Each medicine can only appear once per purchase order.'
+                )
+            medicine_ids.append(medicine.pk)
+        if not has_line:
+            raise forms.ValidationError('Add at least one order line item.')
 
 
 PurchaseOrderItemFormSet = forms.inlineformset_factory(
     PurchaseOrder, PurchaseOrderItem,
     form=PurchaseOrderItemForm,
-    extra=1, can_delete=True,
+    formset=BasePurchaseOrderItemFormSet,
+    extra=3, can_delete=True,
 )
+
+
+def _dispensing_medicine_queryset():
+    """Active medicines with non-expired stock (cache or live batch sum)."""
+    today = timezone.now().date()
+    return (
+        Medicine.objects.filter(is_active=True)
+        .filter(
+            Q(cached_non_expired_stock__gt=0)
+            | Q(batches__quantity__gt=0, batches__expiry_date__gt=today)
+        )
+        .distinct()
+        .order_by('name')
+    )
+
+
+def _dispensing_batch_queryset(medicine_id=None):
+    today = timezone.now().date()
+    qs = Batch.objects.filter(quantity__gt=0, expiry_date__gt=today).select_related('medicine')
+    if medicine_id:
+        qs = qs.filter(medicine_id=medicine_id)
+    else:
+        qs = qs.none()
+    return qs.order_by('expiry_date')
 
 
 class DispensingForm(forms.ModelForm):
     medicine = forms.ModelChoiceField(
-        queryset=Medicine.objects.filter(is_active=True),
+        queryset=Medicine.objects.none(),
         widget=forms.Select(attrs={'class': SELECT_CLASS}),
-        help_text='Select the medicine to dispense',
+        help_text='Only medicines with available stock are listed.',
     )
 
     class Meta:
@@ -250,7 +361,7 @@ class DispensingForm(forms.ModelForm):
             'prescription_reference', 'prescribing_doctor', 'reason',
         ]
         widgets = {
-            'patient': forms.Select(attrs={'class': SELECT_CLASS}),
+            'patient': forms.HiddenInput(),
             'batch': forms.Select(attrs={'class': SELECT_CLASS}),
             'quantity': forms.NumberInput(attrs={'class': INPUT_CLASS, 'min': '1'}),
             'prescription_reference': forms.TextInput(attrs={'class': INPUT_CLASS}),
@@ -260,10 +371,26 @@ class DispensingForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['patient'].queryset = User.objects.filter(is_active=True)
-        self.fields['patient'].label_from_instance = (
-            lambda u: f"{u.first_name} {u.last_name} ({u.email})"
+        self.fields['medicine'].queryset = _dispensing_medicine_queryset()
+        self.fields['medicine'].label_from_instance = (
+            lambda m: f"{m} — {m.current_stock} {m.get_unit_display()} available"
         )
+
+        patient_pk = None
+        if self.data.get('patient'):
+            patient_pk = self.data.get('patient')
+        if patient_pk:
+            self.fields['patient'].queryset = User.objects.filter(
+                pk=patient_pk,
+                role__in=PATIENT_ROLE_VALUES,
+                is_active=True,
+            )
+        else:
+            self.fields['patient'].queryset = User.objects.none()
+        self.fields['patient'].error_messages = {
+            'invalid_choice': 'Please select a valid patient from the search results.',
+        }
+
         self.fields['prescribing_doctor'].queryset = User.objects.filter(
             role__in=['staff', 'doctor'], is_active=True
         )
@@ -271,30 +398,64 @@ class DispensingForm(forms.ModelForm):
             lambda u: f"Dr. {u.first_name} {u.last_name}"
         )
         self.fields['prescribing_doctor'].required = False
-        # Default: show all available batches; JS on template can filter by medicine
-        self.fields['batch'].queryset = Batch.objects.filter(quantity__gt=0).select_related('medicine')
+
+        medicine_id = self.data.get('medicine') if self.data else None
+        batch_qs = _dispensing_batch_queryset(medicine_id)
+        posted_batch = self.data.get('batch') if self.data else None
+        if posted_batch:
+            batch_qs = (
+                Batch.objects.filter(pk__in=batch_qs.values('pk'))
+                | Batch.objects.filter(pk=posted_batch)
+            ).distinct()
+        self.fields['batch'].queryset = batch_qs
         self.fields['batch'].label_from_instance = (
-            lambda b: f"{b.medicine.name} – Batch {b.batch_number} (Qty: {b.quantity}, Exp: {b.expiry_date})"
+            lambda b: f"Batch {b.batch_number} (Qty: {b.quantity}, Exp: {b.expiry_date})"
+        )
+
+        batch_api_base = reverse(
+            'pharmacy:api_batches_for_medicine',
+            kwargs={'medicine_id': 0},
+        )
+        medicine_api_base = reverse(
+            'pharmacy:api_medicine_detail',
+            kwargs={'medicine_id': 0},
         )
         self.fields['medicine'].widget.attrs.update({
-            'hx-target': '#id_batch',
-            'hx-swap': 'innerHTML',
-            'hx-trigger': 'change',
-            'data-batch-api-base': reverse(
-                'pharmacy:api_batches_for_medicine',
-                kwargs={'medicine_id': 0},
-            ),
+            'id': 'id_medicine',
+            'data-batch-api-base': batch_api_base,
+            'data-medicine-api-base': medicine_api_base,
         })
+        self.fields['batch'].widget.attrs.update({'id': 'id_batch'})
+        self.fields['quantity'].widget.attrs.update({'id': 'id_quantity'})
 
     def clean(self):
         cleaned = super().clean()
+        patient = cleaned.get('patient')
+        if not patient:
+            self.add_error('patient', 'Please select a patient from the search results.')
+
+        medicine = cleaned.get('medicine')
         batch = cleaned.get('batch')
         qty = cleaned.get('quantity')
-        if batch and qty:
-            if qty > batch.quantity:
-                raise forms.ValidationError(
-                    f'Insufficient stock. Only {batch.quantity} available in this batch.'
+
+        if medicine and batch and batch.medicine_id != medicine.pk:
+            self.add_error('batch', 'Selected batch does not belong to the chosen medicine.')
+
+        if batch and qty and qty > batch.quantity:
+            self.add_error(
+                'quantity',
+                f'Insufficient stock. Only {batch.quantity} available in this batch.',
+            )
+
+        if medicine and medicine.requires_prescription:
+            rx_ref = (cleaned.get('prescription_reference') or '').strip()
+            rx_doc = cleaned.get('prescribing_doctor')
+            if not rx_ref and not rx_doc:
+                self.add_error(
+                    'prescription_reference',
+                    'This medicine requires a prescription reference or prescribing doctor.',
                 )
+
         return cleaned
 
 

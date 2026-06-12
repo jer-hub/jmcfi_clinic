@@ -1,4 +1,6 @@
-<option value="">---------</option>
+<option value="" disabled selected>Select a batch…</option>
 {% for b in batches %}
-<option value="{{ b.id }}">Batch {{ b.batch_number }} (Qty: {{ b.quantity }}, Exp: {{ b.expiry_date }})</option>
+<option value="{{ b.id }}"{% if forloop.first %} data-fefo="true"{% endif %}>
+  Batch {{ b.batch_number }} (Qty: {{ b.quantity }}, Exp: {{ b.expiry_date }}){% if forloop.first %} — recommended{% endif %}
+</option>
 {% endfor %}

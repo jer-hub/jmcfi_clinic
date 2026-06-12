@@ -15,7 +15,7 @@
   line-height: 1.5;
   color: #111827;
   background-color: #fff;
-  border: 1px solid #d1d5db;
+  border: 1px solid #e5e7eb;
   border-radius: 0.5rem;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   outline: none;
@@ -29,7 +29,7 @@
 .form-input:hover,
 .form-textarea:hover,
 .form-select:hover {
-  border-color: #9ca3af;
+  border-color: #d1d5db;
 }
 
 .form-input:focus,
@@ -45,7 +45,7 @@
   background-color: #f9fafb;
   color: #9ca3af;
   cursor: not-allowed;
-  border-color: #e5e7eb;
+  border-color: #f3f4f6;
 }
 
 /* ── Textarea specific ── */
@@ -70,7 +70,7 @@
   height: 1rem;
   color: #a855f7;
   background-color: #fff;
-  border: 1px solid #d1d5db;
+  border: 1px solid #e5e7eb;
   border-radius: 0.25rem;
   cursor: pointer;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -115,6 +115,63 @@
 .form-select.form-field-error:focus {
   border-color: #dc2626 !important;
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15) !important;
+}
+
+/* ── Profile quick-edit controls ── */
+.profile-quick-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background-color: #fff;
+  color: #6b7280;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.profile-quick-edit-btn:hover {
+  color: #7c3aed;
+  border-color: #e9d5ff;
+  background-color: #faf5ff;
+}
+
+.profile-quick-edit-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+}
+
+.profile-quick-edit-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  background-color: #fff;
+  color: #7c3aed;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.profile-quick-edit-chip:hover {
+  color: #6d28d9;
+  border-color: #e9d5ff;
+  background-color: #faf5ff;
+}
+
+.profile-quick-edit-chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
 }
 
 /* ── Form group spacing ── */

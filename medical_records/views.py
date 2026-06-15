@@ -21,6 +21,8 @@ from .models import MedicalRecord
 from core.notification_delivery import notify_user
 from appointments.models import Appointment
 from core.clinical_audit import log_clinical_access, _medical_record_label
+from core.clinical_permissions import can_write_medical_records
+from core.access_control import AccessReason, access_denied_response
 from core.decorators import role_required
 from dental_records.models import DentalRecord
 from health_forms_services.models import Prescription
@@ -495,7 +497,10 @@ def _build_unpaginated_medical_timeline(request_user, get_params):
     if is_patient_role(request_user.role):
         records = MedicalRecord.objects.filter(patient=request_user)
         appointments = Appointment.objects.filter(patient=request_user)
-    elif request_user.role in ['staff', 'doctor']:
+    elif request_user.role == 'staff':
+        records = MedicalRecord.objects.all()
+        appointments = Appointment.objects.all()
+    elif request_user.role == 'doctor':
         records = MedicalRecord.objects.filter(doctor=request_user)
         appointments = Appointment.objects.filter(doctor=request_user)
     else:
@@ -627,7 +632,7 @@ def medical_record_detail_page(request, record_id):
     if is_patient_role(request.user.role) and record.patient != request.user:
         messages.error(request, 'Access denied')
         return redirect('medical_records:medical_records')
-    elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user:
+    elif request.user.role == 'doctor' and record.doctor != request.user:
         messages.error(request, 'Access denied')
         return redirect('medical_records:medical_records')
 
@@ -665,7 +670,7 @@ def medical_record_detail(request, record_id):
     # Check permissions
     if is_patient_role(request.user.role) and record.patient != request.user:
         return JsonResponse({'error': 'Access denied'}, status=403) if not is_htmx else HttpResponse('Access denied', status=403)
-    elif request.user.role in ['staff', 'doctor'] and record.doctor != request.user:
+    elif request.user.role == 'doctor' and record.doctor != request.user:
         return JsonResponse({'error': 'Access denied'}, status=403) if not is_htmx else HttpResponse('Access denied', status=403)
     
     log_clinical_access(
@@ -771,9 +776,8 @@ def medical_record_detail(request, record_id):
 
 @login_required
 def create_medical_record(request, appointment_id):
-    if request.user.role not in ['staff', 'doctor']:
-        messages.error(request, 'Access denied')
-        return redirect('core:dashboard')
+    if not can_write_medical_records(request.user):
+        return access_denied_response(request, status_code=403, reason=AccessReason.FORBIDDEN)
     
     appointment = get_object_or_404(Appointment, id=appointment_id, doctor=request.user)
 
@@ -885,7 +889,7 @@ def create_medical_record(request, appointment_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def create_medical_record_for_patient(request):
     """Create a medical record for a selected patient without appointment context."""
     if request.method == 'POST':

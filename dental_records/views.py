@@ -375,7 +375,7 @@ def dental_record_detail(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_record_create(request):
     """Create a new dental record (patient info + consent only).
     
@@ -515,7 +515,7 @@ def dental_record_create(request):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('doctor', 'admin')
 def dental_record_edit(request, record_id):
     """Edit comprehensive dental record with all sections"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -648,7 +648,7 @@ def dental_record_edit(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def complete_appointment(request, record_id):
     """Mark the associated appointment as completed"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -669,7 +669,7 @@ def complete_appointment(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('doctor', 'admin')
 def dental_record_status_modal(request, record_id):
     """HTMX GET: confirmation copy + hidden hx-post form for edit-page status actions."""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -689,7 +689,7 @@ def dental_record_status_modal(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('doctor', 'admin')
 def mark_record_completed(request, record_id):
     """Mark a dental record as completed; completed status is permanent (cannot revert to pending)."""
     edit_url = reverse('dental_records:dental_record_edit', kwargs={'record_id': record_id})
@@ -765,7 +765,7 @@ def mark_record_completed(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_add_tooth(request, record_id):
     """Add or update a tooth in the dental chart"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -807,7 +807,7 @@ def dental_chart_add_tooth(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_delete_tooth(request, record_id, tooth_id):
     """Remove a tooth from the dental chart"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -849,7 +849,7 @@ def dental_chart_delete_tooth(request, record_id, tooth_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_record_delete(request, record_id):
     """Delete a dental record"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -1026,7 +1026,7 @@ def student_dental_intake(request, appointment_id):
 # ============================================
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('doctor', 'admin')
 def progress_note_list(request, record_id):
     """Return all progress notes for a dental record as JSON."""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -1046,7 +1046,7 @@ def progress_note_list(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('doctor', 'admin')
 def progress_note_create(request, record_id):
     """Create a progress note via JSON POST. Returns the new note."""
     if request.method != 'POST':
@@ -1109,7 +1109,7 @@ def progress_note_create(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor', 'admin')
+@role_required('doctor', 'admin')
 def progress_note_delete(request, record_id, note_id):
     """Delete a progress note. Returns JSON."""
     if request.method != 'POST':
@@ -1129,7 +1129,7 @@ def progress_note_delete(request, record_id, note_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_record_export_json(request, record_id):
     """Export dental record as JSON for AI processing or backup"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -1247,7 +1247,7 @@ def dental_record_export_json(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def search_patients(request):
     """Search for patients by name, email, or ID for autocomplete"""
     query = request.GET.get('q', '').strip()
@@ -1289,7 +1289,7 @@ def search_patients(request):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def get_patient_profile(request, patient_id):
     """Get full patient profile data for auto-filling dental forms"""
     patient = get_object_or_404(User, pk=patient_id)
@@ -1383,7 +1383,7 @@ def get_patient_profile(request, patient_id):
 # =====================================
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_get(request, record_id):
     """Get all teeth data for the dental chart as JSON"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -1420,7 +1420,7 @@ def dental_chart_api_get(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_update_tooth(request, record_id):
     """Add or update a tooth in the dental chart via HTMX or AJAX"""
     if request.method != 'POST':
@@ -1578,7 +1578,7 @@ def dental_chart_api_update_tooth(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_delete_tooth(request, record_id, tooth_id):
     """Delete a tooth from the dental chart via HTMX or AJAX (supports DELETE method)"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -1628,7 +1628,7 @@ def dental_chart_api_delete_tooth(request, record_id, tooth_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_update_surface(request, record_id, tooth_id):
     """Update surface condition for a specific tooth"""
     if request.method != 'POST':
@@ -1684,7 +1684,7 @@ def dental_chart_api_update_surface(request, record_id, tooth_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_delete_surface(request, record_id, tooth_id, surface_id):
     """Delete a surface marking from a tooth"""
     if request.method != 'DELETE':
@@ -1707,7 +1707,7 @@ def dental_chart_api_delete_surface(request, record_id, tooth_id, surface_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_bulk_update(request, record_id):
     """Bulk update multiple teeth at once (for multi-select feature)"""
     if request.method != 'POST':
@@ -1831,7 +1831,7 @@ def dental_chart_api_bulk_update(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_save_snapshot(request, record_id):
     """Save a snapshot of the current dental chart for comparison"""
     if request.method != 'POST':
@@ -1890,7 +1890,7 @@ def dental_chart_api_save_snapshot(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_get_snapshots(request, record_id):
     """Get list of all snapshots for a dental record"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -1911,7 +1911,7 @@ def dental_chart_api_get_snapshots(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_get_snapshot(request, record_id, snapshot_id):
     """Get a specific snapshot's data for comparison"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -1927,7 +1927,7 @@ def dental_chart_api_get_snapshot(request, record_id, snapshot_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_compare_snapshots(request, record_id):
     """Compare two snapshots to see changes over time"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
@@ -1988,7 +1988,7 @@ def dental_chart_api_compare_snapshots(request, record_id):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('doctor')
 def dental_chart_api_export(request, record_id):
     """Export the dental chart data as JSON"""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)

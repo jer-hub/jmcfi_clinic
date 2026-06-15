@@ -24,8 +24,10 @@ from .calendar_service import (
     build_ics_calendar,
     parse_calendar_filters,
 )
+from core.access_control import AccessReason, access_denied_response
+from core.clinical_permissions import can_write_appointments
 from core.decorators import role_required, admin_required
-from core.roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, role_matches
+from core.roles import PATIENT_ROLE_VALUES, ROLE_DOCTOR, ROLE_PATIENT, ROLE_STAFF, role_matches
 from core.settings_service import get_clinic_settings
 from core.notification_delivery import notify_user
 from core.htmx_utils import is_htmx_request, htmx_add_toast, htmx_add_trigger
@@ -125,8 +127,10 @@ def _appointment_list_stat_filter_urls(get_params: QueryDict) -> dict[str, str]:
 def _appointment_list_base_queryset(user):
     if role_matches(user.role, ROLE_PATIENT):
         return Appointment.objects.filter(patient=user)
-    if user.role in ['staff', 'doctor']:
+    if user.role == ROLE_DOCTOR:
         return Appointment.objects.filter(doctor=user)
+    if user.role == ROLE_STAFF:
+        return Appointment.objects.all()
     if user.role == 'admin':
         return Appointment.objects.all()
     return Appointment.objects.none()
@@ -388,20 +392,9 @@ def schedule_appointment(request):
                 return render(request, 'appointments/schedule_appointment.html',
                               _get_schedule_context(form_data=form_data))
 
-            allowed_ids = list(
-                type_default.assigned_doctors.filter(
-                    role__in=['staff', 'doctor'], is_active=True
-                ).values_list('id', flat=True)
-            )
-            if not allowed_ids:
-                messages.error(
-                    request,
-                    'No doctors are available for this appointment type. Please contact the clinic.',
-                )
-                return render(request, 'appointments/schedule_appointment.html',
-                              _get_schedule_context(form_data=form_data))
-            if doctor.id not in allowed_ids:
-                messages.error(request, 'The selected doctor is not available for this appointment type.')
+            is_valid, err_msg = _validate_assigned_doctor_for_type(doctor, appointment_type)
+            if not is_valid:
+                messages.error(request, err_msg)
                 return render(request, 'appointments/schedule_appointment.html',
                               _get_schedule_context(form_data=form_data))
 
@@ -454,11 +447,10 @@ def schedule_appointment(request):
     return render(request, 'appointments/schedule_appointment.html', _get_schedule_context(form_data=initial_form))
 
 
-def _get_schedule_context(form_data=None):
+def _get_schedule_context(form_data=None, *, doctors_only=False):
     """
-    Build the full context for the schedule-appointment page.
-    Only includes active AppointmentTypeDefault records and doctors
-    assigned to those types.
+    Build doctor/type picker context for scheduling forms.
+    When doctors_only is True, only users with role=doctor are included (staff booking).
     """
     active_defaults = (
         AppointmentTypeDefault.objects
@@ -467,18 +459,20 @@ def _get_schedule_context(form_data=None):
         .order_by('appointment_type')
     )
 
+    role_filter = ['doctor'] if doctors_only else ['staff', 'doctor']
+
     type_doctor_map = {}
     all_assigned_ids = set()
 
     for default in active_defaults:
         assigned = list(
-            default.assigned_doctors.filter(role__in=['staff', 'doctor'], is_active=True).values_list('id', flat=True)
+            default.assigned_doctors.filter(role__in=role_filter, is_active=True).values_list('id', flat=True)
         )
         type_doctor_map[default.appointment_type] = assigned
         all_assigned_ids.update(assigned)
 
     doctors = User.objects.filter(
-        id__in=all_assigned_ids, role__in=['staff', 'doctor'], is_active=True
+        id__in=all_assigned_ids, role__in=role_filter, is_active=True
     ).select_related('staff_profile').order_by('first_name', 'last_name')
 
     doctors_payload = []
@@ -509,6 +503,31 @@ def _get_schedule_context(form_data=None):
     }
 
 
+def _validate_assigned_doctor_for_type(doctor, appointment_type):
+    """
+    Return (is_valid, error_message) for doctor/type assignment.
+    doctor must be a User instance; appointment_type is the choice key.
+    """
+    type_default = AppointmentTypeDefault.objects.filter(
+        appointment_type=appointment_type, is_active=True
+    ).prefetch_related('assigned_doctors').first()
+    if not type_default:
+        if AppointmentTypeDefault.objects.filter(appointment_type=appointment_type).exists():
+            return False, 'This appointment type is currently inactive.'
+        return False, 'Invalid appointment type selected.'
+
+    allowed_ids = list(
+        type_default.assigned_doctors.filter(
+            role__in=['staff', 'doctor'], is_active=True
+        ).values_list('id', flat=True)
+    )
+    if not allowed_ids:
+        return False, 'No doctors are available for this appointment type. Please contact the clinic.'
+    if doctor.id not in allowed_ids:
+        return False, 'The selected doctor is not available for this appointment type.'
+    return True, ''
+
+
 @login_required
 @role_required('student', 'staff', 'doctor', 'admin')
 def appointment_detail(request, appointment_id):
@@ -521,7 +540,7 @@ def appointment_detail(request, appointment_id):
     if role_matches(request.user.role, ROLE_PATIENT) and appointment.patient != request.user:
         messages.error(request, 'Access denied')
         return redirect('appointments:appointment_list')
-    elif request.user.role in ['staff', 'doctor'] and appointment.doctor != request.user:
+    elif request.user.role == ROLE_DOCTOR and appointment.doctor != request.user:
         messages.error(request, 'Access denied')
         return redirect('appointments:appointment_list')
     
@@ -544,7 +563,7 @@ def appointment_detail(request, appointment_id):
 
         success_message = None
 
-        if request.user.role in ['staff', 'doctor', 'admin']:
+        if can_write_appointments(request.user, appointment):
             status = request.POST.get('status')
             notes = request.POST.get('notes')
             previous_status = appointment.status
@@ -624,6 +643,7 @@ def appointment_detail(request, appointment_id):
             err = htmx_error('Access denied', status_code=403)
             if err:
                 return err
+            return access_denied_response(request, status_code=403, reason=AccessReason.FORBIDDEN)
 
         if list_htmx and success_message:
             return _appointment_list_htmx_oob_response(request, success_message)
@@ -832,7 +852,7 @@ def _schedule_for_patient_redirect(patient_id=None):
     return redirect(base)
 
 
-def _schedule_for_patient_get_context(request, patient_id_hint=None):
+def _schedule_for_patient_get_context(request, patient_id_hint=None, form_data=None):
     active_type_keys = set(
         AppointmentTypeDefault.objects
         .filter(is_active=True)
@@ -860,60 +880,94 @@ def _schedule_for_patient_get_context(request, patient_id_hint=None):
         except (User.DoesNotExist, ValueError, TypeError):
             prefill_invalid = True
 
-    return {
+    fd = form_data or {}
+    context = {
         'appointment_types': appointment_types,
         'prefill_patient': prefill_patient,
         'prefill_invalid': prefill_invalid,
         'patient_locked': prefill_patient is not None,
+        'staff_picks_doctor': request.user.role == ROLE_STAFF,
+        'form_data': fd,
+        'form_data_json': json.dumps(fd),
     }
+    if request.user.role == ROLE_STAFF:
+        context.update(_get_schedule_context(form_data=form_data, doctors_only=True))
+    return context
+
+
+def _render_schedule_for_patient(request, patient_id_hint=None, form_data=None):
+    context = _schedule_for_patient_get_context(request, patient_id_hint=patient_id_hint, form_data=form_data)
+    return render(request, 'appointments/schedule_for_patient.html', context)
 
 
 @login_required
 @role_required('doctor', 'staff', 'admin')
 def schedule_for_patient(request):
     """Allows staff and doctors to schedule an appointment for a patient."""
+    staff_picks_doctor = request.user.role == ROLE_STAFF
+
     if request.method == 'POST':
         patient_id = request.POST.get('patient')
         appointment_type = request.POST.get('appointment_type')
         date_str = request.POST.get('date')
         time_str = request.POST.get('time')
         reason = request.POST.get('reason')
+        doctor_id = request.POST.get('doctor') if staff_picks_doctor else None
 
-        if not all([patient_id, appointment_type, date_str, time_str, reason]):
+        form_data = {
+            'patient': patient_id or '',
+            'appointment_type': appointment_type or '',
+            'date': date_str or '',
+            'time': time_str or '',
+            'reason': reason or '',
+            'doctor': doctor_id or '',
+        }
+
+        required = [patient_id, appointment_type, date_str, time_str, reason]
+        if staff_picks_doctor:
+            required.append(doctor_id)
+
+        if not all(required):
             messages.error(request, 'All fields are required.')
-            return _schedule_for_patient_redirect(patient_id)
+            return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
 
         try:
             patient = User.objects.get(id=patient_id, role__in=PATIENT_ROLE_VALUES)
-            doctor = request.user
+            if staff_picks_doctor:
+                doctor = User.objects.get(id=doctor_id, role=ROLE_DOCTOR, is_active=True)
+            else:
+                doctor = request.user
             from datetime import datetime
             appointment_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             appointment_time = datetime.strptime(time_str, '%H:%M').time()
 
             if appointment_date < timezone.now().date():
                 messages.error(request, 'Cannot schedule appointments for past dates.')
-                return _schedule_for_patient_redirect(patient_id)
+                return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
 
             if appointment_date.weekday() >= 5:
                 messages.error(request, 'Appointments are not available on weekends.')
-                return _schedule_for_patient_redirect(patient_id)
+                return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
 
-            # Validate appointment type is active
-            type_default = AppointmentTypeDefault.objects.filter(
-                appointment_type=appointment_type, is_active=True
-            ).first()
-            if not type_default and AppointmentTypeDefault.objects.filter(appointment_type=appointment_type).exists():
-                messages.error(request, 'This appointment type is currently inactive.')
-                return _schedule_for_patient_redirect(patient_id)
+            if staff_picks_doctor:
+                is_valid, err_msg = _validate_assigned_doctor_for_type(doctor, appointment_type)
+                if not is_valid:
+                    messages.error(request, err_msg)
+                    return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
+            else:
+                type_default = AppointmentTypeDefault.objects.filter(
+                    appointment_type=appointment_type, is_active=True
+                ).first()
+                if not type_default and AppointmentTypeDefault.objects.filter(appointment_type=appointment_type).exists():
+                    messages.error(request, 'This appointment type is currently inactive.')
+                    return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
 
-            # Interval-based conflict check for doctor (30-min buffer)
             is_available, conflicts = check_appointment_availability(doctor, appointment_date, appointment_time)
             if not is_available:
                 conflict_msg = format_conflict_message(doctor, conflicts)
                 messages.error(request, conflict_msg)
-                return _schedule_for_patient_redirect(patient_id)
+                return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
 
-            # Check for patient conflict at same time
             patient_conflict = Appointment.objects.filter(
                 patient=patient,
                 date=appointment_date,
@@ -922,7 +976,7 @@ def schedule_for_patient(request):
             ).exists()
             if patient_conflict:
                 messages.error(request, f'{patient.get_full_name()} already has a pending or confirmed appointment at this time.')
-                return _schedule_for_patient_redirect(patient_id)
+                return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
 
             appointment = Appointment.objects.create(
                 patient=patient,
@@ -931,7 +985,7 @@ def schedule_for_patient(request):
                 date=appointment_date,
                 time=appointment_time,
                 reason=reason,
-                status='confirmed'  # Automatically confirmed
+                status='confirmed',
             )
 
             notify_user(
@@ -950,13 +1004,12 @@ def schedule_for_patient(request):
             return redirect('appointments:appointment_list')
 
         except User.DoesNotExist:
-            messages.error(request, 'Invalid patient selected.')
+            messages.error(request, 'Invalid patient or doctor selected.')
         except ValueError:
             messages.error(request, 'Invalid date or time format.')
         except Exception as e:
             messages.error(request, f'An error occurred: {e}')
-        
-        return _schedule_for_patient_redirect(request.POST.get('patient'))
 
-    context = _schedule_for_patient_get_context(request)
-    return render(request, 'appointments/schedule_for_patient.html', context)
+        return _render_schedule_for_patient(request, patient_id_hint=request.POST.get('patient'), form_data=form_data)
+
+    return _render_schedule_for_patient(request)

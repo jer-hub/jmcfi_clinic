@@ -1,4 +1,5 @@
 {% load role_tags %}
+{% load clinical_permissions %}
 {% if appointments %}
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
@@ -51,7 +52,7 @@
               <div class="inline-flex items-center gap-1">
                 {% url 'appointments:appointment_detail' appointment.id as appt_detail_url %}
                 {% include "components/table_icon_link.html" with href=appt_detail_url icon="fa-eye" title="View details" tone="view" %}
-                {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
+                {% if user|can_write_appointments:appointment %}
                   {% if appointment.status == 'pending' %}
                     {% include "appointments/partials/_confirm_appointment_action.html" with use_htmx_list=use_htmx_list next_url=request.get_full_path %}
                   {% endif %}
@@ -59,19 +60,23 @@
                     {% include "appointments/partials/_cancel_appointment_action.html" with use_htmx_list=use_htmx_list %}
                   {% endif %}
                 {% endif %}
-                {% if user.role == 'doctor' or user.role == 'staff' %}
+                {% if user|can_write_medical_records or user|can_write_dental_records %}
                   {% if appointment.status == 'confirmed' %}
                     {% if appointment.appointment_type != 'dental' %}
-                      {% if not appointment.medicalrecord_set.exists %}
-                        <a href="{% url 'medical_records:create_medical_record' appointment.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="Create Medical Record"><i class="fas fa-plus"></i></a>
-                      {% else %}
-                        <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="Edit Medical Record"><i class="fas fa-pen-to-square"></i></a>
+                      {% if user|can_write_medical_records %}
+                        {% if not appointment.medicalrecord_set.exists %}
+                          <a href="{% url 'medical_records:create_medical_record' appointment.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="Create Medical Record"><i class="fas fa-plus"></i></a>
+                        {% else %}
+                          <a href="{% url 'medical_records:medical_record_detail_page' appointment.medicalrecord_set.first.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="Edit Medical Record"><i class="fas fa-pen-to-square"></i></a>
+                        {% endif %}
                       {% endif %}
                     {% else %}
-                      {% if not appointment.dental_records.exists %}
-                        <a href="{% url 'dental_records:dental_record_create' %}?appointment={{ appointment.id }}" class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors" title="Create Dental Record"><i class="fas fa-plus"></i></a>
-                      {% else %}
-                        <a href="{% url 'dental_records:dental_record_edit' appointment.dental_records.first.id %}" class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors" title="Edit Dental Record"><i class="fas fa-pen-to-square"></i></a>
+                      {% if user|can_write_dental_records %}
+                        {% if not appointment.dental_records.exists %}
+                          <a href="{% url 'dental_records:dental_record_create' %}?appointment={{ appointment.id }}" class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors" title="Create Dental Record"><i class="fas fa-plus"></i></a>
+                        {% else %}
+                          <a href="{% url 'dental_records:dental_record_edit' appointment.dental_records.first.id %}" class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors" title="Edit Dental Record"><i class="fas fa-pen-to-square"></i></a>
+                        {% endif %}
                       {% endif %}
                     {% endif %}
                   {% endif %}
@@ -82,7 +87,7 @@
                 {% if user.role == 'doctor' or user.role == 'staff' or user.role == 'admin' %}
                   {% if appointment.status == 'completed' %}
                     {% if appointment.appointment_type == 'consultation' or appointment.appointment_type == 'dental' %}
-                      {% if user.role == 'admin' or appointment.doctor_id == user.id %}
+                      {% if user|can_write_appointments:appointment %}
                         {% include "appointments/partials/_issue_certificate_action.html" %}
                       {% endif %}
                     {% endif %}

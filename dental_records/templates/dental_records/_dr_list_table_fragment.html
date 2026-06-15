@@ -1,4 +1,5 @@
 {% load role_tags %}
+{% load clinical_permissions %}
 {% if page_obj.object_list %}
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
@@ -65,10 +66,10 @@
                     {% else %}
                       <a href="{% url 'dental_records:dental_record_detail' record.id %}" class="p-1.5 rounded text-primary-600 hover:bg-primary-50 transition-colors" title="View"><i class="fas fa-eye"></i></a>
                     {% endif %}
-                    {% if user|has_role:"doctor" or user|has_role:"staff" or user|has_role:"admin" %}
+                    {% if user|can_write_dental_records %}
                       <a href="{% url 'dental_records:dental_record_edit' record.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="Edit"><i class="fas fa-pen-to-square"></i></a>
                     {% endif %}
-                    {% if user.role == 'staff' or user.role == 'doctor' or user.role == 'admin' %}
+                    {% if user|can_write_dental_records %}
                       {% if record.status == 'pending' %}
                         <button type="button"
                                 data-record-id="{{ record.id }}"
@@ -133,8 +134,10 @@
   </div>
   {% include "components/pagination.html" with page_obj=page_obj hx_target="body" hx_swap="none" querystring=dr_list_querystring %}
 {% else %}
-  {% if user|has_role:"doctor" or user|has_role:"staff" or user|has_role:"admin" %}
+  {% if user|can_write_dental_records %}
     {% include "components/empty_state.html" with icon="fa-tooth" title="No Dental Records Found" description="Create your first dental record to begin tracking patient care." action_label="Create First Record" action_url='/dental-records/create/' %}
+  {% elif user|is_staff_clinical_readonly %}
+    {% include "components/empty_state.html" with icon="fa-tooth" title="No Dental Records Found" description="No records match your search criteria." %}
   {% elif user|is_patient_role %}
     {% include "components/empty_state.html" with icon="fa-tooth" title="No Dental Records Found" description="Schedule a dental check-up to start your dental health history." action_label="Schedule Appointment" action_url='/appointments/schedule/' %}
   {% else %}

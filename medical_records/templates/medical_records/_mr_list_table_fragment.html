@@ -1,4 +1,5 @@
 {% load role_tags %}
+{% load clinical_permissions %}
 {% if records %}
   <div class="overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
@@ -86,13 +87,15 @@
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
                   <div class="inline-flex items-center gap-1">
-                    {% if user.role == 'staff' or user.role == 'doctor' %}
+                    {% if user|can_write_appointments:appointment %}
                       {% if appointment.status == 'pending' %}
                         {% include "appointments/partials/_confirm_appointment_action.html" with next_url=request.get_full_path %}
                       {% endif %}
                       {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
                         {% include "appointments/partials/_cancel_appointment_action.html" with appointment=appointment cancel_variant="icon" next_url=request.get_full_path %}
                       {% endif %}
+                    {% endif %}
+                    {% if user|can_write_medical_records %}
                       {% if appointment.status == 'confirmed' or appointment.status == 'completed' or appointment.status == 'pending' and appointment.appointment_type != 'consultation' %}
                         <a href="{% url 'medical_records:create_medical_record' appointment.id %}" class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors" title="Create Record"><i class="fas fa-plus"></i></a>
                       {% endif %}
@@ -111,8 +114,10 @@
 {% else %}
   {% if user|is_patient_role %}
     {% include "components/empty_state.html" with icon="fa-file-circle-question" title="No Medical Records" description="Schedule your first appointment to build your medical history." action_label="Schedule Appointment" action_url='/appointments/schedule/' %}
-  {% elif user.role == 'staff' or user.role == 'doctor' %}
+  {% elif user.role == 'doctor' %}
     {% include "components/empty_state.html" with icon="fa-file-circle-question" title="No Medical Records" description="Create your first record or open appointments to add one." action_label="Create Record" action_url='/medical-records/create-for-patient/' %}
+  {% elif user|is_staff_clinical_readonly %}
+    {% include "components/empty_state.html" with icon="fa-file-circle-question" title="No Medical Records" description="No records match your current filters." %}
   {% else %}
     {% include "components/empty_state.html" with icon="fa-file-circle-question" title="No Medical Records" description="No records match your current filters." %}
   {% endif %}

@@ -83,7 +83,7 @@ def medical_records_subnav(context):
             active=vn == 'medical_records:medical_records',
         ),
     ]
-    if role in ('staff', 'doctor'):
+    if role == 'doctor':
         items.append(
             nav_item(
                 'New Record',
@@ -112,7 +112,7 @@ def dental_records_subnav(context):
             active=vn == 'dental_records:dental_record_list',
         ),
     ]
-    if not role_matches(role, ROLE_PATIENT):
+    if role == 'doctor':
         items.append(
             nav_item(
                 'New Record',

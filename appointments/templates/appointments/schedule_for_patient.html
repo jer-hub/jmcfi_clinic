@@ -6,8 +6,13 @@
 {% if prefill_patient %}
 {{ prefill_patient|json_script:"schedule-patient-prefill" }}
 {% endif %}
+{% if staff_picks_doctor %}
+<script type="application/json" id="schedule-type-doctor-map">{{ type_doctor_map|safe }}</script>
+<script type="application/json" id="schedule-doctors-json">{{ doctors_json|safe }}</script>
+<script type="application/json" id="schedule-form-prefill">{{ form_data_json|safe }}</script>
+{% endif %}
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
-     x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }} })">
+     x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }}, staffPicksDoctor: {{ staff_picks_doctor|yesno:'true,false' }} })">
     {% include 'appointments/_subnav.html' %}
 
     {% include "components/page_header.html" with title="Schedule for a Patient" subtitle="Book an appointment on behalf of a patient" icon="fa-user-plus" %}
@@ -199,13 +204,31 @@
                 <div>
                     <label for="appointment_type" class="block text-sm font-medium text-gray-700 mb-1.5">Appointment Type</label>
                     <select name="appointment_type" id="appointment_type" required
+                            {% if staff_picks_doctor %}x-model="selectedType" @change="selectedDoctor = ''"{% endif %}
                             class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50">
                         <option value="">Select a type…</option>
                         {% for type_key, type_display in appointment_types %}
-                        <option value="{{ type_key }}">{{ type_display }}</option>
+                        <option value="{{ type_key }}" {% if form_data.appointment_type == type_key %}selected{% endif %}>{{ type_display }}</option>
                         {% endfor %}
                     </select>
                 </div>
+
+                {% if staff_picks_doctor %}
+                <div>
+                    <label for="doctor" class="block text-sm font-medium text-gray-700 mb-1.5">Doctor</label>
+                    <select name="doctor" id="doctor" required
+                            x-model="selectedDoctor"
+                            :disabled="!selectedType"
+                            class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50">
+                        <option value="">Select a doctor…</option>
+                        <template x-for="doc in filteredDoctors" :key="doc.id">
+                            <option :value="doc.id" x-text="doc.name" :selected="String(doc.id) === String(selectedDoctor)"></option>
+                        </template>
+                    </select>
+                    <p x-show="!selectedType" class="mt-1.5 text-xs text-warning-700">Select an appointment type first.</p>
+                    <p x-show="selectedType && filteredDoctors.length === 0" x-cloak class="mt-1.5 text-xs text-danger-600">No doctors are assigned to this appointment type.</p>
+                </div>
+                {% endif %}
 
                 <div>
                     <label for="reason" class="block text-sm font-medium text-gray-700 mb-1.5">Reason for Appointment</label>
@@ -278,13 +301,26 @@ function readSchedulePatientPrefill() {
     }
 }
 
+function readScheduleJsonScript(id, fallback) {
+    const el = document.getElementById(id);
+    if (!el || !el.textContent) return fallback;
+    try {
+        return JSON.parse(el.textContent);
+    } catch {
+        return fallback;
+    }
+}
+
 function scheduleForPatient(opts = {}) {
     const patientLocked = Boolean(opts.patientLocked);
+    const staffPicksDoctor = Boolean(opts.staffPicksDoctor);
     const prefill = patientLocked ? null : readSchedulePatientPrefill();
+    const formPrefill = staffPicksDoctor ? readScheduleJsonScript('schedule-form-prefill', {}) : {};
     const initialId = prefill && prefill.id != null ? String(prefill.id) : '';
 
     return {
         patientLocked,
+        staffPicksDoctor,
         patientQuery: '',
         searchResults: [],
         showResults: false,
@@ -296,8 +332,35 @@ function scheduleForPatient(opts = {}) {
         selectedPatientSid: prefill ? (prefill.patient_id || '') : '',
         selectedPatientCourse: prefill ? (prefill.course || '') : '',
         selectedPatientYear: prefill ? (prefill.year_level || '') : '',
+        selectedType: formPrefill.appointment_type || '',
+        selectedDoctor: formPrefill.doctor ? String(formPrefill.doctor) : '',
+        typeDoctorMap: staffPicksDoctor ? readScheduleJsonScript('schedule-type-doctor-map', {}) : {},
+        doctors: staffPicksDoctor ? readScheduleJsonScript('schedule-doctors-json', []) : [],
         submitting: false,
         dateError: '',
+
+        get filteredDoctors() {
+            if (!this.staffPicksDoctor || !this.selectedType) return [];
+            const allowed = this.typeDoctorMap[this.selectedType];
+            if (!Array.isArray(allowed) || allowed.length === 0) return [];
+            const allowedIds = new Set(allowed.map((id) => String(id)));
+            return this.doctors.filter((d) => allowedIds.has(String(d.id)));
+        },
+
+        init() {
+            if (this.staffPicksDoctor) {
+                this.$watch('selectedType', () => this.syncSelectedDoctor());
+                this.$nextTick(() => this.syncSelectedDoctor());
+            }
+        },
+
+        syncSelectedDoctor() {
+            if (!this.selectedDoctor) return;
+            const stillValid = this.filteredDoctors.some(
+                (d) => String(d.id) === String(this.selectedDoctor)
+            );
+            if (!stillValid) this.selectedDoctor = '';
+        },
 
         get hasSelectedStudent() {
             if (this.patientLocked) return true;
@@ -392,6 +455,16 @@ function scheduleForPatient(opts = {}) {
             if (this.dateError) {
                 e.preventDefault();
                 return;
+            }
+            if (this.staffPicksDoctor) {
+                if (!this.selectedType || !this.selectedDoctor) {
+                    e.preventDefault();
+                    return;
+                }
+                if (!this.filteredDoctors.some((d) => String(d.id) === String(this.selectedDoctor))) {
+                    e.preventDefault();
+                    return;
+                }
             }
             this.submitting = true;
         },

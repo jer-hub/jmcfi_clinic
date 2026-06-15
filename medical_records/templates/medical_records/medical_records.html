@@ -9,7 +9,9 @@
 
   {% if user|is_patient_role %}
     {% include "components/page_header.html" with title="My Medical Records" subtitle="View your complete medical history and health records" icon="fa-file-medical" actions_include="medical_records/_mr_list_header_actions.html" header_mb="mb-4" %}
-  {% elif user.role == 'staff' or user.role == 'doctor' %}
+  {% elif user.role == 'staff' %}
+    {% include "components/page_header.html" with title="Patient Medical Records" subtitle="View patient medical records" icon="fa-file-medical" actions_include="medical_records/_mr_list_header_actions.html" header_mb="mb-4" %}
+  {% elif user.role == 'doctor' %}
     {% include "components/page_header.html" with title="Patient Medical Records" subtitle="Manage and review patient medical records" icon="fa-file-medical" actions_include="medical_records/_mr_list_header_actions.html" header_mb="mb-4" %}
   {% else %}
     {% include "components/page_header.html" with title="All Medical Records" subtitle="Comprehensive medical records management" icon="fa-file-medical" actions_include="medical_records/_mr_list_header_actions.html" header_mb="mb-4" %}

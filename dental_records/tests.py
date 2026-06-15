@@ -1,7 +1,8 @@
 from datetime import date, time, timedelta
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from appointments.models import Appointment
@@ -133,3 +134,69 @@ class DentalRecordsListTotalsTests(TestCase):
             {'status': 'cancelled'},
         )
         self.assertEqual(filtered.context['total_count'], 1)
+
+
+@override_settings(
+    MIDDLEWARE=[
+        middleware
+        for middleware in settings.MIDDLEWARE
+        if middleware != 'core.middleware.ProfileCompleteMiddleware'
+    ]
+)
+class StaffDentalRecordsReadOnlyTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user(
+            email='staff-dr-readonly@example.com',
+            password='test-pass-123',
+            role='staff',
+            first_name='Staff',
+            last_name='Viewer',
+        )
+        self.patient = User.objects.create_user(
+            email='patient-dr-readonly@example.com',
+            password='test-pass-123',
+            role='patient',
+            first_name='Pat',
+            last_name='Ient',
+        )
+        self.staff.staff_profile.department = 'Clinic'
+        self.staff.staff_profile.phone = '09123456789'
+        self.staff.staff_profile.save(update_fields=['department', 'phone'])
+
+        self.record = DentalRecord.objects.create(
+            patient=self.patient,
+            gender='male',
+            civil_status='single',
+            address='123 Test St',
+            date_of_birth=date(2000, 1, 1),
+            place_of_birth='Test City',
+            email=self.patient.email,
+            contact_number='09171234567',
+            designation='student',
+            department_college_office='College of Test',
+            guardian_name='Guardian',
+            guardian_contact='09179876543',
+            status='completed',
+        )
+
+    def test_staff_can_view_dental_list_and_detail(self):
+        self.client.force_login(self.staff)
+        list_response = self.client.get(reverse('dental_records:dental_record_list'))
+        self.assertEqual(list_response.status_code, 200)
+
+        detail_response = self.client.get(
+            reverse('dental_records:dental_record_detail', args=[self.record.id])
+        )
+        self.assertEqual(detail_response.status_code, 200)
+
+    def test_staff_cannot_create_dental_record(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('dental_records:dental_record_create'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_staff_cannot_edit_dental_record(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(
+            reverse('dental_records:dental_record_edit', args=[self.record.id])
+        )
+        self.assertEqual(response.status_code, 302)

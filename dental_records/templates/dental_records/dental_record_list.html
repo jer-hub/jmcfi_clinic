@@ -9,7 +9,9 @@
 
   {% if user|is_patient_role %}
     {% include "components/page_header.html" with title="My Dental Records" subtitle="View your complete dental health history" icon="fa-tooth" actions_include="dental_records/_dr_list_header_actions.html" header_mb="mb-4" %}
-  {% elif user.role == 'staff' or user.role == 'doctor' %}
+  {% elif user.role == 'staff' %}
+    {% include "components/page_header.html" with title="Patient Dental Records" subtitle="View patient dental records" icon="fa-tooth" actions_include="dental_records/_dr_list_header_actions.html" header_mb="mb-4" %}
+  {% elif user.role == 'doctor' %}
     {% include "components/page_header.html" with title="Patient Dental Records" subtitle="Manage and review patient dental records" icon="fa-tooth" actions_include="dental_records/_dr_list_header_actions.html" header_mb="mb-4" %}
   {% else %}
     {% include "components/page_header.html" with title="All Dental Records" subtitle="Comprehensive dental records management" icon="fa-tooth" actions_include="dental_records/_dr_list_header_actions.html" header_mb="mb-4" %}

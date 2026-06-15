@@ -12,7 +12,9 @@
 
   <form method="post"
         class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden"
+        data-alpine-validation
         x-data="appointmentForm()"
+        x-init="init()"
         @submit="handleSubmit($event)">
     {% csrf_token %}
 
@@ -31,8 +33,9 @@
         <label for="appointment_type" class="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">Appointment type</label>
         <select id="appointment_type" name="appointment_type" required
                 x-model="selectedType"
-                @change="selectedDoctor = ''"
-                class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
+                @change="selectedDoctor = ''; delete errors.appointment_type"
+                :class="{ 'form-field-error': errors.appointment_type }"
+                class="form-select">
           <option value="">Select a type…</option>
           {% for default in active_defaults %}
             <option value="{{ default.appointment_type }}" {% if form_data.appointment_type == default.appointment_type %}selected{% endif %}>
@@ -43,7 +46,7 @@
           {% endfor %}
         </select>
         {% if not active_defaults %}
-          <p class="mt-2 text-xs text-danger-600">No appointment types are currently configured. Please contact the clinic admin.</p>
+          <p class="mt-2 text-xs text-danger-600" data-no-field-highlight>No appointment types are currently configured. Please contact the clinic admin.</p>
         {% endif %}
         <p x-show="errors.appointment_type" x-text="errors.appointment_type" class="mt-1.5 text-sm text-danger-600" x-cloak></p>
       </div>
@@ -53,17 +56,19 @@
         <select id="doctor" name="doctor" required
                 x-model="selectedDoctor"
                 :disabled="!selectedType"
-                class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+                @change="delete errors.doctor"
+                :class="{ 'form-field-error': errors.doctor }"
+                class="form-select">
           <option value="">Select a doctor…</option>
           <template x-for="doc in filteredDoctors" :key="doc.id">
             <option :value="doc.id" x-text="doc.name" :selected="String(doc.id) === String(selectedDoctor)"></option>
           </template>
         </select>
-        <p x-show="!selectedType" class="mt-2 flex items-center gap-1.5 text-xs text-warning-700">
+        <p x-show="!selectedType" class="mt-2 flex items-center gap-1.5 text-xs text-warning-700" data-no-field-highlight>
           <i class="fas fa-circle-info flex-shrink-0"></i>
           Select an appointment type first.
         </p>
-        <p x-show="selectedType && filteredDoctors.length === 0" class="mt-2 text-xs text-danger-600">
+        <p x-show="selectedType && filteredDoctors.length === 0" class="mt-2 text-xs text-danger-600" data-no-field-highlight>
           No doctors are assigned to this appointment type. Please contact the clinic.
         </p>
         <p x-show="errors.doctor" x-text="errors.doctor" class="mt-1.5 text-sm text-danger-600" x-cloak></p>
@@ -88,14 +93,17 @@
                  x-model="selectedDate"
                  :min="minDate" :max="maxDate"
                  @change="validateWeekday()"
-                 class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
+                 :class="{ 'form-field-error': errors.date }"
+                 class="form-input">
           <p class="mt-1.5 text-xs text-gray-500">Up to 3 months ahead</p>
           <p x-show="errors.date" x-text="errors.date" class="mt-1.5 text-sm text-danger-600" x-cloak></p>
         </div>
         <div>
           <label for="time" class="block text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1.5">Preferred time</label>
           <select id="time" name="time" required x-model="selectedTime"
-                  class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500">
+                  @change="delete errors.time"
+                  :class="{ 'form-field-error': errors.time }"
+                  class="form-select">
             <option value="">Select a time…</option>
             <optgroup label="Morning">
               <option value="09:00">9:00 AM</option>
@@ -133,7 +141,9 @@
       <label for="reason" class="sr-only">Reason for visit</label>
       <textarea id="reason" name="reason" rows="4" required
                 x-model="reason"
-                class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg bg-white text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                @input="delete errors.reason"
+                :class="{ 'form-field-error': errors.reason }"
+                class="form-textarea"
                 placeholder="Describe your symptoms or what you need help with…"></textarea>
       <p x-show="errors.reason" x-text="errors.reason" class="mt-1.5 text-sm text-danger-600" x-cloak></p>
     </div>
@@ -199,10 +209,22 @@ function appointmentForm() {
     get filteredDoctors() {
       if (!this.selectedType) return [];
       const allowed = this.typeDoctorMap[this.selectedType];
-      if (!allowed || allowed.length === 0) return this.doctors;
+      if (!Array.isArray(allowed) || allowed.length === 0) return [];
+      const allowedIds = new Set(allowed.map(function (id) { return String(id); }));
       return this.doctors.filter(function (d) {
-        return allowed.indexOf(parseInt(d.id, 10)) !== -1;
+        return allowedIds.has(String(d.id));
       });
+    },
+    init() {
+      this.$watch('selectedType', () => this.syncSelectedDoctor());
+      this.$nextTick(() => this.syncSelectedDoctor());
+    },
+    syncSelectedDoctor() {
+      if (!this.selectedDoctor) return;
+      const stillValid = this.filteredDoctors.some(function (d) {
+        return String(d.id) === String(this.selectedDoctor);
+      }, this);
+      if (!stillValid) this.selectedDoctor = '';
     },
     validateWeekday() {
       if (!this.selectedDate) return;
@@ -218,6 +240,13 @@ function appointmentForm() {
       this.errors = {};
       if (!this.selectedType) this.errors.appointment_type = 'Please select an appointment type.';
       if (!this.selectedDoctor) this.errors.doctor = 'Please select a doctor.';
+      else if (this.selectedType && this.filteredDoctors.length === 0) {
+        this.errors.doctor = 'No doctors are available for this appointment type.';
+      } else if (!this.filteredDoctors.some(function (d) {
+        return String(d.id) === String(this.selectedDoctor);
+      }, this)) {
+        this.errors.doctor = 'Please select a doctor for this appointment type.';
+      }
       if (!this.selectedDate) this.errors.date = 'Please select a date.';
       if (!this.selectedTime) this.errors.time = 'Please select a time.';
       if (!this.reason || !this.reason.trim()) this.errors.reason = 'Please describe the reason for your visit.';

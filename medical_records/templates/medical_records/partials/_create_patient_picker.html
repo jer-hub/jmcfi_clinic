@@ -25,7 +25,8 @@
              id="medical-patient-search"
              x-ref="searchInput"
              x-model="query"
-             @input.debounce.300ms="searchStudents()"
+             @input.debounce.300ms="searchPatients()"
+             @focus="if (results.length && query.trim().length >= 2) showResults = true"
              @keydown.escape="showResults = false"
              placeholder="Name, email, or patient ID…"
              autocomplete="off"
@@ -57,14 +58,14 @@
           <template x-for="(row, idx) in results" :key="row.id">
             <button type="button"
                     :data-idx="idx"
-                    @click="selectStudent(row)"
+                    @click="selectPatient(row)"
                     class="w-full text-left p-3 hover:bg-primary-50 border-b border-gray-50 last:border-b-0 flex items-center gap-3 transition-colors focus:outline-none focus:bg-primary-50">
               <span class="inline-flex w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-sm font-semibold flex-shrink-0 items-center justify-center"
                     x-text="(row.name || '?').charAt(0).toUpperCase()"></span>
               <span class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-gray-900 truncate" x-text="row.name"></p>
                 <p class="text-xs text-gray-500 truncate" x-text="row.email"></p>
-                <p class="text-xs text-gray-400" x-show="row.studentId" x-text="'ID: ' + row.studentId"></p>
+                <p class="text-xs text-gray-400" x-show="row.patientId" x-text="'ID: ' + row.patientId"></p>
               </span>
             </button>
           </template>

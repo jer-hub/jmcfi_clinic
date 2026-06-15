@@ -1243,6 +1243,7 @@
 
         forms.forEach((form) => {
           if (form.classList.contains('quick-edit-form')) return;
+          if (form.hasAttribute('data-alpine-validation')) return;
 
           const errorNodes = form.querySelectorAll(
             '.errorlist, p.text-red-600, p[class*="text-red-600"], p.text-danger-600, p[class*="text-danger-600"]'
@@ -1252,6 +1253,8 @@
 
           errorNodes.forEach((errorNode) => {
             if (errorNode.classList.contains('nonfield')) return;
+            if (errorNode.hasAttribute('data-no-field-highlight')) return;
+            if (errorNode.hasAttribute('x-show')) return;
             if (!errorNode.textContent.trim()) return;
 
             let field = findPreviousField(errorNode, form);

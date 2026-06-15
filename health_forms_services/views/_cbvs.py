@@ -97,6 +97,7 @@ class DentalEditView(BaseFormEditView):
     model = DentalHealthForm
     template_name = 'health_forms_services/edit_dental_form.html'
     detail_url_name = 'health_forms_services:dental_form_detail'
+    edit_url_name = 'health_forms_services:edit_dental_form'
     form_class_map = {
         'personal': DentalHealthPersonalInfoForm,
         'examination': DentalHealthExaminationForm,
@@ -182,6 +183,7 @@ class PatientChartEditView(BaseFormEditView):
     model = PatientChart
     template_name = 'health_forms_services/edit_patient_chart.html'
     detail_url_name = 'health_forms_services:patient_chart_detail'
+    edit_url_name = 'health_forms_services:edit_patient_chart'
     form_class_map = {
         'personal': PatientChartPersonalInfoForm,
     }
@@ -234,6 +236,7 @@ class PrescriptionEditView(BaseFormEditView):
     model = Prescription
     template_name = 'health_forms_services/edit_prescription.html'
     detail_url_name = 'health_forms_services:prescription_detail'
+    edit_url_name = 'health_forms_services:edit_prescription'
     form_class_map = {
         'details': PrescriptionPatientForm,
     }
@@ -336,6 +339,7 @@ class DentalServicesEditView(BaseFormEditView):
     model = DentalServicesRequest
     template_name = 'health_forms_services/edit_dental_services.html'
     detail_url_name = 'health_forms_services:dental_services_detail'
+    edit_url_name = 'health_forms_services:edit_dental_services'
     form_class_map = {
         'details': DentalServicesPersonalInfoForm,
     }

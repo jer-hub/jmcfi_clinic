@@ -1,3 +1,4 @@
+import json
 import re
 
 from django import forms
@@ -7,6 +8,166 @@ from .models import HealthProfileForm, DentalHealthForm, DentalServicesRequest, 
 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
+
+IMMUNIZATION_FLAG_DATE_PAIRS: tuple[tuple[str, str], ...] = (
+    ('immunization_covid19', 'immunization_covid19_date'),
+    ('immunization_influenza', 'immunization_influenza_date'),
+    ('immunization_pneumonia', 'immunization_pneumonia_date'),
+    ('immunization_polio', 'immunization_polio_date'),
+    ('immunization_hepatitis_b', 'immunization_hepatitis_b_date'),
+    ('immunization_bcg', 'immunization_bcg_date'),
+    ('immunization_dpt_tetanus', 'immunization_dpt_tetanus_date'),
+    ('immunization_rotavirus', 'immunization_rotavirus_date'),
+    ('immunization_hib', 'immunization_hib_date'),
+    ('immunization_measles_mmr', 'immunization_measles_mmr_date'),
+)
+
+IMMUNIZATION_VACCINE_LABELS: dict[str, str] = {
+    'immunization_covid19': 'COVID-19',
+    'immunization_influenza': 'Influenza',
+    'immunization_pneumonia': 'Pneumonia',
+    'immunization_polio': 'Polio',
+    'immunization_hepatitis_b': 'Hepatitis B',
+    'immunization_bcg': 'BCG',
+    'immunization_dpt_tetanus': 'DPT / Tetanus',
+    'immunization_rotavirus': 'Rotavirus',
+    'immunization_hib': 'HIB',
+    'immunization_measles_mmr': 'Measles / MMR',
+}
+
+ILLNESS_CHECKBOX_FIELDS: tuple[tuple[str, str], ...] = (
+    ('illness_measles', 'Measles'),
+    ('illness_mumps', 'Mumps'),
+    ('illness_rubella', 'Rubella (German Measles)'),
+    ('illness_chickenpox', 'Chickenpox'),
+    ('illness_ptb_pki', 'PTB / PKI'),
+    ('illness_hypertension', 'Hypertension'),
+    ('illness_diabetes', 'Diabetes'),
+    ('illness_asthma', 'Asthma'),
+)
+
+VITAL_SIGN_FIELDS: tuple[tuple[str, str], ...] = (
+    ('blood_pressure', 'Blood Pressure'),
+    ('heart_rate', 'Heart Rate'),
+    ('respiratory_rate', 'Respiratory Rate'),
+    ('temperature', 'Temperature'),
+    ('spo2', 'SpO₂'),
+)
+
+ANTHROPOMETRIC_FIELDS: tuple[tuple[str, str], ...] = (
+    ('height', 'Height'),
+    ('weight', 'Weight'),
+    ('bmi', 'BMI'),
+    ('bmi_remarks', 'BMI Category'),
+)
+
+PHYSICAL_EXAM_FINDING_FIELDS: tuple[tuple[str, str], ...] = (
+    ('exam_general', 'General'),
+    ('exam_heent', 'HEENT'),
+    ('exam_chest_lungs', 'Chest & Lungs'),
+    ('exam_abdomen', 'Abdomen'),
+    ('exam_genitourinary', 'Genitourinary'),
+    ('exam_extremities', 'Extremities'),
+    ('exam_neurologic', 'Neurologic'),
+    ('exam_other_findings', 'Other Findings'),
+)
+
+DIAGNOSTIC_TEST_TRIPLETS: tuple[tuple[str, str, str], ...] = (
+    ('test_chest_xray', 'test_chest_xray_date', 'test_chest_xray_findings'),
+    ('test_cbc', 'test_cbc_date', 'test_cbc_findings'),
+    ('test_urinalysis', 'test_urinalysis_date', 'test_urinalysis_findings'),
+    ('test_drug_test', 'test_drug_test_date', 'test_drug_test_findings'),
+    ('test_psychological', 'test_psychological_date', 'test_psychological_findings'),
+    ('test_hbsag', 'test_hbsag_date', 'test_hbsag_findings'),
+    ('test_anti_hbs_titer', 'test_anti_hbs_titer_date', 'test_anti_hbs_titer_findings'),
+    ('test_fecalysis', 'test_fecalysis_date', 'test_fecalysis_findings'),
+)
+
+DIAGNOSTIC_TEST_LABELS: dict[str, str] = {
+    'test_chest_xray': 'Chest X-Ray',
+    'test_cbc': 'CBC',
+    'test_urinalysis': 'Urinalysis',
+    'test_drug_test': 'Drug Test',
+    'test_psychological': 'Psychological Test',
+    'test_hbsag': 'HBsAg',
+    'test_anti_hbs_titer': 'Anti-HBs Titer',
+    'test_fecalysis': 'Fecalysis',
+}
+
+CLINICAL_SUMMARY_NARRATIVE_FIELDS: tuple[tuple[str, str], ...] = (
+    ('physician_impression', 'Physician Impression'),
+    ('final_remarks', 'Final Remarks'),
+    ('recommendations', 'Recommendations'),
+)
+
+CLINICAL_SUMMARY_ATTRIBUTION_FIELDS: tuple[tuple[str, str], ...] = (
+    ('examining_physician', 'Examining Physician'),
+    ('examination_date', 'Examination Date'),
+)
+
+PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
+    {
+        'label': 'Full Name',
+        'icon': 'fa-user',
+        'icon_bg': 'bg-primary-50',
+        'icon_color': 'text-primary-600',
+        'description': 'Legal name as it appears on official records.',
+        'fields': ('last_name', 'first_name', 'middle_name'),
+        'grid_cols': 'md:grid-cols-3',
+    },
+    {
+        'label': 'Birth & Demographics',
+        'icon': 'fa-id-card',
+        'icon_bg': 'bg-sky-50',
+        'icon_color': 'text-sky-600',
+        'description': 'Date of birth, place of birth, and demographic details.',
+        'fields': ('date_of_birth', 'place_of_birth', 'age', 'gender', 'civil_status', 'religion', 'citizenship', 'blood_type'),
+    },
+    {
+        'label': 'Contact Information',
+        'icon': 'fa-phone',
+        'icon_bg': 'bg-emerald-50',
+        'icon_color': 'text-emerald-600',
+        'description': 'Email and phone numbers in +63XXXXXXXXXX format.',
+        'fields': ('email_address', 'mobile_number', 'telephone_number'),
+    },
+    {
+        'label': 'Address',
+        'icon': 'fa-location-dot',
+        'icon_bg': 'bg-amber-50',
+        'icon_color': 'text-amber-600',
+        'description': 'Permanent and current residence.',
+        'fields': ('permanent_address', 'zip_code', 'current_address'),
+    },
+    {
+        'label': 'Institutional Details',
+        'icon': 'fa-building',
+        'icon_bg': 'bg-violet-50',
+        'icon_color': 'text-violet-600',
+        'description': 'School or workplace affiliation and credentials.',
+        'fields': (
+            'designation', 'institution_id', 'department_college_office', 'course',
+            'year_level', 'position', 'specialization', 'license_number', 'ptr_no',
+        ),
+    },
+    {
+        'label': 'Emergency Contact',
+        'icon': 'fa-user-shield',
+        'icon_bg': 'bg-rose-50',
+        'icon_color': 'text-rose-600',
+        'description': 'Person to contact in case of emergency.',
+        'fields': ('guardian_name', 'guardian_contact'),
+    },
+    {
+        'label': 'Medical Background',
+        'icon': 'fa-heart-pulse',
+        'icon_bg': 'bg-red-50',
+        'icon_color': 'text-red-600',
+        'description': 'Known conditions, allergies, or ongoing medications.',
+        'fields': ('medical_conditions',),
+        'grid_cols': 'md:grid-cols-1',
+    },
+)
 
 
 class HealthProfilePersonalInfoForm(forms.ModelForm):
@@ -106,6 +267,17 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
         if 'guardian_contact' in self.fields:
             self.fields['guardian_contact'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
 
+    def personal_info_sections(self):
+        sections = []
+        for section in PERSONAL_INFO_SECTIONS:
+            fields = [
+                {'name': name, 'field': self[name]}
+                for name in section['fields']
+                if name in self.fields
+            ]
+            sections.append({**section, 'fields': fields})
+        return sections
+
     def _clean_strict_ph(self, value):
         value = (value or '').strip()
         if not value:
@@ -198,23 +370,49 @@ class HealthProfileMedicalHistoryForm(forms.ModelForm):
             'present_illness': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 4}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for flag, date_field in IMMUNIZATION_FLAG_DATE_PAIRS:
+            self.fields[flag].label = IMMUNIZATION_VACCINE_LABELS[flag]
+            self.fields[date_field].label = 'Date of last dose'
+            if not bool(self[flag].value()):
+                self.fields[date_field].widget.attrs['disabled'] = True
+        for name, label in ILLNESS_CHECKBOX_FIELDS:
+            self.fields[name].label = label
+        self.fields['immunization_others'].label = 'Other immunizations'
+        self.fields['illness_others'].label = 'Other illnesses / conditions'
+
+    def immunization_vaccines(self):
+        return [
+            {
+                'flag': flag,
+                'date': date_field,
+                'label': IMMUNIZATION_VACCINE_LABELS[flag],
+                'flag_field': self[flag],
+                'date_field': self[date_field],
+            }
+            for flag, date_field in IMMUNIZATION_FLAG_DATE_PAIRS
+        ]
+
+    def illness_checkboxes(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in ILLNESS_CHECKBOX_FIELDS
+        ]
+
+    def immunization_flags_json(self) -> str:
+        flags = {
+            flag: bool(self[flag].value())
+            for flag, _ in IMMUNIZATION_FLAG_DATE_PAIRS
+        }
+        return json.dumps(flags)
+
     def clean(self):
         cleaned = super().clean()
-        # If an immunization checkbox is checked, require its date
-        immunizations = [
-            ('immunization_covid19', 'immunization_covid19_date'),
-            ('immunization_influenza', 'immunization_influenza_date'),
-            ('immunization_pneumonia', 'immunization_pneumonia_date'),
-            ('immunization_polio', 'immunization_polio_date'),
-            ('immunization_hepatitis_b', 'immunization_hepatitis_b_date'),
-            ('immunization_bcg', 'immunization_bcg_date'),
-            ('immunization_dpt_tetanus', 'immunization_dpt_tetanus_date'),
-            ('immunization_rotavirus', 'immunization_rotavirus_date'),
-            ('immunization_hib', 'immunization_hib_date'),
-            ('immunization_measles_mmr', 'immunization_measles_mmr_date'),
-        ]
-        for flag, date_field in immunizations:
-            if cleaned.get(flag) and not cleaned.get(date_field):
+        for flag, date_field in IMMUNIZATION_FLAG_DATE_PAIRS:
+            if not cleaned.get(flag):
+                cleaned[date_field] = None
+            elif not cleaned.get(date_field):
                 self.add_error(date_field, 'Date is required when this vaccine is checked.')
         return cleaned
 
@@ -252,6 +450,33 @@ class HealthProfilePhysicalExamForm(forms.ModelForm):
             'exam_other_findings': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 3}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, label in VITAL_SIGN_FIELDS:
+            self.fields[name].label = label
+        for name, label in ANTHROPOMETRIC_FIELDS:
+            self.fields[name].label = label
+        for name, label in PHYSICAL_EXAM_FINDING_FIELDS:
+            self.fields[name].label = label
+
+    def vital_sign_fields(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in VITAL_SIGN_FIELDS
+        ]
+
+    def anthropometric_fields(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in ANTHROPOMETRIC_FIELDS
+        ]
+
+    def exam_finding_fields(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in PHYSICAL_EXAM_FINDING_FIELDS
+        ]
+
 
 class HealthProfileClinicalSummaryForm(forms.ModelForm):
     """Form for editing clinical summary section"""
@@ -272,10 +497,25 @@ class HealthProfileClinicalSummaryForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Populate examining_physician with doctor users
+        for name, label in CLINICAL_SUMMARY_NARRATIVE_FIELDS:
+            self.fields[name].label = label
+        for name, label in CLINICAL_SUMMARY_ATTRIBUTION_FIELDS:
+            self.fields[name].label = label
         doctors = User.objects.filter(role__in=['doctor', 'staff']).order_by('first_name', 'last_name')
-        self.fields['examining_physician'].choices = [('', '---------')] + [
+        self.fields['examining_physician'].choices = [('', 'Select physician')] + [
             (doctor.id, f"Dr. {doctor.get_full_name()}") for doctor in doctors
+        ]
+
+    def clinical_narrative_fields(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in CLINICAL_SUMMARY_NARRATIVE_FIELDS
+        ]
+
+    def clinical_attribution_fields(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in CLINICAL_SUMMARY_ATTRIBUTION_FIELDS
         ]
 
 
@@ -332,24 +572,47 @@ class HealthProfileDiagnosticTestsForm(forms.ModelForm):
             'test_others': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 3}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for flag, date_field, findings_field in DIAGNOSTIC_TEST_TRIPLETS:
+            self.fields[flag].label = DIAGNOSTIC_TEST_LABELS[flag]
+            if not bool(self[flag].value()):
+                self.fields[date_field].widget.attrs['disabled'] = True
+                self.fields[findings_field].widget.attrs['disabled'] = True
+        self.fields['test_others'].label = 'Other diagnostic tests'
+
+    def diagnostic_tests(self):
+        return [
+            {
+                'flag': flag,
+                'date': date_field,
+                'findings': findings_field,
+                'label': DIAGNOSTIC_TEST_LABELS[flag],
+                'flag_field': self[flag],
+                'date_field': self[date_field],
+                'findings_field': self[findings_field],
+            }
+            for flag, date_field, findings_field in DIAGNOSTIC_TEST_TRIPLETS
+        ]
+
+    def diagnostic_flags_json(self) -> str:
+        flags = {
+            flag: bool(self[flag].value())
+            for flag, _, _ in DIAGNOSTIC_TEST_TRIPLETS
+        }
+        return json.dumps(flags)
+
     def clean(self):
         cleaned = super().clean()
-        tests = [
-            ('test_chest_xray', 'test_chest_xray_date', 'test_chest_xray_findings'),
-            ('test_cbc', 'test_cbc_date', 'test_cbc_findings'),
-            ('test_urinalysis', 'test_urinalysis_date', 'test_urinalysis_findings'),
-            ('test_drug_test', 'test_drug_test_date', 'test_drug_test_findings'),
-            ('test_psychological', 'test_psychological_date', 'test_psychological_findings'),
-            ('test_hbsag', 'test_hbsag_date', 'test_hbsag_findings'),
-            ('test_anti_hbs_titer', 'test_anti_hbs_titer_date', 'test_anti_hbs_titer_findings'),
-            ('test_fecalysis', 'test_fecalysis_date', 'test_fecalysis_findings'),
-        ]
-        for flag, date_field, find_field in tests:
-            if cleaned.get(flag):
+        for flag, date_field, findings_field in DIAGNOSTIC_TEST_TRIPLETS:
+            if not cleaned.get(flag):
+                cleaned[date_field] = None
+                cleaned[findings_field] = ''
+            else:
                 if not cleaned.get(date_field):
                     self.add_error(date_field, 'Date is required when this test is checked.')
-                if not cleaned.get(find_field):
-                    self.add_error(find_field, 'Findings are required when this test is checked.')
+                if not cleaned.get(findings_field):
+                    self.add_error(findings_field, 'Findings are required when this test is checked.')
         return cleaned
 
 

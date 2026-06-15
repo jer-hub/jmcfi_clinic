@@ -1,0 +1,14 @@
+{# ── Diagnostic Tests tab ── #}
+<div class="space-y-6">
+  <div class="flex items-center gap-2">
+    <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600">
+      <i class="fas fa-flask text-sm"></i>
+    </span>
+    <div>
+      <h3 class="text-sm font-semibold text-gray-900">Diagnostic Tests</h3>
+      <p class="text-xs text-gray-500">Check each test performed, then enter the date and findings.</p>
+    </div>
+  </div>
+
+  {% include 'health_forms_services/partials/_diagnostic_test_cards.html' %}
+</div>

@@ -1,0 +1,44 @@
+{# ── Clinical Summary tab ── #}
+<div class="space-y-8">
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+        <i class="fas fa-file-medical text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Clinical Assessment</h3>
+        <p class="text-xs text-gray-500">Document the physician&apos;s impression, final remarks, and recommendations.</p>
+      </div>
+    </div>
+    <div class="space-y-4">
+      {% for item in form.clinical_narrative_fields %}
+      <div class="rounded-lg border border-gray-200 p-4 {% if item.field.errors %}border-red-300 bg-red-50/30{% endif %}">
+        <label for="{{ item.field.id_for_label }}" class="block text-sm font-semibold text-gray-800 mb-2">
+          {{ item.label }}
+        </label>
+        {{ item.field }}
+        {% if item.field.errors %}
+        <p class="mt-1.5 text-xs text-red-600 font-medium">{{ item.field.errors.0 }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 text-teal-600">
+        <i class="fas fa-user-doctor text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Examination Details</h3>
+        <p class="text-xs text-gray-500">Record who performed the examination and when.</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+      {% for item in form.clinical_attribution_fields %}
+        {% include 'health_forms_services/partials/_field.html' with field=item.field %}
+      {% endfor %}
+    </div>
+  </section>
+</div>

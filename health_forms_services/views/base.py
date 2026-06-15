@@ -208,7 +208,8 @@ class BaseFormEditView(View):
         template_name    – template path (extends _base_edit.html)
         form_class_map   – dict: {section_key: FormClass}
         tabs             – list of dicts: {key, label, icon}
-        detail_url_name  – URL name to redirect after save
+        detail_url_name  – URL name for back-to-detail link in template
+        edit_url_name    – URL name to redirect after successful section save
         doctors_queryset – optional custom doctor queryset for assigning physician
     """
 
@@ -218,6 +219,7 @@ class BaseFormEditView(View):
     tabs = None
     field_groups = None  # {tab_key: [{label, fields}]} — optional section headers
     detail_url_name = None
+    edit_url_name = None
     doctors_queryset = None
 
     @method_decorator(login_required)
@@ -243,6 +245,14 @@ class BaseFormEditView(View):
         from django.contrib.auth import get_user_model
         User = get_user_model()
         return User.objects.filter(role__in=['doctor', 'staff']).order_by('first_name', 'last_name')
+
+    def get_edit_redirect_url(self, obj, section):
+        if self.edit_url_name:
+            base = reverse(self.edit_url_name, kwargs={'pk': obj.pk})
+            return f'{base}?section={section}'
+        if self.detail_url_name:
+            return reverse(self.detail_url_name, kwargs={'pk': obj.pk})
+        return '/'
 
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
@@ -273,7 +283,7 @@ class BaseFormEditView(View):
             if is_ajax:
                 return JsonResponse({'success': False, 'error': 'Invalid section.'}, status=400)
             messages.error(request, 'Invalid section.')
-            return redirect(self.detail_url_name, pk=obj.pk)
+            return redirect(self.get_edit_redirect_url(obj, section))
 
         form = form_class(request.POST, instance=obj)
         if form.is_valid():
@@ -288,14 +298,16 @@ class BaseFormEditView(View):
             if is_ajax:
                 return JsonResponse({
                     'success': True,
+                    'section': section,
                     'message': f'{section.capitalize()} section saved.',
                     'timestamp': timezone.now().isoformat(),
                 })
             messages.success(request, 'Form updated.')
-            return redirect(self.detail_url_name, pk=obj.pk)
+            return redirect(self.get_edit_redirect_url(obj, section))
 
         if is_ajax:
-            return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+            errors = {field: [str(error) for error in error_list] for field, error_list in form.errors.items()}
+            return JsonResponse({'success': False, 'errors': errors}, status=400)
 
         # Re-render the edit page with the invalid form so field-level
         # validation errors are visible to the user.

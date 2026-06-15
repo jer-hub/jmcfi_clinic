@@ -2,7 +2,7 @@
 {# Context: form_obj, forms (dict keyed by section), tabs, active_section, doctors, detail_url #}
 
 {% extends 'core/base.html' %}
-{% load form_tags %}
+{% load form_tags static %}
 
 {% block title %}Edit - {{ form_obj.get_full_name|default:form_obj.user.get_full_name }} - JMCFI Clinic{% endblock %}
 
@@ -11,12 +11,14 @@
     {% include 'health_forms_services/_subnav.html' %}
 
     <div class="mb-4">
-      <a href="{{ detail_url }}" class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+      <button type="button"
+              onclick="window.location.assign('{{ detail_url|escapejs }}')"
+              class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
         <i class="fas fa-arrow-left"></i>Back to Details
-      </a>
+      </button>
     </div>
 
-    {% include "components/page_header.html" with title="Edit Form" subtitle=form_obj.get_full_name|default:form_obj.user.get_full_name|default:"" icon="fa-pen-to-square" %}
+    {% include "components/page_header.html" with title="Edit Form" icon="fa-pen-to-square" %}
 
     <div class="bg-white rounded-card border border-gray-200 shadow-sm mb-6">
       <div class="overflow-x-auto scrollbar-thin -mx-1 sm:mx-0">
@@ -34,6 +36,7 @@
                          {% endif %}">
             {% if tab.icon %}<i class="fas {{ tab.icon }} mr-1.5 sm:mr-2"></i>{% endif %}
             {{ tab.label }}
+            <span data-tab-badge="{{ tab.key }}" class="hidden ml-1.5 inline-flex items-center" aria-hidden="true"></span>
           </button>
           {% endfor %}
         </nav>
@@ -61,12 +64,16 @@
     <div data-tab-panel="{{ tab_key }}"
          class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 {% if tab_key != active_section %}hidden{% endif %}">
       <form method="post"
+            action=""
             data-section="{{ tab_key }}"
-            data-auto-save="true"
-            class="space-y-6"
-            novalidate>
+            data-section-save="ajax"
+            class="space-y-6 flex flex-col min-h-[50vh]"
+            novalidate
+            {% if tab_key == 'medical' %}x-data="immunizationMedicalForm({{ form.immunization_flags_json }})"{% elif tab_key == 'diagnostic' %}x-data="diagnosticTestsForm({{ form.diagnostic_flags_json }})"{% endif %}>
         {% csrf_token %}
         <input type="hidden" name="section" value="{{ tab_key }}">
+
+        <div data-section-error-banner class="hidden mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg items-start gap-3"></div>
 
         {# ── Section-level validation errors banner ── #}
         {% if form.non_field_errors %}
@@ -87,7 +94,17 @@
 
         {# ── Section groups or flat fields ── #}
         {% with groups=field_groups|dict_key:tab_key %}
-        {% if groups %}
+        {% if tab_key == 'personal' %}
+          {% include 'health_forms_services/partials/_personal_info_tab.html' with form=form %}
+        {% elif tab_key == 'medical' %}
+          {% include 'health_forms_services/partials/_medical_history_tab.html' with form=form %}
+        {% elif tab_key == 'physical' %}
+          {% include 'health_forms_services/partials/_physical_exam_tab.html' with form=form %}
+        {% elif tab_key == 'diagnostic' %}
+          {% include 'health_forms_services/partials/_diagnostic_tests_tab.html' with form=form %}
+        {% elif tab_key == 'clinical' %}
+          {% include 'health_forms_services/partials/_clinical_summary_tab.html' with form=form %}
+        {% elif groups %}
           {% for group in groups %}
           {% if group.label %}
           <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">{{ group.label }}</h3>
@@ -115,12 +132,15 @@
         {% block extra_tab_content %}
         {% endblock extra_tab_content %}
 
-        <div class="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          <span data-save-indicator="{{ tab_key }}" class="hidden text-xs text-success-600 font-medium self-center">
+        <div class="flex-1"></div>
+
+        {# ── Sticky section save bar ── #}
+        <div class="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mt-6 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex justify-end items-center gap-3 z-10">
+          <span data-save-indicator="{{ tab_key }}" class="hidden text-xs text-success-600 font-medium">
             <i class="fas fa-check mr-1"></i>Saved
           </span>
           <button type="submit"
-                  class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors">
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
             <i class="fas fa-floppy-disk"></i>Save {{ tab.label }}
           </button>
         </div>
@@ -130,81 +150,17 @@
 </div>
 
 <script>
-(function(){
-  // ── Tab switching ──
-  var tabs = document.querySelectorAll('[data-tab]');
-  var panels = document.querySelectorAll('[data-tab-panel]');
-
-  tabs.forEach(function(tab){
-    tab.addEventListener('click', function(){
-      var key = this.getAttribute('data-tab');
-      tabs.forEach(function(t){
-        t.setAttribute('aria-selected', 'false');
-        t.classList.remove('text-primary-600','border-b-2','border-primary-600','bg-primary-50/50');
-        t.classList.add('text-gray-500');
-      });
-      this.setAttribute('aria-selected', 'true');
-      this.classList.remove('text-gray-500');
-      this.classList.add('text-primary-600','border-b-2','border-primary-600','bg-primary-50/50');
-
-      panels.forEach(function(p){
-        p.classList.toggle('hidden', p.getAttribute('data-tab-panel') !== key);
-      });
-
-      // Update URL without reload
-      var url = new URL(window.location);
-      url.searchParams.set('section', key);
-      window.history.replaceState({}, '', url);
-    });
-  });
-
-  // ── Unsaved changes warning ──
-  var dirty = {};
-  var forms = document.querySelectorAll('form[data-section]');
-  forms.forEach(function(f){
-    var key = f.getAttribute('data-section');
-    dirty[key] = false;
-    f.addEventListener('change', function(){ dirty[key] = true; });
-  });
-
-  window.addEventListener('beforeunload', function(e){
-    var anyDirty = Object.values(dirty).some(function(v){ return v; });
-    if (anyDirty) {
-      e.preventDefault();
-      e.returnValue = 'You have unsaved changes.';
-      return e.returnValue;
-    }
-  });
-
-  tabs.forEach(function(tab){
-    tab.addEventListener('click', function(e){
-      var key = tab.getAttribute('data-tab');
-      if (dirty[key]) {
-        e.preventDefault();
-        e.stopPropagation();
-        // Show unsaved changes modal
-        var modal = document.getElementById('unsaved-changes-modal');
-        if (modal) {
-          modal.style.display = 'block';
-          // Store target tab key for the confirm button
-          modal.setAttribute('data-target-tab', key);
-        }
-      }
-    });
-  });
-
-  // Reset dirty flag on form submit
-  forms.forEach(function(f){
-    f.addEventListener('submit', function(){
-      dirty[f.getAttribute('data-section')] = false;
-    });
-  });
-})();
+function immunizationMedicalForm(initialFlags) {
+  return { immunizationFlags: initialFlags || {} };
+}
+function diagnosticTestsForm(initialFlags) {
+  return { diagnosticFlags: initialFlags || {} };
+}
 </script>
 
 {# ── Unsaved changes confirmation modal ── #}
 <div id="unsaved-changes-modal" class="fixed inset-0 z-50" aria-hidden="true" role="dialog" aria-modal="true" style="display:none">
-  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" onclick="document.getElementById('unsaved-changes-modal').style.display='none'"></div>
+  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" data-unsaved-backdrop></div>
   <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
     <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-auto confirm-dialog">
       <div class="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 text-center">
@@ -212,65 +168,29 @@
           <i class="fas fa-triangle-exclamation text-amber-500 text-xl"></i>
         </div>
         <h3 class="text-lg font-semibold text-gray-900">Unsaved Changes</h3>
-        <p class="mt-2 text-sm text-gray-500">You have unsaved changes in this section. Switch anyway?</p>
+        <p class="mt-2 text-sm text-gray-500" data-unsaved-modal-prompt>This section has unsaved changes. What would you like to do?</p>
+        <div data-unsaved-modal-status class="hidden mt-3 rounded-lg px-3 py-2 text-sm font-medium" role="status" aria-live="polite"></div>
       </div>
-      <div class="px-5 sm:px-6 pb-5 sm:pb-6">
-        <div class="flex flex-col-reverse sm:flex-row justify-center gap-2 sm:gap-3">
-          <button type="button" onclick="document.getElementById('unsaved-changes-modal').style.display='none'"
-                  class="w-full sm:w-auto px-4 py-2.5 sm:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors">
-            Stay
-          </button>
-          <button type="button" id="unsaved-confirm-switch"
-                  class="w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-lg text-sm font-medium transition-colors bg-primary-600 hover:bg-primary-700 text-white">
-            <i class="fas fa-arrow-right mr-1.5"></i>Switch
-          </button>
-        </div>
+      <div class="px-5 sm:px-6 pb-5 sm:pb-6 space-y-2" data-unsaved-modal-actions>
+        <button type="button" id="unsaved-save-switch"
+                class="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white transition-colors">
+          <i class="fas fa-floppy-disk mr-1.5"></i>Save &amp; switch
+        </button>
+        <button type="button" id="unsaved-discard-switch"
+                class="w-full px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+          <i class="fas fa-arrow-right mr-1.5"></i>Discard &amp; switch
+        </button>
+        <button type="button" id="unsaved-stay"
+                class="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+          Stay on this tab
+        </button>
       </div>
     </div>
   </div>
 </div>
-
-<script>
-(function(){
-  var unsavedModal = document.getElementById('unsaved-changes-modal');
-  var confirmSwitch = document.getElementById('unsaved-confirm-switch');
-  if (!unsavedModal || !confirmSwitch) return;
-
-  confirmSwitch.addEventListener('click', function(){
-    var targetKey = unsavedModal.getAttribute('data-target-tab');
-    unsavedModal.style.display = 'none';
-    if (targetKey) {
-      // Find and click the corresponding tab
-      var tab = document.querySelector('[data-tab="' + targetKey + '"]');
-      if (tab) {
-        // Mark dirty as false so the event listener won't block
-        // (we already confirmed, so clear dirty and trigger switch)
-        var panels = document.querySelectorAll('[data-tab-panel]');
-        // Trigger the tab programmatically
-        // We need to simulate clicking without the dirty check
-        // Get the key and perform tab switch manually
-        tabs = document.querySelectorAll('[data-tab]');
-        panels = document.querySelectorAll('[data-tab-panel]');
-        tabs.forEach(function(t){
-          t.setAttribute('aria-selected', 'false');
-          t.classList.remove('text-primary-600','border-b-2','border-primary-600','bg-primary-50/50');
-          t.classList.add('text-gray-500');
-        });
-        tab.setAttribute('aria-selected', 'true');
-        tab.classList.remove('text-gray-500');
-        tab.classList.add('text-primary-600','border-b-2','border-primary-600','bg-primary-50/50');
-
-        panels.forEach(function(p){
-          p.classList.toggle('hidden', p.getAttribute('data-tab-panel') !== targetKey);
-        });
-
-        // Update URL without reload
-        var url = new URL(window.location);
-        url.searchParams.set('section', targetKey);
-        window.history.replaceState({}, '', url);
-      }
-    }
-  });
-})();
-</script>
 {% endblock content %}
+
+{% block scripts %}
+{{ block.super }}
+<script src="{% static 'js/health-form-edit.js' %}"></script>
+{% endblock scripts %}

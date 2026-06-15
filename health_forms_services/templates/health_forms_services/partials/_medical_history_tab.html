@@ -1,0 +1,49 @@
+{# ── Medical History tab: structured sections ── #}
+<div class="space-y-8">
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+        <i class="fas fa-syringe text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Immunization Records</h3>
+        <p class="text-xs text-gray-500">Check received vaccines and enter the date of the last dose.</p>
+      </div>
+    </div>
+    {% include 'health_forms_services/partials/_immunization_records.html' %}
+  </section>
+
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+        <i class="fas fa-notes-medical text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">History of Illnesses</h3>
+        <p class="text-xs text-gray-500">Select conditions the patient has had.</p>
+      </div>
+    </div>
+    {% include 'health_forms_services/partials/_illness_checklist.html' %}
+  </section>
+
+  <section>
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">OB-GYN History</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+      {% with field=form.menarche_age %}{% include 'health_forms_services/partials/_field.html' with field=field %}{% endwith %}
+      {% with field=form.menstrual_duration %}{% include 'health_forms_services/partials/_field.html' with field=field %}{% endwith %}
+      {% with field=form.menstrual_interval %}{% include 'health_forms_services/partials/_field.html' with field=field %}{% endwith %}
+      {% with field=form.menstrual_amount %}{% include 'health_forms_services/partials/_field.html' with field=field %}{% endwith %}
+      {% with field=form.menstrual_symptoms %}{% include 'health_forms_services/partials/_field.html' with field=field %}{% endwith %}
+      {% with field=form.obstetric_history %}{% include 'health_forms_services/partials/_field.html' with field=field %}{% endwith %}
+    </div>
+  </section>
+
+  <section>
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">Medical Information</h3>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+      {% with field=form.allergies %}{% include 'health_forms_services/partials/_field.html' with field=field %}{% endwith %}
+      {% with field=form.current_medications %}{% include 'health_forms_services/partials/_field.html' with field=field %}{% endwith %}
+      {% with field=form.present_illness %}{% include 'health_forms_services/partials/_field.html' with field=field %}{% endwith %}
+    </div>
+  </section>
+</div>

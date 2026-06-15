@@ -1,9 +1,8 @@
 {# ── Single form field rendered with Tailwind classes ── #}
-{# Renders Django's native {{ field }} with Tailwind-compatible CSS #}
 {% if field.is_hidden %}
   {{ field }}
 {% else %}
-<div class="{% if field.errors %}has-error{% endif %} {% if 'textarea' in field.field.widget.input_type %}md:col-span-2{% endif %}">
+<div data-field-wrapper class="{% if field.errors %}has-error{% endif %} {% if field.field.widget.attrs.rows %}md:col-span-2{% endif %}">
   {% if field.label %}
   <label for="{{ field.id_for_label }}"
          class="block text-sm font-medium text-gray-700 mb-1">

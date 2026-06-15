@@ -1,0 +1,21 @@
+{# ── Illness history checklist grid ── #}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+  {% for item in form.illness_checkboxes %}
+  <label for="{{ item.field.id_for_label }}"
+         class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors
+                {% if item.field.errors %}border-red-300 bg-red-50{% else %}border-gray-200 hover:border-primary-200 hover:bg-primary-50/40{% endif %}">
+    <input type="checkbox"
+           name="{{ item.field.html_name }}"
+           id="{{ item.field.id_for_label }}"
+           class="form-checkbox h-4 w-4 flex-shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+           {% if item.field.value %}checked{% endif %}>
+    <span class="text-sm font-medium text-gray-700">{{ item.label }}</span>
+  </label>
+  {% endfor %}
+</div>
+
+<div class="mt-4">
+  {% with field=form.illness_others %}
+    {% include 'health_forms_services/partials/_field.html' with field=field %}
+  {% endwith %}
+</div>

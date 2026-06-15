@@ -1,0 +1,102 @@
+{# ── Physical Exam tab: vitals, anthropometrics, system findings ── #}
+<div class="space-y-8">
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+        <i class="fas fa-heart-pulse text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Vital Signs</h3>
+        <p class="text-xs text-gray-500">Record the patient&apos;s vital signs at examination.</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-4">
+      {% for item in form.vital_sign_fields %}
+        <div class="rounded-lg border border-gray-200 bg-gray-50/50 p-3 sm:p-4 {% if item.field.errors %}border-red-300 bg-red-50/50{% endif %}">
+          <label for="{{ item.field.id_for_label }}" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+            {{ item.label }}
+          </label>
+          {{ item.field }}
+          {% if item.name == 'blood_pressure' %}
+          <p class="mt-1.5 text-xs text-gray-400">mmHg, e.g. 120/80</p>
+          {% elif item.name == 'heart_rate' %}
+          <p class="mt-1.5 text-xs text-gray-400">beats per minute</p>
+          {% elif item.name == 'respiratory_rate' %}
+          <p class="mt-1.5 text-xs text-gray-400">breaths per minute</p>
+          {% elif item.name == 'temperature' %}
+          <p class="mt-1.5 text-xs text-gray-400">degrees Celsius</p>
+          {% elif item.name == 'spo2' %}
+          <p class="mt-1.5 text-xs text-gray-400">oxygen saturation %</p>
+          {% endif %}
+          {% if item.field.errors %}
+          <p class="mt-1.5 text-xs text-red-600 font-medium">{{ item.field.errors.0 }}</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+        <i class="fas fa-ruler-vertical text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Anthropometrics</h3>
+        <p class="text-xs text-gray-500">Height and weight are used to calculate BMI on save.</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {% for item in form.anthropometric_fields %}
+        <div class="{% if item.name == 'bmi' or item.name == 'bmi_remarks' %}rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 sm:p-4{% endif %} {% if item.field.errors %}border-red-300 bg-red-50/50{% endif %}">
+          {% if item.name == 'bmi' or item.name == 'bmi_remarks' %}
+          <label for="{{ item.field.id_for_label }}" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+            {{ item.label }}
+          </label>
+          {{ item.field }}
+          {% else %}
+            {% include 'health_forms_services/partials/_field.html' with field=item.field %}
+          {% endif %}
+          {% if item.name == 'height' %}
+          <p class="mt-1 text-xs text-gray-400">meters, e.g. 1.65</p>
+          {% elif item.name == 'weight' %}
+          <p class="mt-1 text-xs text-gray-400">kilograms</p>
+          {% elif item.name == 'bmi' %}
+          <p class="mt-1.5 text-xs text-gray-400">Auto-calculated</p>
+          {% endif %}
+          {% if item.field.errors %}
+          <p class="mt-1.5 text-xs text-red-600 font-medium">{{ item.field.errors.0 }}</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+        <i class="fas fa-stethoscope text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Physical Examination Findings</h3>
+        <p class="text-xs text-gray-500">Document findings by body system. Leave blank if not examined.</p>
+      </div>
+    </div>
+    <div class="space-y-4">
+      {% for item in form.exam_finding_fields %}
+      <div class="rounded-lg border border-gray-200 p-4 {% if item.field.errors %}border-red-300 bg-red-50/30{% endif %}">
+        <label for="{{ item.field.id_for_label }}" class="block text-sm font-semibold text-gray-800 mb-2">
+          {{ item.label }}
+        </label>
+        {% if item.field.help_text %}
+        <p class="text-xs text-gray-500 mb-2">{{ item.field.help_text }}</p>
+        {% endif %}
+        {{ item.field }}
+        {% if item.field.errors %}
+        <p class="mt-1.5 text-xs text-red-600 font-medium">{{ item.field.errors.0 }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>

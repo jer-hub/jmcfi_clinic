@@ -1,0 +1,59 @@
+{# ── Diagnostic test cards: performed | date | findings per test ── #}
+<div class="space-y-3">
+  {% for test in form.diagnostic_tests %}
+  <div class="rounded-lg border p-4 transition-colors
+              {% if test.flag_field.errors or test.date_field.errors or test.findings_field.errors %}border-red-300 bg-red-50/40{% else %}border-gray-200 hover:border-gray-300{% endif %}"
+       :class="diagnosticFlags['{{ test.flag }}'] ? 'border-primary-200 bg-primary-50/20' : ''">
+    <label class="flex items-center gap-3 cursor-pointer">
+      <input type="checkbox"
+             name="{{ test.flag_field.html_name }}"
+             id="{{ test.flag_field.id_for_label }}"
+             class="form-checkbox h-4 w-4 flex-shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+             x-model="diagnosticFlags['{{ test.flag }}']"
+             aria-label="{{ test.label }} performed">
+      <span class="text-sm font-semibold text-gray-900">{{ test.label }}</span>
+    </label>
+
+    <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 pl-7">
+      <div>
+        <label for="{{ test.date_field.id_for_label }}" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+          Date performed
+        </label>
+        <input type="date"
+               name="{{ test.date_field.html_name }}"
+               id="{{ test.date_field.id_for_label }}"
+               class="form-input w-full"
+               {% if test.date_field.value %}value="{{ test.date_field.value|date:'Y-m-d' }}"{% endif %}
+               :disabled="!diagnosticFlags['{{ test.flag }}']"
+               :class="!diagnosticFlags['{{ test.flag }}'] ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''"
+               x-effect="if (!diagnosticFlags['{{ test.flag }}']) { $el.value = '' }">
+        {% if test.date_field.errors %}
+        <p class="mt-1 text-xs text-red-600 font-medium">{{ test.date_field.errors.0 }}</p>
+        {% endif %}
+      </div>
+
+      <div class="md:col-span-2">
+        <label for="{{ test.findings_field.id_for_label }}" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 mb-1.5">
+          Findings
+        </label>
+        <textarea name="{{ test.findings_field.html_name }}"
+                  id="{{ test.findings_field.id_for_label }}"
+                  rows="2"
+                  class="form-textarea w-full"
+                  :disabled="!diagnosticFlags['{{ test.flag }}']"
+                  :class="!diagnosticFlags['{{ test.flag }}'] ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''"
+                  x-effect="if (!diagnosticFlags['{{ test.flag }}']) { $el.value = '' }">{{ test.findings_field.value|default:'' }}</textarea>
+        {% if test.findings_field.errors %}
+        <p class="mt-1 text-xs text-red-600 font-medium">{{ test.findings_field.errors.0 }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="mt-6">
+  {% with field=form.test_others %}
+    {% include 'health_forms_services/partials/_field.html' with field=field %}
+  {% endwith %}
+</div>

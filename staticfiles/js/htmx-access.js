@@ -30,20 +30,28 @@
     return false;
   }
 
-  document.body.addEventListener('htmx:responseError', function (event) {
-    const xhr = event.detail && event.detail.xhr;
-    if (!xhr || (xhr.status !== 401 && xhr.status !== 403)) {
-      return;
-    }
-    if (redirectFromXhr(xhr)) {
-      event.preventDefault();
-    }
-  });
+  function attachListeners() {
+    document.addEventListener('htmx:responseError', function (event) {
+      const xhr = event.detail && event.detail.xhr;
+      if (!xhr || (xhr.status !== 401 && xhr.status !== 403)) {
+        return;
+      }
+      if (redirectFromXhr(xhr)) {
+        event.preventDefault();
+      }
+    });
 
-  document.body.addEventListener('access-denied', function (event) {
-    const detail = (event.detail && event.detail.value) || event.detail || {};
-    if (detail.redirect) {
-      window.location.assign(detail.redirect);
-    }
-  });
+    document.addEventListener('access-denied', function (event) {
+      const detail = (event.detail && event.detail.value) || event.detail || {};
+      if (detail.redirect) {
+        window.location.assign(detail.redirect);
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', attachListeners);
+  } else {
+    attachListeners();
+  }
 })();

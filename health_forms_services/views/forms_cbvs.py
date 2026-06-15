@@ -133,6 +133,7 @@ class HealthProfileEditView(BaseFormEditView):
     model = HealthProfileForm
     template_name = 'health_forms_services/edit_form.html'
     detail_url_name = 'health_forms_services:form_detail'
+    edit_url_name = 'health_forms_services:edit_form'
     form_class_map = {
         'personal': HealthProfilePersonalInfoForm,
         'medical': HealthProfileMedicalHistoryForm,
@@ -147,17 +148,6 @@ class HealthProfileEditView(BaseFormEditView):
         {'key': 'diagnostic', 'label': 'Diagnostic Tests', 'icon': 'fa-flask'},
         {'key': 'clinical', 'label': 'Clinical Summary', 'icon': 'fa-file-lines'},
     ]
-    field_groups = {
-        'personal': [
-            {'label': 'Name', 'fields': ['last_name', 'first_name', 'middle_name']},
-            {'label': 'Birth & Demographics', 'fields': ['date_of_birth', 'place_of_birth', 'age', 'gender', 'civil_status', 'religion', 'citizenship', 'blood_type']},
-            {'label': 'Contact', 'fields': ['email_address', 'mobile_number', 'telephone_number']},
-            {'label': 'Address', 'fields': ['permanent_address', 'zip_code', 'current_address']},
-            {'label': 'Institutional', 'fields': ['designation', 'institution_id', 'department_college_office', 'course', 'year_level', 'position', 'specialization', 'license_number', 'ptr_no']},
-            {'label': 'Emergency Contact', 'fields': ['guardian_name', 'guardian_contact']},
-            {'label': 'Medical Background', 'fields': ['medical_conditions']},
-        ],
-    }
 
     def after_section_save(self, obj, section):
         if section == 'physical':

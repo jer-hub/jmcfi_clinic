@@ -1,0 +1,47 @@
+{# ── Immunization records table: vaccine | received | date ── #}
+<div class="overflow-x-auto rounded-lg border border-gray-200">
+  <table class="min-w-full divide-y divide-gray-200 text-sm">
+    <thead class="bg-gray-50">
+      <tr>
+        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Vaccine</th>
+        <th scope="col" class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500 w-28">Received</th>
+        <th scope="col" class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 w-52">Last dose</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100 bg-white">
+      {% for vaccine in form.immunization_vaccines %}
+      <tr class="{% if vaccine.flag_field.errors or vaccine.date_field.errors %}bg-red-50/60{% else %}hover:bg-gray-50/50{% endif %} transition-colors">
+        <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{{ vaccine.label }}</td>
+        <td class="px-4 py-3 text-center">
+          <input type="checkbox"
+                 name="{{ vaccine.flag_field.html_name }}"
+                 id="{{ vaccine.flag_field.id_for_label }}"
+                 class="form-checkbox h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                 x-model="immunizationFlags['{{ vaccine.flag }}']"
+                 aria-label="{{ vaccine.label }} received">
+        </td>
+        <td class="px-4 py-3">
+          <input type="date"
+                 name="{{ vaccine.date_field.html_name }}"
+                 id="{{ vaccine.date_field.id_for_label }}"
+                 class="form-input w-full"
+                 {% if vaccine.date_field.value %}value="{{ vaccine.date_field.value|date:'Y-m-d' }}"{% endif %}
+                 :disabled="!immunizationFlags['{{ vaccine.flag }}']"
+                 :class="!immunizationFlags['{{ vaccine.flag }}'] ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''"
+                 x-effect="if (!immunizationFlags['{{ vaccine.flag }}']) { $el.value = '' }"
+                 aria-label="{{ vaccine.label }} last dose date">
+          {% if vaccine.date_field.errors %}
+          <p class="mt-1 text-xs text-red-600 font-medium">{{ vaccine.date_field.errors.0 }}</p>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="mt-4">
+  {% with field=form.immunization_others %}
+    {% include 'health_forms_services/partials/_field.html' with field=field %}
+  {% endwith %}
+</div>

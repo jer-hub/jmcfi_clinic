@@ -7,13 +7,15 @@
 {% block title %}{{ form_obj.get_full_name|default:form_obj.user.get_full_name }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="{}">
     {% include 'health_forms_services/_subnav.html' %}
 
     <div class="mb-4">
-      <a href="{{ list_url }}" class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+      <button type="button"
+              onclick="window.location.assign('{{ list_url|escapejs }}')"
+              class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
         <i class="fas fa-arrow-left"></i>Back to List
-      </a>
+      </button>
     </div>
 
     {% include "components/page_header.html" with title=form_obj.get_full_name|default:form_obj.user.get_full_name|default:"Form" subtitle=form_type_label|default:"" icon="fa-file-medical" %}

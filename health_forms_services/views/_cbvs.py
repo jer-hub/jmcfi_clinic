@@ -108,16 +108,6 @@ class DentalEditView(BaseFormEditView):
         {'key': 'examination', 'label': 'Examination', 'icon': 'fa-stethoscope'},
         {'key': 'conditions', 'label': 'Conditions', 'icon': 'fa-clipboard-check'},
     ]
-    field_groups = {
-        'personal': [
-            {'label': 'Name', 'fields': ['last_name', 'first_name', 'middle_name']},
-            {'label': 'Demographics', 'fields': ['date_of_birth', 'place_of_birth', 'age', 'gender', 'civil_status']},
-            {'label': 'Contact', 'fields': ['email_address', 'contact_number', 'telephone_number', 'address']},
-            {'label': 'Institution', 'fields': ['designation', 'department_college_office']},
-            {'label': 'Emergency', 'fields': ['guardian_name', 'guardian_contact']},
-            {'label': 'Examination Date', 'fields': ['date_of_examination']},
-        ],
-    }
 
 
 # ═══════════════════════════════════════════════════════════════════════════

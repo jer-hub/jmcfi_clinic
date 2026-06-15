@@ -69,7 +69,7 @@
             data-section-save="ajax"
             class="space-y-6 flex flex-col min-h-[50vh]"
             novalidate
-            {% if tab_key == 'medical' %}x-data="immunizationMedicalForm({{ form.immunization_flags_json }})"{% elif tab_key == 'diagnostic' %}x-data="diagnosticTestsForm({{ form.diagnostic_flags_json }})"{% endif %}>
+            {% if tab_key == 'medical' %}x-data="immunizationMedicalForm({{ form.immunization_flags_json }})"{% elif tab_key == 'diagnostic' %}x-data="diagnosticTestsForm({{ form.diagnostic_flags_json }})"{% elif tab_key == 'conditions' and 'examination' in forms %}x-data="dentalConditionsForm({{ form.cond_others_checked_json }})"{% endif %}>
         {% csrf_token %}
         <input type="hidden" name="section" value="{{ tab_key }}">
 
@@ -94,8 +94,14 @@
 
         {# ── Section groups or flat fields ── #}
         {% with groups=field_groups|dict_key:tab_key %}
-        {% if tab_key == 'personal' %}
+        {% if tab_key == 'personal' and 'examination' in forms %}
+          {% include 'health_forms_services/partials/_dental_personal_info_tab.html' with form=form %}
+        {% elif tab_key == 'personal' %}
           {% include 'health_forms_services/partials/_personal_info_tab.html' with form=form %}
+        {% elif tab_key == 'examination' %}
+          {% include 'health_forms_services/partials/_dental_examination_tab.html' with form=form %}
+        {% elif tab_key == 'conditions' and 'examination' in forms %}
+          {% include 'health_forms_services/partials/_dental_conditions_tab.html' with form=form %}
         {% elif tab_key == 'medical' %}
           {% include 'health_forms_services/partials/_medical_history_tab.html' with form=form %}
         {% elif tab_key == 'physical' %}
@@ -155,6 +161,9 @@ function immunizationMedicalForm(initialFlags) {
 }
 function diagnosticTestsForm(initialFlags) {
   return { diagnosticFlags: initialFlags || {} };
+}
+function dentalConditionsForm(initialOthers) {
+  return { condOthers: initialOthers || false };
 }
 </script>
 

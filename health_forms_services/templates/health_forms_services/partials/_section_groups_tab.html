@@ -1,0 +1,23 @@
+{# ── Generic grouped sections tab (personal info, dental personal, etc.) ── #}
+<div class="space-y-8">
+  {% for section in sections %}
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ section.icon_bg }} {{ section.icon_color }}">
+        <i class="fas {{ section.icon }} text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">{{ section.label }}</h3>
+        {% if section.description %}
+        <p class="text-xs text-gray-500">{{ section.description }}</p>
+        {% endif %}
+      </div>
+    </div>
+    <div class="grid grid-cols-1 gap-3 sm:gap-4 {{ section.grid_cols|default:'md:grid-cols-2' }}">
+      {% for item in section.fields %}
+        {% include 'health_forms_services/partials/_field.html' with field=item.field %}
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+</div>

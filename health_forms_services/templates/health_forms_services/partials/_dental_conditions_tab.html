@@ -1,0 +1,80 @@
+{# ── Dental conditions & recommendations tab ── #}
+<div class="space-y-8">
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+        <i class="fas fa-clipboard-check text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Conditions &amp; Recommendations</h3>
+        <p class="text-xs text-gray-500">Select all findings and recommended treatments.</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+      {% for item in form.condition_checkboxes %}
+      <label for="{{ item.field.id_for_label }}"
+             class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors
+                    {% if item.field.errors %}border-red-300 bg-red-50{% else %}border-gray-200 hover:border-primary-200 hover:bg-primary-50/40{% endif %}">
+        <input type="checkbox"
+               name="{{ item.field.html_name }}"
+               id="{{ item.field.id_for_label }}"
+               class="form-checkbox h-4 w-4 flex-shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+               {% if item.field.value %}checked{% endif %}>
+        <span class="text-sm font-medium text-gray-700">{{ item.label }}</span>
+      </label>
+      {% endfor %}
+      <label for="{{ form.cond_others.id_for_label }}"
+             class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors
+                    {% if form.cond_others.errors %}border-red-300 bg-red-50{% else %}border-gray-200 hover:border-primary-200 hover:bg-primary-50/40{% endif %}"
+             :class="condOthers ? 'border-primary-200 bg-primary-50/40' : ''">
+        <input type="checkbox"
+               name="{{ form.cond_others.html_name }}"
+               id="{{ form.cond_others.id_for_label }}"
+               class="form-checkbox h-4 w-4 flex-shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+               x-model="condOthers">
+        <span class="text-sm font-medium text-gray-700">{{ form.cond_others.label }}</span>
+      </label>
+    </div>
+    <div class="mt-4 rounded-lg border border-gray-200 p-4 {% if form.cond_others_detail.errors %}border-red-300 bg-red-50/30{% endif %}"
+         :class="condOthers ? '' : 'opacity-60'">
+      <label for="{{ form.cond_others_detail.id_for_label }}" class="block text-sm font-semibold text-gray-800 mb-2">
+        {{ form.cond_others_detail.label }}
+      </label>
+      <textarea name="{{ form.cond_others_detail.html_name }}"
+                id="{{ form.cond_others_detail.id_for_label }}"
+                rows="2"
+                class="form-textarea w-full"
+                :disabled="!condOthers"
+                :class="!condOthers ? 'bg-gray-100 cursor-not-allowed' : ''"
+                x-effect="if (!condOthers) { $el.value = '' }">{{ form.cond_others_detail.value|default:'' }}</textarea>
+      {% if form.cond_others_detail.errors %}
+      <p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.cond_others_detail.errors.0 }}</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+        <i class="fas fa-file-signature text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Remarks &amp; Dentist</h3>
+        <p class="text-xs text-gray-500">Additional notes and attending dentist information.</p>
+      </div>
+    </div>
+    <div class="space-y-4">
+      <div class="rounded-lg border border-gray-200 p-4 {% if form.remarks.errors %}border-red-300 bg-red-50/30{% endif %}">
+        <label for="{{ form.remarks.id_for_label }}" class="block text-sm font-semibold text-gray-800 mb-2">{{ form.remarks.label }}</label>
+        {{ form.remarks }}
+        {% if form.remarks.errors %}
+        <p class="mt-1.5 text-xs text-red-600 font-medium">{{ form.remarks.errors.0 }}</p>
+        {% endif %}
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        {% include 'health_forms_services/partials/_field.html' with field=form.dentist_name %}
+        {% include 'health_forms_services/partials/_field.html' with field=form.dentist_license_no %}
+      </div>
+    </div>
+  </section>
+</div>

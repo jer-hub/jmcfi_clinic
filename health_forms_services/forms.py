@@ -170,6 +170,118 @@ PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
 )
 
 
+DENTAL_PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
+    {
+        'label': 'Full Name',
+        'icon': 'fa-user',
+        'icon_bg': 'bg-primary-50',
+        'icon_color': 'text-primary-600',
+        'fields': ('last_name', 'first_name', 'middle_name'),
+        'grid_cols': 'md:grid-cols-3',
+    },
+    {
+        'label': 'Birth & Demographics',
+        'icon': 'fa-id-card',
+        'icon_bg': 'bg-sky-50',
+        'icon_color': 'text-sky-600',
+        'fields': ('date_of_birth', 'place_of_birth', 'age', 'gender', 'civil_status'),
+    },
+    {
+        'label': 'Contact',
+        'icon': 'fa-phone',
+        'icon_bg': 'bg-emerald-50',
+        'icon_color': 'text-emerald-600',
+        'fields': ('email_address', 'contact_number', 'telephone_number'),
+    },
+    {
+        'label': 'Address',
+        'icon': 'fa-location-dot',
+        'icon_bg': 'bg-amber-50',
+        'icon_color': 'text-amber-600',
+        'fields': ('address',),
+        'grid_cols': 'md:grid-cols-1',
+    },
+    {
+        'label': 'Institution',
+        'icon': 'fa-building',
+        'icon_bg': 'bg-violet-50',
+        'icon_color': 'text-violet-600',
+        'fields': ('designation', 'department_college_office'),
+    },
+    {
+        'label': 'Emergency Contact',
+        'icon': 'fa-user-shield',
+        'icon_bg': 'bg-rose-50',
+        'icon_color': 'text-rose-600',
+        'fields': ('guardian_name', 'guardian_contact'),
+    },
+    {
+        'label': 'Examination Date',
+        'icon': 'fa-calendar-day',
+        'icon_bg': 'bg-indigo-50',
+        'icon_color': 'text-indigo-600',
+        'fields': ('date_of_examination',),
+        'grid_cols': 'md:grid-cols-1',
+    },
+)
+
+DENTAL_SOFT_TISSUE_FIELDS: tuple[tuple[str, str], ...] = (
+    ('soft_tissue_lips', 'Lips'),
+    ('soft_tissue_floor_of_mouth', 'Floor of Mouth'),
+    ('soft_tissue_palate', 'Palate'),
+    ('soft_tissue_tongue', 'Tongue'),
+    ('soft_tissue_neck_nodes', 'Neck Nodes'),
+)
+
+DENTAL_ORAL_HEALTH_CHECKBOXES: tuple[tuple[str, str], ...] = (
+    ('presence_of_debris', 'Presence of Debris'),
+    ('inflammation_of_gingiva', 'Inflammation of Gingiva'),
+    ('presence_of_calculus', 'Presence of Calculus'),
+    ('under_orthodontic_treatment', 'Under Orthodontic Treatment'),
+)
+
+DENTAL_TOOTH_COUNT_FIELDS: tuple[tuple[str, str], ...] = (
+    ('teeth_present', 'Teeth Present'),
+    ('caries_free_teeth', 'Caries-free Teeth'),
+    ('decayed_teeth', 'Decayed Teeth'),
+    ('missing_teeth', 'Missing Teeth'),
+    ('filled_teeth', 'Filled Teeth'),
+    ('total_dmf_teeth', 'Total DMF Teeth'),
+)
+
+DENTAL_PERIODONTAL_FIELDS: tuple[tuple[str, str], ...] = (
+    ('gingival_inflammation', 'Gingival Inflammation'),
+    ('soft_plaque_buildup', 'Soft Plaque Buildup'),
+    ('hard_calc_buildup', 'Hard Calc Buildup'),
+    ('stains', 'Stains'),
+    ('home_care_effectiveness', 'Home Care Effectiveness'),
+    ('periodontal_condition', 'Periodontal Condition'),
+    ('periodontal_diagnosis', 'Periodontal Diagnosis'),
+    ('periodontitis', 'Periodontitis'),
+)
+
+DENTAL_TMJ_CHECKBOXES: tuple[tuple[str, str], ...] = (
+    ('tmj_pain', 'TMJ Pain'),
+    ('tmj_popping', 'TMJ Popping'),
+    ('tmj_deviation', 'TMJ Deviation'),
+    ('tmj_tooth_wear', 'Tooth Wear'),
+)
+
+DENTAL_CONDITION_CHECKBOXES: tuple[tuple[str, str], ...] = (
+    ('cond_caries_free', 'Caries-free'),
+    ('cond_poor_oral_hygiene', 'Poor Oral Hygiene'),
+    ('cond_indicated_restoration', 'Indicated for Restoration'),
+    ('cond_indicated_extraction', 'Indicated for Extraction'),
+    ('cond_gingival_inflammation', 'Gingival Inflammation'),
+    ('cond_needs_oral_prophylaxis', 'Needs Oral Prophylaxis'),
+    ('cond_needs_prosthesis', 'Needs Prosthesis'),
+    ('cond_for_endodontic', 'For Endodontic Treatment'),
+    ('cond_for_orthodontic', 'For Orthodontic Treatment'),
+    ('cond_for_sealant', 'For Sealant'),
+    ('cond_no_treatment_needed', 'No Treatment Needed'),
+)
+
+
 class HealthProfilePersonalInfoForm(forms.ModelForm):
     """Form for editing personal information section"""
     
@@ -679,6 +791,17 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
             if name in self.fields:
                 self.fields[name].required = True
 
+    def dental_personal_sections(self):
+        sections = []
+        for section in DENTAL_PERSONAL_INFO_SECTIONS:
+            fields = [
+                {'name': name, 'field': self[name]}
+                for name in section['fields']
+                if name in self.fields
+            ]
+            sections.append({**section, 'fields': fields})
+        return sections
+
 
 class DentalHealthExaminationForm(forms.ModelForm):
     """Form for dental examination fields (soft tissue, oral health, periodontal, tooth count, clinical data)"""
@@ -743,6 +866,53 @@ class DentalHealthExaminationForm(forms.ModelForm):
             'tmj_tooth_wear': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, label in DENTAL_SOFT_TISSUE_FIELDS:
+            self.fields[name].label = label
+        for name, label in DENTAL_ORAL_HEALTH_CHECKBOXES:
+            self.fields[name].label = label
+        for name, label in DENTAL_TOOTH_COUNT_FIELDS:
+            self.fields[name].label = label
+        for name, label in DENTAL_PERIODONTAL_FIELDS:
+            self.fields[name].label = label
+        for name, label in DENTAL_TMJ_CHECKBOXES:
+            self.fields[name].label = label
+        self.fields['oral_health_age_last_birthday'].label = 'Age on Last Birthday'
+        self.fields['dentofacial_anomaly'].label = 'Dentofacial Anomaly / Neoplasm / Others'
+        self.fields['mucogingival_defects'].label = 'Mucogingival Defects'
+        self.fields['occlusion'].label = 'Occlusion'
+
+    def soft_tissue_fields(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in DENTAL_SOFT_TISSUE_FIELDS
+        ]
+
+    def oral_health_checkboxes(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in DENTAL_ORAL_HEALTH_CHECKBOXES
+        ]
+
+    def tooth_count_fields(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in DENTAL_TOOTH_COUNT_FIELDS
+        ]
+
+    def periodontal_fields(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in DENTAL_PERIODONTAL_FIELDS
+        ]
+
+    def tmj_checkboxes(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in DENTAL_TMJ_CHECKBOXES
+        ]
+
 
 class DentalHealthConditionsForm(forms.ModelForm):
     """Form for conditions/recommendations, remarks, and dentist info"""
@@ -779,6 +949,27 @@ class DentalHealthConditionsForm(forms.ModelForm):
             'dentist_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Signature over Printed Name'}),
             'dentist_license_no': forms.TextInput(attrs={'class': 'form-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for name, label in DENTAL_CONDITION_CHECKBOXES:
+            self.fields[name].label = label
+        self.fields['cond_others'].label = 'Others'
+        self.fields['cond_others_detail'].label = 'Specify other conditions'
+        self.fields['remarks'].label = 'Remarks'
+        self.fields['dentist_name'].label = 'Dentist Name'
+        self.fields['dentist_license_no'].label = 'License No.'
+        if not bool(self['cond_others'].value()):
+            self.fields['cond_others_detail'].widget.attrs['disabled'] = True
+
+    def condition_checkboxes(self):
+        return [
+            {'name': name, 'label': label, 'field': self[name]}
+            for name, label in DENTAL_CONDITION_CHECKBOXES
+        ]
+
+    def cond_others_checked_json(self) -> str:
+        return json.dumps(bool(self['cond_others'].value()))
 
 
 class DentalHealthFormReviewForm(forms.ModelForm):

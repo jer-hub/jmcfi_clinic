@@ -503,6 +503,36 @@ class StaffProfileForm(forms.ModelForm):
             raise forms.ValidationError('Department is required.')
         return department
 
+    def clean_position(self):
+        position = (self.cleaned_data.get('position') or '').strip()
+        if 'position' not in self.fields:
+            return position
+        if not self.fields['position'].required:
+            return position
+        if not position:
+            raise forms.ValidationError('Position is required.')
+        return position
+
+    def clean_license_number(self):
+        license_number = (self.cleaned_data.get('license_number') or '').strip()
+        if 'license_number' not in self.fields:
+            return license_number
+        if not self.fields['license_number'].required:
+            return license_number
+        if not license_number:
+            raise forms.ValidationError('License number is required.')
+        return license_number
+
+    def clean_ptr_no(self):
+        ptr_no = (self.cleaned_data.get('ptr_no') or '').strip()
+        if 'ptr_no' not in self.fields:
+            return ptr_no
+        if not self.fields['ptr_no'].required:
+            return ptr_no
+        if not ptr_no:
+            raise forms.ValidationError('PTR number is required.')
+        return ptr_no
+
 
 class UserCreationForm(forms.ModelForm):
     """Form for creating new users (patients or staff)"""

@@ -12,10 +12,18 @@
             <div>
                 {% if is_first_time %}
                     <h1 class="text-3xl lg:text-4xl font-bold text-gray-900">Complete Your Profile</h1>
+                    {% if user.role == 'doctor' %}
+                    <p class="text-gray-600 mt-2">Please fill in your professional credentials to get started.</p>
+                    {% else %}
                     <p class="text-gray-600 mt-2">Please fill in all required information to get started.</p>
+                    {% endif %}
                 {% else %}
                     <h1 class="text-3xl lg:text-4xl font-bold text-gray-900">Edit Profile</h1>
+                    {% if user.role == 'doctor' %}
+                    <p class="text-gray-600 mt-2">Update your professional credentials and contact information.</p>
+                    {% else %}
                     <p class="text-gray-600 mt-2">Update your personal and medical information.</p>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>

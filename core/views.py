@@ -725,6 +725,9 @@ def quick_edit_profile(request):
     if request.user.role == 'doctor':
         doctor_blocked_fields = {'allergies', 'medical_conditions', 'blood_type'}
         allowed_fields = [f for f in allowed_fields if f not in doctor_blocked_fields]
+        for doctor_field in ('staff_id', 'license_number', 'ptr_no'):
+            if doctor_field not in allowed_fields:
+                allowed_fields.append(doctor_field)
     elif request.user.role == 'admin':
         admin_blocked_fields = {
             'allergies',

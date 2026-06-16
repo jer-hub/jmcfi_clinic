@@ -86,6 +86,18 @@ def _complete_staff_like_profile(user, staff_id):
 	user._state.fields_cache.pop('staff_profile', None)
 
 
+def _complete_doctor_profile(user, staff_id):
+	_complete_staff_like_profile(user, staff_id)
+	profile = user.staff_profile
+	profile.position = 'Attending Physician'
+	profile.license_number = 'PRC-123456'
+	profile.ptr_no = 'PTR-789012'
+	profile.save(update_fields=['position', 'license_number', 'ptr_no'])
+	profile.refresh_from_db()
+	user.__dict__.pop('staff_profile', None)
+	user._state.fields_cache.pop('staff_profile', None)
+
+
 class GoogleOnlyAdapterDomainPolicyTests(TestCase):
 	def setUp(self):
 		self.adapter = GoogleOnlyAdapter()
@@ -554,6 +566,93 @@ class AdminProfileCompletionRequirementTests(TestCase):
 		# Optional demographics must not use HTML5 required (blocks submit inside collapsed details).
 		self.assertNotContains(response, 'name="gender" required')
 		self.assertNotContains(response, 'name="date_of_birth" required')
+
+	def test_doctor_edit_profile_shows_required_professional_fields(self):
+		doctor_user = User.objects.create_user(
+			email='doctor-edit@jmcfi.edu.ph',
+			password='DoctorEdit123!',
+			role='doctor',
+			is_active=True,
+		)
+		_complete_staff_like_profile(doctor_user, 'DOC-PROFILE-001')
+		doctor_user.first_name = 'Jerwin'
+		doctor_user.last_name = 'Carreon'
+		doctor_user.save(update_fields=['first_name', 'last_name'])
+		self.client.force_login(doctor_user)
+
+		response = self.client.get(reverse('core:edit_profile'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Clinical Credentials')
+		self.assertContains(response, 'name="staff_id"')
+		self.assertContains(response, 'name="department"')
+		self.assertContains(response, 'name="position"')
+		self.assertContains(response, 'name="license_number"')
+		self.assertContains(response, 'name="ptr_no"')
+		self.assertContains(response, 'name="phone"')
+		self.assertNotContains(response, 'name="blood_type"')
+		self.assertNotContains(response, 'name="allergies"')
+		self.assertNotContains(response, 'name="medical_conditions"')
+		self.assertNotContains(response, 'name="gender" required')
+		self.assertNotContains(response, 'name="date_of_birth" required')
+
+	def test_doctor_can_save_required_professional_profile(self):
+		doctor_user = User.objects.create_user(
+			email='doctor-save@jmcfi.edu.ph',
+			password='DoctorSave123!',
+			role='doctor',
+			is_active=True,
+		)
+		StaffProfile.objects.get_or_create(user=doctor_user)
+		self.client.force_login(doctor_user)
+		response = self.client.post(
+			reverse('core:edit_profile'),
+			{
+				'first_name': 'Maria',
+				'last_name': 'Santos',
+				'staff_id': 'DOC-MIN-001',
+				'department': 'General Medicine',
+				'position': 'Campus Physician',
+				'phone': '+639171234567',
+				'license_number': 'PRC-998877',
+				'ptr_no': 'PTR-112233',
+			},
+		)
+		self.assertRedirects(response, reverse('core:profile'))
+		doctor_user.refresh_from_db()
+		profile = doctor_user.staff_profile
+		self.assertEqual(profile.license_number, 'PRC-998877')
+		self.assertEqual(profile.ptr_no, 'PTR-112233')
+		self.assertEqual(profile.position, 'Campus Physician')
+
+	def test_doctor_quick_edit_allows_license_and_ptr(self):
+		doctor_user = User.objects.create_user(
+			email='doctor-quick@jmcfi.edu.ph',
+			password='DoctorQuick123!',
+			role='doctor',
+			is_active=True,
+		)
+		_complete_doctor_profile(doctor_user, 'DOC-QUICK-001')
+		doctor_user.first_name = 'Quick'
+		doctor_user.last_name = 'Doctor'
+		doctor_user.save(update_fields=['first_name', 'last_name'])
+		self.client.force_login(doctor_user)
+
+		for field_name, attempted_value in [
+			('license_number', 'PRC-NEW-001'),
+			('ptr_no', 'PTR-NEW-001'),
+		]:
+			with self.subTest(field_name=field_name):
+				response = self.client.post(
+					reverse('core:quick_edit_profile'),
+					{'field_name': field_name, 'field_value': attempted_value},
+				)
+				self.assertRedirects(response, reverse('core:profile'))
+
+		profile = doctor_user.staff_profile
+		profile.refresh_from_db()
+		self.assertEqual(profile.license_number, 'PRC-NEW-001')
+		self.assertEqual(profile.ptr_no, 'PTR-NEW-001')
 
 	def test_admin_quick_edit_rejects_medical_and_professional_fields(self):
 		_complete_staff_like_profile(self.admin_user, 'ADM-PROFILE-006')

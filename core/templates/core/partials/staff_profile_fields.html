@@ -1,6 +1,8 @@
 <div class="space-y-8">
   {% if user.role == 'admin' %}
     {% include 'core/partials/staff_profile_fields_admin.html' %}
+  {% elif user.role == 'doctor' %}
+    {% include 'core/partials/staff_profile_fields_doctor.html' %}
   {% else %}
   {% include "core/partials/_profile_form_section.html" with title="Personal & Demographic Information" icon="fa-user-check" icon_theme="purple" %}
       {% include "components/forms/field.html" with field=form.staff_id label="Staff ID" %}
@@ -14,11 +16,7 @@
       </div>
   {% include "core/partials/_profile_form_section_end.html" %}
 
-  {% if user.role == 'doctor' %}
-  {% include "core/partials/_profile_form_section.html" with title="Contact Information" icon="fa-address-book" icon_theme="blue" grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-start" show_divider=False %}
-  {% else %}
   {% include "core/partials/_profile_form_section.html" with title="Contact Information" icon="fa-address-book" icon_theme="blue" grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-start" %}
-  {% endif %}
       <div class="md:col-span-2">
         {% include "components/forms/field.html" with field=form.address label="Complete Residential Address" %}
       </div>
@@ -28,7 +26,6 @@
       {% include "components/forms/field.html" with field=form.emergency_phone label="Emergency Contact Number" help_text="Use format +63XXXXXXXXXX (e.g., +639171234567)." %}
   {% include "core/partials/_profile_form_section_end.html" %}
 
-  {% if user.role != 'doctor' %}
   {% include "core/partials/_profile_form_section.html" with title="Professional Information" icon="fa-briefcase-medical" icon_theme="indigo" grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-start" %}
       {% include "components/forms/field.html" with field=form.department label="Department" help_text="e.g., Cardiology, Emergency, Administration" %}
       {% include "components/forms/field.html" with field=form.position label="Position" help_text="e.g., Doctor, Nurse, Medical Technologist" %}
@@ -36,9 +33,7 @@
       {% include "components/forms/field.html" with field=form.license_number label="License Number" help_text="PRC medical or professional license number." %}
       {% include "components/forms/field.html" with field=form.ptr_no label="PTR No." help_text="Required for issuing medical certificates and official documents." %}
   {% include "core/partials/_profile_form_section_end.html" %}
-  {% endif %}
 
-  {% if user.role != 'doctor' %}
   {% include "core/partials/_profile_form_section.html" with title="Medical & Health Information" icon="fa-heart-pulse" icon_theme="red" grid_class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start" show_divider=False %}
       <div>
         <label for="{{ form.blood_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
@@ -57,6 +52,5 @@
       {% include "core/partials/_profile_list_field.html" with field=form.allergies label="Allergies" placeholder="Type allergy then press Enter" help_text="List food, medication, or environmental allergies. Leave empty if none." %}
       {% include "core/partials/_profile_list_field.html" with field=form.medical_conditions label="Pre-existing Medical Conditions" placeholder="Type condition then press Enter" help_text="List chronic illnesses or conditions. Leave empty if none." %}
   {% include "core/partials/_profile_form_section_end.html" %}
-  {% endif %}
   {% endif %}
 </div>

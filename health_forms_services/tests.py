@@ -753,3 +753,268 @@ class HealthFormSectionSaveTests(TestCase):
 		# Earlier section data should remain after later saves
 		self.assertEqual(self.health_form.middle_name, 'Seq')
 		self.assertEqual(self.health_form.allergies, 'Seq allergy')
+
+
+@override_settings(
+	MIDDLEWARE=[
+		middleware
+		for middleware in settings.MIDDLEWARE
+		if middleware != 'core.middleware.ProfileCompleteMiddleware'
+	]
+)
+class DentalServicesProcessFlowTests(TestCase):
+	def setUp(self):
+		self.doctor = User.objects.create_user(
+			email='doctor-dental-svc@test.com',
+			password='DoctorPass123!',
+			role='doctor',
+			is_staff=True,
+			is_active=True,
+			first_name='Dental',
+			last_name='Doctor',
+		)
+		doctor_profile = _complete_staff_like_profile(self.doctor, 'DOC-DS-001')
+		doctor_profile.license_number = 'PRC-DS-001'
+		doctor_profile.save(update_fields=['license_number'])
+		self.patient = User.objects.create_user(
+			email='patient-dental-svc@test.com',
+			password='PatientPass123!',
+			role='patient',
+			is_active=True,
+			first_name='Ana',
+			last_name='Patient',
+		)
+		PatientProfile.objects.update_or_create(
+			user=self.patient,
+			defaults={'patient_id': 'P-DS-001'},
+		)
+		self.request = DentalServicesRequest.objects.create(
+			user=self.patient,
+			last_name='Patient',
+			first_name='Ana',
+			middle_name='M',
+			status=DentalServicesRequest.Status.PENDING,
+		)
+		self.client.force_login(self.doctor)
+
+	def test_list_search_by_last_name(self):
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_list'),
+			{'search': 'Patient'},
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Patient, Ana')
+
+	def test_edit_page_shows_multi_tab_checklist(self):
+		response = self.client.get(
+			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Periodontics')
+		self.assertContains(response, 'Operative')
+		self.assertContains(response, 'Surgery')
+		self.assertContains(response, 'Prosthodontics')
+		self.assertContains(response, 'Endodontics')
+		self.assertContains(response, 'Pediatric')
+		self.assertContains(response, 'Dentist &amp; Other')
+
+	def test_operative_section_save_persists_checkbox_and_detail(self):
+		response = self.client.post(
+			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+			{
+				'section': 'operative',
+				'oper_class_i': 'on',
+				'oper_class_i_detail': 'Tooth #16',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(response.json()['success'])
+		self.request.refresh_from_db()
+		self.assertTrue(self.request.oper_class_i)
+		self.assertEqual(self.request.oper_class_i_detail, 'Tooth #16')
+		self.assertIn('Class I Restoration', self.request.selected_services)
+
+	def test_operative_section_requires_detail_when_checked(self):
+		response = self.client.post(
+			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+			{
+				'section': 'operative',
+				'oper_class_i': 'on',
+				'oper_class_i_detail': '',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 400)
+		self.assertIn('oper_class_i_detail', response.json()['errors'])
+
+	def test_perio_section_save_persists(self):
+		response = self.client.post(
+			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+			{
+				'section': 'perio',
+				'perio_oral_prophylaxis': 'on',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		self.request.refresh_from_db()
+		self.assertTrue(self.request.perio_oral_prophylaxis)
+		self.assertIn('Oral Prophylaxis', self.request.selected_services)
+
+	def test_detail_page_shows_selected_services(self):
+		self.request.oper_class_ii = True
+		self.request.oper_class_ii_detail = 'Tooth #26'
+		self.request.save(update_fields=['oper_class_ii', 'oper_class_ii_detail'])
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Operative Dentistry')
+		self.assertContains(response, 'Class II Restoration')
+		self.assertContains(response, 'Tooth #26')
+
+	def test_dental_services_detail_shows_all_service_categories(self):
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		for heading in (
+			'Periodontics',
+			'Operative Dentistry',
+			'Surgery',
+			'Prosthodontics',
+			'Endodontics',
+			'Pediatric Dentistry',
+			'Treatment Status',
+			'Dentist Information',
+		):
+			with self.subTest(heading=heading):
+				self.assertContains(response, heading)
+
+	def test_dental_services_detail_hides_services_without_details(self):
+		self.request.perio_oral_prophylaxis = True
+		self.request.perio_scaling_root_planning = False
+		self.request.oper_class_i = True
+		self.request.oper_class_i_detail = ''
+		self.request.save(update_fields=[
+			'perio_oral_prophylaxis',
+			'perio_scaling_root_planning',
+			'oper_class_i',
+			'oper_class_i_detail',
+		])
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Oral Prophylaxis')
+		self.assertNotContains(response, 'Scaling &amp; Root Planning')
+		self.assertNotContains(response, 'Class I Restoration')
+
+	def test_dental_services_detail_shows_service_detail_text(self):
+		self.request.surg_tooth_extraction = True
+		self.request.surg_tooth_extraction_detail = 'Tooth #38'
+		self.request.save(update_fields=['surg_tooth_extraction', 'surg_tooth_extraction_detail'])
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Tooth Extraction')
+		self.assertContains(response, 'Tooth #38')
+
+	def test_dental_services_detail_shows_treatment_and_dentist_block(self):
+		self.request.currently_undergoing_treatment = True
+		self.request.currently_undergoing_treatment_detail = 'Orthodontic braces'
+		self.request.dentist_name = 'Dr. Maria Santos'
+		self.request.dentist_date = '2024-06-15'
+		self.request.dentist_license_no = 'PRC-12345'
+		self.request.save(update_fields=[
+			'currently_undergoing_treatment',
+			'currently_undergoing_treatment_detail',
+			'dentist_name',
+			'dentist_date',
+			'dentist_license_no',
+		])
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Currently Undergoing Treatment')
+		self.assertContains(response, 'Orthodontic braces')
+		self.assertContains(response, 'Dr. Maria Santos')
+		self.assertContains(response, 'PRC-12345')
+
+	def test_dental_services_detail_docx_link_visible(self):
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Download .docx')
+		self.assertContains(
+			response,
+			reverse('health_forms_services:export_dental_services_docx', args=[self.request.pk]),
+		)
+
+	def test_dentist_tab_prefills_current_processing_clinician(self):
+		response = self.client.get(
+			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]) + '?section=dentist_other',
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Assign clinician')
+		self.assertContains(response, 'Dental Doctor')
+
+	def test_dentist_user_selection_maps_to_name_license_and_date(self):
+		other_doctor = User.objects.create_user(
+			email='doctor-other@test.com',
+			password='DoctorPass123!',
+			role='doctor',
+			is_staff=True,
+			is_active=True,
+			first_name='Maria',
+			last_name='Santos',
+		)
+		other_profile = _complete_staff_like_profile(other_doctor, 'DOC-DS-002')
+		other_profile.license_number = 'PRC-XYZ-002'
+		other_profile.save(update_fields=['license_number'])
+
+		response = self.client.post(
+			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+			{
+				'section': 'dentist_other',
+				'dentist_user': str(other_doctor.pk),
+				'currently_undergoing_treatment': '',
+				'currently_undergoing_treatment_detail': '',
+				'dentist_name': '',
+				'dentist_date': '',
+				'dentist_license_no': '',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200, response.content)
+		self.request.refresh_from_db()
+		self.assertEqual(self.request.dentist_name, 'Maria Santos')
+		self.assertEqual(self.request.dentist_license_no, 'PRC-XYZ-002')
+		self.assertIsNotNone(self.request.dentist_date)
+
+	def test_create_redirects_to_perio_tab(self):
+		response = self.client.post(
+			reverse('health_forms_services:create_dental_services'),
+			{
+				'selected_user_id': str(self.patient.id),
+				'last_name': 'Searchable',
+				'first_name': 'Case',
+				'middle_name': '',
+				'address': '',
+				'age': '',
+				'gender': '',
+				'date_of_birth': '',
+				'contact_number': '',
+				'department': '',
+			},
+		)
+		created = DentalServicesRequest.objects.latest('created_at')
+		self.assertRedirects(
+			response,
+			reverse('health_forms_services:edit_dental_services', args=[created.pk]) + '?section=perio',
+		)
+

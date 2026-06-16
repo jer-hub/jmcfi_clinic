@@ -1,0 +1,92 @@
+{# ── Dental Services dentist signature & treatment status tab ── #}
+<div class="space-y-8">
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+        <i class="fas fa-notes-medical text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Treatment Status</h3>
+        <p class="text-xs text-gray-500">Indicate if the patient is currently undergoing dental treatment elsewhere.</p>
+      </div>
+    </div>
+    <div class="rounded-lg border border-gray-200 bg-gray-50/40 p-4 space-y-3">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <span class="mt-0.5">{{ form.currently_undergoing_treatment }}</span>
+        <span class="text-sm font-medium text-gray-900">Currently undergoing treatment</span>
+      </label>
+      <div>
+        <label for="{{ form.currently_undergoing_treatment_detail.id_for_label }}" class="block text-xs font-medium text-gray-600 mb-1">
+          Treatment details
+        </label>
+        {{ form.currently_undergoing_treatment_detail }}
+        {% if form.currently_undergoing_treatment_detail.errors %}
+        <p class="mt-1 text-xs text-red-600 font-medium">{{ form.currently_undergoing_treatment_detail.errors.0 }}</p>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="flex items-center gap-2 mb-4">
+      <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+        <i class="fas fa-user-doctor text-sm"></i>
+      </span>
+      <div>
+        <h3 class="text-sm font-semibold text-gray-900">Attending Dentist</h3>
+        <p class="text-xs text-gray-500">Signature block for the evaluating dentist. Auto-filled from the current clinician when empty.</p>
+      </div>
+    </div>
+    <div class="mb-3 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-xs text-indigo-700">
+      <i class="fas fa-wand-magic-sparkles mr-1"></i>
+      Defaults use the logged-in doctor/staff profile. You can still edit before saving.
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 rounded-lg border border-gray-200 bg-gray-50/30 p-4">
+      <div class="md:col-span-2">
+        {% include 'health_forms_services/partials/_field.html' with field=form.dentist_user %}
+      </div>
+      <div class="md:col-span-2">
+        {% include 'health_forms_services/partials/_field.html' with field=form.dentist_name %}
+      </div>
+      {% include 'health_forms_services/partials/_field.html' with field=form.dentist_date %}
+      {% include 'health_forms_services/partials/_field.html' with field=form.dentist_license_no %}
+    </div>
+  </section>
+</div>
+
+<script>
+(function attachDentistAssignSync() {
+  const select = document.getElementById('id_dentist_user');
+  const dentistName = document.getElementById('id_dentist_name');
+  const dentistLicense = document.getElementById('id_dentist_license_no');
+  const dentistDate = document.getElementById('id_dentist_date');
+  if (!select || !dentistName || !dentistLicense || !dentistDate) return;
+  if (select.dataset.syncBound === '1') return;
+  select.dataset.syncBound = '1';
+
+  const clinicianMap = {
+    {% for doctor in doctors %}
+    "{{ doctor.id }}": {
+      name: "{{ doctor.get_full_name|default:doctor.email|escapejs }}",
+      license: "{% if doctor.staff_profile %}{{ doctor.staff_profile.license_number|default:doctor.staff_profile.ptr_no|default:doctor.staff_profile.staff_id|escapejs }}{% endif %}",
+    },
+    {% endfor %}
+  };
+
+  select.addEventListener('change', function onClinicianChange() {
+    const selectedId = select.value;
+    const selected = clinicianMap[selectedId];
+    if (!selected) return;
+
+    if (selected.name) dentistName.value = selected.name;
+    if (selected.license) dentistLicense.value = selected.license;
+    if (!dentistDate.value) {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      dentistDate.value = `${yyyy}-${mm}-${dd}`;
+    }
+  });
+})();
+</script>

@@ -254,13 +254,24 @@ class BaseFormEditView(View):
             return reverse(self.detail_url_name, kwargs={'pk': obj.pk})
         return '/'
 
+    def _build_form(self, form_class, *, instance, data=None):
+        """Build a section form and pass request user when supported."""
+        kwargs = {'instance': instance}
+        if data is not None:
+            kwargs['data'] = data
+        try:
+            return form_class(user=self.request.user, **kwargs)
+        except TypeError:
+            # Backward-compatible path for forms that do not accept `user`.
+            return form_class(**kwargs)
+
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         form_instances = {}
         active_section = request.GET.get('section', (self.tabs[0]['key'] if self.tabs else 'personal'))
 
         for key, form_class in (self.form_class_map or {}).items():
-            form_instances[key] = form_class(instance=obj)
+            form_instances[key] = self._build_form(form_class, instance=obj)
 
         ctx = {
             'form_obj': obj,
@@ -285,7 +296,7 @@ class BaseFormEditView(View):
             messages.error(request, 'Invalid section.')
             return redirect(self.get_edit_redirect_url(obj, section))
 
-        form = form_class(request.POST, instance=obj)
+        form = self._build_form(form_class, instance=obj, data=request.POST)
         if form.is_valid():
             saved_obj = form.save(commit=False)
 
@@ -316,7 +327,7 @@ class BaseFormEditView(View):
             if key == section:
                 form_instances[key] = form  # the invalid form with errors
             else:
-                form_instances[key] = form_class(instance=obj)
+                form_instances[key] = self._build_form(form_class, instance=obj)
 
         ctx = {
             'form_obj': obj,

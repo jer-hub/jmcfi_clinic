@@ -14,6 +14,13 @@ from ..forms import (
     PatientChartPersonalInfoForm,
     PrescriptionPatientForm,
     DentalServicesPersonalInfoForm,
+    DentalServicesPerioForm,
+    DentalServicesOperativeForm,
+    DentalServicesSurgeryForm,
+    DentalServicesProsthoForm,
+    DentalServicesEndoForm,
+    DentalServicesPediatricForm,
+    DentalServicesDentistOtherForm,
 )
 
 
@@ -276,7 +283,7 @@ class DentalServicesListView(BaseFormListView):
     edit_url_name = 'health_forms_services:edit_dental_services'
     create_url_name = 'health_forms_services:create_dental_services'
     form_type_label = 'Dental Services Requests'
-    search_fields = ['patient_name', 'user__email']
+    search_fields = ['last_name', 'first_name', 'middle_name', 'user__email']
     status_choices = DentalServicesRequest.Status
 
 
@@ -287,6 +294,107 @@ class DentalServicesDetailView(BaseFormDetailView):
     edit_url_name = 'health_forms_services:edit_dental_services'
     review_url_name = 'health_forms_services:review_dental_services'
     delete_url_name = 'health_forms_services:delete_dental_services'
+    docx_export_url_name = 'health_forms_services:export_dental_services_docx'
+
+    @staticmethod
+    def _bool_field(label, value, span='half'):
+        return {'label': label, 'value': bool(value), 'type': 'bool', 'span': span}
+
+    @staticmethod
+    def _text_field(label, value, span='half'):
+        return {'label': label, 'value': value or '—', 'type': 'text', 'span': span}
+
+    @classmethod
+    def _service_rows(cls, service_items):
+        """Render only services with actionable details for cleaner UX."""
+        fields = []
+        for label, checked, detail in service_items:
+            detail_text = (detail or '').strip() if detail is not None else ''
+
+            # For services that have detail fields, hide rows until details exist.
+            if detail is not None:
+                if not detail_text:
+                    continue
+                fields.append(cls._text_field(label, detail_text, span='full'))
+                continue
+
+            # For simple checkbox-only items, show only when selected.
+            if checked:
+                fields.append(cls._text_field(label, 'Requested', span='full'))
+        return fields
+
+    @classmethod
+    def _checklist_categories(cls, obj):
+        """Category groupings aligned with generate_dental_services() in exports.py."""
+        return [
+            (
+                'perio',
+                'Periodontics',
+                'fa-teeth',
+                [
+                    ('Oral Prophylaxis', obj.perio_oral_prophylaxis, None),
+                    ('Scaling & Root Planning', obj.perio_scaling_root_planning, None),
+                ],
+            ),
+            (
+                'operative',
+                'Operative Dentistry',
+                'fa-tooth',
+                [
+                    ('Class I Restoration', obj.oper_class_i, obj.oper_class_i_detail),
+                    ('Class II Restoration', obj.oper_class_ii, obj.oper_class_ii_detail),
+                    ('Class III Restoration', obj.oper_class_iii, obj.oper_class_iii_detail),
+                    ('Class IV Restoration', obj.oper_class_iv, obj.oper_class_iv_detail),
+                    ('Class V Restoration', obj.oper_class_v, obj.oper_class_v_detail),
+                    ('Class VI Restoration', obj.oper_class_vi, obj.oper_class_vi_detail),
+                    ('Onlay / Inlay', obj.oper_onlay_inlay, obj.oper_onlay_inlay_detail),
+                ],
+            ),
+            (
+                'surgery',
+                'Surgery',
+                'fa-syringe',
+                [
+                    ('Tooth Extraction', obj.surg_tooth_extraction, obj.surg_tooth_extraction_detail),
+                    ('Odontectomy', obj.surg_odontectomy, obj.surg_odontectomy_detail),
+                    ('Operculectomy', obj.surg_operculectomy, obj.surg_operculectomy_detail),
+                    ('Other Pathological', obj.surg_other_pathological, obj.surg_other_pathological_detail),
+                ],
+            ),
+            (
+                'prostho',
+                'Prosthodontics',
+                'fa-crown',
+                [
+                    ('Complete Denture', obj.prosth_complete_denture, None),
+                    ('RPD', obj.prosth_rpd, obj.prosth_rpd_detail),
+                    ('FPD', obj.prosth_fpd, obj.prosth_fpd_detail),
+                    ('Single Crown', obj.prosth_single_crown, obj.prosth_single_crown_detail),
+                    ('Veneers / Laminates', obj.prosth_veneers_laminates, obj.prosth_veneers_laminates_detail),
+                ],
+            ),
+            (
+                'endo',
+                'Endodontics',
+                'fa-wave-square',
+                [
+                    ('Anterior', obj.endo_anterior, obj.endo_anterior_detail),
+                    ('Posterior', obj.endo_posterior, obj.endo_posterior_detail),
+                ],
+            ),
+            (
+                'pediatric',
+                'Pediatric Dentistry',
+                'fa-child',
+                [
+                    ('Fluoride', obj.pedo_fluoride, None),
+                    ('Sealant', obj.pedo_sealant, obj.pedo_sealant_detail),
+                    ('Pulpotomy', obj.pedo_pulpotomy, obj.pedo_pulpotomy_detail),
+                    ('SSC', obj.pedo_ssc, obj.pedo_ssc_detail),
+                    ('Space Maintainer', obj.pedo_space_maintainer, obj.pedo_space_maintainer_detail),
+                ],
+            ),
+        ]
 
     @property
     def detail_sections(self):
@@ -297,26 +405,72 @@ class DentalServicesDetailView(BaseFormDetailView):
         info_fields = [
             {'label': 'Patient', 'value': obj.get_full_name() or '—', 'span': 'half'},
             {'label': 'Age / Gender', 'value': f"{obj.age or '—'} / {obj.get_gender_display() or '—'}", 'span': 'half'},
-            {'label': 'Date', 'value': obj.created_at.strftime('%B %d, %Y') if obj.created_at else '—', 'type': 'date', 'span': 'half'},
+            {
+                'label': 'Date of Birth',
+                'value': obj.date_of_birth.strftime('%B %d, %Y') if obj.date_of_birth else '—',
+                'type': 'date',
+                'span': 'half',
+            },
+            {
+                'label': 'Request Date',
+                'value': obj.created_at.strftime('%B %d, %Y') if obj.created_at else '—',
+                'type': 'date',
+                'span': 'half',
+            },
             {'label': 'Department', 'value': obj.department or '—', 'span': 'half'},
             {'label': 'Contact', 'value': obj.contact_number or '—', 'span': 'half'},
             {'label': 'Address', 'value': obj.address or '—', 'span': 'full'},
         ]
 
-        service_items = []
-        for svc in obj.selected_services:
-            service_items.append({
-                'label': svc,
-                'value': 'Requested',
-                'type': 'bool',
-                'span': 'half',
-            })
-
         sections = [
             {'key': 'info', 'label': 'Request Details', 'icon': 'fa-tooth', 'fields': info_fields},
         ]
-        if service_items:
-            sections.append({'key': 'services', 'label': 'Requested Services', 'icon': 'fa-list-check', 'fields': service_items})
+
+        for key, label, icon, items in self._checklist_categories(obj):
+            sections.append({
+                'key': key,
+                'label': label,
+                'icon': icon,
+                'fields': self._service_rows(items),
+            })
+
+        sections.append({
+            'key': 'treatment',
+            'label': 'Treatment Status',
+            'icon': 'fa-notes-medical',
+            'fields': [
+                self._bool_field('Currently Undergoing Treatment', obj.currently_undergoing_treatment),
+                self._text_field('Treatment Details', obj.currently_undergoing_treatment_detail, span='full'),
+            ],
+        })
+
+        dentist_fields = [
+            self._text_field('Dentist Name', obj.dentist_name),
+            {
+                'label': 'Date Signed',
+                'value': obj.dentist_date.strftime('%B %d, %Y') if obj.dentist_date else '—',
+                'type': 'date',
+                'span': 'half',
+            },
+            self._text_field('License No.', obj.dentist_license_no),
+        ]
+        sections.append({
+            'key': 'dentist',
+            'label': 'Dentist Information',
+            'icon': 'fa-user-doctor',
+            'fields': dentist_fields,
+        })
+
+        if obj.review_notes:
+            sections.append({
+                'key': 'review',
+                'label': 'Review Notes',
+                'icon': 'fa-comment-medical',
+                'fields': [
+                    self._text_field('Notes', obj.review_notes, span='full'),
+                ],
+            })
+
         return sections
 
     def get_object(self):
@@ -331,8 +485,34 @@ class DentalServicesEditView(BaseFormEditView):
     detail_url_name = 'health_forms_services:dental_services_detail'
     edit_url_name = 'health_forms_services:edit_dental_services'
     form_class_map = {
-        'details': DentalServicesPersonalInfoForm,
+        'personal': DentalServicesPersonalInfoForm,
+        'perio': DentalServicesPerioForm,
+        'operative': DentalServicesOperativeForm,
+        'surgery': DentalServicesSurgeryForm,
+        'prostho': DentalServicesProsthoForm,
+        'endo': DentalServicesEndoForm,
+        'pediatric': DentalServicesPediatricForm,
+        'dentist_other': DentalServicesDentistOtherForm,
     }
     tabs = [
-        {'key': 'details', 'label': 'Request Details', 'icon': 'fa-tooth'},
+        {'key': 'personal', 'label': 'Personal Info', 'icon': 'fa-user'},
+        {'key': 'perio', 'label': 'Periodontics', 'icon': 'fa-teeth'},
+        {'key': 'operative', 'label': 'Operative', 'icon': 'fa-tooth'},
+        {'key': 'surgery', 'label': 'Surgery', 'icon': 'fa-syringe'},
+        {'key': 'prostho', 'label': 'Prosthodontics', 'icon': 'fa-crown'},
+        {'key': 'endo', 'label': 'Endodontics', 'icon': 'fa-wave-square'},
+        {'key': 'pediatric', 'label': 'Pediatric', 'icon': 'fa-child'},
+        {'key': 'dentist_other', 'label': 'Dentist & Other', 'icon': 'fa-user-doctor'},
     ]
+    field_groups = {
+        'personal': [
+            {
+                'label': 'Patient Information',
+                'fields': [
+                    'last_name', 'first_name', 'middle_name',
+                    'age', 'gender', 'date_of_birth',
+                    'contact_number', 'department', 'address',
+                ],
+            },
+        ],
+    }

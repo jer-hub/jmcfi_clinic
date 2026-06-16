@@ -4,6 +4,7 @@ import re
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 from .models import HealthProfileForm, DentalHealthForm, DentalServicesRequest, PatientChart, PatientChartEntry, Prescription, PrescriptionItem
 
 User = get_user_model()
@@ -1061,6 +1062,184 @@ class PatientChartReviewForm(forms.ModelForm):
 # DENTAL SERVICES REQUEST FORMS (DENTAL FORM 2)
 # ========================================================================
 
+DENTAL_SERVICES_CHECKBOX_CLASS = 'form-checkbox'
+DENTAL_SERVICES_DETAIL_INPUT = forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'})
+DENTAL_SERVICES_DETAIL_TEXTAREA = forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'Please specify...'})
+
+DENTAL_SERVICES_PERIO_ITEMS: tuple[tuple[str, str], ...] = (
+    ('perio_oral_prophylaxis', 'Oral Prophylaxis'),
+    ('perio_scaling_root_planning', 'Scaling & Root Planning'),
+)
+
+DENTAL_SERVICES_OPERATIVE_ITEMS: tuple[tuple[str, str, str], ...] = (
+    ('oper_class_i', 'oper_class_i_detail', 'Class I Restoration'),
+    ('oper_class_ii', 'oper_class_ii_detail', 'Class II Restoration'),
+    ('oper_class_iii', 'oper_class_iii_detail', 'Class III Restoration'),
+    ('oper_class_iv', 'oper_class_iv_detail', 'Class IV Restoration'),
+    ('oper_class_v', 'oper_class_v_detail', 'Class V Restoration'),
+    ('oper_class_vi', 'oper_class_vi_detail', 'Class VI Restoration'),
+    ('oper_onlay_inlay', 'oper_onlay_inlay_detail', 'Onlay / Inlay'),
+)
+
+DENTAL_SERVICES_SURGERY_ITEMS: tuple[tuple[str, str, str], ...] = (
+    ('surg_tooth_extraction', 'surg_tooth_extraction_detail', 'Tooth Extraction'),
+    ('surg_odontectomy', 'surg_odontectomy_detail', 'Odontectomy'),
+    ('surg_operculectomy', 'surg_operculectomy_detail', 'Operculectomy'),
+    ('surg_other_pathological', 'surg_other_pathological_detail', 'Other Pathological Case'),
+)
+
+DENTAL_SERVICES_PROSTHO_ITEMS: tuple[tuple[str, str | None, str], ...] = (
+    ('prosth_complete_denture', None, 'Complete Denture'),
+    ('prosth_rpd', 'prosth_rpd_detail', 'RPD'),
+    ('prosth_fpd', 'prosth_fpd_detail', 'FPD'),
+    ('prosth_single_crown', 'prosth_single_crown_detail', 'Single Crown'),
+    ('prosth_veneers_laminates', 'prosth_veneers_laminates_detail', 'Veneers / Laminates'),
+)
+
+DENTAL_SERVICES_ENDO_ITEMS: tuple[tuple[str, str, str], ...] = (
+    ('endo_anterior', 'endo_anterior_detail', 'Endodontics (Anterior)'),
+    ('endo_posterior', 'endo_posterior_detail', 'Endodontics (Posterior)'),
+)
+
+DENTAL_SERVICES_PEDIATRIC_ITEMS: tuple[tuple[str, str | None, str], ...] = (
+    ('pedo_fluoride', None, 'Fluoride'),
+    ('pedo_sealant', 'pedo_sealant_detail', 'Sealant'),
+    ('pedo_pulpotomy', 'pedo_pulpotomy_detail', 'Pulpotomy'),
+    ('pedo_ssc', 'pedo_ssc_detail', 'SSC'),
+    ('pedo_space_maintainer', 'pedo_space_maintainer_detail', 'Space Maintainer'),
+)
+
+DENTAL_SERVICES_WIDGETS: dict[str, forms.Widget] = {
+    'perio_oral_prophylaxis': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'perio_scaling_root_planning': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'oper_class_i': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'oper_class_i_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'oper_class_ii': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'oper_class_ii_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'oper_class_iii': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'oper_class_iii_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'oper_class_iv': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'oper_class_iv_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'oper_class_v': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'oper_class_v_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'oper_class_vi': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'oper_class_vi_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'oper_onlay_inlay': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'oper_onlay_inlay_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'surg_tooth_extraction': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'surg_tooth_extraction_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify teeth/details...'}),
+    'surg_odontectomy': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'surg_odontectomy_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'surg_operculectomy': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'surg_operculectomy_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'surg_other_pathological': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'surg_other_pathological_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify case...'}),
+    'prosth_complete_denture': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'prosth_rpd': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'prosth_rpd_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'prosth_fpd': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'prosth_fpd_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'prosth_single_crown': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'prosth_single_crown_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'prosth_veneers_laminates': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'prosth_veneers_laminates_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'endo_anterior': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'endo_anterior_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify teeth...'}),
+    'endo_posterior': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'endo_posterior_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify teeth...'}),
+    'pedo_fluoride': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'pedo_sealant': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'pedo_sealant_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'pedo_pulpotomy': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'pedo_pulpotomy_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'pedo_ssc': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'pedo_ssc_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'pedo_space_maintainer': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'pedo_space_maintainer_detail': DENTAL_SERVICES_DETAIL_INPUT,
+    'currently_undergoing_treatment': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
+    'currently_undergoing_treatment_detail': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'Please specify current treatment...'}),
+    'dentist_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Signature over Printed Name'}),
+    'dentist_date': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
+    'dentist_license_no': forms.TextInput(attrs={'class': 'form-input'}),
+}
+
+
+def _dental_services_fields_from_items(items):
+    fields = []
+    for item in items:
+        fields.append(item[0])
+        if len(item) > 2 and item[1]:
+            fields.append(item[1])
+    return fields
+
+
+class DentalServicesCheckboxDetailMixin:
+    """Require detail text when a service checkbox is selected."""
+
+    checkbox_detail_pairs: tuple[tuple[str, str], ...] = ()
+
+    def service_items(self):
+        items = []
+        for entry in getattr(self, 'service_item_defs', ()):
+            if len(entry) == 2:
+                flag, label = entry
+                detail = None
+            else:
+                flag, detail, label = entry
+            item = {
+                'flag': flag,
+                'label': label,
+                'flag_field': self[flag],
+            }
+            if detail:
+                item['detail'] = detail
+                item['detail_field'] = self[detail]
+            items.append(item)
+        return items
+
+    def clean(self):
+        cleaned = super().clean()
+        for flag, detail in self.checkbox_detail_pairs:
+            if not cleaned.get(flag):
+                cleaned[detail] = ''
+            elif not (cleaned.get(detail) or '').strip():
+                self.add_error(detail, 'Details are required when this service is selected.')
+        return cleaned
+
+
+class ClinicianSelectWidget(forms.Select):
+    """Select widget that exposes clinician name/license on each option."""
+
+    def create_option(self, name, value, label, *args, **kwargs):
+        option = super().create_option(name, value, label, *args, **kwargs)
+        if value:
+            pk = value if isinstance(value, (int, str)) else getattr(value, 'value', value)
+            try:
+                user = User.objects.select_related('staff_profile').get(pk=pk)
+                profile = getattr(user, 'staff_profile', None)
+                display_name = (user.get_full_name() or '').strip() or user.email
+                option['attrs']['data-name'] = display_name
+                option['attrs']['data-license'] = (
+                    (getattr(profile, 'license_number', '') or '')
+                    or (getattr(profile, 'ptr_no', '') or '')
+                    or (getattr(profile, 'staff_id', '') or '')
+                ) if profile else ''
+            except (User.DoesNotExist, ValueError, TypeError):
+                pass
+        return option
+
+
+DENTAL_SERVICES_OPERATIVE_FIELDS = _dental_services_fields_from_items(DENTAL_SERVICES_OPERATIVE_ITEMS)
+DENTAL_SERVICES_SURGERY_FIELDS = _dental_services_fields_from_items(DENTAL_SERVICES_SURGERY_ITEMS)
+DENTAL_SERVICES_PROSTHO_FIELDS = _dental_services_fields_from_items(DENTAL_SERVICES_PROSTHO_ITEMS)
+DENTAL_SERVICES_ENDO_FIELDS = _dental_services_fields_from_items(DENTAL_SERVICES_ENDO_ITEMS)
+DENTAL_SERVICES_PEDIATRIC_FIELDS = _dental_services_fields_from_items(DENTAL_SERVICES_PEDIATRIC_ITEMS)
+DENTAL_SERVICES_DENTIST_OTHER_FIELDS = [
+    'currently_undergoing_treatment', 'currently_undergoing_treatment_detail',
+    'dentist_name', 'dentist_date', 'dentist_license_no',
+]
+
+
 class DentalServicesPersonalInfoForm(forms.ModelForm):
     """Form for dental services request personal information"""
 
@@ -1094,15 +1273,182 @@ class DentalServicesPersonalInfoForm(forms.ModelForm):
                 self.fields[name].required = True
 
 
+class DentalServicesPerioForm(DentalServicesCheckboxDetailMixin, forms.ModelForm):
+    """Periodontics services checklist tab."""
+
+    service_item_defs = DENTAL_SERVICES_PERIO_ITEMS
+
+    class Meta:
+        model = DentalServicesRequest
+        fields = [name for name, _ in DENTAL_SERVICES_PERIO_ITEMS]
+        widgets = {name: DENTAL_SERVICES_WIDGETS[name] for name, _ in DENTAL_SERVICES_PERIO_ITEMS}
+
+
+class DentalServicesOperativeForm(DentalServicesCheckboxDetailMixin, forms.ModelForm):
+    """Operative dentistry services checklist tab."""
+
+    service_item_defs = DENTAL_SERVICES_OPERATIVE_ITEMS
+    checkbox_detail_pairs = tuple((flag, detail) for flag, detail, _ in DENTAL_SERVICES_OPERATIVE_ITEMS)
+
+    class Meta:
+        model = DentalServicesRequest
+        fields = DENTAL_SERVICES_OPERATIVE_FIELDS
+        widgets = {name: DENTAL_SERVICES_WIDGETS[name] for name in DENTAL_SERVICES_OPERATIVE_FIELDS}
+
+
+class DentalServicesSurgeryForm(DentalServicesCheckboxDetailMixin, forms.ModelForm):
+    """Surgery services checklist tab."""
+
+    service_item_defs = DENTAL_SERVICES_SURGERY_ITEMS
+    checkbox_detail_pairs = tuple((flag, detail) for flag, detail, _ in DENTAL_SERVICES_SURGERY_ITEMS)
+
+    class Meta:
+        model = DentalServicesRequest
+        fields = DENTAL_SERVICES_SURGERY_FIELDS
+        widgets = {name: DENTAL_SERVICES_WIDGETS[name] for name in DENTAL_SERVICES_SURGERY_FIELDS}
+
+
+class DentalServicesProsthoForm(DentalServicesCheckboxDetailMixin, forms.ModelForm):
+    """Prosthodontics services checklist tab."""
+
+    service_item_defs = DENTAL_SERVICES_PROSTHO_ITEMS
+    checkbox_detail_pairs = tuple(
+        (flag, detail) for flag, detail, _ in DENTAL_SERVICES_PROSTHO_ITEMS if detail
+    )
+
+    class Meta:
+        model = DentalServicesRequest
+        fields = DENTAL_SERVICES_PROSTHO_FIELDS
+        widgets = {name: DENTAL_SERVICES_WIDGETS[name] for name in DENTAL_SERVICES_PROSTHO_FIELDS}
+
+
+class DentalServicesEndoForm(DentalServicesCheckboxDetailMixin, forms.ModelForm):
+    """Endodontics services checklist tab."""
+
+    service_item_defs = DENTAL_SERVICES_ENDO_ITEMS
+    checkbox_detail_pairs = tuple((flag, detail) for flag, detail, _ in DENTAL_SERVICES_ENDO_ITEMS)
+
+    class Meta:
+        model = DentalServicesRequest
+        fields = DENTAL_SERVICES_ENDO_FIELDS
+        widgets = {name: DENTAL_SERVICES_WIDGETS[name] for name in DENTAL_SERVICES_ENDO_FIELDS}
+
+
+class DentalServicesPediatricForm(DentalServicesCheckboxDetailMixin, forms.ModelForm):
+    """Pediatric dentistry services checklist tab."""
+
+    service_item_defs = DENTAL_SERVICES_PEDIATRIC_ITEMS
+    checkbox_detail_pairs = tuple(
+        (flag, detail) for flag, detail, _ in DENTAL_SERVICES_PEDIATRIC_ITEMS if detail
+    )
+
+    class Meta:
+        model = DentalServicesRequest
+        fields = DENTAL_SERVICES_PEDIATRIC_FIELDS
+        widgets = {name: DENTAL_SERVICES_WIDGETS[name] for name in DENTAL_SERVICES_PEDIATRIC_FIELDS}
+
+
+class DentalServicesDentistOtherForm(DentalServicesCheckboxDetailMixin, forms.ModelForm):
+    """Treatment status and dentist signature tab."""
+
+    checkbox_detail_pairs = (('currently_undergoing_treatment', 'currently_undergoing_treatment_detail'),)
+    dentist_user = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        required=False,
+        label='Assign clinician',
+        empty_label='Select doctor/staff',
+        widget=ClinicianSelectWidget(attrs={'class': 'form-select'}),
+        help_text='Selecting a clinician auto-fills dentist name and license.',
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+
+        self.fields['dentist_name'].label = 'Dentist name'
+        self.fields['dentist_date'].label = 'Dentist date'
+        self.fields['dentist_license_no'].label = 'Dentist license no'
+        self.fields['dentist_user'].queryset = (
+            User.objects.filter(role__in=['doctor', 'staff'], is_active=True)
+            .order_by('first_name', 'last_name', 'email')
+        )
+        self.fields['dentist_user'].label_from_instance = (
+            lambda u: (u.get_full_name() or '').strip() or u.email
+        )
+        self.fields['dentist_user'].widget.attrs.update({
+            'x-ref': 'dentistUser',
+        })
+        self.fields['dentist_name'].widget.attrs.update({'x-ref': 'dentistName'})
+        self.fields['dentist_license_no'].widget.attrs.update({'x-ref': 'dentistLicense'})
+        self.fields['dentist_date'].widget.attrs.update({'x-ref': 'dentistDate'})
+
+        if not self.is_bound and self.user is not None:
+            user_fresh = (
+                User.objects.select_related('staff_profile')
+                .filter(pk=self.user.pk)
+                .first()
+            ) or self.user
+            profile = getattr(user_fresh, 'staff_profile', None)
+            default_name = (user_fresh.get_full_name() or '').strip() or user_fresh.email
+            default_license = ''
+            if profile:
+                default_license = (
+                    getattr(profile, 'license_number', '')
+                    or getattr(profile, 'ptr_no', '')
+                    or getattr(profile, 'staff_id', '')
+                ).strip()
+            default_date = timezone.localdate()
+
+            if not (self.instance and self.instance.dentist_name) and not self.initial.get('dentist_name'):
+                self.initial['dentist_name'] = default_name
+                self.instance.dentist_name = default_name
+                if user_fresh.role in {'doctor', 'staff'}:
+                    self.initial.setdefault('dentist_user', user_fresh.pk)
+            if not (self.instance and self.instance.dentist_license_no) and not self.initial.get('dentist_license_no'):
+                self.initial['dentist_license_no'] = default_license
+                self.instance.dentist_license_no = default_license
+            if not (self.instance and self.instance.dentist_date) and not self.initial.get('dentist_date'):
+                self.initial['dentist_date'] = default_date
+                self.instance.dentist_date = default_date
+
+    def clean(self):
+        cleaned = super().clean()
+        selected = cleaned.get('dentist_user')
+        if not selected:
+            return cleaned
+
+        selected_fresh = (
+            User.objects.select_related('staff_profile')
+            .filter(pk=selected.pk)
+            .first()
+        ) or selected
+
+        cleaned['dentist_name'] = (selected_fresh.get_full_name() or '').strip() or selected_fresh.email
+        profile = getattr(selected_fresh, 'staff_profile', None)
+        selected_license = (
+            (getattr(profile, 'license_number', '') or '')
+            or (getattr(profile, 'ptr_no', '') or '')
+            or (getattr(profile, 'staff_id', '') or '')
+        ).strip() if profile else ''
+        if selected_license:
+            cleaned['dentist_license_no'] = selected_license
+        if not cleaned.get('dentist_date'):
+            cleaned['dentist_date'] = timezone.localdate()
+        return cleaned
+
+    class Meta:
+        model = DentalServicesRequest
+        fields = DENTAL_SERVICES_DENTIST_OTHER_FIELDS
+        widgets = {name: DENTAL_SERVICES_WIDGETS[name] for name in DENTAL_SERVICES_DENTIST_OTHER_FIELDS}
+
+
 class DentalServicesChecklistForm(forms.ModelForm):
-    """Form for the services checklist (all service categories + dentist info)"""
+    """Legacy full checklist form — kept for admin/backward compatibility."""
 
     class Meta:
         model = DentalServicesRequest
         fields = [
-            # Periodontics
             'perio_oral_prophylaxis', 'perio_scaling_root_planning',
-            # Operative Dentistry
             'oper_class_i', 'oper_class_i_detail',
             'oper_class_ii', 'oper_class_ii_detail',
             'oper_class_iii', 'oper_class_iii_detail',
@@ -1110,92 +1456,26 @@ class DentalServicesChecklistForm(forms.ModelForm):
             'oper_class_v', 'oper_class_v_detail',
             'oper_class_vi', 'oper_class_vi_detail',
             'oper_onlay_inlay', 'oper_onlay_inlay_detail',
-            # Surgery
             'surg_tooth_extraction', 'surg_tooth_extraction_detail',
             'surg_odontectomy', 'surg_odontectomy_detail',
             'surg_operculectomy', 'surg_operculectomy_detail',
             'surg_other_pathological', 'surg_other_pathological_detail',
-            # Prosthodontics
             'prosth_complete_denture',
             'prosth_rpd', 'prosth_rpd_detail',
             'prosth_fpd', 'prosth_fpd_detail',
             'prosth_single_crown', 'prosth_single_crown_detail',
             'prosth_veneers_laminates', 'prosth_veneers_laminates_detail',
-            # Endodontics
             'endo_anterior', 'endo_anterior_detail',
             'endo_posterior', 'endo_posterior_detail',
-            # Pediatric
             'pedo_fluoride',
             'pedo_sealant', 'pedo_sealant_detail',
             'pedo_pulpotomy', 'pedo_pulpotomy_detail',
             'pedo_ssc', 'pedo_ssc_detail',
             'pedo_space_maintainer', 'pedo_space_maintainer_detail',
-            # Other
             'currently_undergoing_treatment', 'currently_undergoing_treatment_detail',
-            # Dentist
             'dentist_name', 'dentist_date', 'dentist_license_no',
         ]
-        widgets = {
-            # Periodontics
-            'perio_oral_prophylaxis': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'perio_scaling_root_planning': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            # Operative Dentistry
-            'oper_class_i': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'oper_class_i_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'oper_class_ii': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'oper_class_ii_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'oper_class_iii': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'oper_class_iii_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'oper_class_iv': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'oper_class_iv_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'oper_class_v': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'oper_class_v_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'oper_class_vi': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'oper_class_vi_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'oper_onlay_inlay': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'oper_onlay_inlay_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            # Surgery
-            'surg_tooth_extraction': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'surg_tooth_extraction_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify teeth/details...'}),
-            'surg_odontectomy': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'surg_odontectomy_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'surg_operculectomy': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'surg_operculectomy_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'surg_other_pathological': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'surg_other_pathological_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify case...'}),
-            # Prosthodontics
-            'prosth_complete_denture': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'prosth_rpd': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'prosth_rpd_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'prosth_fpd': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'prosth_fpd_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'prosth_single_crown': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'prosth_single_crown_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'prosth_veneers_laminates': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'prosth_veneers_laminates_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            # Endodontics
-            'endo_anterior': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'endo_anterior_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify teeth...'}),
-            'endo_posterior': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'endo_posterior_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify teeth...'}),
-            # Pediatric
-            'pedo_fluoride': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'pedo_sealant': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'pedo_sealant_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'pedo_pulpotomy': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'pedo_pulpotomy_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'pedo_ssc': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'pedo_ssc_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            'pedo_space_maintainer': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'pedo_space_maintainer_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'}),
-            # Other
-            'currently_undergoing_treatment': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
-            'currently_undergoing_treatment_detail': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'Please specify current treatment...'}),
-            # Dentist
-            'dentist_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Signature over Printed Name'}),
-            'dentist_date': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
-            'dentist_license_no': forms.TextInput(attrs={'class': 'form-input'}),
-        }
+        widgets = DENTAL_SERVICES_WIDGETS
 
 
 class DentalServicesReviewForm(forms.ModelForm):

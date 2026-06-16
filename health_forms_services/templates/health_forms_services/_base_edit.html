@@ -96,6 +96,35 @@
         {% with groups=field_groups|dict_key:tab_key %}
         {% if tab_key == 'personal' and 'examination' in forms %}
           {% include 'health_forms_services/partials/_dental_personal_info_tab.html' with form=form %}
+        {% elif tab_key == 'personal' and 'perio' in forms %}
+          {% with groups=field_groups|dict_key:tab_key %}
+          {% if groups %}
+            {% for group in groups %}
+            {% if group.label %}
+            <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 pb-2 mb-4">{{ group.label }}</h3>
+            {% endif %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-6">
+              {% for field_name in group.fields %}
+                {% with field=form|dict_key:field_name %}
+                  {% if field %}
+                    {% include 'health_forms_services/partials/_field.html' with field=field %}
+                  {% endif %}
+                {% endwith %}
+              {% endfor %}
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+              {% for field in form %}
+                {% include 'health_forms_services/partials/_field.html' with field=field %}
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% endwith %}
+        {% elif tab_key in 'perio operative surgery prostho endo pediatric' and 'perio' in forms %}
+          {% include 'health_forms_services/partials/_dental_services_checklist_tab.html' with form=form %}
+        {% elif tab_key == 'dentist_other' and 'perio' in forms %}
+          {% include 'health_forms_services/partials/_dental_services_dentist_other_tab.html' with form=form %}
         {% elif tab_key == 'personal' %}
           {% include 'health_forms_services/partials/_personal_info_tab.html' with form=form %}
         {% elif tab_key == 'examination' %}

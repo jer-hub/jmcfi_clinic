@@ -795,7 +795,10 @@ def create_dental_services(request):
             service_form.status = DentalServicesRequest.Status.PENDING
             service_form.save()
             messages.success(request, 'Dental services request created. You can now fill in the services checklist.')
-            return redirect('health_forms_services:edit_dental_services', pk=service_form.pk)
+            return redirect(
+                reverse('health_forms_services:edit_dental_services', kwargs={'pk': service_form.pk})
+                + '?section=perio'
+            )
     else:
         preselected = _preselected_patient_from_request(request)
         selected_patient = preselected

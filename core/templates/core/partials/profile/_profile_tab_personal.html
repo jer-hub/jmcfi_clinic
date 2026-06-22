@@ -40,6 +40,8 @@
         </div>
       </div>
       {% include "core/partials/profile/_profile_field_row.html" with label="Civil status" icon="fa-heart" field_name="civil_status" value=profile.get_civil_status_display|default:"Not specified" editable=True edit_field="civil_status" edit_label="Civil Status" edit_type="select" edit_raw=profile.civil_status is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Religion" icon="fa-place-of-worship" field_name="religion" value=profile.religion|default:"Not specified" editable=True edit_field="religion" edit_label="Religion" edit_type="text" edit_raw=profile.religion is_last=False %}
+      {% include "core/partials/profile/_profile_field_row.html" with label="Citizenship" icon="fa-flag" field_name="citizenship" value=profile.citizenship|default:"Not specified" editable=True edit_field="citizenship" edit_label="Citizenship" edit_type="text" edit_raw=profile.citizenship is_last=False %}
       {% include "core/partials/profile/_profile_field_row.html" with label="Place of birth" icon="fa-map-pin" field_name="place_of_birth" value=profile.place_of_birth|default:"Not specified" editable=True edit_field="place_of_birth" edit_label="Place of Birth" edit_type="text" edit_raw=profile.place_of_birth is_last=True %}
     </div>
   </div>

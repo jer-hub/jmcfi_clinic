@@ -2,7 +2,13 @@
 Class-based views for Health Profile Forms (F-HSS-20-0001).
 """
 
+from django.contrib import messages
+from django.http import JsonResponse
+from django.shortcuts import redirect
+
 from .base import BaseFormListView, BaseFormDetailView, BaseFormEditView
+from core.models import PatientProfile, StaffProfile
+from core.roles import is_patient_role
 from ..models import HealthProfileForm
 from ..forms import (
     HealthProfilePersonalInfoForm,
@@ -39,34 +45,72 @@ class HealthProfileDetailView(BaseFormDetailView):
     review_url_name = 'health_forms_services:review_form'
     delete_url_name = 'health_forms_services:delete_form'
 
+    @staticmethod
+    def _has_detail_value(field):
+        value = field.get('value')
+        field_type = field.get('type')
+        if field_type == 'bool':
+            return bool(value)
+        if value is None:
+            return False
+        if isinstance(value, str):
+            return bool(value.strip())
+        return True
+
+    def _with_data_only(self, fields):
+        return [field for field in fields if self._has_detail_value(field)]
+
     @property
     def detail_sections(self):
         obj = getattr(self, '_cached_obj', None)
         if not obj:
             return []
 
+        age_gender_parts = []
+        if obj.age is not None:
+            age_gender_parts.append(str(obj.age))
+        if obj.get_gender_display():
+            age_gender_parts.append(obj.get_gender_display())
+
         personal_fields = [
             {'label': 'Full Name', 'value': obj.get_full_name(), 'span': 'half'},
-            {'label': 'Date of Birth', 'value': obj.date_of_birth.strftime('%B %d, %Y') if obj.date_of_birth else '—', 'type': 'date', 'span': 'half'},
-            {'label': 'Age / Gender', 'value': f"{obj.age or '—'} / {obj.get_gender_display() or '—'}", 'span': 'half'},
-            {'label': 'Civil Status', 'value': obj.get_civil_status_display() or '—', 'span': 'half'},
-            {'label': 'Email', 'value': obj.email_address or obj.user.email or '—', 'span': 'half'},
-            {'label': 'Mobile', 'value': obj.mobile_number or '—', 'span': 'half'},
-            {'label': 'Address', 'value': obj.permanent_address or '—', 'span': 'full'},
-            {'label': 'Designation', 'value': obj.get_designation_display() or '—', 'span': 'half'},
-            {'label': 'Department', 'value': obj.department_college_office or '—', 'span': 'half'},
-            {'label': 'Emergency Contact', 'value': f"{obj.guardian_name or '—'} ({obj.guardian_contact or '—'})", 'span': 'full'},
+            {'label': 'Date of Birth', 'value': obj.date_of_birth.strftime('%B %d, %Y') if obj.date_of_birth else '', 'type': 'date', 'span': 'half'},
+            {'label': 'Age / Gender', 'value': ' / '.join(age_gender_parts), 'span': 'half'},
+            {'label': 'Civil Status', 'value': obj.get_civil_status_display() or '', 'span': 'half'},
+            {'label': 'Place of Birth', 'value': obj.place_of_birth, 'span': 'half'},
+            {'label': 'Citizenship', 'value': obj.citizenship, 'span': 'half'},
+            {'label': 'Religion', 'value': obj.religion, 'span': 'half'},
+            {'label': 'Email', 'value': obj.email_address or obj.user.email or '', 'span': 'half'},
+            {'label': 'Mobile', 'value': obj.mobile_number, 'span': 'half'},
+            {'label': 'Telephone', 'value': obj.telephone_number, 'span': 'half'},
+            {'label': 'ZIP Code', 'value': obj.zip_code, 'span': 'half'},
+            {'label': 'Permanent Address', 'value': obj.permanent_address, 'span': 'full'},
+            {'label': 'Current Address', 'value': obj.current_address, 'span': 'full'},
+            {'label': 'Designation', 'value': obj.get_designation_display() or '', 'span': 'half'},
+            {'label': 'Institution ID', 'value': obj.institution_id, 'span': 'half'},
+            {'label': 'Department', 'value': obj.department_college_office, 'span': 'full'},
+            {'label': 'Course / Program', 'value': obj.course, 'span': 'half'},
+            {'label': 'Year Level', 'value': obj.year_level, 'span': 'half'},
+            {'label': 'Position', 'value': obj.position, 'span': 'half'},
+            {'label': 'Specialization', 'value': obj.specialization, 'span': 'half'},
+            {'label': 'License Number', 'value': obj.license_number, 'span': 'half'},
+            {'label': 'PTR No.', 'value': obj.ptr_no, 'span': 'half'},
+            {'label': 'Emergency Contact Name', 'value': obj.guardian_name, 'span': 'half'},
+            {'label': 'Emergency Contact Number', 'value': obj.guardian_contact, 'span': 'half'},
+            {'label': 'Blood Type', 'value': obj.blood_type, 'span': 'half'},
+            {'label': 'Allergies', 'value': obj.allergies, 'type': 'text', 'span': 'full'},
+            {'label': 'Pre-existing Medical Conditions', 'value': obj.medical_conditions, 'type': 'text', 'span': 'full'},
         ]
 
         vital_fields = [
-            {'label': 'Blood Pressure', 'value': obj.blood_pressure or '—', 'span': 'half'},
-            {'label': 'Heart Rate', 'value': f"{obj.heart_rate} bpm" if obj.heart_rate else '—', 'span': 'half'},
-            {'label': 'Respiratory Rate', 'value': f"{obj.respiratory_rate} /min" if obj.respiratory_rate else '—', 'span': 'half'},
-            {'label': 'Temperature', 'value': f"{obj.temperature} °C" if obj.temperature else '—', 'span': 'half'},
-            {'label': 'SpO2', 'value': f"{obj.spo2}%" if obj.spo2 else '—', 'span': 'half'},
-            {'label': 'Height', 'value': f"{obj.height} m" if obj.height else '—', 'span': 'half'},
-            {'label': 'Weight', 'value': f"{obj.weight} kg" if obj.weight else '—', 'span': 'half'},
-            {'label': 'BMI', 'value': f"{obj.bmi} ({obj.bmi_remarks})" if obj.bmi else '—', 'span': 'half'},
+            {'label': 'Blood Pressure', 'value': obj.blood_pressure, 'span': 'half'},
+            {'label': 'Heart Rate', 'value': f"{obj.heart_rate} bpm" if obj.heart_rate else '', 'span': 'half'},
+            {'label': 'Respiratory Rate', 'value': f"{obj.respiratory_rate} /min" if obj.respiratory_rate else '', 'span': 'half'},
+            {'label': 'Temperature', 'value': f"{obj.temperature} °C" if obj.temperature else '', 'span': 'half'},
+            {'label': 'SpO2', 'value': f"{obj.spo2}%" if obj.spo2 else '', 'span': 'half'},
+            {'label': 'Height', 'value': f"{obj.height} m" if obj.height else '', 'span': 'half'},
+            {'label': 'Weight', 'value': f"{obj.weight} kg" if obj.weight else '', 'span': 'half'},
+            {'label': 'BMI', 'value': f"{obj.bmi} ({obj.bmi_remarks})" if obj.bmi else '', 'span': 'half'},
         ]
 
         immunization_fields = [
@@ -102,24 +146,25 @@ class HealthProfileDetailView(BaseFormDetailView):
             {'label': 'Physician Impression', 'value': obj.physician_impression, 'type': 'text', 'span': 'full'},
             {'label': 'Final Remarks', 'value': obj.final_remarks, 'type': 'text', 'span': 'full'},
             {'label': 'Recommendations', 'value': obj.recommendations, 'type': 'text', 'span': 'full'},
-            {'label': 'Examining Physician', 'value': obj.examining_physician.get_full_name() if obj.examining_physician else '—', 'span': 'half'},
-            {'label': 'Examination Date', 'value': obj.examination_date.strftime('%B %d, %Y') if obj.examination_date else '—', 'type': 'date', 'span': 'half'},
+            {'label': 'Examining Physician', 'value': obj.examining_physician.get_full_name() if obj.examining_physician else '', 'span': 'half'},
+            {'label': 'Examination Date', 'value': obj.examination_date.strftime('%B %d, %Y') if obj.examination_date else '', 'type': 'date', 'span': 'half'},
         ]
 
-        return [
+        sections = [
             {'key': 'personal', 'label': 'Personal Information', 'icon': 'fa-user',
-             'fields': personal_fields},
+             'fields': self._with_data_only(personal_fields)},
             {'key': 'vital-signs', 'label': 'Vital Signs & Anthropometrics', 'icon': 'fa-heart-pulse',
-             'fields': vital_fields},
+             'fields': self._with_data_only(vital_fields)},
             {'key': 'immunizations', 'label': 'Immunization Records', 'icon': 'fa-syringe',
-             'fields': immunization_fields},
+             'fields': self._with_data_only(immunization_fields)},
             {'key': 'illnesses', 'label': 'Illnesses & Conditions', 'icon': 'fa-notes-medical',
-             'fields': illness_fields},
+             'fields': self._with_data_only(illness_fields)},
             {'key': 'physical-exam', 'label': 'Physical Examination', 'icon': 'fa-stethoscope',
-             'fields': exam_fields},
+             'fields': self._with_data_only(exam_fields)},
             {'key': 'clinical', 'label': 'Clinical Summary', 'icon': 'fa-file-lines',
-             'fields': clinical_fields},
+             'fields': self._with_data_only(clinical_fields)},
         ]
+        return [section for section in sections if section['fields']]
 
     def get_object(self):
         obj = super().get_object()
@@ -149,6 +194,47 @@ class HealthProfileEditView(BaseFormEditView):
         {'key': 'clinical', 'label': 'Clinical Summary', 'icon': 'fa-file-lines'},
     ]
 
+    def post(self, request, *args, **kwargs):
+        section = request.POST.get('section', 'personal')
+        if section == 'personal':
+            is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            if is_ajax:
+                return JsonResponse(
+                    {'success': False, 'error': 'Personal Info section is read-only.'},
+                    status=403,
+                )
+            messages.error(request, 'Personal Info section is read-only.')
+            obj = self.get_object()
+            return redirect(self.get_edit_redirect_url(obj, 'personal'))
+        return super().post(request, *args, **kwargs)
+
     def after_section_save(self, obj, section):
         if section == 'physical':
             obj.calculate_bmi()
+            return
+        if section not in {'personal', 'medical'}:
+            return
+
+        user = getattr(obj, 'user', None)
+        if not user:
+            return
+
+        profile_model = PatientProfile if is_patient_role(user.role) else StaffProfile
+        profile, _ = profile_model.objects.get_or_create(
+            user=user,
+            defaults={
+                'patient_id' if profile_model is PatientProfile else 'staff_id': f'TEMP_{user.id}',
+            },
+        )
+
+        update_fields = []
+        if section == 'personal':
+            profile.blood_type = (obj.blood_type or '').strip()
+            profile.allergies = (obj.allergies or '').strip()
+            profile.medical_conditions = (obj.medical_conditions or '').strip()
+            update_fields.extend(['blood_type', 'allergies', 'medical_conditions'])
+        if section == 'medical':
+            profile.allergies = (obj.allergies or '').strip()
+            update_fields.append('allergies')
+        if update_fields:
+            profile.save(update_fields=update_fields)

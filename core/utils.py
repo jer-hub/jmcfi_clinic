@@ -151,6 +151,7 @@ FIELD_LABELS = {
     'place_of_birth':    'Place of Birth',
     'age':               'Age',
     'address':           'Address',
+    'zip_code':          'Zip Code',
     'phone':             'Phone Number',
     'telephone_number':  'Telephone Number',
     'emergency_contact': 'Emergency Contact Name',

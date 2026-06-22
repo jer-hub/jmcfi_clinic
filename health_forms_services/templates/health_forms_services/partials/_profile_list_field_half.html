@@ -1,5 +1,8 @@
 {% comment %}
-  Tag-style list input for allergies / medical conditions (edit profile).
+  Tag-style list input (half-width) for allergies / medical conditions.
+
+  Mirrors `core/partials/_profile_list_field.html`, but without the `md:col-span-2`
+  wrapper so it can live inside a 2-column grid.
 
   Context:
     field        – BoundField (required)
@@ -7,10 +10,11 @@
     placeholder  – input placeholder
     help_text    – helper copy below the control
 {% endcomment %}
-<div class="md:col-span-2" data-list-field="{{ field.html_name }}" x-data="studentListField('{{ field.value|default_if_none:""|escapejs }}')">
+<div data-list-field="{{ field.html_name }}" x-data="studentListField('{{ field.value|default_if_none:""|escapejs }}')">
   <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
     {{ label }} <span class="text-gray-400 text-xs">(Optional)</span>
   </label>
+
   <div class="space-y-3 rounded-lg border border-gray-100 bg-gray-50/30 p-3">
     <div class="flex gap-2">
       <input type="text"
@@ -22,6 +26,7 @@
               @click="addItem()"
               class="px-3 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 text-sm font-medium">Add</button>
     </div>
+
     <div class="flex flex-wrap gap-2" x-show="listItems.length > 0">
       <template x-for="(item, idx) in listItems" :key="idx">
         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-800 text-xs border border-purple-200">
@@ -30,13 +35,18 @@
         </span>
       </template>
     </div>
+
     <p class="text-xs text-gray-500">Enter one item at a time. Press Enter or Add.</p>
   </div>
+
   <textarea name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="hidden" x-model="serializedValue"></textarea>
+
   {% if help_text %}
     <p class="mt-1 text-xs text-gray-500">{{ help_text }}</p>
   {% endif %}
+
   <p x-show="validationError" x-text="validationError" class="mt-2 text-sm text-danger-600"></p>
+
   {% if field.errors %}
     {% for error in field.errors %}
       <p class="mt-2 text-sm text-danger-600 flex items-center gap-1">
@@ -46,3 +56,4 @@
     {% endfor %}
   {% endif %}
 </div>
+

@@ -2,6 +2,37 @@
  * Alpine.js data factory for health-forms patient search + profile prefill.
  */
 (function () {
+  function isListField(fieldName) {
+    return Boolean(
+      window.__hfListFields?.[fieldName] ||
+      document.querySelector(`[data-list-field="${fieldName}"]`),
+    );
+  }
+
+  function applyPrefillValue(fieldName, value) {
+    if (value === undefined || value === null) {
+      return;
+    }
+    const stringValue = String(value);
+
+    if (
+      isListField(fieldName) &&
+      typeof window.hfReloadListField === 'function' &&
+      window.hfReloadListField(fieldName, stringValue)
+    ) {
+      return;
+    }
+
+    const input = document.getElementById(`id_${fieldName}`);
+    if (!input) {
+      return;
+    }
+
+    input.value = stringValue;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
   function hfPatientPickerFactory(config) {
     config = config || {};
     return {
@@ -81,14 +112,16 @@
               return;
             }
             const mappings = config.fieldMappings || {};
-            Object.entries(mappings).forEach(([fieldName, key]) => {
-              const input = document.getElementById(`id_${fieldName}`);
-              if (input && profile[key] !== undefined && profile[key] !== null) {
-                input.value = profile[key];
-                input.dispatchEvent(new Event('input', { bubbles: true }));
-                input.dispatchEvent(new Event('change', { bubbles: true }));
-              }
-            });
+            const applyAll = () => {
+              Object.entries(mappings).forEach(([fieldName, key]) => {
+                applyPrefillValue(fieldName, profile[key]);
+              });
+            };
+            applyAll();
+            if (window.Alpine && typeof window.Alpine.nextTick === 'function') {
+              window.Alpine.nextTick(applyAll);
+            }
+            window.setTimeout(applyAll, 50);
           });
       },
 
@@ -101,6 +134,7 @@
   }
 
   window.hfPatientPicker = hfPatientPickerFactory;
+  window.hfApplyPrefillValue = applyPrefillValue;
 
   document.addEventListener('alpine:init', () => {
     window.Alpine.data('hfPatientPicker', hfPatientPickerFactory);

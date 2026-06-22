@@ -1,23 +1,222 @@
 {# ── Generic grouped sections tab (personal info, dental personal, etc.) ── #}
+
 <div class="space-y-8">
+
   {% for section in sections %}
-  <section>
-    <div class="flex items-center gap-2 mb-4">
-      <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ section.icon_bg }} {{ section.icon_color }}">
-        <i class="fas {{ section.icon }} text-sm"></i>
-      </span>
-      <div>
-        <h3 class="text-sm font-semibold text-gray-900">{{ section.label }}</h3>
-        {% if section.description %}
-        <p class="text-xs text-gray-500">{{ section.description }}</p>
-        {% endif %}
+
+  <section data-section-key="{{ section.key|default:'' }}">
+
+    {% if section.key == 'medical_background' %}
+
+      {% include "core/partials/_form_section_header.html" with title="Medical & Health Information" icon="fa-heart-pulse" icon_theme="red" margin_class="mb-4" %}
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {% for item in section.fields %}
+
+          {% if item.name == 'blood_type' %}
+
+            <div data-section-field data-field-name="{{ item.name }}" class="form-group">
+
+              <label for="{{ item.field.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+
+                Blood Type <span class="text-gray-400 text-xs">(Optional)</span>
+
+              </label>
+
+              {{ item.field }}
+
+              {% if item.field.errors %}
+
+                {% for error in item.field.errors %}
+
+                  <p class="mt-2 text-sm text-red-600 flex items-center">
+
+                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+
+                    </svg>
+
+                    {{ error }}
+
+                  </p>
+
+                {% endfor %}
+
+              {% endif %}
+
+            </div>
+
+          {% elif item.name == 'allergies' %}
+
+            <div data-section-field data-field-name="{{ item.name }}" class="md:col-span-2">
+
+              {% include "core/partials/_profile_list_field.html" with field=item.field label="Allergies" placeholder="Type allergy then press Enter" help_text="List food, medication, or environmental allergies. Leave empty if none." %}
+
+            </div>
+
+          {% elif item.name == 'medical_conditions' %}
+
+            <div data-section-field data-field-name="{{ item.name }}" class="md:col-span-2">
+
+              {% include "core/partials/_profile_list_field.html" with field=item.field label="Pre-existing Medical Conditions" placeholder="Type condition then press Enter" help_text="List chronic illnesses or conditions. Leave empty if none." %}
+
+            </div>
+
+          {% endif %}
+
+        {% endfor %}
+
       </div>
-    </div>
-    <div class="grid grid-cols-1 gap-3 sm:gap-4 {{ section.grid_cols|default:'md:grid-cols-2' }}">
-      {% for item in section.fields %}
-        {% include 'health_forms_services/partials/_field.html' with field=item.field %}
-      {% endfor %}
-    </div>
+
+    {% elif section.key == 'institutional_details' %}
+
+      {% include 'health_forms_services/partials/_institutional_details_section.html' with section=section %}
+
+    {% else %}
+
+      <div class="flex items-center gap-2 mb-4">
+
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ section.icon_bg }} {{ section.icon_color }}">
+
+          <i class="fas {{ section.icon }} text-sm"></i>
+
+        </span>
+
+        <div>
+
+          <h3 class="text-sm font-semibold text-gray-900">{{ section.label }}</h3>
+
+          {% if section.description %}
+
+          <p class="text-xs text-gray-500" {% if section.key == 'institutional_details' %}data-institution-description{% endif %}>{{ section.description }}</p>
+
+          {% endif %}
+
+        </div>
+
+      </div>
+
+      <div class="grid grid-cols-1 gap-3 sm:gap-4 {{ section.grid_cols|default:'md:grid-cols-2' }}">
+
+        {% for item in section.fields %}
+
+        <div data-section-field data-field-name="{{ item.name }}">
+
+          {% include 'health_forms_services/partials/_field.html' with field=item.field %}
+
+        </div>
+
+        {% endfor %}
+
+      </div>
+
+    {% endif %}
+
   </section>
+
   {% endfor %}
+
 </div>
+
+
+
+<script>
+
+(function bindInstitutionalDetailsUX() {
+  const personalForms = Array.from(document.querySelectorAll('form'))
+    .filter((form) => form.querySelector('#id_designation'));
+
+  personalForms.forEach((form) => {
+
+    const designationSelect = form.querySelector('#id_designation');
+
+    const institutionalSection = form.querySelector('[data-section-key="institutional_details"]');
+
+    if (!designationSelect || !institutionalSection) return;
+
+    if (designationSelect.dataset.instUxBound === '1') return;
+
+    designationSelect.dataset.instUxBound = '1';
+
+
+
+    const fieldNodes = institutionalSection.querySelectorAll('[data-section-field][data-field-name]');
+
+    const descNode = institutionalSection.querySelector('[data-institution-description]');
+
+
+
+    const baseFields = ['designation', 'institution_id', 'department_college_office'];
+
+    const byDesignation = {
+
+      student: ['course', 'year_level'],
+
+      patient: ['course', 'year_level'],
+
+      staff: ['position'],
+
+      employee: ['position'],
+
+      doctor: ['position', 'specialization', 'license_number', 'ptr_no'],
+
+    };
+
+
+
+    function applyInstitutionalVisibility() {
+
+      const designation = (designationSelect.value || '').toLowerCase();
+
+      const visible = new Set([
+
+        ...baseFields,
+
+        ...(byDesignation[designation] || byDesignation.student),
+
+      ]);
+
+
+
+      fieldNodes.forEach((node) => {
+
+        const fieldName = node.dataset.fieldName || '';
+
+        node.style.display = visible.has(fieldName) ? '' : 'none';
+
+      });
+
+
+
+      if (!descNode) return;
+
+      if (designation === 'doctor') {
+
+        descNode.textContent = 'Clinical workplace affiliation and professional credentials.';
+
+      } else if (designation === 'staff' || designation === 'employee') {
+
+        descNode.textContent = 'Workplace affiliation and position details.';
+
+      } else {
+
+        descNode.textContent = 'School affiliation and student details.';
+
+      }
+
+    }
+
+
+
+    designationSelect.addEventListener('change', applyInstitutionalVisibility);
+
+    applyInstitutionalVisibility();
+
+  });
+
+})();
+
+</script>
+

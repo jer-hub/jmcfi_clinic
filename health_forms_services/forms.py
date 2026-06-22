@@ -10,6 +10,17 @@ from .models import HealthProfileForm, DentalHealthForm, DentalServicesRequest, 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
 
+BLOOD_TYPE_CHOICES: tuple[tuple[str, str], ...] = (
+    ('A+', 'A+'),
+    ('A-', 'A-'),
+    ('B+', 'B+'),
+    ('B-', 'B-'),
+    ('AB+', 'AB+'),
+    ('AB-', 'AB-'),
+    ('O+', 'O+'),
+    ('O-', 'O-'),
+)
+
 IMMUNIZATION_FLAG_DATE_PAIRS: tuple[tuple[str, str], ...] = (
     ('immunization_covid19', 'immunization_covid19_date'),
     ('immunization_influenza', 'immunization_influenza_date'),
@@ -122,7 +133,7 @@ PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
         'icon_bg': 'bg-sky-50',
         'icon_color': 'text-sky-600',
         'description': 'Date of birth, place of birth, and demographic details.',
-        'fields': ('date_of_birth', 'place_of_birth', 'age', 'gender', 'civil_status', 'religion', 'citizenship', 'blood_type'),
+        'fields': ('date_of_birth', 'place_of_birth', 'age', 'gender', 'civil_status', 'religion', 'citizenship'),
     },
     {
         'label': 'Contact Information',
@@ -141,6 +152,7 @@ PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
         'fields': ('permanent_address', 'zip_code', 'current_address'),
     },
     {
+        'key': 'institutional_details',
         'label': 'Institutional Details',
         'icon': 'fa-building',
         'icon_bg': 'bg-violet-50',
@@ -160,13 +172,12 @@ PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
         'fields': ('guardian_name', 'guardian_contact'),
     },
     {
-        'label': 'Medical Background',
+        'key': 'medical_background',
+        'label': 'Medical & Health Information',
         'icon': 'fa-heart-pulse',
         'icon_bg': 'bg-red-50',
         'icon_color': 'text-red-600',
-        'description': 'Known conditions, allergies, or ongoing medications.',
-        'fields': ('medical_conditions',),
-        'grid_cols': 'md:grid-cols-1',
+        'fields': ('blood_type', 'allergies', 'medical_conditions'),
     },
 )
 
@@ -296,7 +307,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'email_address', 'mobile_number', 'telephone_number',
             'designation', 'institution_id', 'department_college_office',
             'course', 'year_level', 'position', 'specialization',
-            'license_number', 'ptr_no', 'blood_type', 'medical_conditions',
+            'license_number', 'ptr_no', 'blood_type', 'allergies', 'medical_conditions',
             'guardian_name', 'guardian_contact',
         ]
         widgets = {
@@ -345,8 +356,9 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'specialization': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Internal Medicine'}),
             'license_number': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'PRC License No.'}),
             'ptr_no': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'PTR No.'}),
-            'blood_type': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g., O+'}),
-            'medical_conditions': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'List any known medical conditions, allergies, or medications'}),
+            'blood_type': forms.Select(attrs={'class': 'form-select'}),
+            'allergies': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
+            'medical_conditions': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
             'guardian_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Parent/Guardian Full Name'}),
             'guardian_contact': forms.TextInput(attrs={
                 'class': 'form-input',
@@ -363,6 +375,16 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        if 'blood_type' in self.fields:
+            # Model field is plain CharField (no DB choices), so ModelForm yields CharField +
+            # Select widget — options never render unless we swap to ChoiceField.
+            self.fields['blood_type'] = forms.ChoiceField(
+                choices=[('', 'Select your blood type (optional)'), *BLOOD_TYPE_CHOICES],
+                required=False,
+                widget=forms.Select(attrs={'class': 'form-select'}),
+            )
+
         # Mark essential identifiers as required
         required_fields = [
             'last_name', 'first_name', 'date_of_birth', 'gender',
@@ -380,15 +402,79 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
         if 'guardian_contact' in self.fields:
             self.fields['guardian_contact'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
 
+        institutional_labels = {
+            'designation': 'Designation',
+            'institution_id': 'Institution ID',
+            'department_college_office': 'Department / College',
+            'course': 'Course / Program',
+            'year_level': 'Year Level',
+            'position': 'Position',
+            'specialization': 'Specialization',
+            'license_number': 'License Number',
+            'ptr_no': 'PTR No.',
+        }
+        institutional_help = {
+            'institution_id': 'Student ID or Employee ID',
+            'department_college_office': 'College, department, or office affiliation',
+            'course': 'Program or course of study',
+            'year_level': 'Current year level',
+            'position': 'Job title or role',
+            'license_number': 'PRC medical or professional license number',
+            'ptr_no': 'Required for issuing medical certificates and official documents',
+        }
+        for name, label in institutional_labels.items():
+            if name in self.fields:
+                self.fields[name].label = label
+        for name, help_text in institutional_help.items():
+            if name in self.fields:
+                self.fields[name].help_text = help_text
+        if 'designation' in self.fields:
+            self.fields['designation'].empty_label = 'Select designation'
+            self.fields['designation'].choices = [
+                choice for choice in self.fields['designation'].choices
+                if choice[0] != 'employee'
+            ]
+
     def personal_info_sections(self):
+        designation = ''
+        if self.is_bound:
+            designation = (self.data.get(self.add_prefix('designation')) or self.data.get('designation') or '').strip().lower()
+        if not designation:
+            designation = (self.initial.get('designation') or '').strip().lower()
+        if not designation and self.instance and getattr(self.instance, 'designation', None):
+            designation = (self.instance.designation or '').strip().lower()
+
+        if designation == 'patient':
+            designation = 'student'
+
+        institutional_base = ['designation', 'institution_id', 'department_college_office']
+        designation_specific = {
+            'student': ['course', 'year_level'],
+            'staff': ['position'],
+            'employee': ['position'],
+            'doctor': ['position', 'specialization', 'license_number', 'ptr_no'],
+        }
+
         sections = []
         for section in PERSONAL_INFO_SECTIONS:
+            section_fields = list(section['fields'])
+            section_desc = section.get('description')
+
+            if section.get('key') == 'institutional_details':
+                section_fields = institutional_base + designation_specific.get(designation, ['course', 'year_level'])
+                if designation == 'doctor':
+                    section_desc = 'Clinical workplace affiliation and professional credentials.'
+                elif designation in {'staff', 'employee'}:
+                    section_desc = 'Workplace affiliation and position details.'
+                else:
+                    section_desc = 'School affiliation and student details.'
+
             fields = [
                 {'name': name, 'field': self[name]}
-                for name in section['fields']
+                for name in section_fields
                 if name in self.fields
             ]
-            sections.append({**section, 'fields': fields})
+            sections.append({**section, 'description': section_desc, 'fields': fields})
         return sections
 
     def _clean_strict_ph(self, value):

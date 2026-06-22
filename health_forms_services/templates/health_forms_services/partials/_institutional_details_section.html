@@ -1,0 +1,19 @@
+{# Institutional Details — layout aligned with profile academic/institutional sections. #}
+{% include "core/partials/_form_section_header.html" with title="Institutional Details" icon="fa-building" icon_theme="indigo" margin_class="mb-4" %}
+{% if section.description %}
+<p class="text-sm text-gray-500 -mt-2 mb-4 ml-9" data-institution-description>{{ section.description }}</p>
+{% endif %}
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  {% for item in section.fields %}
+    {% if item.name == 'department_college_office' or item.name == 'position' %}
+      <div data-section-field data-field-name="{{ item.name }}" class="md:col-span-2">
+        {% include 'health_forms_services/partials/_field.html' with field=item.field %}
+      </div>
+    {% else %}
+      <div data-section-field data-field-name="{{ item.name }}">
+        {% include 'health_forms_services/partials/_field.html' with field=item.field %}
+      </div>
+    {% endif %}
+  {% endfor %}
+</div>

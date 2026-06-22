@@ -116,6 +116,8 @@ def _patient_profile_prefill_payload(patient):
         'email_address': patient.email or '',
         'gender': getattr(profile, 'gender', '') or '',
         'civil_status': getattr(profile, 'civil_status', '') or '',
+        'religion': getattr(profile, 'religion', '') or '',
+        'citizenship': getattr(profile, 'citizenship', '') or '',
         'date_of_birth': (
             profile.date_of_birth.isoformat()
             if profile and getattr(profile, 'date_of_birth', None)
@@ -140,11 +142,15 @@ def _patient_profile_prefill_payload(patient):
         'patient_id': getattr(profile, 'patient_id', '') or '',
         'name': patient.get_full_name() or patient.email or '',
         'permanent_address': getattr(profile, 'address', '') or '',
+        'zip_code': getattr(profile, 'zip_code', '') or '',
         'current_address': getattr(profile, 'address', '') or '',
         'mobile_number': getattr(profile, 'phone', '') or '',
         'course': getattr(profile, 'course', '') or '',
         'year_level': getattr(profile, 'year_level', '') or '',
         'institution_id': getattr(profile, 'patient_id', '') or '',
+        'blood_type': getattr(profile, 'blood_type', '') or '',
+        'allergies': getattr(profile, 'allergies', '') or '',
+        'medical_conditions': getattr(profile, 'medical_conditions', '') or '',
     }
 
 

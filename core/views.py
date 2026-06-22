@@ -718,7 +718,7 @@ def quick_edit_profile(request):
         'first_name', 'last_name',
         'phone', 'telephone_number', 'emergency_contact', 'emergency_phone',
         'address', 'allergies', 'medical_conditions', 'middle_name',
-        'place_of_birth', 'age', 'course', 'year_level', 'department', 'position',
+        'place_of_birth', 'religion', 'citizenship', 'age', 'course', 'year_level', 'department',
         'specialization'
     ]
 
@@ -769,6 +769,8 @@ def quick_edit_profile(request):
         text_max_lengths = {
             'address': 500,
             'place_of_birth': 200,
+            'religion': 100,
+            'citizenship': 100,
             'course': 100,
             'year_level': 20,
             'department': 100,
@@ -1044,7 +1046,7 @@ def edit_profile(request):
             # Merge with existing profile data if available
             if profile:
                 if request.user.role in ['staff', 'doctor', 'admin']:
-                    form = form_class(initial=initial_data, instance=profile, user=request.user)
+                    form = form_class(initial=initial_data, instance=profile, user=request.user, editor=request.user)
                 else:
                     form = form_class(initial=initial_data, instance=profile)
                 # Update form with autofilled values
@@ -1053,7 +1055,7 @@ def edit_profile(request):
                         form.initial[key] = value
             else:
                 if request.user.role in ['staff', 'doctor', 'admin']:
-                    form = form_class(initial=initial_data, user=request.user)
+                    form = form_class(initial=initial_data, user=request.user, editor=request.user)
                 else:
                     form = form_class(initial=initial_data)
             
@@ -1068,11 +1070,11 @@ def edit_profile(request):
                 messages.error(request, 'First Name and Last Name are required.')
                 names_valid = False
                 if request.user.role in ['staff', 'doctor', 'admin']:
-                    form = form_class(request.POST, request.FILES, instance=profile, user=request.user)
+                    form = form_class(request.POST, request.FILES, instance=profile, user=request.user, editor=request.user)
                 else:
                     form = form_class(request.POST, request.FILES, instance=profile)
             elif request.user.role in ['staff', 'doctor', 'admin']:
-                form = form_class(request.POST, request.FILES, instance=profile, user=request.user)
+                form = form_class(request.POST, request.FILES, instance=profile, user=request.user, editor=request.user)
             else:
                 form = form_class(request.POST, request.FILES, instance=profile)
             if names_valid and form.is_valid():
@@ -1109,7 +1111,7 @@ def edit_profile(request):
                     messages.error(request, 'Please correct the errors below.')
     else:
         if request.user.role in ['staff', 'doctor', 'admin']:
-            form = form_class(instance=profile, user=request.user)
+            form = form_class(instance=profile, user=request.user, editor=request.user)
         else:
             form = form_class(instance=profile)
         
@@ -1290,7 +1292,7 @@ def user_edit(request, user_id):
         user_form = UserEditForm(request.POST, instance=user)
         _lock_user_edit_form_for_admin_target(user_form, is_admin_user)
         profile_form = instantiate_profile_form(
-            user, profile=profile, data=request.POST, files=request.FILES,
+            user, profile=profile, data=request.POST, files=request.FILES, editor=request.user,
         )
 
         if user_form.is_valid():
@@ -1319,7 +1321,7 @@ def user_edit(request, user_id):
     else:
         user_form = UserEditForm(instance=user)
         _lock_user_edit_form_for_admin_target(user_form, is_admin_user)
-        profile_form = instantiate_profile_form(user, profile=profile)
+        profile_form = instantiate_profile_form(user, profile=profile, editor=request.user)
 
     context = _user_edit_context(user, user_form, profile_form, profile, is_admin_user)
     return render(request, 'core/user_management/user_edit.html', context)

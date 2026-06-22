@@ -1,0 +1,10 @@
+{% include "components/forms/field.html" with field=form.middle_name label="Middle Name" %}
+{% include "components/forms/field.html" with field=form.gender label="Gender" %}
+{% include "components/forms/field.html" with field=form.civil_status label="Civil Status" %}
+{% include "components/forms/field.html" with field=form.religion label="Religion" %}
+{% include "components/forms/field.html" with field=form.citizenship label="Citizenship" %}
+{% include "components/forms/field.html" with field=form.date_of_birth label="Date of Birth" %}
+{% include "components/forms/field.html" with field=form.age label="Age" %}
+<div class="md:col-span-2 lg:col-span-3">
+  {% include "components/forms/field.html" with field=form.place_of_birth label="Place of Birth" %}
+</div>

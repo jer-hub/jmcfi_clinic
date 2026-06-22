@@ -34,6 +34,8 @@ def _complete_student_profile(user, patient_id):
 	profile.year_level = '1st Year'
 	profile.gender = 'male'
 	profile.civil_status = 'single'
+	profile.religion = 'Roman Catholic'
+	profile.citizenship = 'Filipino'
 	profile.place_of_birth = 'Manila'
 	profile.age = 23
 	profile.address = 'Manila'
@@ -55,10 +57,13 @@ def _complete_staff_like_profile(user, staff_id):
 	profile.middle_name = 'M'
 	profile.gender = 'male'
 	profile.civil_status = 'single'
+	profile.religion = 'Roman Catholic'
+	profile.citizenship = 'Filipino'
 	profile.date_of_birth = '2000-01-01'
 	profile.place_of_birth = 'Davao'
 	profile.age = 26
 	profile.address = '123 Clinic St, Davao'
+	profile.zip_code = '8000'
 	profile.department = 'Clinic Operations'
 	profile.phone = '+639123456789'
 	profile.emergency_contact = 'Emergency Person'
@@ -69,10 +74,13 @@ def _complete_staff_like_profile(user, staff_id):
 			'middle_name',
 			'gender',
 			'civil_status',
+			'religion',
+			'citizenship',
 			'date_of_birth',
 			'place_of_birth',
 			'age',
 			'address',
+			'zip_code',
 			'department',
 			'phone',
 			'emergency_contact',
@@ -484,17 +492,35 @@ class AdminProfileCompletionRequirementTests(TestCase):
 		response = self.client.get(reverse('core:dashboard'))
 		self.assertRedirects(response, reverse('core:profile_required'))
 
+	def _staff_profile_post_data(self, **overrides):
+		data = {
+			'first_name': 'Clinic',
+			'last_name': 'Admin',
+			'staff_id': 'ADM-MIN-001',
+			'middle_name': 'M',
+			'gender': 'male',
+			'civil_status': 'single',
+			'religion': 'Roman Catholic',
+			'citizenship': 'Filipino',
+			'date_of_birth': '1990-01-15',
+			'place_of_birth': 'Davao City',
+			'age': '34',
+			'address': '123 Admin Street, Davao',
+			'zip_code': '8000',
+			'phone': '+639171234567',
+			'emergency_contact': 'Emergency Person',
+			'emergency_phone': '+639171234568',
+			'department': 'Clinic Administration',
+		}
+		data.update(overrides)
+		return data
+
 	def test_admin_can_save_minimal_required_profile(self):
 		StaffProfile.objects.get_or_create(user=self.admin_user)
 		self.client.force_login(self.admin_user)
 		response = self.client.post(
 			reverse('core:edit_profile'),
-			{
-				'first_name': 'Clinic',
-				'last_name': 'Admin',
-				'staff_id': 'ADM-MIN-001',
-				'phone': '+639171234567',
-			},
+			self._staff_profile_post_data(),
 		)
 		self.assertRedirects(response, reverse('core:profile'))
 		self.admin_user.refresh_from_db()
@@ -520,10 +546,11 @@ class AdminProfileCompletionRequirementTests(TestCase):
 		response = self.client.post(
 			reverse('core:edit_profile'),
 			{
-				'first_name': 'Clinic',
-				'last_name': 'Admin',
-				'staff_id': 'ADM-IMG-001',
-				'phone': '+639171234567',
+				**self._staff_profile_post_data(
+					first_name='Clinic',
+					last_name='Admin',
+					staff_id='ADM-IMG-001',
+				),
 				'profile_image': image,
 			},
 		)
@@ -557,15 +584,15 @@ class AdminProfileCompletionRequirementTests(TestCase):
 		response = self.client.get(reverse('core:edit_profile'))
 
 		self.assertEqual(response.status_code, 200)
-		self.assertNotContains(response, 'name="department"')
+		self.assertContains(response, 'name="department"')
 		self.assertNotContains(response, 'name="position"')
 		self.assertNotContains(response, 'name="specialization"')
 		self.assertNotContains(response, 'name="blood_type"')
 		self.assertNotContains(response, 'name="allergies"')
 		self.assertNotContains(response, 'name="medical_conditions"')
-		# Optional demographics must not use HTML5 required (blocks submit inside collapsed details).
-		self.assertNotContains(response, 'name="gender" required')
-		self.assertNotContains(response, 'name="date_of_birth" required')
+		self.assertContains(response, 'name="gender"')
+		self.assertContains(response, 'name="date_of_birth"')
+		self.assertContains(response, 'name="zip_code"')
 
 	def test_doctor_edit_profile_shows_required_professional_fields(self):
 		doctor_user = User.objects.create_user(
@@ -586,15 +613,17 @@ class AdminProfileCompletionRequirementTests(TestCase):
 		self.assertContains(response, 'Clinical Credentials')
 		self.assertContains(response, 'name="staff_id"')
 		self.assertContains(response, 'name="department"')
-		self.assertContains(response, 'name="position"')
+		self.assertNotContains(response, 'name="position"')
+		self.assertContains(response, 'This field is managed by an administrator.')
 		self.assertContains(response, 'name="license_number"')
 		self.assertContains(response, 'name="ptr_no"')
 		self.assertContains(response, 'name="phone"')
+		self.assertContains(response, 'name="gender"')
+		self.assertContains(response, 'name="address"')
+		self.assertContains(response, 'name="zip_code"')
 		self.assertNotContains(response, 'name="blood_type"')
 		self.assertNotContains(response, 'name="allergies"')
 		self.assertNotContains(response, 'name="medical_conditions"')
-		self.assertNotContains(response, 'name="gender" required')
-		self.assertNotContains(response, 'name="date_of_birth" required')
 
 	def test_doctor_can_save_required_professional_profile(self):
 		doctor_user = User.objects.create_user(
@@ -611,9 +640,20 @@ class AdminProfileCompletionRequirementTests(TestCase):
 				'first_name': 'Maria',
 				'last_name': 'Santos',
 				'staff_id': 'DOC-MIN-001',
+				'middle_name': 'L',
+				'gender': 'female',
+				'civil_status': 'single',
+				'religion': 'Roman Catholic',
+				'citizenship': 'Filipino',
+				'date_of_birth': '1985-06-20',
+				'place_of_birth': 'Cebu City',
+				'age': '39',
+				'address': '456 Doctor Lane, Cebu',
+				'zip_code': '6000',
 				'department': 'General Medicine',
-				'position': 'Campus Physician',
 				'phone': '+639171234567',
+				'emergency_contact': 'Spouse Name',
+				'emergency_phone': '+639171234568',
 				'license_number': 'PRC-998877',
 				'ptr_no': 'PTR-112233',
 			},
@@ -623,7 +663,49 @@ class AdminProfileCompletionRequirementTests(TestCase):
 		profile = doctor_user.staff_profile
 		self.assertEqual(profile.license_number, 'PRC-998877')
 		self.assertEqual(profile.ptr_no, 'PTR-112233')
-		self.assertEqual(profile.position, 'Campus Physician')
+		self.assertEqual(profile.position, '')
+
+	def test_doctor_quick_edit_rejects_position(self):
+		doctor_user = User.objects.create_user(
+			email='doctor-position-quick@jmcfi.edu.ph',
+			password='DoctorQuick123!',
+			role='doctor',
+			is_active=True,
+		)
+		_complete_doctor_profile(doctor_user, 'DOC-QUICK-POS-001')
+		doctor_user.first_name = 'Quick'
+		doctor_user.last_name = 'Doctor'
+		doctor_user.save(update_fields=['first_name', 'last_name'])
+		self.client.force_login(doctor_user)
+
+		response = self.client.post(
+			reverse('core:quick_edit_profile'),
+			{'field_name': 'position', 'field_value': 'Changed Position'},
+		)
+		self.assertRedirects(response, reverse('core:profile'))
+
+		profile = doctor_user.staff_profile
+		profile.refresh_from_db()
+		self.assertEqual(profile.position, 'Attending Physician')
+
+	def test_staff_edit_profile_hides_position_field(self):
+		staff_user = User.objects.create_user(
+			email='staff-edit@jmcfi.edu.ph',
+			password='StaffEdit123!',
+			role='staff',
+			is_active=True,
+		)
+		_complete_staff_like_profile(staff_user, 'STAFF-PROFILE-EDIT-001')
+		staff_user.first_name = 'Staff'
+		staff_user.last_name = 'User'
+		staff_user.save(update_fields=['first_name', 'last_name'])
+		self.client.force_login(staff_user)
+
+		response = self.client.get(reverse('core:edit_profile'))
+
+		self.assertEqual(response.status_code, 200)
+		self.assertNotContains(response, 'name="position"')
+		self.assertContains(response, 'This field is managed by an administrator.')
 
 	def test_doctor_quick_edit_allows_license_and_ptr(self):
 		doctor_user = User.objects.create_user(
@@ -752,6 +834,24 @@ class ProfilePageRefactorTests(TestCase):
 		self.assertTrue(payload['success'])
 		self.staff_user.staff_profile.refresh_from_db()
 		self.assertEqual(self.staff_user.staff_profile.address, '789 Refactored Street')
+
+	def test_profile_supports_religion_and_citizenship_fields(self):
+		self.client.force_login(self.staff_user)
+		edit_response = self.client.get(reverse('core:edit_profile'))
+		self.assertEqual(edit_response.status_code, 200)
+		self.assertContains(edit_response, 'name="religion"')
+		self.assertContains(edit_response, 'name="citizenship"')
+
+		quick_edit_response = self.client.post(
+			reverse('core:quick_edit_profile'),
+			{'field_name': 'religion', 'field_value': 'Roman Catholic'},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(quick_edit_response.status_code, 200)
+		self.assertTrue(quick_edit_response.json()['success'])
+
+		self.staff_user.staff_profile.refresh_from_db()
+		self.assertEqual(self.staff_user.staff_profile.religion, 'Roman Catholic')
 
 
 @override_settings(

@@ -35,6 +35,7 @@ def _complete_staff_profile(user, staff_id='STAFF-001'):
     profile.place_of_birth = 'Davao'
     profile.age = 26
     profile.address = '123 Clinic St, Davao'
+    profile.zip_code = '8000'
     profile.department = 'Clinic Operations'
     profile.phone = '+639123456789'
     profile.emergency_contact = 'Emergency Person'
@@ -49,6 +50,7 @@ def _complete_staff_profile(user, staff_id='STAFF-001'):
             'place_of_birth',
             'age',
             'address',
+            'zip_code',
             'department',
             'phone',
             'emergency_contact',

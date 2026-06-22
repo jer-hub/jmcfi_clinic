@@ -82,6 +82,42 @@
                 {% endif %}
             </div>
 
+            <!-- Religion -->
+            <div class="form-group">
+                <label for="{{ form.religion.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Religion <span class="text-red-600">*</span>
+                </label>
+                {{ form.religion }}
+                {% if form.religion.errors %}
+                    {% for error in form.religion.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Citizenship -->
+            <div class="form-group">
+                <label for="{{ form.citizenship.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Citizenship <span class="text-red-600">*</span>
+                </label>
+                {{ form.citizenship }}
+                {% if form.citizenship.errors %}
+                    {% for error in form.citizenship.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
             <!-- Date of Birth -->
             <div class="form-group">
                 <label for="{{ form.date_of_birth.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
@@ -145,6 +181,7 @@
             <div class="md:col-span-2">
                 {% include "components/forms/field.html" with field=form.address label="Complete Residential Address" %}
             </div>
+            {% include "components/forms/field.html" with field=form.zip_code label="Zip Code" required=False help_text="Postal or ZIP code for your address." %}
             {% include "components/forms/field.html" with field=form.phone label="Mobile Phone Number" help_text="Use format +63XXXXXXXXXX (e.g., +639171234567)." %}
             {% include "components/forms/field.html" with field=form.telephone_number label="Telephone Number" required=False help_text="Optional landline number." %}
             {% include "components/forms/field.html" with field=form.emergency_contact label="Emergency Contact Person" help_text="Full name of person to contact in emergency." %}

@@ -51,7 +51,7 @@ def get_or_create_profile(user):
     return profile
 
 
-def instantiate_profile_form(user, profile=None, data=None, files=None):
+def instantiate_profile_form(user, profile=None, data=None, files=None, editor=None):
     """Build a profile ModelForm for *user* (staff forms receive user= for role policy)."""
     form_class = profile_form_class(user)
     kwargs = {}
@@ -63,7 +63,7 @@ def instantiate_profile_form(user, profile=None, data=None, files=None):
         kwargs['files'] = files
     if role_matches(user.role, ROLE_PATIENT):
         return form_class(**kwargs)
-    return form_class(user=user, **kwargs)
+    return form_class(user=user, editor=editor, **kwargs)
 
 
 def patient_catalog_context_for_form(form, user):

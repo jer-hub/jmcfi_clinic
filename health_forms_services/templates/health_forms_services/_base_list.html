@@ -11,7 +11,7 @@
 {% block title %}{% block list_head_title %}{{ form_type_label }}{% endblock %} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-6">
     {% include 'health_forms_services/_subnav.html' %}
 
     {% include "components/page_header.html" with title=form_type_label subtitle=list_subtitle_text|default:"" icon="fa-file-medical" %}

@@ -213,12 +213,15 @@ class PatientProfile(models.Model):
     middle_name = models.CharField(max_length=100, blank=True, default='')
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, default='')
     civil_status = models.CharField(max_length=20, choices=CIVIL_STATUS_CHOICES, blank=True, default='')
+    religion = models.CharField(max_length=100, blank=True, default='')
+    citizenship = models.CharField(max_length=100, blank=True, default='')
     date_of_birth = models.DateField(null=True, blank=True)
     place_of_birth = models.CharField(max_length=200, blank=True, default='')
     age = models.IntegerField(null=True, blank=True)
     
     # Contact Information
     address = models.TextField(blank=True, default='')
+    zip_code = models.CharField(max_length=10, blank=True, default='')
     phone = models.CharField(max_length=20, blank=True, default='')
     telephone_number = models.CharField(max_length=20, blank=True, default='')
     emergency_contact = models.CharField(max_length=100, blank=True, default='')
@@ -283,12 +286,15 @@ class StaffProfile(models.Model):
     middle_name = models.CharField(max_length=100, blank=True, default='')
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, default='')
     civil_status = models.CharField(max_length=20, choices=CIVIL_STATUS_CHOICES, blank=True, default='')
+    religion = models.CharField(max_length=100, blank=True, default='')
+    citizenship = models.CharField(max_length=100, blank=True, default='')
     date_of_birth = models.DateField(null=True, blank=True)
     place_of_birth = models.CharField(max_length=200, blank=True, default='')
     age = models.IntegerField(null=True, blank=True)
     
     # Contact Information
     address = models.TextField(blank=True, default='')
+    zip_code = models.CharField(max_length=10, blank=True, default='')
     phone = models.CharField(max_length=20, blank=True, default='')
     telephone_number = models.CharField(max_length=20, blank=True, default='')
     emergency_contact = models.CharField(max_length=100, blank=True, default='')

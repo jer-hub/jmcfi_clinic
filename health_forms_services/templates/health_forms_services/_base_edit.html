@@ -66,7 +66,8 @@
       <form method="post"
             action=""
             data-section="{{ tab_key }}"
-            data-section-save="ajax"
+            {% if tab_key != 'personal' %}data-section-save="ajax"{% endif %}
+            {% if tab_key == 'personal' %}data-section-readonly="1"{% endif %}
             class="space-y-6 flex flex-col min-h-[50vh]"
             novalidate
             {% if tab_key == 'medical' %}x-data="immunizationMedicalForm({{ form.immunization_flags_json }})"{% elif tab_key == 'diagnostic' %}x-data="diagnosticTestsForm({{ form.diagnostic_flags_json }})"{% elif tab_key == 'conditions' and 'examination' in forms %}x-data="dentalConditionsForm({{ form.cond_others_checked_json }})"{% endif %}>
@@ -170,15 +171,23 @@
         <div class="flex-1"></div>
 
         {# ── Sticky section save bar ── #}
+        {% if tab_key == 'personal' %}
+        <div class="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mt-6 bg-gray-50/95 backdrop-blur-sm border-t border-gray-200 flex items-center gap-2 z-10">
+          <span class="text-sm text-gray-600 font-medium flex items-center gap-2">
+            <i class="fas fa-lock text-gray-400"></i>Personal information is read-only
+          </span>
+        </div>
+        {% else %}
         <div class="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mt-6 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex justify-end items-center gap-3 z-10">
           <span data-save-indicator="{{ tab_key }}" class="hidden text-xs text-success-600 font-medium">
             <i class="fas fa-check mr-1"></i>Saved
           </span>
           <button type="submit"
                   class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
-            <i class="fas fa-floppy-disk"></i>Save {{ tab.label }}
+            <i class="fas fa-floppy-disk"></i>Save {% for t in tabs %}{% if t.key == tab_key %}{{ t.label }}{% endif %}{% endfor %}
           </button>
         </div>
+        {% endif %}
       </form>
     </div>
     {% endfor %}
@@ -230,5 +239,19 @@ function dentalConditionsForm(initialOthers) {
 
 {% block scripts %}
 {{ block.super }}
+<script src="{% static 'js/student-list-field.js' %}"></script>
 <script src="{% static 'js/health-form-edit.js' %}"></script>
+<script>
+(function enforceReadOnlySections() {
+  document.querySelectorAll('form[data-section-readonly="1"]').forEach((form) => {
+    form.querySelectorAll('input, select, textarea, button').forEach((el) => {
+      if (el.type === 'hidden') return;
+      el.readOnly = true;
+      el.disabled = true;
+      el.setAttribute('aria-readonly', 'true');
+      el.classList.add('bg-gray-50', 'cursor-not-allowed', 'opacity-90');
+    });
+  });
+})();
+</script>
 {% endblock scripts %}

@@ -4,6 +4,7 @@ from django.urls import reverse
 
 from core.models import PatientProfile, StaffProfile, User
 from health_forms_services.forms import DIAGNOSTIC_TEST_TRIPLETS, IMMUNIZATION_FLAG_DATE_PAIRS
+from health_forms_services.forms import HealthProfilePersonalInfoForm
 from health_forms_services.models import (
 	DentalHealthForm,
 	DentalServicesRequest,
@@ -89,6 +90,7 @@ class HealthFormsPatientPickerTests(TestCase):
 				'gender': 'female',
 				'civil_status': 'single',
 				'address': '123 Main St',
+				'zip_code': '1000',
 				'phone': '09171234567',
 				'telephone_number': '0281234567',
 				'emergency_contact': 'Parent Name',
@@ -96,6 +98,9 @@ class HealthFormsPatientPickerTests(TestCase):
 				'course': 'BSN',
 				'department': 'College of Nursing',
 				'age': 21,
+				'blood_type': 'O+',
+				'allergies': 'Peanuts',
+				'medical_conditions': 'Asthma',
 			},
 		)
 
@@ -140,6 +145,18 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertEqual(payload['contact_number'], '09171234567')
 		self.assertEqual(payload['department_college_office'], 'BSN - College of Nursing')
 		self.assertEqual(payload['guardian_name'], 'Parent Name')
+		self.assertEqual(payload['blood_type'], 'O+')
+		self.assertEqual(payload['allergies'], 'Peanuts')
+		self.assertEqual(payload['medical_conditions'], 'Asthma')
+		self.assertEqual(payload['zip_code'], '1000')
+
+	def test_health_profile_picker_mappings_include_medical_fields(self):
+		from health_forms_services.picker_mappings import picker_field_mappings
+
+		mappings = picker_field_mappings('health_profile')
+		self.assertEqual(mappings.get('blood_type'), 'blood_type')
+		self.assertEqual(mappings.get('allergies'), 'allergies')
+		self.assertEqual(mappings.get('medical_conditions'), 'medical_conditions')
 
 	def test_create_patient_chart_uses_selected_patient_user(self):
 		response = self.client.post(
@@ -410,6 +427,14 @@ class HealthFormSectionSaveTests(TestCase):
 			date_of_birth='2000-01-15',
 			gender='female',
 		)
+		PatientProfile.objects.update_or_create(
+			user=self.patient,
+			defaults={
+				'patient_id': 'PAT-SAVE-001',
+				'blood_type': '',
+				'medical_conditions': '',
+			},
+		)
 		self.client.force_login(self.doctor)
 		self.edit_url = reverse('health_forms_services:edit_form', args=[self.health_form.pk])
 
@@ -627,15 +652,18 @@ class HealthFormSectionSaveTests(TestCase):
 			guardian_name='John Doe Sr.',
 			guardian_contact='+639191112233',
 		))
-		self.assertEqual(response.status_code, 200, response.content)
-		self.assertTrue(response.json()['success'])
-		self.health_form.refresh_from_db()
-		self.assertEqual(self.health_form.middle_name, 'Marie')
-		self.assertEqual(self.health_form.permanent_address, '123 Main St, Manila')
-		self.assertEqual(self.health_form.zip_code, '1000')
-		self.assertEqual(self.health_form.telephone_number, '+639181112233')
-		self.assertEqual(self.health_form.guardian_contact, '+639191112233')
-		self.assertEqual(self.health_form.course, 'BS Nursing')
+		self.assertEqual(response.status_code, 403, response.content)
+		self.assertFalse(response.json()['success'])
+		self.assertEqual(response.json()['error'], 'Personal Info section is read-only.')
+
+	def test_personal_section_syncs_medical_background_to_patient_profile(self):
+		response = self._ajax_save(self._personal_post_data(
+			blood_type='B+',
+			medical_conditions='Hypertension',
+		))
+		self.assertEqual(response.status_code, 403, response.content)
+		self.assertFalse(response.json()['success'])
+		self.assertEqual(response.json()['error'], 'Personal Info section is read-only.')
 
 	def test_personal_phone_fields_reject_invalid_format(self):
 		for field in ('mobile_number', 'telephone_number', 'guardian_contact'):
@@ -655,6 +683,13 @@ class HealthFormSectionSaveTests(TestCase):
 		self.assertEqual(self.health_form.allergies, 'Penicillin')
 		self.assertEqual(self.health_form.menarche_age, 12)
 		self.assertEqual(self.health_form.immunization_others, 'Tdap booster')
+
+	def test_medical_section_syncs_allergies_to_patient_profile(self):
+		response = self._ajax_save(self._medical_post_data(allergies='Peanut'))
+		self.assertEqual(response.status_code, 200, response.content)
+		self.assertTrue(response.json()['success'])
+		profile = PatientProfile.objects.get(user=self.patient)
+		self.assertEqual(profile.allergies, 'Peanut')
 
 	def test_medical_immunization_checked_without_date_returns_error(self):
 		data = self._medical_post_data()
@@ -1016,5 +1051,41 @@ class DentalServicesProcessFlowTests(TestCase):
 		self.assertRedirects(
 			response,
 			reverse('health_forms_services:edit_dental_services', args=[created.pk]) + '?section=perio',
+		)
+
+
+class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
+	def _institutional_field_names(self, form):
+		sections = form.personal_info_sections()
+		institutional = next(s for s in sections if s.get('key') == 'institutional_details')
+		return [item['name'] for item in institutional['fields']]
+
+	def test_designation_field_excludes_employee_option(self):
+		form = HealthProfilePersonalInfoForm()
+		choice_values = [value for value, _ in form.fields['designation'].choices]
+		self.assertNotIn('employee', choice_values)
+
+	def test_institutional_fields_for_student_designation(self):
+		form = HealthProfilePersonalInfoForm(initial={'designation': 'student'})
+		field_names = self._institutional_field_names(form)
+		self.assertEqual(
+			field_names,
+			['designation', 'institution_id', 'department_college_office', 'course', 'year_level'],
+		)
+
+	def test_institutional_fields_for_doctor_designation(self):
+		form = HealthProfilePersonalInfoForm(initial={'designation': 'doctor'})
+		field_names = self._institutional_field_names(form)
+		self.assertEqual(
+			field_names,
+			[
+				'designation',
+				'institution_id',
+				'department_college_office',
+				'position',
+				'specialization',
+				'license_number',
+				'ptr_no',
+			],
 		)
 

@@ -495,6 +495,9 @@
   function initForms() {
     document.querySelectorAll('form[data-section]').forEach(function (form) {
       var key = form.getAttribute('data-section');
+      if (form.getAttribute('data-section-readonly') === '1') {
+        return;
+      }
       dirty[key] = false;
       form.addEventListener('input', function () {
         markDirty(key);

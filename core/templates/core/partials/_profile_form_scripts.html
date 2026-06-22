@@ -178,5 +178,16 @@ function studentListField(initialValue) {
             this.listItems.splice(index, 1);
             this.syncValue();
         },
+
+        reloadFromValue(value) {
+            this.serializedValue = value || '';
+            this.listInput = '';
+            this.validationError = '';
+            this.listItems = (this.serializedValue || '')
+                .split(/[\n,;]+/)
+                .map((item) => item.trim())
+                .filter((item, index, items) => item && items.indexOf(item) === index);
+            this.syncValue();
+        },
     };
 }

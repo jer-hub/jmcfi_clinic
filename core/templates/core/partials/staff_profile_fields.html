@@ -6,29 +6,26 @@
   {% else %}
   {% include "core/partials/_profile_form_section.html" with title="Personal & Demographic Information" icon="fa-user-check" icon_theme="purple" %}
       {% include "components/forms/field.html" with field=form.staff_id label="Staff ID" %}
-      {% include "components/forms/field.html" with field=form.middle_name label="Middle Name" %}
-      {% include "components/forms/field.html" with field=form.gender label="Gender" %}
-      {% include "components/forms/field.html" with field=form.civil_status label="Civil Status" %}
-      {% include "components/forms/field.html" with field=form.date_of_birth label="Date of Birth" %}
-      {% include "components/forms/field.html" with field=form.age label="Age" %}
-      <div class="md:col-span-2 lg:col-span-3">
-        {% include "components/forms/field.html" with field=form.place_of_birth label="Place of Birth" %}
-      </div>
+      {% include "core/partials/_staff_demographics_fields.html" %}
   {% include "core/partials/_profile_form_section_end.html" %}
 
   {% include "core/partials/_profile_form_section.html" with title="Contact Information" icon="fa-address-book" icon_theme="blue" grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-start" %}
-      <div class="md:col-span-2">
-        {% include "components/forms/field.html" with field=form.address label="Complete Residential Address" %}
-      </div>
-      {% include "components/forms/field.html" with field=form.phone label="Mobile Phone Number" help_text="Use format +63XXXXXXXXXX (e.g., +639171234567)." %}
-      {% include "components/forms/field.html" with field=form.telephone_number label="Telephone Number" required=False help_text="Optional landline number." %}
-      {% include "components/forms/field.html" with field=form.emergency_contact label="Emergency Contact Person" help_text="Full name of person to contact in emergency." %}
-      {% include "components/forms/field.html" with field=form.emergency_phone label="Emergency Contact Number" help_text="Use format +63XXXXXXXXXX (e.g., +639171234567)." %}
+      {% include "core/partials/_staff_contact_fields.html" %}
   {% include "core/partials/_profile_form_section_end.html" %}
 
   {% include "core/partials/_profile_form_section.html" with title="Professional Information" icon="fa-briefcase-medical" icon_theme="indigo" grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-start" %}
       {% include "components/forms/field.html" with field=form.department label="Department" help_text="e.g., Cardiology, Emergency, Administration" %}
+      {% if form.position %}
       {% include "components/forms/field.html" with field=form.position label="Position" help_text="e.g., Doctor, Nurse, Medical Technologist" %}
+      {% else %}
+      <div class="space-y-1">
+        <label class="block text-sm font-medium text-gray-700">Position</label>
+        <div class="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+          {{ form.instance.position|default:"Set by an administrator" }}
+        </div>
+        <p class="text-xs text-gray-500">This field is managed by an administrator.</p>
+      </div>
+      {% endif %}
       {% include "components/forms/field.html" with field=form.specialization label="Specialization" required=False help_text="Your medical or professional specialization." %}
       {% include "components/forms/field.html" with field=form.license_number label="License Number" help_text="PRC medical or professional license number." %}
       {% include "components/forms/field.html" with field=form.ptr_no label="PTR No." help_text="Required for issuing medical certificates and official documents." %}

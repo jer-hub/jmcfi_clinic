@@ -95,9 +95,9 @@ class StudentProfileForm(forms.ModelForm):
         fields = [
             'patient_id', 'profile_image', 
             # Demographics
-            'middle_name', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth', 'age',
+            'middle_name', 'gender', 'civil_status', 'religion', 'citizenship', 'date_of_birth', 'place_of_birth', 'age',
             # Contact Information
-            'address', 'phone', 'telephone_number', 'emergency_contact', 'emergency_phone',
+            'address', 'zip_code', 'phone', 'telephone_number', 'emergency_contact', 'emergency_phone',
             # Institutional Information
             'course', 'year_level', 'department',
             # Medical Information
@@ -129,6 +129,14 @@ class StudentProfileForm(forms.ModelForm):
                 'class': SELECT_CLASS,
                 'required': True
             }),
+            'religion': forms.TextInput(attrs={
+                'class': INPUT_CLASS,
+                'placeholder': 'e.g., Roman Catholic',
+            }),
+            'citizenship': forms.TextInput(attrs={
+                'class': INPUT_CLASS,
+                'placeholder': 'e.g., Filipino',
+            }),
             'date_of_birth': forms.DateInput(attrs={
                 'class': INPUT_CLASS,
                 'type': 'date',
@@ -150,6 +158,10 @@ class StudentProfileForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Complete residential address',
                 'required': True
+            }),
+            'zip_code': forms.TextInput(attrs={
+                'class': INPUT_CLASS,
+                'placeholder': '1000',
             }),
             'telephone_number': forms.TextInput(attrs={
                 **PHONE_WIDGET_ATTRS,
@@ -193,6 +205,7 @@ class StudentProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
+        self.editor = kwargs.pop('editor', None)
         super().__init__(*args, **kwargs)
         # Add empty choice for select fields
         self.fields['blood_type'].empty_label = "Select your blood type"
@@ -295,9 +308,9 @@ class StaffProfileForm(forms.ModelForm):
         fields = [
             'staff_id', 'profile_image',
             # Demographics
-            'middle_name', 'gender', 'civil_status', 'date_of_birth', 'place_of_birth', 'age',
+            'middle_name', 'gender', 'civil_status', 'religion', 'citizenship', 'date_of_birth', 'place_of_birth', 'age',
             # Contact Information
-            'address', 'phone', 'telephone_number', 'emergency_contact', 'emergency_phone',
+            'address', 'zip_code', 'phone', 'telephone_number', 'emergency_contact', 'emergency_phone',
             # Institutional Information
             'department', 'position', 'specialization', 'license_number',
             'ptr_no',
@@ -329,6 +342,14 @@ class StaffProfileForm(forms.ModelForm):
                 'class': SELECT_CLASS,
                 'required': True
             }),
+            'religion': forms.TextInput(attrs={
+                'class': INPUT_CLASS,
+                'placeholder': 'e.g., Roman Catholic',
+            }),
+            'citizenship': forms.TextInput(attrs={
+                'class': INPUT_CLASS,
+                'placeholder': 'e.g., Filipino',
+            }),
             'date_of_birth': forms.DateInput(attrs={
                 'class': INPUT_CLASS,
                 'type': 'date',
@@ -350,6 +371,10 @@ class StaffProfileForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'Complete residential address',
                 'required': True
+            }),
+            'zip_code': forms.TextInput(attrs={
+                'class': INPUT_CLASS,
+                'placeholder': '1000',
             }),
             'telephone_number': forms.TextInput(attrs={
                 **PHONE_WIDGET_ATTRS,
@@ -398,6 +423,7 @@ class StaffProfileForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
+        self.editor = kwargs.pop('editor', None)
         super().__init__(*args, **kwargs)
 
         role = None
@@ -430,6 +456,16 @@ class StaffProfileForm(forms.ModelForm):
         ):
             self.initial['emergency_phone'] = '+63'
 
+        can_edit_admin_managed_fields = (
+            self.editor is not None
+            and getattr(self.editor, 'role', None) == 'admin'
+            and self.user is not None
+            and self.editor.pk != self.user.pk
+        )
+
+        if not can_edit_admin_managed_fields and 'position' in self.fields:
+            self.fields.pop('position')
+
         if role == 'doctor':
             for hidden_field in ['blood_type', 'allergies', 'medical_conditions']:
                 if hidden_field in self.fields:
@@ -438,7 +474,6 @@ class StaffProfileForm(forms.ModelForm):
         if role == 'admin':
             # Admin profiles should not collect professional or medical-health details.
             for hidden_field in [
-                'department',
                 'position',
                 'specialization',
                 'license_number',
@@ -449,22 +484,6 @@ class StaffProfileForm(forms.ModelForm):
             ]:
                 if hidden_field in self.fields:
                     self.fields.pop(hidden_field)
-            # Demographics are optional for admin unless listed in role policy.
-            for optional_admin_field in [
-                'middle_name',
-                'gender',
-                'civil_status',
-                'date_of_birth',
-                'place_of_birth',
-                'age',
-                'address',
-                'telephone_number',
-                'emergency_contact',
-                'emergency_phone',
-            ]:
-                if optional_admin_field in self.fields:
-                    self.fields[optional_admin_field].required = False
-            sync_widget_required_attrs(self)
 
     def clean_phone(self):
         return clean_strict_ph_number(

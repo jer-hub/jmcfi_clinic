@@ -42,10 +42,13 @@ def _complete_staff_like_profile(user, staff_id):
     profile.middle_name = 'M'
     profile.gender = 'male'
     profile.civil_status = 'single'
+    profile.religion = 'Roman Catholic'
+    profile.citizenship = 'Filipino'
     profile.date_of_birth = '2000-01-01'
     profile.place_of_birth = 'Davao'
     profile.age = 26
     profile.address = '123 Clinic St, Davao'
+    profile.zip_code = '8000'
     profile.department = 'Clinic Operations'
     profile.phone = '+639123456789'
     profile.emergency_contact = 'Emergency Person'
@@ -56,10 +59,13 @@ def _complete_staff_like_profile(user, staff_id):
             'middle_name',
             'gender',
             'civil_status',
+            'religion',
+            'citizenship',
             'date_of_birth',
             'place_of_birth',
             'age',
             'address',
+            'zip_code',
             'department',
             'phone',
             'emergency_contact',
@@ -68,6 +74,18 @@ def _complete_staff_like_profile(user, staff_id):
     )
     profile.refresh_from_db()
 
+    user.__dict__.pop('staff_profile', None)
+    user._state.fields_cache.pop('staff_profile', None)
+
+
+def _complete_doctor_profile(user, staff_id):
+    _complete_staff_like_profile(user, staff_id)
+    profile = user.staff_profile
+    profile.position = 'Attending Physician'
+    profile.license_number = 'PRC-123456'
+    profile.ptr_no = 'PTR-789012'
+    profile.save(update_fields=['position', 'license_number', 'ptr_no'])
+    profile.refresh_from_db()
     user.__dict__.pop('staff_profile', None)
     user._state.fields_cache.pop('staff_profile', None)
 
@@ -89,6 +107,8 @@ def _complete_student_profile(user, student_id):
     profile.year_level = '1st Year'
     profile.gender = 'male'
     profile.civil_status = 'single'
+    profile.religion = 'Roman Catholic'
+    profile.citizenship = 'Filipino'
     profile.place_of_birth = 'Manila'
     profile.age = 23
     profile.address = 'Manila'
@@ -749,6 +769,25 @@ class AdminUserEditProfileTests(TestCase):
         self.assertContains(response, 'Staff ID')
         self.assertContains(response, 'Professional Information')
         self.assertContains(response, 'Contact Information')
+        self.assertContains(response, 'name="position"')
+
+    def test_get_doctor_edit_keeps_position_admin_editable(self):
+        doctor = User.objects.create_user(
+            email='doctor-profile-edit@test.com',
+            password='DoctorPass123!',
+            role='doctor',
+            first_name='Doc',
+            last_name='Tor',
+            is_active=True,
+        )
+        _complete_doctor_profile(doctor, 'DOC-PROF-001')
+
+        response = self.client.get(
+            reverse('core:user_edit', kwargs={'user_id': doctor.id}),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Clinical Credentials')
+        self.assertContains(response, 'name="position"')
 
     def test_post_updates_staff_profile_fields(self):
         staff = User.objects.create_user(
@@ -774,10 +813,13 @@ class AdminUserEditProfileTests(TestCase):
                 'middle_name': profile.middle_name,
                 'gender': profile.gender,
                 'civil_status': profile.civil_status,
+                'religion': profile.religion,
+                'citizenship': profile.citizenship,
                 'date_of_birth': profile.date_of_birth,
                 'place_of_birth': profile.place_of_birth,
                 'age': profile.age,
                 'address': '456 Updated Avenue, Davao',
+                'zip_code': '8001',
                 'phone': '+639171234567',
                 'emergency_contact': profile.emergency_contact,
                 'emergency_phone': profile.emergency_phone,
@@ -792,6 +834,53 @@ class AdminUserEditProfileTests(TestCase):
         self.assertEqual(profile.staff_id, 'STAFF-NEW')
         self.assertEqual(profile.phone, '+639171234567')
         self.assertEqual(profile.address, '456 Updated Avenue, Davao')
+
+    def test_post_updates_doctor_position_for_admin(self):
+        doctor = User.objects.create_user(
+            email='doctor-post-edit@test.com',
+            password='DoctorPass123!',
+            role='doctor',
+            first_name='Doc',
+            last_name='Tor',
+            is_active=True,
+        )
+        _complete_doctor_profile(doctor, 'DOC-OLD')
+        profile = doctor.staff_profile
+
+        response = self.client.post(
+            reverse('core:user_edit', kwargs={'user_id': doctor.id}),
+            {
+                'email': doctor.email,
+                'first_name': doctor.first_name,
+                'last_name': doctor.last_name,
+                'role': 'doctor',
+                'is_active': 'on',
+                'staff_id': profile.staff_id,
+                'middle_name': profile.middle_name,
+                'gender': profile.gender,
+                'civil_status': profile.civil_status,
+                'religion': profile.religion,
+                'citizenship': profile.citizenship,
+                'date_of_birth': profile.date_of_birth,
+                'place_of_birth': profile.place_of_birth,
+                'age': profile.age,
+                'address': profile.address,
+                'zip_code': profile.zip_code,
+                'phone': profile.phone,
+                'emergency_contact': profile.emergency_contact,
+                'emergency_phone': profile.emergency_phone,
+                'department': profile.department,
+                'position': 'Dental Officer',
+                'license_number': profile.license_number,
+                'ptr_no': profile.ptr_no,
+            },
+        )
+        self.assertRedirects(
+            response,
+            reverse('core:user_detail', kwargs={'user_id': doctor.id}),
+        )
+        profile.refresh_from_db()
+        self.assertEqual(profile.position, 'Dental Officer')
 
     def test_post_role_change_recreates_profile_stub(self):
         staff = User.objects.create_user(
@@ -817,10 +906,13 @@ class AdminUserEditProfileTests(TestCase):
                 'middle_name': profile.middle_name,
                 'gender': profile.gender,
                 'civil_status': profile.civil_status,
+                'religion': profile.religion,
+                'citizenship': profile.citizenship,
                 'date_of_birth': profile.date_of_birth,
                 'place_of_birth': profile.place_of_birth,
                 'age': profile.age,
                 'address': profile.address,
+                'zip_code': profile.zip_code,
                 'phone': profile.phone,
                 'emergency_contact': profile.emergency_contact,
                 'emergency_phone': profile.emergency_phone,

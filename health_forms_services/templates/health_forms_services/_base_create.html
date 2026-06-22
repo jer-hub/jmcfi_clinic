@@ -5,7 +5,8 @@
 {#   {% block back_url %}{% endblock %} — "Back to ..." link               #}
 {#   {% block back_label %}Back{% endblock %} — link text                  #}
 {#   {% block page_title %}New Form{% endblock %} — <h1> heading           #}
-{#   {% block section_title %}Information{% endblock %} — card section h2  #}
+{#   {% block page_subtitle %}{% endblock %} — optional subtitle           #}
+{#   {% block page_icon %}fa-file-medical{% endblock %} — header icon     #}
 {#   {% block form_fields %}...{% endblock %} — the actual form fields      #}
 {#   {% block info_note %}{% endblock %} — optional info banner             #}
 {#   {% block form_actions %}...{% endblock %} — Cancel + Submit buttons    #}
@@ -16,25 +17,28 @@
 
 {% block title %}{% block create_title %}New Form{% endblock %} - JMCFI Clinic{% endblock %}
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-6">
     {% include 'health_forms_services/_subnav.html' %}
 
+    {% block page_header %}
     <div class="mb-4">
-      <a href="{% block back_url %}#{% endblock %}" class="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+      <a href="{% block back_url %}#{% endblock %}"
+         class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
         <i class="fas fa-arrow-left"></i>{% block back_label %}Back{% endblock %}
       </a>
     </div>
-
     <div class="mb-6">
-      <div class="bg-white border border-gray-200 rounded-card shadow-sm p-5">
-        <div class="flex items-start gap-3">
-          <span class="inline-flex items-center justify-center w-11 h-11 rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-file-medical text-lg"></i></span>
-          <div class="flex-1 min-w-0">
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">{% block page_title %}New Form{% endblock %}</h1>
-          </div>
+      <div class="flex items-start gap-3 min-w-0">
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex-shrink-0">
+          <i class="fas {% block page_icon %}fa-file-medical{% endblock %} text-lg"></i>
+        </span>
+        <div class="min-w-0">
+          <h1 class="text-xl sm:text-2xl font-bold text-gray-900">{% block page_title %}New Form{% endblock %}</h1>
+          {% block page_subtitle %}{% endblock %}
         </div>
       </div>
     </div>
+    {% endblock %}
 
     {# ── Global error banner (override in child templates for custom form variable names) ── #}
     {% block error_banner %}
@@ -55,33 +59,25 @@
     {% endif %}
     {% endblock %}
 
-    <form method="post" novalidate>
+    <form method="post" novalidate class="space-y-6">
       {% csrf_token %}
 
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm">
-        <div class="px-4 sm:px-5 py-4 border-b border-gray-200">
-          <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
-            {% block section_icon %}{% endblock %}
-            {% block section_title %}Information{% endblock %}
-          </h2>
-        </div>
-        <div class="p-4 sm:p-6">
-          {% block form_fields %}{% endblock %}
-        </div>
+      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
+        {% block form_fields %}{% endblock %}
       </div>
 
       {% block info_note %}{% endblock %}
 
       {% block extra_content %}{% endblock %}
 
-      <div class="flex flex-wrap justify-end gap-3 mt-6">
+      <div class="flex flex-wrap justify-end gap-3">
         {% block form_actions %}
         <a href="{% block cancel_url %}#{% endblock %}"
            class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
           <i class="fas fa-xmark"></i>Cancel
         </a>
         <button type="submit"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors">
+                class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
           <i class="fas fa-floppy-disk"></i>{% block submit_label %}Create{% endblock %}
         </button>
         {% endblock %}
@@ -92,5 +88,6 @@
 
 {% block scripts %}
 {{ block.super }}
-<script src="{% static 'js/hf-patient-picker.js' %}"></script>
+<script src="{% static 'js/student-list-field.js' %}?v=2"></script>
+<script src="{% static 'js/hf-patient-picker.js' %}?v=2"></script>
 {% endblock %}

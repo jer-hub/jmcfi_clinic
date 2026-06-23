@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from allauth.socialaccount.signals import social_account_added, pre_social_login
 from .models import PatientProfile, StaffProfile, UserPreferences
 from .roles import ROLE_PATIENT, normalize_role
+from .utils import normalize_person_name
 import requests
 from django.core.files.base import ContentFile
 import logging
@@ -41,8 +42,8 @@ def populate_user_from_google(sender, request, sociallogin, **kwargs):
         
         # Populate user model fields from Google data
         user.email = google_data.get('email', '')
-        user.first_name = google_data.get('given_name', '')
-        user.last_name = google_data.get('family_name', '')
+        user.first_name = normalize_person_name(google_data.get('given_name', ''))
+        user.last_name = normalize_person_name(google_data.get('family_name', ''))
         
         logger.info(f"Google OAuth data captured for {user.email}: "
                    f"Name: {user.first_name} {user.last_name}")

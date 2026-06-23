@@ -3,39 +3,6 @@
   Expects: user_item
 {% endcomment %}
 <div class="inline-flex items-center gap-1">
-  <form method="POST"
-        action="{% url 'core:user_restore' user_item.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
-        hx-post="{% url 'core:user_restore' user_item.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
-        hx-target="#deleted-users-shell"
-        hx-select="#deleted-users-shell"
-        hx-swap="outerHTML"
-        class="inline-block">
-    {% csrf_token %}
-    <button type="submit"
-            class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-            title="Restore">
-      <i class="fas fa-rotate-left" aria-hidden="true"></i>
-      <span class="sr-only">Restore</span>
-    </button>
-  </form>
-  <form id="deleted-user-permanent-delete-form-{{ user_item.id }}"
-        x-data
-        method="POST"
-        action="{% url 'core:deleted_user_permanent_delete' user_item.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
-        hx-post="{% url 'core:deleted_user_permanent_delete' user_item.id %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
-        hx-target="#deleted-users-shell"
-        hx-select="#deleted-users-shell"
-        hx-swap="outerHTML"
-        class="inline-block">
-    {% csrf_token %}
-    <button type="button"
-            class="p-2 text-danger-600 hover:bg-danger-50 rounded-lg transition-colors"
-            title="Delete permanently"
-            @click="$dispatch('open-modal', {type:'danger', title: 'Delete permanently?', subtitle:'{{ user_item.get_full_name|escapejs }} ({{ user_item.email|escapejs }})', message:'This will permanently remove this account and all associated data. This action cannot be undone.', actionLabel: 'Delete permanently', size:'sm', onConfirm: () => htmx.trigger(document.getElementById('deleted-user-permanent-delete-form-{{ user_item.id }}'), 'submit')})">
-      <i class="fas fa-trash-can" aria-hidden="true"></i>
-      <span class="sr-only">Delete permanently</span>
-    </button>
-  </form>
   <a href="{% url 'core:user_detail' user_item.id %}"
      class="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
      title="View">

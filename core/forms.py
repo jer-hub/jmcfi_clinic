@@ -14,6 +14,7 @@ from .models import (
 )
 from .profile_policy import apply_profile_required_fields_to_form, sync_widget_required_attrs
 from .academic_catalog import is_course_optional_for_department
+from .utils import normalize_person_name
 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
@@ -661,6 +662,12 @@ class UserCreationForm(forms.ModelForm):
         if User.objects.filter(username__iexact=username).exists():
             raise forms.ValidationError("A user with this username already exists")
         return username
+
+    def clean_first_name(self):
+        return normalize_person_name(self.cleaned_data.get('first_name', ''))
+
+    def clean_last_name(self):
+        return normalize_person_name(self.cleaned_data.get('last_name', ''))
     
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -763,6 +770,12 @@ class UserEditForm(forms.ModelForm):
         if User.objects.filter(username__iexact=username).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("A user with this username already exists")
         return username
+
+    def clean_first_name(self):
+        return normalize_person_name(self.cleaned_data.get('first_name', ''))
+
+    def clean_last_name(self):
+        return normalize_person_name(self.cleaned_data.get('last_name', ''))
 
 
 class PasswordResetForm(forms.Form):

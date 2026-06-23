@@ -340,6 +340,11 @@ def resolve_notification_url(notification):
     return None
 
 
+def normalize_person_name(value):
+    """Normalize a person name for storage (trim, collapse spaces, title case)."""
+    return title_case_name(value)
+
+
 def title_case_name(value):
     """Format a person name for display (each word title-cased, supports hyphens/apostrophes)."""
     if value is None:

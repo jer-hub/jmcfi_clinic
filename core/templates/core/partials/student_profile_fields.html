@@ -181,7 +181,7 @@
             <div class="md:col-span-2">
                 {% include "components/forms/field.html" with field=form.address label="Complete Residential Address" %}
             </div>
-            {% include "components/forms/field.html" with field=form.zip_code label="Zip Code" required=False help_text="Postal or ZIP code for your address." %}
+            {% include "components/forms/field.html" with field=form.zip_code label="Zip Code" help_text="Postal or ZIP code for your address." %}
             {% include "components/forms/field.html" with field=form.phone label="Mobile Phone Number" help_text="Use format +63XXXXXXXXXX (e.g., +639171234567)." %}
             {% include "components/forms/field.html" with field=form.telephone_number label="Telephone Number" required=False help_text="Optional landline number." %}
             {% include "components/forms/field.html" with field=form.emergency_contact label="Emergency Contact Person" help_text="Full name of person to contact in emergency." %}

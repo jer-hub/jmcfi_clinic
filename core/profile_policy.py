@@ -23,6 +23,7 @@ PATIENT_PROFILE_REQUIRED_FIELDS = [
     'place_of_birth',
     'age',
     'address',
+    'zip_code',
     'phone',
     'emergency_contact',
     'emergency_phone',

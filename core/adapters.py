@@ -9,6 +9,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from core.settings_service import get_clinic_settings, get_google_allowed_domains
+from core.utils import normalize_person_name
 
 
 class NoPasswordAdapter(DefaultAccountAdapter):
@@ -86,8 +87,8 @@ class GoogleOnlyAdapter(DefaultSocialAccountAdapter):
         
         # Extract and populate user data from Google
         if sociallogin.account.provider == 'google':
-            user.first_name = data.get('given_name', '')
-            user.last_name = data.get('family_name', '')
+            user.first_name = normalize_person_name(data.get('given_name', ''))
+            user.last_name = normalize_person_name(data.get('family_name', ''))
             user.email = data.get('email', '')
         
         return user

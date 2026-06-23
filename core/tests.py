@@ -39,6 +39,7 @@ def _complete_student_profile(user, patient_id):
 	profile.place_of_birth = 'Manila'
 	profile.age = 23
 	profile.address = 'Manila'
+	profile.zip_code = '1000'
 	profile.blood_type = 'O+'
 	profile.save()
 	profile.refresh_from_db()
@@ -529,6 +530,21 @@ class AdminProfileCompletionRequirementTests(TestCase):
 
 		dashboard = self.client.get(reverse('core:dashboard'))
 		self.assertEqual(dashboard.status_code, 200)
+
+	def test_edit_profile_saves_names_in_title_case(self):
+		StaffProfile.objects.get_or_create(user=self.admin_user)
+		self.client.force_login(self.admin_user)
+		response = self.client.post(
+			reverse('core:edit_profile'),
+			self._staff_profile_post_data(
+				first_name='jerwin',
+				last_name='carreon',
+			),
+		)
+		self.assertRedirects(response, reverse('core:profile'))
+		self.admin_user.refresh_from_db()
+		self.assertEqual(self.admin_user.first_name, 'Jerwin')
+		self.assertEqual(self.admin_user.last_name, 'Carreon')
 
 	def test_admin_profile_image_url_is_root_absolute(self):
 		"""Relative MEDIA_URL breaks image display on nested routes like /profile/."""

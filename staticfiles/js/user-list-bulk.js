@@ -201,35 +201,5 @@ function userListBulk() {
       this.syncBulkActionSelect(form);
       this.injectUserIdsIntoForm(form);
     },
-
-    quickSoftDelete() {
-      const form = document.getElementById('user-bulk-form');
-      if (!form) {
-        return;
-      }
-      this.syncSelectedFromDom();
-      if (this.selectedCount === 0) {
-        window.alert('Select at least one user.');
-        return;
-      }
-      if (
-        !window.confirm(
-          'Soft-delete the selected users? You can restore them from the Deleted page.',
-        )
-      ) {
-        return;
-      }
-      this.bulkAction = 'delete';
-      this._bulkDeleteConfirmed = true;
-      this.syncBulkActionSelect(form);
-      this.injectUserIdsIntoForm(form);
-      if (typeof htmx !== 'undefined' && form.getAttribute('hx-post')) {
-        htmx.trigger(form, 'submit');
-      } else if (form.requestSubmit) {
-        form.requestSubmit();
-      } else {
-        form.submit();
-      }
-    },
   };
 }

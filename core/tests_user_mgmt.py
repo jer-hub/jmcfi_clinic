@@ -112,6 +112,7 @@ def _complete_student_profile(user, student_id):
     profile.place_of_birth = 'Manila'
     profile.age = 23
     profile.address = 'Manila'
+    profile.zip_code = '1000'
     profile.blood_type = 'O+'
     profile.save()
     profile.refresh_from_db()
@@ -670,19 +671,14 @@ class AdminDeletedUserPermanentDeleteTests(TestCase):
         self.assertContains(response, 'Deleted Accounts')
         self.assertFalse(User.objects.filter(id=self.target_user.id).exists())
 
-    def test_deleted_list_permanent_delete_uses_confirmation_modal(self):
+    def test_deleted_list_row_actions_exclude_restore_and_permanent_delete(self):
         response = self.client.get(reverse('core:deleted_user_management'))
         self.assertEqual(response.status_code, 200)
         form_id = f'deleted-user-permanent-delete-form-{self.target_user.id}'
-        self.assertContains(response, form_id)
-        self.assertContains(response, "title: 'Delete permanently?'")
-        self.assertContains(response, 'open-modal')
-        self.assertContains(response, self.target_user.email)
-        self.assertContains(
-            response,
-            f"getElementById('deleted-user-permanent-delete-form-{self.target_user.id}')",
-        )
-        self.assertContains(response, 'actionLabel: \'Delete permanently\'')
+        self.assertNotContains(response, form_id)
+        self.assertNotContains(response, reverse('core:user_restore', kwargs={'user_id': self.target_user.id}))
+        self.assertContains(response, reverse('core:user_detail', kwargs={'user_id': self.target_user.id}))
+        self.assertContains(response, reverse('core:user_audit_log', kwargs={'user_id': self.target_user.id}))
 
 
 class AdminUserDetailTests(TestCase):

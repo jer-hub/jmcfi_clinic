@@ -62,7 +62,7 @@ from .utils import (
     get_user_profile, paginate_queryset,
     get_missing_profile_fields, get_client_ip,
     resolve_notification_url, student_display_name, patient_search_q,
-    user_visible_notifications,
+    user_visible_notifications, normalize_person_name,
 )
 from .profile_forms import (
     get_or_create_profile,
@@ -787,7 +787,7 @@ def quick_edit_profile(request):
                 raise ValueError('Address must be at least 5 characters.')
 
         if field_name in ['first_name', 'last_name']:
-            field_value = ' '.join(field_value.split())
+            field_value = normalize_person_name(field_value)
             if not field_value:
                 raise ValueError(f'{field_name.replace("_", " ").title()} is required.')
             if len(field_value) > 150:
@@ -1063,8 +1063,8 @@ def edit_profile(request):
             
         else:
             # Normal form submission
-            first_name = ' '.join((request.POST.get('first_name') or '').split())
-            last_name = ' '.join((request.POST.get('last_name') or '').split())
+            first_name = normalize_person_name(request.POST.get('first_name') or '')
+            last_name = normalize_person_name(request.POST.get('last_name') or '')
             names_valid = True
             if not first_name or not last_name:
                 messages.error(request, 'First Name and Last Name are required.')

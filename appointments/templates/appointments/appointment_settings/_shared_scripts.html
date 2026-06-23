@@ -1,14 +1,26 @@
 <script>
-window.doctorDropdown = function() {
+window.doctorDropdown = function (totalDoctors) {
     return {
-        open: false,
+        isOpen: false,
         search: '',
         count: 0,
+        totalDoctors: totalDoctors || 0,
         originalChecked: [],
         dirty: false,
 
         init() {
             this.captureState();
+            this.$root.querySelectorAll('input[name="assigned_doctors"]').forEach((checkbox) => {
+                checkbox.addEventListener('change', () => this.updateCount());
+            });
+            const onOutsideClick = (event) => {
+                if (!this.isOpen) return;
+                const root = this.$refs.dropdownRoot;
+                if (root && root.contains(event.target)) return;
+                this.closeDropdown();
+            };
+            document.addEventListener('click', onOutsideClick, true);
+            this.$cleanup(() => document.removeEventListener('click', onOutsideClick, true));
         },
 
         captureState() {
@@ -18,54 +30,82 @@ window.doctorDropdown = function() {
         },
 
         _getCheckedValues() {
-            return [...this.$root.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.value);
+            return [...this.$root.querySelectorAll('input[name="assigned_doctors"]:checked')].map((cb) => cb.value);
         },
 
         _getCheckboxes() {
-            return this.$root.querySelectorAll('input[type="checkbox"]');
+            return this.$root.querySelectorAll('input[name="assigned_doctors"]');
         },
 
         updateCount() {
-            this.count = this.$root.querySelectorAll('input[type="checkbox"]:checked').length;
+            this.count = this._getCheckedValues().length;
             const current = this._getCheckedValues();
             this.dirty = (
-                current.length !== this.originalChecked.length ||
-                current.some(v => !this.originalChecked.includes(v))
+                current.length !== this.originalChecked.length
+                || current.some((value) => !this.originalChecked.includes(value))
             );
         },
 
         selectedLabel() {
-            if (this.count === 0) return 'All doctors available';
+            if (this.count === 0) return 'No doctors selected';
+            if (this.totalDoctors > 0 && this.count === this.totalDoctors) return 'All doctors available';
             if (this.count === 1) return '1 doctor assigned';
-            return this.count + ' doctors assigned';
+            return `${this.count} doctors assigned`;
+        },
+
+        matchesSearch(label) {
+            const query = (this.search || '').trim().toLowerCase();
+            if (!query) return true;
+            return (label || '').toLowerCase().includes(query);
+        },
+
+        toggleDropdown() {
+            this.isOpen = !this.isOpen;
+            if (!this.isOpen) {
+                this.search = '';
+            }
+        },
+
+        closeDropdown() {
+            this.isOpen = false;
+            this.search = '';
         },
 
         save() {
-            this.open = false;
-            this.search = '';
+            this.closeDropdown();
             const form = this.$root;
+            const onAfterRequest = (event) => {
+                if (event.detail.elt !== form) return;
+                form.removeEventListener('htmx:afterRequest', onAfterRequest);
+                if (event.detail.successful) {
+                    this.captureState();
+                }
+            };
+            form.addEventListener('htmx:afterRequest', onAfterRequest);
             htmx.trigger(form, 'submit');
-            this.captureState();
         },
 
         cancel() {
-            this._getCheckboxes().forEach(cb => {
-                cb.checked = this.originalChecked.includes(cb.value);
+            this._getCheckboxes().forEach((checkbox) => {
+                checkbox.checked = this.originalChecked.includes(checkbox.value);
             });
             this.updateCount();
-            this.open = false;
-            this.search = '';
+            this.closeDropdown();
         },
 
         selectAll() {
-            this._getCheckboxes().forEach(cb => { cb.checked = true; });
+            this._getCheckboxes().forEach((checkbox) => {
+                checkbox.checked = true;
+            });
             this.updateCount();
         },
 
         clearAll() {
-            this._getCheckboxes().forEach(cb => { cb.checked = false; });
+            this._getCheckboxes().forEach((checkbox) => {
+                checkbox.checked = false;
+            });
             this.updateCount();
         },
-    }
+    };
 };
 </script>

@@ -15,7 +15,7 @@ class AppointmentTypeDefaultForm(forms.ModelForm):
             'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
         }),
         label='Assigned Doctors',
-        help_text='Select one or more doctors available for this appointment type. If none are selected, all active doctors will be available.',
+        help_text='Select doctors available for this appointment type. Select all for open booking, a subset to restrict, or none to block booking.',
     )
 
     class Meta:

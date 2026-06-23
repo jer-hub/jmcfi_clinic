@@ -43,9 +43,13 @@ def _is_json_request(request):
 User = get_user_model()
 
 
-def _doctor_assignment_label(doctors):
+def _doctor_assignment_label(doctors, *, total_doctors=None):
     names = sorted((doctor.get_full_name() or doctor.email) for doctor in doctors)
-    return ', '.join(names) if names else '(all active doctors)'
+    if not names:
+        return '(none)'
+    if total_doctors and len(names) >= total_doctors:
+        return '(all active doctors)'
+    return ', '.join(names)
 
 
 def _doctor_pk_set(doctors):
@@ -55,6 +59,7 @@ def _doctor_pk_set(doctors):
 def _log_appointment_doctor_change(*, actor, default, old_doctors, new_doctors):
     if _doctor_pk_set(old_doctors) == _doctor_pk_set(new_doctors):
         return
+    total_doctors = _get_doctors_queryset().count()
     log_settings_change(
         actor=actor,
         setting_type=SettingsChangeLog.SettingType.APPOINTMENT,
@@ -62,8 +67,8 @@ def _log_appointment_doctor_change(*, actor, default, old_doctors, new_doctors):
             default.get_appointment_type_display(),
             'assigned_doctors',
         ),
-        old_value=_doctor_assignment_label(old_doctors),
-        new_value=_doctor_assignment_label(new_doctors),
+        old_value=_doctor_assignment_label(old_doctors, total_doctors=total_doctors),
+        new_value=_doctor_assignment_label(new_doctors, total_doctors=total_doctors),
     )
 
 
@@ -721,6 +726,7 @@ def appointment_type_settings(request):
     }
 
     doctors_qs = _get_doctors_queryset()
+    doctor_count = doctors_qs.count()
 
     settings_data = []
     for type_key, type_label in appointment_types.items():
@@ -735,6 +741,7 @@ def appointment_type_settings(request):
             'type_label': type_label,
             'form': form,
             'instance': instance,
+            'doctor_count': doctor_count,
         })
 
     return render(request, 'appointments/appointment_settings/appointment_type_settings.html', {
@@ -796,7 +803,10 @@ def edit_appointment_type_default(request, type_key=None):
                 )
                 badge_html = render_to_string(
                     'appointments/appointment_settings/_status_badge.html',
-                    {'instance': default},
+                    {
+                        'instance': default,
+                        'total_doctor_count': _get_doctors_queryset().count(),
+                    },
                     request=request,
                 )
                 

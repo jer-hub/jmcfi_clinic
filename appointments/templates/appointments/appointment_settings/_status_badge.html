@@ -7,21 +7,29 @@
             </span>
             <span class="text-[10px] text-red-600 font-medium">Not accepting appointments</span>
         </div>
-    {% elif instance.assigned_doctors.exists %}
+    {% elif not instance.assigned_doctors.exists %}
+        <div class="inline-flex flex-col items-center gap-0.5">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold text-gray-800 bg-gray-100">
+                <span class="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
+                None selected
+            </span>
+            <span class="text-[10px] text-gray-600 font-medium">No doctors can book</span>
+        </div>
+    {% elif total_doctor_count and instance.assigned_doctors.count >= total_doctor_count %}
+        <div class="inline-flex flex-col items-center gap-0.5">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold text-green-800 bg-green-100">
+                <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                All available
+            </span>
+            <span class="text-[10px] text-green-600 font-medium">Any assigned doctor can book</span>
+        </div>
+    {% else %}
         <div class="inline-flex flex-col items-center gap-0.5">
             <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold text-blue-800 bg-blue-100">
                 <span class="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                 Restricted
             </span>
             <span class="text-[10px] text-blue-600 font-medium">{{ instance.assigned_doctors.count }} doctor{{ instance.assigned_doctors.count|pluralize }}</span>
-        </div>
-    {% else %}
-        <div class="inline-flex flex-col items-center gap-0.5">
-            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold text-green-800 bg-green-100">
-                <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                All available
-            </span>
-            <span class="text-[10px] text-green-600 font-medium">Any doctor can book</span>
         </div>
     {% endif %}
 
@@ -33,7 +41,7 @@
     {% endif %}
 {% else %}
     <div class="inline-flex flex-col items-center gap-0.5">
-        <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">Unrestricted</span>
+        <span class="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">Unconfigured</span>
         <span class="text-[10px] text-gray-500 font-medium">No setting configured</span>
     </div>
 {% endif %}

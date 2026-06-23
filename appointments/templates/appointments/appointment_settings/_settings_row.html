@@ -27,7 +27,7 @@
         <!-- Col 3: Status badge (targeted by HTMX on doctor save) -->
         <div id="status-{{ item.type_key }}" class="px-4 py-4 sm:px-5 lg:px-6 lg:py-4 border-b border-gray-100 lg:border-b-0 lg:border-r lg:border-gray-100 lg:text-center">
             <span class="block text-[11px] font-semibold uppercase tracking-wide text-gray-400 lg:hidden mb-2">Assignment status</span>
-            {% include 'appointments/appointment_settings/_status_badge.html' with instance=item.instance %}
+            {% include 'appointments/appointment_settings/_status_badge.html' with instance=item.instance total_doctor_count=item.doctor_count %}
         </div>
 
         <!-- Col 4: Toggle -->

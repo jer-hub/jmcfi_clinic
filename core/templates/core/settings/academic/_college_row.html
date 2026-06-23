@@ -1,0 +1,53 @@
+<tr class="hover:bg-gray-50/80">
+  <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ college.name }}</td>
+  <td class="px-4 py-3 text-sm">
+    {% if college.course_optional %}
+      {% include "components/status_badge.html" with label="Optional" variant="info" %}
+    {% else %}
+      <span class="text-gray-400 text-sm">Required</span>
+    {% endif %}
+  </td>
+  <td class="px-4 py-3 text-sm">
+    {% if college.is_active %}
+      {% include "components/status_badge.html" with label="Active" variant="success" %}
+    {% else %}
+      {% include "components/status_badge.html" with label="Inactive" variant="muted" %}
+    {% endif %}
+  </td>
+  <td class="px-4 py-3 text-right text-sm">
+    <div class="flex flex-wrap justify-end gap-1.5 whitespace-nowrap">
+      <a href="{% url 'core:settings_college_edit' pk=college.pk %}"
+         class="inline-flex items-center rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300">
+        Edit
+      </a>
+      <a href="{% url 'core:settings_college_courses' pk=college.pk %}"
+         class="inline-flex items-center rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300">
+        Courses
+      </a>
+      <a href="{% url 'core:settings_college_year_levels' pk=college.pk %}"
+         class="inline-flex items-center rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300">
+        Year levels
+      </a>
+      <form method="post" class="inline-flex"
+            data-catalog-toggle="college"
+            data-college-name="{{ college.name }}"
+            data-is-deactivate="{% if college.is_active %}1{% else %}0{% endif %}"
+            data-needs-cascade="{% if college.is_active and college.has_active_courses or college.is_active and college.has_active_year_levels %}1{% else %}0{% endif %}"
+            onsubmit="return window.__jmcfiCollegeCatalogToggle(event);"
+            hx-post="{% url 'core:settings_colleges' %}"
+            hx-target="closest tr"
+            hx-swap="outerHTML">
+        {% csrf_token %}
+        <input type="hidden" name="toggle_id" value="{{ college.pk }}">
+        <input type="hidden" name="confirm_cascade" value="0">
+        <input type="hidden" name="return_active" value="{{ active_filter }}">
+        {% if search_q %}<input type="hidden" name="return_q" value="{{ search_q }}">{% endif %}
+        <button type="submit"
+                class="inline-flex items-center rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300">
+          {% if college.is_active %}Deactivate{% else %}Activate{% endif %}
+        </button>
+      </form>
+      {% include "core/settings/academic/_catalog_delete_action.html" with id_name="college_id" id_value=college.pk item_label=college.name delete_title="Delete college" course_count=college.course_count year_level_count=college.year_level_count return_active=active_filter return_q=search_q %}
+    </div>
+  </td>
+</tr>

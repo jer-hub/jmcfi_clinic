@@ -1,0 +1,40 @@
+{% comment %}
+  Inline add/edit form for academic catalog items (courses, year levels).
+
+  Required:
+    form          – bound ModelForm
+    submit_label  – primary button label
+  Optional:
+    submit_icon   – Font Awesome class (default: fa-plus)
+    cancel_url    – when set, shows Cancel button
+    hidden_name   – hidden input name
+    hidden_value  – hidden input value
+    columns       – "course" | "year_level" (default: course)
+{% endcomment %}
+<form method="post" novalidate class="space-y-4">
+  {% csrf_token %}
+  {% if hidden_name and hidden_value %}
+    <input type="hidden" name="{{ hidden_name }}" value="{{ hidden_value }}">
+  {% endif %}
+
+  {% if columns == 'year_level' %}
+  <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_7rem_auto] gap-4 items-start">
+    {% for field in form %}
+      {% include "components/forms/field.html" with field=field layout="inline" %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
+    {% for field in form %}
+      {% include "components/forms/field.html" with field=field layout="inline" %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-4">
+    {% include "components/button.html" with label=submit_label icon=submit_icon|default:"fa-plus" variant="primary" type="submit" %}
+    {% if cancel_url %}
+      {% include "components/button.html" with label="Cancel" icon="fa-xmark" variant="secondary" as="a" href=cancel_url %}
+    {% endif %}
+  </div>
+</form>

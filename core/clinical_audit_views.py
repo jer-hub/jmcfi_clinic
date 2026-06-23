@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from .decorators import admin_required
+from .htmx_utils import is_htmx_request
 from .models import ClinicalAccessLog, User
 from .utils import paginate_queryset
 
@@ -74,8 +75,10 @@ def _clinical_log_list_context(request, queryset, *, viewed_user=None):
     filter_values = _clinical_log_filter_values(request)
     if viewed_user:
         clear_url = reverse('core:patient_clinical_access_log', kwargs={'user_id': viewed_user.pk})
+        filter_url = clear_url
     else:
         clear_url = reverse('core:clinical_access_log')
+        filter_url = clear_url
 
     return {
         'logs': logs_page,
@@ -84,6 +87,7 @@ def _clinical_log_list_context(request, queryset, *, viewed_user=None):
         'show_patient_filter': show_patient,
         'table_colspan': 7 if show_patient else 6,
         'clear_url': clear_url,
+        'filter_url': filter_url,
         'has_active_filters': _has_active_clinical_filters(
             filter_values,
             include_patient_filter=show_patient,
@@ -96,6 +100,12 @@ def _clinical_log_list_context(request, queryset, *, viewed_user=None):
     }
 
 
+def _render_clinical_log_list(request, context):
+    if is_htmx_request(request):
+        return render(request, 'core/clinical_access_log/_results.html', context)
+    return render(request, 'core/clinical_access_log/list.html', context)
+
+
 @login_required
 @admin_required
 def clinical_access_log(request):
@@ -103,7 +113,7 @@ def clinical_access_log(request):
     logs = ClinicalAccessLog.objects.select_related('actor', 'patient')
     logs = _filter_clinical_logs(logs, request)
     context = _clinical_log_list_context(request, logs)
-    return render(request, 'core/clinical_access_log/list.html', context)
+    return _render_clinical_log_list(request, context)
 
 
 @login_required
@@ -114,4 +124,4 @@ def patient_clinical_access_log(request, user_id):
     logs = ClinicalAccessLog.objects.filter(patient=user).select_related('actor', 'patient')
     logs = _filter_clinical_logs(logs, request)
     context = _clinical_log_list_context(request, logs, viewed_user=user)
-    return render(request, 'core/clinical_access_log/list.html', context)
+    return _render_clinical_log_list(request, context)

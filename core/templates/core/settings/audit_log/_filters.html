@@ -1,0 +1,74 @@
+<form method="get"
+      id="settings-audit-filter-form"
+      action="{% url 'core:settings_audit' %}"
+      class="space-y-3"
+      hx-get="{{ filter_url }}"
+      hx-target="#settings-audit-results"
+      hx-swap="innerHTML"
+      hx-push-url="true"
+      hx-trigger="change from:select, change from:input[type=date], keyup changed delay:300ms from:input[type=text], keyup changed delay:300ms from:input[type=search]"
+      @submit.prevent>
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+      <i class="fas fa-filter text-primary-500" aria-hidden="true"></i>
+      Filter logs
+    </h3>
+    <p class="text-xs text-gray-500">Results update as you type or change a filter.</p>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+    <div>
+      <label for="audit-type" class="block text-xs font-medium text-gray-700 mb-1">Type</label>
+      <select id="audit-type" name="type" class="form-select form-select--compact w-full">
+        <option value="all" {% if setting_type == 'all' %}selected{% endif %}>All types</option>
+        {% for value, label in setting_type_choices %}
+          <option value="{{ value }}" {% if setting_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="audit-actor" class="block text-xs font-medium text-gray-700 mb-1">Changed by</label>
+      <div class="relative">
+        <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none" aria-hidden="true"></i>
+        <input id="audit-actor" type="text" name="actor" value="{{ actor }}"
+               placeholder="Email contains..." autocomplete="off"
+               class="form-input form-input--compact w-full pl-9">
+      </div>
+    </div>
+    <div class="sm:col-span-2 lg:col-span-1 xl:col-span-2">
+      <label for="audit-q" class="block text-xs font-medium text-gray-700 mb-1">Search</label>
+      <div class="relative">
+        <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none" aria-hidden="true"></i>
+        <input id="audit-q" type="search" name="q" value="{{ q }}"
+               placeholder="Field or value..." autocomplete="off"
+               class="form-input form-input--compact w-full pl-9">
+      </div>
+    </div>
+    <div>
+      <label for="audit-date-from" class="block text-xs font-medium text-gray-700 mb-1">From</label>
+      <input id="audit-date-from" type="date" name="date_from" value="{{ date_from }}"
+             class="form-input form-input--compact w-full">
+    </div>
+    <div>
+      <label for="audit-date-to" class="block text-xs font-medium text-gray-700 mb-1">To</label>
+      <input id="audit-date-to" type="date" name="date_to" value="{{ date_to }}"
+             class="form-input form-input--compact w-full">
+    </div>
+  </div>
+
+  <div class="flex flex-wrap items-center justify-end gap-2 pt-1 border-t border-gray-100">
+    {% if has_active_filters %}
+    <a href="{{ clear_url }}"
+       class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">
+      <i class="fas fa-rotate-right" aria-hidden="true"></i>
+      Clear filters
+    </a>
+    {% endif %}
+    <button type="button"
+            onclick="window.__jmcfiExportSettingsAudit()"
+            class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors">
+      <i class="fas fa-file-csv" aria-hidden="true"></i>
+      Export CSV
+    </button>
+  </div>
+</form>

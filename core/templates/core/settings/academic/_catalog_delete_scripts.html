@@ -1,0 +1,27 @@
+<script>
+  window.__jmcfiAcademicCatalogDeleteModal = function (btn) {
+    if (!btn) return;
+    var formId = btn.getAttribute('data-delete-form');
+    if (!formId) return;
+    var title = btn.getAttribute('data-delete-title') || 'Delete item';
+    var subtitle = (btn.getAttribute('data-delete-subtitle') || '').trim();
+    var message = (btn.getAttribute('data-delete-message') || 'This cannot be undone.').trim();
+    window.__jmcfiDispatchOpenModal({
+      type: 'danger',
+      title: title,
+      subtitle: subtitle,
+      message: message,
+      actionLabel: 'Delete permanently',
+      size: 'sm',
+      onConfirm: function () {
+        var form = document.getElementById(formId);
+        if (!form) return;
+        if (form.requestSubmit) {
+          form.requestSubmit();
+        } else {
+          form.submit();
+        }
+      },
+    });
+  };
+</script>

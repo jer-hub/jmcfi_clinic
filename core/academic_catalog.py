@@ -1,6 +1,8 @@
 """Shared helpers for college / course / year-level catalog data."""
 
-from .models import CollegeDepartment, CourseProgram, YearLevelOption
+from django.db import transaction
+
+from .models import CollegeDepartment, CourseProgram, PatientProfile, YearLevelOption
 
 
 def active_colleges_queryset():
@@ -52,6 +54,72 @@ def college_catalog_counts():
             is_active=True, college_department__is_active=True
         ).count(),
     }
+
+
+def patient_department_usage_count(department_name: str) -> int:
+    return PatientProfile.objects.filter(department=(department_name or '').strip()).count()
+
+
+def patient_course_usage_count(college_name: str, course_name: str) -> int:
+    return PatientProfile.objects.filter(
+        department=(college_name or '').strip(),
+        course=(course_name or '').strip(),
+    ).count()
+
+
+def patient_year_level_usage_count(college_name: str, year_level_name: str) -> int:
+    return PatientProfile.objects.filter(
+        department=(college_name or '').strip(),
+        year_level=(year_level_name or '').strip(),
+    ).count()
+
+
+class CatalogDeleteError(Exception):
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(message)
+
+
+@transaction.atomic
+def delete_course(course: CourseProgram) -> str:
+    college_name = course.college_department.name
+    course_name = course.name
+    usage = patient_course_usage_count(college_name, course_name)
+    if usage:
+        raise CatalogDeleteError(
+            f'Cannot delete "{course_name}" — {usage} patient profile(s) still use it.'
+        )
+    course.delete()
+    return course_name
+
+
+@transaction.atomic
+def delete_year_level(year_level: YearLevelOption) -> str:
+    college_name = year_level.college_department.name
+    level_name = year_level.name
+    usage = patient_year_level_usage_count(college_name, level_name)
+    if usage:
+        raise CatalogDeleteError(
+            f'Cannot delete "{level_name}" — {usage} patient profile(s) still use it.'
+        )
+    year_level.delete()
+    return level_name
+
+
+@transaction.atomic
+def delete_college(college: CollegeDepartment) -> tuple[str, int, int]:
+    college_name = college.name
+    usage = patient_department_usage_count(college_name)
+    if usage:
+        raise CatalogDeleteError(
+            f'Cannot delete "{college_name}" — {usage} patient profile(s) still use it.'
+        )
+    course_count = college.course_programs.count()
+    year_level_count = college.year_levels.count()
+    college.course_programs.all().delete()
+    college.year_levels.all().delete()
+    college.delete()
+    return college_name, course_count, year_level_count
 
 
 def patient_catalog_context():

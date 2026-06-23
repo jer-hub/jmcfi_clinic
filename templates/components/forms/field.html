@@ -9,6 +9,7 @@
     icon         – optional FA icon rendered next to the label
     label_class  – override the label class string
     hide_label   – when truthy, hides the label visually (still readable to screen readers)
+    layout       – "inline" for catalog-style rows: aligns checkboxes with inputs and reserves error space
 
   Example:
     {% include "components/forms/field.html" with field=form.email icon="fa-envelope" %}
@@ -21,7 +22,13 @@
       {{ label|default:f.label }}{% if is_req %} <span class="text-danger-500">*</span>{% endif %}
     </label>
   {% endif %}
+  {% if layout == 'inline' and f.field.widget.input_type == 'checkbox' %}
+  <div class="flex items-center min-h-[2.625rem]">
+    {{ f }}
+  </div>
+  {% else %}
   {{ f }}
+  {% endif %}
   {% if help_text or f.help_text %}
     <p class="text-xs text-gray-500">{{ help_text|default:f.help_text }}</p>
   {% endif %}
@@ -32,6 +39,8 @@
         <span>{{ err }}</span>
       </p>
     {% endfor %}
+  {% elif layout == 'inline' %}
+    <div class="min-h-5" aria-hidden="true"></div>
   {% endif %}
 </div>
 {% endwith %}

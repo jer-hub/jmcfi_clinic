@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from core.models import CollegeDepartment, CourseProgram, YearLevelOption, StaffProfile
+from core.models import CollegeDepartment, CourseProgram, SettingsChangeLog, YearLevelOption, StaffProfile
 from core.tests import _complete_staff_like_profile
 
 User = get_user_model()
@@ -85,6 +85,18 @@ class AcademicCatalogCrudTests(TestCase):
             YearLevelOption.objects.filter(college_department=college, name='Year 1', is_active=True).exists()
         )
 
+    def test_college_create_writes_settings_audit_log(self):
+        self.client.post(
+            reverse('core:settings_college_create'),
+            {'name': 'Audit College', 'course_optional': '', 'is_active': 'on'},
+        )
+        self.assertTrue(
+            SettingsChangeLog.objects.filter(
+                setting_type=SettingsChangeLog.SettingType.ACADEMIC,
+                field_name__startswith='college: Audit College',
+            ).exists()
+        )
+
     def test_deactivate_college_without_active_children(self):
         college = CollegeDepartment.objects.create(name='Lonely College', is_active=True)
         response = self.client.post(
@@ -138,6 +150,150 @@ class AcademicCatalogCrudTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'already exists')
+
+    def test_course_toggle_htmx_returns_row_partial(self):
+        college = CollegeDepartment.objects.create(name='HTMX College', is_active=True)
+        course = CourseProgram.objects.create(college_department=college, name='HTMX Course', is_active=True)
+        response = self.client.post(
+            reverse('core:settings_college_courses', kwargs={'pk': college.pk}),
+            {'action': 'toggle', 'course_id': str(course.pk)},
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'HTMX Course')
+        self.assertContains(response, 'Activate')
+
+    def test_year_level_toggle_htmx_returns_row_partial(self):
+        college = CollegeDepartment.objects.create(name='HTMX Year College', is_active=True)
+        level = YearLevelOption.objects.create(
+            college_department=college,
+            name='Year HTMX',
+            sort_order=1,
+            is_active=True,
+        )
+        response = self.client.post(
+            reverse('core:settings_college_year_levels', kwargs={'pk': college.pk}),
+            {'action': 'toggle', 'year_level_id': str(level.pk)},
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Year HTMX')
+        self.assertContains(response, 'Activate')
+
+
+class AcademicCatalogDeleteTests(TestCase):
+    def setUp(self):
+        _login_complete_admin(self.client, 'delete-admin@jmcfi.edu.ph', 'ADM-DEL-1')
+        self.college = CollegeDepartment.objects.create(name='Delete Test College', is_active=True)
+        self.course = CourseProgram.objects.create(
+            college_department=self.college,
+            name='Delete Test Course',
+            is_active=True,
+        )
+        self.year_level = YearLevelOption.objects.create(
+            college_department=self.college,
+            name='Delete Year 1',
+            sort_order=1,
+            is_active=True,
+        )
+
+    def test_delete_course_removes_row_and_writes_audit_log(self):
+        response = self.client.post(
+            reverse('core:settings_college_courses', kwargs={'pk': self.college.pk}),
+            {'action': 'delete', 'course_id': str(self.course.pk)},
+        )
+        self.assertRedirects(response, reverse('core:settings_college_courses', kwargs={'pk': self.college.pk}))
+        self.assertFalse(CourseProgram.objects.filter(pk=self.course.pk).exists())
+        self.assertTrue(
+            SettingsChangeLog.objects.filter(
+                setting_type=SettingsChangeLog.SettingType.ACADEMIC,
+                field_name__contains='deleted',
+                old_value='Delete Test Course',
+            ).exists()
+        )
+
+    def test_delete_course_blocked_when_patient_profile_uses_it(self):
+        from core.models import PatientProfile
+
+        patient = User.objects.create_user(
+            email='delete-patient@test.com',
+            password='pw',
+            role='patient',
+        )
+        profile, _ = PatientProfile.objects.get_or_create(
+            user=patient,
+            defaults={'patient_id': 'DEL-PAT-1'},
+        )
+        profile.department = self.college.name
+        profile.course = self.course.name
+        profile.save(update_fields=['department', 'course'])
+        response = self.client.post(
+            reverse('core:settings_college_courses', kwargs={'pk': self.college.pk}),
+            {'action': 'delete', 'course_id': str(self.course.pk)},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(CourseProgram.objects.filter(pk=self.course.pk).exists())
+
+    def test_delete_year_level_removes_row(self):
+        response = self.client.post(
+            reverse('core:settings_college_year_levels', kwargs={'pk': self.college.pk}),
+            {'action': 'delete', 'year_level_id': str(self.year_level.pk)},
+        )
+        self.assertRedirects(response, reverse('core:settings_college_year_levels', kwargs={'pk': self.college.pk}))
+        self.assertFalse(YearLevelOption.objects.filter(pk=self.year_level.pk).exists())
+
+    def test_delete_college_cascades_courses_and_year_levels(self):
+        response = self.client.post(
+            reverse('core:settings_colleges'),
+            {'action': 'delete', 'college_id': str(self.college.pk)},
+        )
+        self.assertRedirects(response, reverse('core:settings_colleges'))
+        self.assertFalse(CollegeDepartment.objects.filter(pk=self.college.pk).exists())
+        self.assertFalse(CourseProgram.objects.filter(pk=self.course.pk).exists())
+        self.assertFalse(YearLevelOption.objects.filter(pk=self.year_level.pk).exists())
+
+    def test_delete_college_blocked_when_patient_profile_uses_department(self):
+        from core.models import PatientProfile
+
+        patient = User.objects.create_user(
+            email='delete-college-patient@test.com',
+            password='pw',
+            role='patient',
+        )
+        profile, _ = PatientProfile.objects.get_or_create(
+            user=patient,
+            defaults={'patient_id': 'DEL-COL-1'},
+        )
+        profile.department = self.college.name
+        profile.save(update_fields=['department'])
+        response = self.client.post(
+            reverse('core:settings_colleges'),
+            {'action': 'delete', 'college_id': str(self.college.pk)},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(CollegeDepartment.objects.filter(pk=self.college.pk).exists())
+
+    def test_delete_course_with_long_scope_name_still_logs(self):
+        long_college = CollegeDepartment.objects.create(
+            name='College of Extremely Long and Verbose Program Names for Audit Validation',
+            is_active=True,
+        )
+        long_course = CourseProgram.objects.create(
+            college_department=long_college,
+            name='Bachelor of Science in Long Named Course for Field Length Stress Testing',
+            is_active=True,
+        )
+        response = self.client.post(
+            reverse('core:settings_college_courses', kwargs={'pk': long_college.pk}),
+            {'action': 'delete', 'course_id': str(long_course.pk)},
+        )
+        self.assertEqual(response.status_code, 302)
+        log = SettingsChangeLog.objects.filter(
+            setting_type=SettingsChangeLog.SettingType.ACADEMIC,
+            old_value='Bachelor of Science in Long Named Course for Field Length Stress Testing',
+        ).first()
+        self.assertIsNotNone(log)
+        self.assertLessEqual(len(log.field_name), 255)
 
 
 class AcademicProfileIntegrationTests(TestCase):

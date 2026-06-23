@@ -33,6 +33,12 @@ CORE_SETTINGS_URL_NAMES = frozenset(
         "settings_role_edit",
         "settings_audit",
         "clinical_access_log",
+        "settings_academic_hub",
+        "settings_colleges",
+        "settings_college_create",
+        "settings_college_edit",
+        "settings_college_courses",
+        "settings_college_year_levels",
     }
 )
 

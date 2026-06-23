@@ -20,7 +20,8 @@
   </div>
 
   <div class="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:items-start">
-    <form method="post" novalidate class="space-y-4 lg:col-span-2">
+    <div class="space-y-4 lg:col-span-2">
+    <form method="post" novalidate class="space-y-4">
       {% csrf_token %}
       {% if form.non_field_errors %}
       <div class="rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800">
@@ -55,6 +56,36 @@
       </div>
     </form>
 
+    {% if college %}
+      <div class="rounded-lg border border-danger-200 bg-danger-50 px-4 py-4 text-sm text-danger-900">
+        <h3 class="font-semibold text-danger-900">Delete college</h3>
+        <p class="mt-1 text-danger-800">
+          Permanently remove <strong>{{ college.name }}</strong>,
+          all {{ total_courses }} course(s), and all {{ total_year_levels }} year level(s).
+          {% if patient_usage_count %}
+            <span class="block mt-2 font-medium">{{ patient_usage_count }} patient profile(s) still reference this college and must be updated first.</span>
+          {% else %}
+            Patient profiles will no longer be able to select this college.
+          {% endif %}
+        </p>
+        <form id="delete-college-edit-{{ college.pk }}" method="post" class="hidden" aria-hidden="true">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+        </form>
+        <button type="button"
+                class="inline-flex items-center rounded-md border border-danger-300 bg-white px-3 py-1.5 text-sm font-medium text-danger-800 hover:bg-danger-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                {% if patient_usage_count %}disabled aria-disabled="true"{% endif %}
+                data-delete-form="delete-college-edit-{{ college.pk }}"
+                data-delete-title="Delete college"
+                data-delete-subtitle="{{ college.name }}"
+                data-delete-message="Permanently delete this college and all {{ total_courses }} course(s) and {{ total_year_levels }} year level(s). This cannot be undone."
+                onclick="window.__jmcfiAcademicCatalogDeleteModal(this)">
+          <i class="fas fa-trash-can mr-1.5"></i> Delete college
+        </button>
+      </div>
+    {% endif %}
+    </div>
+
     <aside class="lg:col-span-1">
       <div class="rounded-card border border-gray-200 bg-white p-5 shadow-sm">
         <h3 class="text-sm font-semibold uppercase tracking-wide text-gray-500">Catalog impact</h3>
@@ -81,4 +112,11 @@
     </aside>
   </div>
 {% include "core/settings/_page_close.html" %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% if college %}
+{% include "core/settings/academic/_catalog_delete_scripts.html" %}
+{% endif %}
 {% endblock %}

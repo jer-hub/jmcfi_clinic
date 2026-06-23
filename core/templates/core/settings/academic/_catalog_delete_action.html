@@ -1,0 +1,29 @@
+{% comment %}
+  Hidden delete form + button that opens the shared danger confirmation modal.
+
+  Required:
+    id_name        – hidden field name (college_id, course_id, year_level_id)
+    id_value       – primary key
+    item_label     – subtitle in the modal
+    delete_title   – modal title (e.g. "Delete course")
+    delete_message – modal body text (when not using college cascade counts)
+  Optional:
+    course_count, year_level_count – when set, builds college cascade delete message
+    return_active, return_q – preserved college list filters
+{% endcomment %}
+<form id="catalog-delete-{{ id_name }}-{{ id_value }}" method="post" class="hidden" aria-hidden="true">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="delete">
+  <input type="hidden" name="{{ id_name }}" value="{{ id_value }}">
+  {% if return_active %}<input type="hidden" name="return_active" value="{{ return_active }}">{% endif %}
+  {% if return_q %}<input type="hidden" name="return_q" value="{{ return_q }}">{% endif %}
+</form>
+<button type="button"
+        class="inline-flex items-center rounded-md border border-danger-200 px-2.5 py-1 text-xs font-medium text-danger-700 hover:bg-danger-50 hover:border-danger-300"
+        data-delete-form="catalog-delete-{{ id_name }}-{{ id_value }}"
+        data-delete-title="{{ delete_title }}"
+        data-delete-subtitle="{{ item_label }}"
+        data-delete-message="{% if course_count is not None and year_level_count is not None %}Permanently delete this college and all {{ course_count }} course(s) and {{ year_level_count }} year level(s). This cannot be undone.{% else %}{{ delete_message }}{% endif %}"
+        onclick="window.__jmcfiAcademicCatalogDeleteModal(this)">
+  Delete
+</button>

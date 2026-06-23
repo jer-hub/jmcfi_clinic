@@ -6,6 +6,7 @@ from urllib.parse import urlencode, urlparse
 from django.http import QueryDict
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db import transaction
 from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
@@ -27,7 +28,9 @@ from .calendar_service import (
 from core.access_control import AccessReason, access_denied_response
 from core.clinical_permissions import can_write_appointments
 from core.decorators import role_required, admin_required
+from core.models import SettingsChangeLog
 from core.roles import PATIENT_ROLE_VALUES, ROLE_DOCTOR, ROLE_PATIENT, ROLE_STAFF, role_matches
+from core.settings_audit import log_boolean_toggle, log_settings_change, scoped_field_name
 from core.settings_service import get_clinic_settings
 from core.notification_delivery import notify_user
 from core.htmx_utils import is_htmx_request, htmx_add_toast, htmx_add_trigger
@@ -38,6 +41,30 @@ def _is_json_request(request):
     return content_type.startswith('application/json')
 
 User = get_user_model()
+
+
+def _doctor_assignment_label(doctors):
+    names = sorted((doctor.get_full_name() or doctor.email) for doctor in doctors)
+    return ', '.join(names) if names else '(all active doctors)'
+
+
+def _doctor_pk_set(doctors):
+    return {doctor.pk for doctor in doctors}
+
+
+def _log_appointment_doctor_change(*, actor, default, old_doctors, new_doctors):
+    if _doctor_pk_set(old_doctors) == _doctor_pk_set(new_doctors):
+        return
+    log_settings_change(
+        actor=actor,
+        setting_type=SettingsChangeLog.SettingType.APPOINTMENT,
+        field_name=scoped_field_name(
+            default.get_appointment_type_display(),
+            'assigned_doctors',
+        ),
+        old_value=_doctor_assignment_label(old_doctors),
+        new_value=_doctor_assignment_label(new_doctors),
+    )
 
 
 def paginate_queryset(queryset, request, per_page=10):
@@ -738,10 +765,23 @@ def edit_appointment_type_default(request, type_key=None):
         
         form = AppointmentTypeDefaultForm(request.POST, instance=appointment_default)
         if form.is_valid():
-            default = form.save(commit=False)
-            default.updated_by = request.user
-            default.save()
-            form.save_m2m()
+            old_doctors = []
+            if appointment_default and appointment_default.pk:
+                old_doctors = list(appointment_default.assigned_doctors.order_by('pk'))
+
+            with transaction.atomic():
+                default = form.save(commit=False)
+                default.updated_by = request.user
+                default.save()
+                form.save_m2m()
+
+                new_doctors = list(default.assigned_doctors.order_by('pk'))
+                _log_appointment_doctor_change(
+                    actor=request.user,
+                    default=default,
+                    old_doctors=old_doctors,
+                    new_doctors=new_doctors,
+                )
             
             type_display = default.get_appointment_type_display()
             
@@ -789,10 +829,20 @@ def toggle_appointment_type_default(request, default_id):
     """
     if request.method == 'POST':
         default = get_object_or_404(AppointmentTypeDefault, id=default_id)
-        default.is_active = not default.is_active
-        default.updated_by = request.user
-        default.save()
-        
+        old_active = default.is_active
+        with transaction.atomic():
+            default.is_active = not default.is_active
+            default.updated_by = request.user
+            default.save()
+            log_boolean_toggle(
+                actor=request.user,
+                setting_type=SettingsChangeLog.SettingType.APPOINTMENT,
+                scope=default.get_appointment_type_display(),
+                field_name='is_active',
+                old_value=old_active,
+                new_value=default.is_active,
+            )
+
         status = "activated" if default.is_active else "deactivated"
         message_text = f'{default.get_appointment_type_display()} has been {status}.'
 

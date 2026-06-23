@@ -1,11 +1,17 @@
 """Admin system settings hub and edit views."""
 
+import csv
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
 from .decorators import admin_required
+from .htmx_utils import is_htmx_request
 from .models import RoleSettings, SettingsChangeLog, User
 from .settings_audit import log_form_field_changes
 from .settings_forms import (
@@ -48,7 +54,7 @@ def _settings_hub_cards(clinic):
         },
         {
             'title': 'Audit log',
-            'description': 'Review who changed clinic and role settings.',
+            'description': 'Review who changed clinic, role, academic, and appointment settings.',
             'url': reverse('core:settings_audit'),
             'icon': 'fa-clock-rotate-left',
             'icon_wrap': 'bg-muted-100 text-muted-600',
@@ -188,22 +194,102 @@ def settings_role_edit(request, role):
     )
 
 
+def _settings_audit_filter_values(request):
+    setting_type = (request.GET.get('type') or 'all').strip()
+    valid_types = {choice[0] for choice in SettingsChangeLog.SettingType.choices}
+    if setting_type not in valid_types:
+        setting_type = 'all'
+    return {
+        'setting_type': setting_type,
+        'actor': (request.GET.get('actor') or '').strip(),
+        'q': (request.GET.get('q') or '').strip(),
+        'date_from': (request.GET.get('date_from') or '').strip(),
+        'date_to': (request.GET.get('date_to') or '').strip(),
+    }
+
+
+def _has_active_settings_audit_filters(filter_values):
+    return (
+        filter_values.get('setting_type') not in ('', 'all')
+        or bool(filter_values.get('actor'))
+        or bool(filter_values.get('q'))
+        or bool(filter_values.get('date_from'))
+        or bool(filter_values.get('date_to'))
+    )
+
+
+def _filter_settings_audit_logs(queryset, filter_values):
+    setting_type = filter_values['setting_type']
+    if setting_type != 'all':
+        queryset = queryset.filter(setting_type=setting_type)
+    if filter_values['actor']:
+        queryset = queryset.filter(changed_by__email__icontains=filter_values['actor'])
+    if filter_values['q']:
+        query = filter_values['q']
+        queryset = queryset.filter(
+            Q(field_name__icontains=query)
+            | Q(old_value__icontains=query)
+            | Q(new_value__icontains=query)
+            | Q(role__icontains=query)
+        )
+    parsed_from = parse_date(filter_values['date_from']) if filter_values['date_from'] else None
+    parsed_to = parse_date(filter_values['date_to']) if filter_values['date_to'] else None
+    if parsed_from:
+        queryset = queryset.filter(created_at__date__gte=parsed_from)
+    if parsed_to:
+        queryset = queryset.filter(created_at__date__lte=parsed_to)
+    return queryset.order_by('-created_at')
+
+
+def _settings_audit_list_context(request, logs):
+    filter_values = _settings_audit_filter_values(request)
+    clear_url = reverse('core:settings_audit')
+    return {
+        'logs': logs,
+        'setting_type_choices': SettingsChangeLog.SettingType.choices,
+        'filter_url': clear_url,
+        'clear_url': clear_url,
+        'has_active_filters': _has_active_settings_audit_filters(filter_values),
+        'settings_subnav_active': 'audit',
+        **filter_values,
+    }
+
+
+def _render_settings_audit_list(request, context):
+    if is_htmx_request(request):
+        return render(request, 'core/settings/audit_log/_results.html', context)
+    return render(request, 'core/settings/audit_log.html', context)
+
+
 @login_required
 @admin_required
 def settings_audit(request):
-    """Recent clinic and role settings changes."""
-    logs = (
-        SettingsChangeLog.objects.select_related('changed_by')
-        .order_by('-created_at')[:100]
+    """Settings change log with live filters and CSV export."""
+    filter_values = _settings_audit_filter_values(request)
+    logs_qs = _filter_settings_audit_logs(
+        SettingsChangeLog.objects.select_related('changed_by'),
+        filter_values,
     )
-    return render(
-        request,
-        'core/settings/audit_log.html',
-        {
-            'logs': logs,
-            'settings_subnav_active': 'audit',
-        },
-    )
+
+    if request.GET.get('export') == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="settings-audit-log.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['When', 'Type', 'Role', 'Field', 'Old', 'New', 'By'])
+        for log in logs_qs:
+            writer.writerow([
+                log.created_at.strftime('%Y-%m-%d %H:%M'),
+                log.get_setting_type_display(),
+                log.role,
+                log.field_name,
+                log.old_value,
+                log.new_value,
+                log.changed_by.email if log.changed_by else '',
+            ])
+        return response
+
+    context = _settings_audit_list_context(request, logs_qs[:100])
+    return _render_settings_audit_list(request, context)
 
 
 def _preferences_return_url(request):

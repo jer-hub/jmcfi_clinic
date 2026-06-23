@@ -1,0 +1,34 @@
+{% if logs %}
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 text-sm">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">When</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Type</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Field</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">Old</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">New</th>
+          <th class="px-4 py-3 text-left font-medium text-gray-500">By</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for log in logs %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ log.created_at|date:"Y-m-d H:i" }}</td>
+          <td class="px-4 py-3 whitespace-nowrap">
+            {{ log.get_setting_type_display }}{% if log.role %} · {{ log.role }}{% endif %}
+          </td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-800">{{ log.field_name }}</td>
+          <td class="px-4 py-3 max-w-xs truncate text-gray-500" title="{{ log.old_value }}">{{ log.old_value|default:"—" }}</td>
+          <td class="px-4 py-3 max-w-xs truncate text-gray-900" title="{{ log.new_value }}">{{ log.new_value|default:"—" }}</td>
+          <td class="px-4 py-3 whitespace-nowrap text-gray-600">
+            {% if log.changed_by %}{{ log.changed_by.email }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  {% include "components/empty_state.html" with icon="fa-clock-rotate-left" title="No matching changes" description="Try adjusting your filters, or make edits to clinic, role, academic catalog, or appointment settings." %}
+{% endif %}

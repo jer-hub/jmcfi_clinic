@@ -6,43 +6,29 @@
 {% include "core/settings/_page_open.html" %}
   {% include "core/settings/_subnav.html" %}
 
-  {% include "components/page_header.html" with title="Settings audit log" subtitle="Recent changes to clinic and role configuration." icon="fa-clock-rotate-left" %}
+  {% include "components/page_header.html" with title="Settings audit log" subtitle="Recent changes to clinic, role, academic catalog, and appointment configuration." icon="fa-clock-rotate-left" %}
 
   <div class="bg-white border border-gray-200 rounded-card shadow-sm overflow-hidden">
-  {% if logs %}
-    <div class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-200 text-sm">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-4 py-3 text-left font-medium text-gray-500">When</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-500">Type</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-500">Field</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-500">Old</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-500">New</th>
-            <th class="px-4 py-3 text-left font-medium text-gray-500">By</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-100">
-          {% for log in logs %}
-          <tr class="hover:bg-gray-50">
-            <td class="px-4 py-3 whitespace-nowrap text-gray-600">{{ log.created_at|date:"Y-m-d H:i" }}</td>
-            <td class="px-4 py-3 whitespace-nowrap">
-              {{ log.get_setting_type_display }}{% if log.role %} · {{ log.role }}{% endif %}
-            </td>
-            <td class="px-4 py-3 font-mono text-xs text-gray-800">{{ log.field_name }}</td>
-            <td class="px-4 py-3 max-w-xs truncate text-gray-500" title="{{ log.old_value }}">{{ log.old_value|default:"—" }}</td>
-            <td class="px-4 py-3 max-w-xs truncate text-gray-900" title="{{ log.new_value }}">{{ log.new_value|default:"—" }}</td>
-            <td class="px-4 py-3 whitespace-nowrap text-gray-600">
-              {% if log.changed_by %}{{ log.changed_by.email }}{% else %}—{% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="px-4 py-4 border-b border-gray-100 bg-gray-50/30">
+      {% include "core/settings/audit_log/_filters.html" %}
     </div>
-  {% else %}
-    {% include "components/empty_state.html" with icon="fa-clock-rotate-left" title="No changes logged yet" description="Edits to clinic or role settings will appear here." %}
-  {% endif %}
+
+    <div id="settings-audit-results">
+      {% include "core/settings/audit_log/_results.html" %}
+    </div>
   </div>
 {% include "core/settings/_page_close.html" %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+  window.__jmcfiExportSettingsAudit = function () {
+    var form = document.getElementById('settings-audit-filter-form');
+    if (!form) return;
+    var params = new URLSearchParams(new FormData(form));
+    params.set('export', 'csv');
+    window.location = form.getAttribute('action') + '?' + params.toString();
+  };
+</script>
 {% endblock %}

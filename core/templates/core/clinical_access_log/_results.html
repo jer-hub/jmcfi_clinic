@@ -1,0 +1,3 @@
+{% include "core/clinical_access_log/_table.html" %}
+
+{% include "components/pagination.html" with page_obj=logs querystring=pagination_querystring hx_target="#clinical-access-log-results" %}

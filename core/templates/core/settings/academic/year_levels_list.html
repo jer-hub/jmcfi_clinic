@@ -17,26 +17,12 @@
 
   <div class="mb-8 rounded-card border border-gray-200 bg-white p-6 shadow-sm">
     <h2 class="text-sm font-semibold text-gray-900 mb-4">{% if edit_form %}Edit year level{% else %}Add year level{% endif %}</h2>
-    <form method="post" novalidate class="flex flex-wrap items-end gap-4">
-      {% csrf_token %}
-      {% if edit_form %}
-        {% for field in edit_form %}
-          <div class="min-w-[10rem] flex-1">
-            {% include "components/forms/field.html" with field=field %}
-          </div>
-        {% endfor %}
-        <input type="hidden" name="year_level_id" value="{{ edit_level.pk }}">
-        {% include "components/button.html" with label="Save" icon="fa-check" variant="primary" type="submit" %}
-        <a href="{% url 'core:settings_college_year_levels' pk=college.pk %}" class="btn-secondary">Cancel edit</a>
-      {% else %}
-        {% for field in add_form %}
-          <div class="min-w-[10rem] flex-1">
-            {% include "components/forms/field.html" with field=field %}
-          </div>
-        {% endfor %}
-        {% include "components/button.html" with label="Add" icon="fa-plus" variant="primary" type="submit" %}
-      {% endif %}
-    </form>
+    {% if edit_form %}
+      {% url 'core:settings_college_year_levels' pk=college.pk as year_levels_cancel_url %}
+      {% include "core/settings/academic/_catalog_item_form.html" with form=edit_form submit_label="Save" submit_icon="fa-check" cancel_url=year_levels_cancel_url hidden_name="year_level_id" hidden_value=edit_level.pk columns="year_level" %}
+    {% else %}
+      {% include "core/settings/academic/_catalog_item_form.html" with form=add_form submit_label="Add" submit_icon="fa-plus" columns="year_level" %}
+    {% endif %}
   </div>
 
   <div class="overflow-hidden rounded-card border border-gray-200 bg-white shadow-sm">
@@ -55,34 +41,7 @@
       </thead>
       <tbody class="divide-y divide-gray-100">
         {% for level in year_levels %}
-        <tr>
-          <td class="px-4 py-3 text-sm text-gray-600">{{ level.sort_order }}</td>
-          <td class="px-4 py-3 text-sm text-gray-900">{{ level.name }}</td>
-          <td class="px-4 py-3 text-sm">
-            {% if level.is_active %}
-              {% include "components/status_badge.html" with label="Active" variant="success" %}
-            {% else %}
-              {% include "components/status_badge.html" with label="Inactive" variant="muted" %}
-            {% endif %}
-          </td>
-          <td class="px-4 py-3 text-right text-sm">
-            <div class="inline-flex items-center gap-1.5 whitespace-nowrap">
-              <a href="{% url 'core:settings_college_year_levels' pk=college.pk %}?edit={{ level.pk }}"
-                 class="inline-flex items-center rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300">
-                Edit
-              </a>
-              <form method="post" class="inline-flex">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="toggle">
-              <input type="hidden" name="year_level_id" value="{{ level.pk }}">
-                <button type="submit"
-                        class="inline-flex items-center rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300">
-                {% if level.is_active %}Deactivate{% else %}Activate{% endif %}
-              </button>
-              </form>
-            </div>
-          </td>
-        </tr>
+          {% include "core/settings/academic/_year_level_row.html" with level=level college=college %}
         {% empty %}
         <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-gray-500">No year levels yet.</td></tr>
         {% endfor %}
@@ -91,4 +50,9 @@
   </div>
 
 {% include "core/settings/_page_close.html" %}
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+{% include "core/settings/academic/_catalog_delete_scripts.html" %}
 {% endblock %}

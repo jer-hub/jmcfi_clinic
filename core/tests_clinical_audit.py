@@ -31,6 +31,8 @@ def _complete_staff_profile(user, staff_id='STAFF-001'):
     profile.middle_name = 'M'
     profile.gender = 'male'
     profile.civil_status = 'single'
+    profile.religion = 'Roman Catholic'
+    profile.citizenship = 'Filipino'
     profile.date_of_birth = '2000-01-01'
     profile.place_of_birth = 'Davao'
     profile.age = 26
@@ -46,6 +48,8 @@ def _complete_staff_profile(user, staff_id='STAFF-001'):
             'middle_name',
             'gender',
             'civil_status',
+            'religion',
+            'citizenship',
             'date_of_birth',
             'place_of_birth',
             'age',
@@ -338,6 +342,41 @@ class ClinicalAuditAccessControlTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'core/clinical_access_log/list.html')
         self.assertEqual(len(response.context['logs']), 2)
+
+    def test_global_audit_page_has_live_filter_form(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('core:clinical_access_log'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'clinical-access-log-filter-form')
+        self.assertContains(response, 'clinical-access-log-results')
+        self.assertContains(response, 'Results update as you type')
+        self.assertNotContains(response, '>Filter</button>')
+
+    def test_global_audit_htmx_returns_results_partial(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(
+            reverse('core:clinical_access_log'),
+            {'action': 'view'},
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'core/clinical_access_log/_results.html')
+        self.assertNotContains(response, 'clinical-access-log-filter-form')
+
+    def test_global_audit_filters_by_action(self):
+        self.client.force_login(self.admin)
+        ClinicalAccessLog.objects.create(
+            actor=self.staff,
+            patient=self.patient,
+            action='delete',
+            resource_type='medical_record',
+            resource_id=3,
+            resource_label='Deleted record',
+        )
+        response = self.client.get(reverse('core:clinical_access_log'), {'action': 'delete'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context['logs']), 1)
+        self.assertEqual(response.context['logs'][0].action, 'delete')
 
     def test_patient_audit_page_filters_by_patient(self):
         self.client.force_login(self.admin)

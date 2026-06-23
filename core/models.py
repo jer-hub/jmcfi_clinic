@@ -677,15 +677,17 @@ class SettingsChangeLog(models.Model):
     class SettingType(models.TextChoices):
         CLINIC = 'clinic', 'Clinic'
         ROLE = 'role', 'Role'
+        ACADEMIC = 'academic', 'Academic'
+        APPOINTMENT = 'appointment', 'Appointments'
 
-    setting_type = models.CharField(max_length=10, choices=SettingType.choices)
+    setting_type = models.CharField(max_length=12, choices=SettingType.choices)
     role = models.CharField(
         max_length=10,
         blank=True,
         default='',
         help_text='Role key when setting_type is role.',
     )
-    field_name = models.CharField(max_length=80)
+    field_name = models.CharField(max_length=255)
     old_value = models.TextField(blank=True, default='')
     new_value = models.TextField(blank=True, default='')
     changed_by = models.ForeignKey(

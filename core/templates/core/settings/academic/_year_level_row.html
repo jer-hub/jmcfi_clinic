@@ -1,0 +1,32 @@
+<tr>
+  <td class="px-4 py-3 text-sm text-gray-600">{{ level.sort_order }}</td>
+  <td class="px-4 py-3 text-sm text-gray-900">{{ level.name }}</td>
+  <td class="px-4 py-3 text-sm">
+    {% if level.is_active %}
+      {% include "components/status_badge.html" with label="Active" variant="success" %}
+    {% else %}
+      {% include "components/status_badge.html" with label="Inactive" variant="muted" %}
+    {% endif %}
+  </td>
+  <td class="px-4 py-3 text-right text-sm">
+    <div class="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <a href="{% url 'core:settings_college_year_levels' pk=college.pk %}?edit={{ level.pk }}"
+         class="inline-flex items-center rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300">
+        Edit
+      </a>
+      <form method="post" class="inline-flex"
+            hx-post="{% url 'core:settings_college_year_levels' pk=college.pk %}"
+            hx-target="closest tr"
+            hx-swap="outerHTML">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="toggle">
+        <input type="hidden" name="year_level_id" value="{{ level.pk }}">
+        <button type="submit"
+                class="inline-flex items-center rounded-md border border-gray-200 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300">
+          {% if level.is_active %}Deactivate{% else %}Activate{% endif %}
+        </button>
+      </form>
+      {% include "core/settings/academic/_catalog_delete_action.html" with id_name="year_level_id" id_value=level.pk item_label=level.name delete_title="Delete year level" delete_message="Permanently delete this year level from the catalog. This cannot be undone." %}
+    </div>
+  </td>
+</tr>

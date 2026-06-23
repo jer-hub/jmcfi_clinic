@@ -23,9 +23,9 @@
       {% include "core/clinical_access_log/_filters.html" %}
     </div>
 
-    {% include "core/clinical_access_log/_table.html" %}
-
-    {% include "components/pagination.html" with page_obj=logs querystring=pagination_querystring %}
+    <div id="clinical-access-log-results">
+      {% include "core/clinical_access_log/_results.html" %}
+    </div>
   </div>
 {% include "core/settings/_page_close.html" %}
 {% endblock %}

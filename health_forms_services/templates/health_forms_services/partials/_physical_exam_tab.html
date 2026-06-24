@@ -43,7 +43,7 @@
       </span>
       <div>
         <h3 class="text-sm font-semibold text-gray-900">Anthropometrics</h3>
-        <p class="text-xs text-gray-500">Height and weight are used to calculate BMI on save.</p>
+        <p class="text-xs text-gray-500">Height and weight update BMI and category as you type.</p>
       </div>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -62,7 +62,7 @@
           {% elif item.name == 'weight' %}
           <p class="mt-1 text-xs text-gray-400">kilograms</p>
           {% elif item.name == 'bmi' %}
-          <p class="mt-1.5 text-xs text-gray-400">Auto-calculated</p>
+          <p class="mt-1.5 text-xs text-gray-400">Updates live from height and weight</p>
           {% endif %}
           {% if item.field.errors %}
           <p class="mt-1.5 text-xs text-red-600 font-medium">{{ item.field.errors.0 }}</p>

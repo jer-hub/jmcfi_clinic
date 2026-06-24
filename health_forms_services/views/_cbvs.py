@@ -21,6 +21,12 @@ from ..forms import (
     DentalServicesEndoForm,
     DentalServicesPediatricForm,
     DentalServicesDentistOtherForm,
+    DENTAL_PERSONAL_INFO_SECTIONS,
+    DENTAL_SOFT_TISSUE_FIELDS,
+    DENTAL_ORAL_HEALTH_CHECKBOXES,
+    DENTAL_TOOTH_COUNT_FIELDS,
+    DENTAL_PERIODONTAL_FIELDS,
+    DENTAL_TMJ_CHECKBOXES,
 )
 
 
@@ -48,6 +54,144 @@ class DentalDetailView(BaseFormDetailView):
     docx_export_url_name = 'health_forms_services:export_dental_services_docx'
     review_url_name = 'health_forms_services:review_dental_services'
     delete_url_name = 'health_forms_services:delete_dental_services'
+    form_type_label = 'Dental Services (HSS-Form0003)'
+
+    @staticmethod
+    def _bool_field(label, value, span='half'):
+        return {'label': label, 'value': bool(value), 'type': 'bool', 'span': span}
+
+    @staticmethod
+    def _text_field(label, value, span='half'):
+        return {'label': label, 'value': value or '—', 'type': 'text', 'span': span}
+
+    @staticmethod
+    def _choice_display(obj, field_name, label, span='half'):
+        getter = getattr(obj, f'get_{field_name}_display', None)
+        raw = getattr(obj, field_name, '')
+        value = getter() if raw and getter else ''
+        if not value:
+            return None
+        return {'label': label, 'value': value, 'span': span}
+
+    @classmethod
+    def _present_text(cls, label, value, span='half'):
+        if value is None:
+            return None
+        text = str(value).strip()
+        if not text or text == '—':
+            return None
+        return cls._text_field(label, text, span=span)
+
+    @classmethod
+    def _present_bool(cls, label, value):
+        if not value:
+            return None
+        return cls._bool_field(label, True)
+
+    @classmethod
+    def _section_shell(cls, key, label, *, icon, icon_bg, icon_color, description=None, **extra):
+        return {
+            'key': key,
+            'label': label,
+            'icon': icon,
+            'icon_bg': icon_bg,
+            'icon_color': icon_color,
+            'description': description,
+            **extra,
+        }
+
+    @classmethod
+    def _personal_groups(cls, obj, examined_by_name):
+        groups = [{
+            'label': 'Name',
+            'fields': [cls._text_field('Full Name', obj.get_full_name(), span='full')],
+        }]
+
+        value_map = {
+            'date_of_birth': obj.date_of_birth.strftime('%B %d, %Y') if obj.date_of_birth else '',
+            'place_of_birth': obj.place_of_birth,
+            'age': obj.age,
+            'gender': obj.get_gender_display() if obj.gender else '',
+            'civil_status': obj.get_civil_status_display() if obj.civil_status else '',
+            'email_address': obj.email_address or obj.user.email or '',
+            'contact_number': obj.contact_number,
+            'telephone_number': obj.telephone_number,
+            'address': obj.address,
+            'designation': obj.get_designation_display() if obj.designation else '',
+            'department_college_office': obj.department_college_office,
+            'guardian_name': obj.guardian_name,
+            'guardian_contact': obj.guardian_contact,
+            'date_of_examination': obj.date_of_examination.strftime('%B %d, %Y') if obj.date_of_examination else '',
+        }
+        label_map = {
+            'date_of_birth': 'Date of Birth',
+            'place_of_birth': 'Place of Birth',
+            'age': 'Age',
+            'gender': 'Gender',
+            'civil_status': 'Civil Status',
+            'email_address': 'Email',
+            'contact_number': 'Contact No.',
+            'telephone_number': 'Telephone No.',
+            'address': 'Address',
+            'designation': 'Designation',
+            'department_college_office': 'Department / College / Office',
+            'guardian_name': 'Guardian / Emergency Contact',
+            'guardian_contact': 'Guardian Contact',
+            'date_of_examination': 'Date of Examination',
+        }
+
+        for spec in DENTAL_PERSONAL_INFO_SECTIONS:
+            if spec['label'] == 'Full Name':
+                continue
+            fields = []
+            for fname in spec['fields']:
+                field = cls._present_text(
+                    label_map[fname],
+                    value_map.get(fname),
+                    span='full' if fname == 'address' else 'half',
+                )
+                if field:
+                    fields.append(field)
+            if fields:
+                groups.append({'label': spec['label'], 'fields': fields})
+
+        examined = cls._present_text('Examined By', examined_by_name, span='full')
+        if examined:
+            groups.append({'label': 'Clinician', 'fields': [examined]})
+        return groups
+
+    @classmethod
+    def _labeled_fields(cls, obj, field_specs, *, full_width=()):
+        fields = []
+        for attr, label in field_specs:
+            value = getattr(obj, attr, None)
+            if isinstance(value, bool):
+                field = cls._present_bool(label, value)
+            else:
+                field = cls._present_text(label, value, span='full' if attr in full_width else 'half')
+            if field:
+                fields.append(field)
+        return fields
+
+    @classmethod
+    def _condition_fields(cls, obj):
+        items = [
+            ('Caries-free', obj.cond_caries_free),
+            ('Poor Oral Hygiene', obj.cond_poor_oral_hygiene),
+            ('Indicated for Restoration', obj.cond_indicated_restoration),
+            ('Indicated for Extraction', obj.cond_indicated_extraction),
+            ('Gingival Inflammation', obj.cond_gingival_inflammation),
+            ('Needs Oral Prophylaxis', obj.cond_needs_oral_prophylaxis),
+            ('Needs Prosthesis', obj.cond_needs_prosthesis),
+            ('For Endodontic Treatment', obj.cond_for_endodontic),
+            ('For Orthodontic Treatment', obj.cond_for_orthodontic),
+            ('For Sealant', obj.cond_for_sealant),
+            ('No Treatment Needed', obj.cond_no_treatment_needed),
+        ]
+        fields = [cls._bool_field(label, checked) for label, checked in items if checked]
+        if obj.cond_others and (obj.cond_others_detail or '').strip():
+            fields.append(cls._text_field('Other Conditions', obj.cond_others_detail, span='full'))
+        return fields
 
     @property
     def detail_sections(self):
@@ -55,49 +199,182 @@ class DentalDetailView(BaseFormDetailView):
         if not obj:
             return []
 
-        personal_fields = [
-            {'label': 'Full Name', 'value': obj.get_full_name(), 'span': 'half'},
-            {'label': 'Age / Gender', 'value': f"{obj.age or '—'} / {obj.get_gender_display() or '—'}", 'span': 'half'},
-            {'label': 'Civil Status', 'value': obj.get_civil_status_display() or '—', 'span': 'half'},
-            {'label': 'Date of Birth', 'value': obj.date_of_birth.strftime('%B %d, %Y') if obj.date_of_birth else '—', 'type': 'date', 'span': 'half'},
-            {'label': 'Email', 'value': obj.email_address or obj.user.email or '—', 'span': 'half'},
-            {'label': 'Contact', 'value': obj.contact_number or '—', 'span': 'half'},
-            {'label': 'Address', 'value': obj.address or '—', 'span': 'full'},
-            {'label': 'Designation', 'value': obj.get_designation_display() or '—', 'span': 'half'},
-            {'label': 'Department', 'value': obj.department_college_office or '—', 'span': 'half'},
+        examined_by_name = ''
+        if obj.examined_by_id:
+            examined_by_name = obj.examined_by.get_full_name() or obj.examined_by.email
+
+        sections = [
+            self._section_shell(
+                'personal',
+                'Personal Information',
+                icon='fa-user',
+                icon_bg='bg-primary-50',
+                icon_color='text-primary-600',
+                description='Patient demographics, contact, and examination details.',
+                groups=self._personal_groups(obj, examined_by_name),
+            ),
+            self._section_shell(
+                'chart',
+                'Dental Chart (FDI Notation)',
+                icon='fa-teeth',
+                icon_bg='bg-indigo-50',
+                icon_color='text-indigo-600',
+                description='Visual chart and list of documented teeth.',
+                variant='chart',
+            ),
         ]
 
-        oral_fields = [
-            {'label': 'Presence of Debris', 'value': obj.presence_of_debris, 'type': 'bool', 'span': 'half'},
-            {'label': 'Gingival Inflammation', 'value': obj.inflammation_of_gingiva, 'type': 'bool', 'span': 'half'},
-            {'label': 'Presence of Calculus', 'value': obj.presence_of_calculus, 'type': 'bool', 'span': 'half'},
-            {'label': 'Orthodontic Treatment', 'value': obj.under_orthodontic_treatment, 'type': 'bool', 'span': 'half'},
-            {'label': 'Teeth Present', 'value': obj.teeth_present or '—', 'span': 'half'},
-            {'label': 'Caries-Free Teeth', 'value': obj.caries_free_teeth or '—', 'span': 'half'},
-            {'label': 'Decayed Teeth', 'value': obj.decayed_teeth or '—', 'span': 'half'},
-            {'label': 'Missing Teeth', 'value': obj.missing_teeth or '—', 'span': 'half'},
-            {'label': 'Filled Teeth', 'value': obj.filled_teeth or '—', 'span': 'half'},
-        ]
+        soft_tissue_fields = self._labeled_fields(
+            obj, DENTAL_SOFT_TISSUE_FIELDS, full_width=tuple(name for name, _ in DENTAL_SOFT_TISSUE_FIELDS),
+        )
+        if soft_tissue_fields:
+            sections.append(self._section_shell(
+                'soft-tissue',
+                'Initial Soft Tissue Exam',
+                icon='fa-mouth',
+                icon_bg='bg-rose-50',
+                icon_color='text-rose-600',
+                fields=soft_tissue_fields,
+            ))
 
-        cond_fields = [
-            {'label': 'Caries Free', 'value': obj.cond_caries_free, 'type': 'bool', 'span': 'half'},
-            {'label': 'Poor Oral Hygiene', 'value': obj.cond_poor_oral_hygiene, 'type': 'bool', 'span': 'half'},
-            {'label': 'Indicated Restoration', 'value': obj.cond_indicated_restoration, 'type': 'bool', 'span': 'half'},
-            {'label': 'Indicated Extraction', 'value': obj.cond_indicated_extraction, 'type': 'bool', 'span': 'half'},
-            {'label': 'Needs Prophylaxis', 'value': obj.cond_needs_oral_prophylaxis, 'type': 'bool', 'span': 'half'},
-            {'label': 'No Treatment Needed', 'value': obj.cond_no_treatment_needed, 'type': 'bool', 'span': 'half'},
-        ]
+        oral_fields = []
+        age_field = self._present_text('Age on Last Birthday', obj.oral_health_age_last_birthday)
+        if age_field:
+            oral_fields.append(age_field)
+        for attr, label in DENTAL_ORAL_HEALTH_CHECKBOXES:
+            field = self._present_bool(label, getattr(obj, attr, False))
+            if field:
+                oral_fields.append(field)
+        anomaly = self._present_text(
+            'Dentofacial Anomaly / Neoplasm / Others',
+            obj.dentofacial_anomaly,
+            span='full',
+        )
+        if anomaly:
+            oral_fields.append(anomaly)
+        if oral_fields:
+            sections.append(self._section_shell(
+                'oral-health',
+                'Oral Health Condition',
+                icon='fa-tooth',
+                icon_bg='bg-sky-50',
+                icon_color='text-sky-600',
+                fields=oral_fields,
+            ))
 
-        return [
-            {'key': 'personal', 'label': 'Personal Information', 'icon': 'fa-user', 'fields': personal_fields},
-            {'key': 'oral-health', 'label': 'Oral Health & Tooth Count', 'icon': 'fa-tooth', 'fields': oral_fields},
-            {'key': 'conditions', 'label': 'Conditions & Recommendations', 'icon': 'fa-clipboard-check', 'fields': cond_fields},
-        ]
+        tooth_count_fields = self._labeled_fields(obj, DENTAL_TOOTH_COUNT_FIELDS)
+        if tooth_count_fields:
+            sections.append(self._section_shell(
+                'tooth-count',
+                'Tooth Count (DMF)',
+                icon='fa-hashtag',
+                icon_bg='bg-violet-50',
+                icon_color='text-violet-600',
+                fields=tooth_count_fields,
+            ))
+
+        perio_fields = []
+        for attr, label in DENTAL_PERIODONTAL_FIELDS:
+            field = self._choice_display(obj, attr, label)
+            if field:
+                perio_fields.append(field)
+        muco = self._present_text('Mucogingival Defects', obj.mucogingival_defects, span='full')
+        if muco:
+            perio_fields.append(muco)
+        if perio_fields:
+            sections.append(self._section_shell(
+                'periodontal',
+                'Initial Periodontal Exam',
+                icon='fa-teeth',
+                icon_bg='bg-emerald-50',
+                icon_color='text-emerald-600',
+                fields=perio_fields,
+            ))
+
+        clinical_fields = []
+        occlusion = self._choice_display(obj, 'occlusion', 'Occlusion')
+        if occlusion:
+            clinical_fields.append(occlusion)
+        for attr, label in DENTAL_TMJ_CHECKBOXES:
+            field = self._present_bool(label, getattr(obj, attr, False))
+            if field:
+                clinical_fields.append(field)
+        if clinical_fields:
+            sections.append(self._section_shell(
+                'clinical',
+                'Clinical Data',
+                icon='fa-head-side-virus',
+                icon_bg='bg-amber-50',
+                icon_color='text-amber-600',
+                fields=clinical_fields,
+            ))
+
+        condition_fields = self._condition_fields(obj)
+        if condition_fields:
+            sections.append(self._section_shell(
+                'conditions',
+                'Conditions & Recommendations',
+                icon='fa-clipboard-check',
+                icon_bg='bg-primary-50',
+                icon_color='text-primary-600',
+                fields=condition_fields,
+            ))
+
+        dentist_fields = []
+        for label, value, span in (
+            ('Remarks', obj.remarks, 'full'),
+            ('Dentist Name', obj.dentist_name, 'half'),
+            ('License No.', obj.dentist_license_no, 'half'),
+        ):
+            field = self._present_text(label, value, span=span)
+            if field:
+                dentist_fields.append(field)
+        if dentist_fields:
+            sections.append(self._section_shell(
+                'dentist',
+                'Remarks & Dentist',
+                icon='fa-user-doctor',
+                icon_bg='bg-indigo-50',
+                icon_color='text-indigo-600',
+                fields=dentist_fields,
+            ))
+
+        return sections
 
     def get_object(self):
-        obj = super().get_object()
+        pk = self.kwargs.get('pk')
+        qs = self.model.objects.select_related('user', 'reviewed_by', 'examined_by')
+        user = self.request.user
+        from core.roles import is_patient_role
+        if is_patient_role(user.role):
+            obj = get_object_or_404(qs, pk=pk, user=user)
+        else:
+            obj = get_object_or_404(qs, pk=pk)
         self._cached_obj = obj
         return obj
+
+    def get_context_data(self, obj):
+        import json
+
+        ctx = super().get_context_data(obj)
+        teeth = obj.dental_chart.all().prefetch_related('surfaces')
+        teeth_json = []
+        for tooth in teeth:
+            teeth_json.append({
+                'id': tooth.id,
+                'tooth_number': tooth.tooth_number,
+                'tooth_type': tooth.tooth_type,
+                'condition': tooth.condition,
+                'notes': tooth.notes,
+                'surfaces': [
+                    {'id': s.id, 'surface': s.surface, 'condition': s.condition}
+                    for s in tooth.surfaces.all()
+                ],
+            })
+        ctx['dental_chart_json'] = json.dumps(teeth_json)
+        ctx['dental_record'] = obj
+        ctx['chart_entity_id'] = obj.pk
+        return ctx
 
 
 class DentalEditView(BaseFormEditView):
@@ -112,9 +389,15 @@ class DentalEditView(BaseFormEditView):
     }
     tabs = [
         {'key': 'personal', 'label': 'Personal Info', 'icon': 'fa-user'},
+        {'key': 'chart', 'label': 'Dental Chart', 'icon': 'fa-teeth'},
         {'key': 'examination', 'label': 'Examination', 'icon': 'fa-stethoscope'},
         {'key': 'conditions', 'label': 'Conditions', 'icon': 'fa-clipboard-check'},
     ]
+
+    def get_extra_edit_context(self, obj):
+        return {
+            'chart_api_base': reverse('health_forms_services:dental_chart_api_get', kwargs={'pk': obj.pk}),
+        }
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -485,14 +768,14 @@ class DentalServicesEditView(BaseFormEditView):
         'dentist_other': DentalServicesDentistOtherForm,
     }
     tabs = [
-        {'key': 'personal', 'label': 'Personal Info', 'icon': 'fa-user'},
-        {'key': 'perio', 'label': 'Periodontics', 'icon': 'fa-teeth'},
+        {'key': 'personal', 'label': 'Personal Info', 'short_label': 'Personal', 'icon': 'fa-user'},
+        {'key': 'perio', 'label': 'Periodontics', 'short_label': 'Perio', 'icon': 'fa-teeth'},
         {'key': 'operative', 'label': 'Operative', 'icon': 'fa-tooth'},
         {'key': 'surgery', 'label': 'Surgery', 'icon': 'fa-syringe'},
-        {'key': 'prostho', 'label': 'Prosthodontics', 'icon': 'fa-crown'},
-        {'key': 'endo', 'label': 'Endodontics', 'icon': 'fa-wave-square'},
+        {'key': 'prostho', 'label': 'Prosthodontics', 'short_label': 'Prosth', 'icon': 'fa-crown'},
+        {'key': 'endo', 'label': 'Endodontics', 'short_label': 'Endo', 'icon': 'fa-wave-square'},
         {'key': 'pediatric', 'label': 'Pediatric', 'icon': 'fa-child'},
-        {'key': 'dentist_other', 'label': 'Dentist & Other', 'icon': 'fa-user-doctor'},
+        {'key': 'dentist_other', 'label': 'Dentist & Other', 'short_label': 'Dentist', 'icon': 'fa-user-doctor'},
     ]
     field_groups = {
         'personal': [

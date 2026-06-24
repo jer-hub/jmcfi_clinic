@@ -552,11 +552,11 @@ def generate_patient_chart(chart):
 
 
 # ──────────────────────────────────────────────────────────────────
-#  F-HSS-20-0003 — Dental Records
+#  HSS-Form0003 — Dental Services
 # ──────────────────────────────────────────────────────────────────
 
 def generate_dental_form(form):
-    """F-HSS-20-0003 — Dental Records Form."""
+    """HSS-Form0003 — Dental Services form."""
     doc = Document()
     _setup_page(doc)
     _add_letterhead(doc, "Dental Services", "HSS-Form0003")
@@ -579,6 +579,7 @@ def generate_dental_form(form):
         ("Designation", form.get_designation_display() if form.designation else ""),
         ("Dept / College / Office", form.department_college_office),
         ("Date of Examination", form.date_of_examination),
+        ("Examined By", form.examined_by.get_full_name() if form.examined_by_id else ""),
     ], cols=3)
 
     _add_data_grid(doc, [

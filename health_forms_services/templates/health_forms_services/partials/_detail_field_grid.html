@@ -1,0 +1,23 @@
+{# Field grid for detail sections — expects `fields` list #}
+<dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+  {% for field in fields %}
+  <div class="{% if field.span == 'full' %}sm:col-span-2{% endif %}">
+    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">{{ field.label }}</dt>
+    <dd class="mt-1 text-sm text-gray-900">
+      {% if field.type == 'bool' %}
+        {% if field.value %}
+          <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
+            <i class="fas fa-check text-[10px]" aria-hidden="true"></i>Yes
+          </span>
+        {% else %}
+          <span class="text-gray-400">—</span>
+        {% endif %}
+      {% elif field.type == 'text' %}
+        {{ field.value|default:"—"|linebreaksbr }}
+      {% else %}
+        {{ field.value|default:"—" }}
+      {% endif %}
+    </dd>
+  </div>
+  {% endfor %}
+</dl>

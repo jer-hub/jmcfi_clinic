@@ -55,6 +55,7 @@
         {% for section in detail_sections %}
           {% include 'health_forms_services/partials/_section_card.html' with section=section %}
         {% endfor %}
+        {% block detail_extra_content %}{% endblock %}
       </div>
 
       <div class="space-y-4 sm:space-y-5">

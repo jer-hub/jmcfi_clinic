@@ -187,6 +187,7 @@ class BaseFormDetailView(View):
             'docx_export_url': reverse(self.docx_export_url_name, kwargs={'pk': obj.pk}) if self.docx_export_url_name else None,
             'review_url_name': self.review_url_name,
             'delete_url': reverse(self.delete_url_name, kwargs={'pk': obj.pk}) if self.delete_url_name else None,
+            'form_type_label': getattr(self, 'form_type_label', None) or self.model._meta.verbose_name,
         }
         return ctx
 
@@ -282,6 +283,7 @@ class BaseFormEditView(View):
             'doctors': self.get_doctors(),
             'detail_url': reverse(self.detail_url_name, kwargs={'pk': obj.pk}) if self.detail_url_name else None,
         }
+        ctx.update(self.get_extra_edit_context(obj))
         return render(request, self.template_name, ctx)
 
     def post(self, request, *args, **kwargs):
@@ -338,4 +340,8 @@ class BaseFormEditView(View):
             'doctors': self.get_doctors(),
             'detail_url': reverse(self.detail_url_name, kwargs={'pk': obj.pk}) if self.detail_url_name else None,
         }
+        ctx.update(self.get_extra_edit_context(obj))
         return render(request, self.template_name, ctx)
+
+    def get_extra_edit_context(self, obj):
+        return {}

@@ -306,6 +306,13 @@ class DentalHealthForm(models.Model):
     guardian_name = models.CharField(max_length=200, blank=True)
     guardian_contact = models.CharField(max_length=20, blank=True)
     date_of_examination = models.DateField(blank=True, null=True)
+    examined_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='examined_dental_health_forms',
+    )
 
     # ========== INITIAL SOFT TISSUE EXAM ==========
     soft_tissue_lips = models.TextField(blank=True)

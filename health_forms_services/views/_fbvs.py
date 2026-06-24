@@ -494,9 +494,13 @@ def create_dental_services(request):
             for field in personal_form.cleaned_data:
                 setattr(dental_form, field, personal_form.cleaned_data[field])
             dental_form.status = DentalHealthForm.Status.PENDING
+            dental_form.examined_by = request.user
             dental_form.save()
             messages.success(request, 'Dental services form created. You can now fill in clinical details.')
-            return redirect('health_forms_services:edit_dental_services', pk=dental_form.pk)
+            return redirect(
+                reverse('health_forms_services:edit_dental_services', kwargs={'pk': dental_form.pk})
+                + '?section=chart'
+            )
     else:
         preselected = _preselected_patient_from_request(request)
         selected_patient = preselected

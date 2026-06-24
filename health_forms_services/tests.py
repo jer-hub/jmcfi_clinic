@@ -845,13 +845,18 @@ class DentalServicesProcessFlowTests(TestCase):
 			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]),
 		)
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, 'Periodontics')
-		self.assertContains(response, 'Operative')
-		self.assertContains(response, 'Surgery')
-		self.assertContains(response, 'Prosthodontics')
-		self.assertContains(response, 'Endodontics')
-		self.assertContains(response, 'Pediatric')
-		self.assertContains(response, 'Dentist &amp; Other')
+		for label in ('Personal', 'Perio', 'Operative', 'Surgery', 'Prosth', 'Endo', 'Pediatric', 'Dentist'):
+			with self.subTest(label=label):
+				self.assertContains(response, label)
+		for full_label in (
+			'Personal Info',
+			'Periodontics',
+			'Prosthodontics',
+			'Endodontics',
+			'Dentist &amp; Other',
+		):
+			with self.subTest(full_label=full_label):
+				self.assertContains(response, f'title="{full_label}"')
 
 	def test_operative_section_save_persists_checkbox_and_detail(self):
 		response = self.client.post(
@@ -1065,6 +1070,205 @@ class DentalServicesProcessFlowTests(TestCase):
 		self.assertRedirects(
 			response,
 			reverse('health_forms_services:edit_dental_form', args=[created.pk]) + '?section=perio',
+		)
+
+
+@override_settings(
+	MIDDLEWARE=[
+		middleware
+		for middleware in settings.MIDDLEWARE
+		if middleware != 'core.middleware.ProfileCompleteMiddleware'
+	]
+)
+class DentalHealthFormProcessFlowTests(TestCase):
+	def setUp(self):
+		self.doctor = User.objects.create_user(
+			email='doctor-hss@test.com',
+			password='DoctorPass123!',
+			role='doctor',
+			is_staff=True,
+			is_active=True,
+			first_name='Dental',
+			last_name='Doctor',
+		)
+		doctor_profile = _complete_staff_like_profile(self.doctor, 'DOC-HSS-001')
+		doctor_profile.license_number = 'PRC-HSS-001'
+		doctor_profile.save(update_fields=['license_number'])
+		self.patient = User.objects.create_user(
+			email='patient-hss@test.com',
+			password='PatientPass123!',
+			role='patient',
+			is_active=True,
+			first_name='Ana',
+			last_name='Patient',
+		)
+		PatientProfile.objects.update_or_create(
+			user=self.patient,
+			defaults={'patient_id': 'P-HSS-001'},
+		)
+		self.form = DentalHealthForm.objects.create(
+			user=self.patient,
+			last_name='Patient',
+			first_name='Ana',
+			middle_name='M',
+			status=DentalHealthForm.Status.PENDING,
+			examined_by=self.doctor,
+		)
+		self.client.force_login(self.doctor)
+
+	def test_list_search_by_last_name(self):
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_list'),
+			{'search': 'Patient'},
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Patient, Ana')
+
+	def test_edit_page_shows_chart_tab(self):
+		response = self.client.get(
+			reverse('health_forms_services:edit_dental_services', args=[self.form.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Dental Chart')
+		self.assertContains(response, 'Examination')
+		self.assertContains(response, 'Conditions')
+
+	def test_examination_section_save_persists(self):
+		response = self.client.post(
+			reverse('health_forms_services:edit_dental_services', args=[self.form.pk]),
+			{
+				'section': 'examination',
+				'soft_tissue_lips': 'Normal',
+				'presence_of_debris': 'on',
+				'teeth_present': '28',
+				'gingival_inflammation': 'slight',
+				'occlusion': 'class_i',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(response.json()['success'])
+		self.form.refresh_from_db()
+		self.assertEqual(self.form.soft_tissue_lips, 'Normal')
+		self.assertTrue(self.form.presence_of_debris)
+		self.assertEqual(self.form.teeth_present, 28)
+		self.assertEqual(self.form.gingival_inflammation, 'slight')
+		self.assertEqual(self.form.occlusion, 'class_i')
+
+	def test_conditions_section_save_persists(self):
+		response = self.client.post(
+			reverse('health_forms_services:edit_dental_services', args=[self.form.pk]),
+			{
+				'section': 'conditions',
+				'cond_needs_oral_prophylaxis': 'on',
+				'cond_others': '',
+				'cond_others_detail': '',
+				'remarks': 'Follow up in 2 weeks',
+				'dentist_name': 'Dr. Dental Doctor',
+				'dentist_license_no': 'PRC-HSS-001',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(response.json()['success'])
+		self.form.refresh_from_db()
+		self.assertTrue(self.form.cond_needs_oral_prophylaxis)
+		self.assertEqual(self.form.remarks, 'Follow up in 2 weeks')
+		self.assertEqual(self.form.dentist_name, 'Dr. Dental Doctor')
+
+	def test_chart_api_update_persists(self):
+		response = self.client.post(
+			reverse('health_forms_services:dental_chart_api_update', args=[self.form.pk]),
+			{
+				'tooth_number': '16',
+				'condition': 'decayed',
+				'notes': 'Mesial caries',
+			},
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(response.json()['success'])
+		self.assertEqual(self.form.dental_chart.count(), 1)
+		tooth = self.form.dental_chart.get()
+		self.assertEqual(tooth.tooth_number, 16)
+		self.assertEqual(tooth.condition, 'decayed')
+
+	def test_detail_page_shows_hss_sections(self):
+		self.form.soft_tissue_lips = 'Normal'
+		self.form.presence_of_debris = True
+		self.form.teeth_present = 28
+		self.form.gingival_inflammation = 'moderate'
+		self.form.occlusion = 'class_i'
+		self.form.cond_needs_oral_prophylaxis = True
+		self.form.remarks = 'Follow up in 2 weeks'
+		self.form.dentist_name = 'Dr. Dental Doctor'
+		self.form.save(update_fields=[
+			'soft_tissue_lips',
+			'presence_of_debris',
+			'teeth_present',
+			'gingival_inflammation',
+			'occlusion',
+			'cond_needs_oral_prophylaxis',
+			'remarks',
+			'dentist_name',
+		])
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_detail', args=[self.form.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		for heading in (
+			'Personal Information',
+			'Initial Soft Tissue Exam',
+			'Oral Health Condition',
+			'Tooth Count (DMF)',
+			'Initial Periodontal Exam',
+			'Clinical Data',
+			'Conditions &amp; Recommendations',
+			'Remarks &amp; Dentist',
+			'Dental Chart (FDI Notation)',
+		):
+			with self.subTest(heading=heading):
+				self.assertContains(response, heading)
+
+	def test_detail_docx_link_visible(self):
+		response = self.client.get(
+			reverse('health_forms_services:dental_services_detail', args=[self.form.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Download .docx')
+		self.assertContains(
+			response,
+			reverse('health_forms_services:export_dental_services_docx', args=[self.form.pk]),
+		)
+
+	def test_create_redirects_to_chart_tab(self):
+		response = self.client.post(
+			reverse('health_forms_services:create_dental_services'),
+			{
+				'selected_user_id': str(self.patient.id),
+				'last_name': 'Searchable',
+				'first_name': 'Case',
+				'middle_name': '',
+				'age': '',
+				'gender': '',
+				'civil_status': '',
+				'address': '',
+				'date_of_birth': '',
+				'place_of_birth': '',
+				'email_address': 'case@test.com',
+				'contact_number': '',
+				'telephone_number': '',
+				'designation': '',
+				'department_college_office': '',
+				'guardian_name': '',
+				'guardian_contact': '',
+				'date_of_examination': '',
+			},
+		)
+		created = DentalHealthForm.objects.latest('created_at')
+		self.assertEqual(created.examined_by_id, self.doctor.id)
+		self.assertRedirects(
+			response,
+			reverse('health_forms_services:edit_dental_services', args=[created.pk]) + '?section=chart',
 		)
 
 

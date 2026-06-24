@@ -1,0 +1,4 @@
+{# HSS-Form0003 — interactive FDI dental chart (saves via chart API) #}
+{% with dental_record=form_obj chart_entity_id=form_obj.pk %}
+  {% include 'dental_records/partials/interactive_dental_chart.html' %}
+{% endwith %}

@@ -1,34 +1,48 @@
-<details class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden group" open>
+<details class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden group" {% if section.open|default:True %}open{% endif %}>
   <summary class="px-4 sm:px-5 py-3 sm:py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors list-none marker:content-none select-none min-h-[44px]">
-    <h2 class="text-sm sm:text-base font-semibold text-gray-900 flex items-center gap-2">
-      {% if section.icon %}
-        <i class="fas {{ section.icon }} text-primary-500 w-5 text-center"></i>
+    <div class="flex items-center gap-2 min-w-0">
+      {% if section.icon_bg %}
+      <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg {{ section.icon_bg }} {{ section.icon_color|default:'text-primary-600' }}">
+        <i class="fas {{ section.icon }} text-sm" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0">
+        <h2 class="text-sm sm:text-base font-semibold text-gray-900 truncate">{{ section.label }}</h2>
+        {% if section.description %}
+        <p class="text-xs text-gray-500 truncate">{{ section.description }}</p>
+        {% endif %}
+      </div>
+      {% else %}
+      <h2 class="text-sm sm:text-base font-semibold text-gray-900 flex items-center gap-2">
+        {% if section.icon %}
+          <i class="fas {{ section.icon }} text-primary-500 w-5 text-center" aria-hidden="true"></i>
+        {% endif %}
+        {{ section.label }}
+      </h2>
       {% endif %}
-      {{ section.label }}
-    </h2>
-    <i class="fas fa-chevron-down text-gray-400 transition-transform group-open:rotate-180 flex-shrink-0"></i>
+    </div>
+    <i class="fas fa-chevron-down text-gray-400 transition-transform group-open:rotate-180 flex-shrink-0 ml-3" aria-hidden="true"></i>
   </summary>
 
-  <div class="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">
-    {% if section.fields %}
-    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-      {% for field in section.fields %}
-      <div class="{% if field.span == 'full' %}sm:col-span-2{% endif %}">
-        <dt class="text-xs font-medium text-gray-400 uppercase tracking-wider">{{ field.label }}</dt>
-        <dd class="mt-1 text-sm text-gray-900">
-          {% if field.type == 'bool' %}
-            {% if field.value %}<span class="text-success-600 inline-flex items-center gap-1"><i class="fas fa-check"></i>Yes</span>{% else %}<span class="text-gray-400">—</span>{% endif %}
-          {% elif field.type == 'text' %}
-            {{ field.value|default:"—"|linebreaksbr }}
-          {% else %}
-            {{ field.value|default:"—" }}
+  <div class="px-4 sm:px-5 pb-4 sm:pb-5 pt-0 border-t border-gray-100">
+    {% if section.variant == 'chart' %}
+      {% include 'health_forms_services/partials/_dental_chart_detail_embed.html' %}
+    {% elif section.groups %}
+      <div class="space-y-6 pt-4">
+        {% for group in section.groups %}
+        <div>
+          {% if group.label %}
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-2 mb-3">{{ group.label }}</h3>
           {% endif %}
-        </dd>
+          {% include 'health_forms_services/partials/_detail_field_grid.html' with fields=group.fields %}
+        </div>
+        {% endfor %}
       </div>
-      {% endfor %}
-    </dl>
+    {% elif section.fields %}
+      <div class="pt-4">
+        {% include 'health_forms_services/partials/_detail_field_grid.html' with fields=section.fields %}
+      </div>
     {% else %}
-    <p class="text-sm text-gray-400 italic">No data recorded.</p>
+      <p class="text-sm text-gray-400 italic pt-4">No data recorded.</p>
     {% endif %}
   </div>
 </details>

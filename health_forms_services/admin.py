@@ -158,6 +158,7 @@ class DentalHealthFormAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
                 ('designation', 'department_college_office'),
                 ('guardian_name', 'guardian_contact'),
                 'date_of_examination',
+                'examined_by',
             )
         }),
         ('Initial Soft Tissue Exam', {

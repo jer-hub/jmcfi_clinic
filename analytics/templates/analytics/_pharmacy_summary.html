@@ -6,10 +6,10 @@
   </h2>
 
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-    {% include "components/stat_card.html" with label="Active medicines" value=pharmacy_analytics.active_medicines icon="fa-capsules" variant="primary" hint="In formulary" href=pharmacy_dash_url %}
-    {% include "components/stat_card.html" with label="Low stock" value=pharmacy_analytics.low_stock_count icon="fa-triangle-exclamation" variant="warning" hint="Below reorder level" href=pharmacy_dash_url %}
-    {% include "components/stat_card.html" with label="Near expiry" value=pharmacy_analytics.near_expiry_count icon="fa-hourglass-half" variant="danger" hint="Batches expiring soon" href=pharmacy_dash_url %}
-    {% include "components/stat_card.html" with label="Inventory value" value=pharmacy_analytics.inventory_value|floatformat:2 icon="fa-peso-sign" variant="info" hint="₱ · non-expired stock" href=pharmacy_dash_url %}
+    {% include "components/stat_card.html" with label="Active medicines" value=pharmacy_analytics.active_medicines icon="fa-capsules" variant="primary" hint="In formulary" %}
+    {% include "components/stat_card.html" with label="Low stock" value=pharmacy_analytics.low_stock_count icon="fa-triangle-exclamation" variant="warning" hint="Below reorder level" %}
+    {% include "components/stat_card.html" with label="Near expiry" value=pharmacy_analytics.near_expiry_count icon="fa-hourglass-half" variant="danger" hint="Batches expiring soon" %}
+    {% include "components/stat_card.html" with label="Inventory value" value=pharmacy_analytics.inventory_value|floatformat:2 icon="fa-peso-sign" variant="info" hint="₱ · non-expired stock" %}
   </div>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">

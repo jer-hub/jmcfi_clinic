@@ -1149,29 +1149,33 @@ class PatientChartReviewForm(forms.ModelForm):
 # ========================================================================
 
 DENTAL_SERVICES_CHECKBOX_CLASS = 'form-checkbox'
-DENTAL_SERVICES_DETAIL_INPUT = forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify details...'})
-DENTAL_SERVICES_DETAIL_TEXTAREA = forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'Please specify...'})
+DENTAL_SERVICES_DETAIL_TEXTAREA = forms.Textarea(attrs={
+    'class': 'form-textarea',
+    'rows': 2,
+    'placeholder': 'Enter specifications (one per line)...',
+})
+DENTAL_SERVICES_DETAIL_INPUT = DENTAL_SERVICES_DETAIL_TEXTAREA
 
 DENTAL_SERVICES_PERIO_ITEMS: tuple[tuple[str, str], ...] = (
-    ('perio_oral_prophylaxis', 'Oral Prophylaxis'),
-    ('perio_scaling_root_planning', 'Scaling & Root Planning'),
+    ('perio_oral_prophylaxis', 'Oral prophylaxis'),
+    ('perio_scaling_root_planning', 'Scaling and root planning'),
 )
 
 DENTAL_SERVICES_OPERATIVE_ITEMS: tuple[tuple[str, str, str], ...] = (
-    ('oper_class_i', 'oper_class_i_detail', 'Class I Restoration'),
-    ('oper_class_ii', 'oper_class_ii_detail', 'Class II Restoration'),
-    ('oper_class_iii', 'oper_class_iii_detail', 'Class III Restoration'),
-    ('oper_class_iv', 'oper_class_iv_detail', 'Class IV Restoration'),
-    ('oper_class_v', 'oper_class_v_detail', 'Class V Restoration'),
-    ('oper_class_vi', 'oper_class_vi_detail', 'Class VI Restoration'),
+    ('oper_class_i', 'oper_class_i_detail', 'Class I restoration'),
+    ('oper_class_ii', 'oper_class_ii_detail', 'Class II restoration'),
+    ('oper_class_iii', 'oper_class_iii_detail', 'Class III restoration'),
+    ('oper_class_iv', 'oper_class_iv_detail', 'Class IV restoration'),
+    ('oper_class_v', 'oper_class_v_detail', 'Class V restoration'),
+    ('oper_class_vi', 'oper_class_vi_detail', 'Class VI restoration'),
     ('oper_onlay_inlay', 'oper_onlay_inlay_detail', 'Onlay / Inlay'),
 )
 
-DENTAL_SERVICES_SURGERY_ITEMS: tuple[tuple[str, str, str], ...] = (
-    ('surg_tooth_extraction', 'surg_tooth_extraction_detail', 'Tooth Extraction'),
-    ('surg_odontectomy', 'surg_odontectomy_detail', 'Odontectomy'),
-    ('surg_operculectomy', 'surg_operculectomy_detail', 'Operculectomy'),
-    ('surg_other_pathological', 'surg_other_pathological_detail', 'Other Pathological Case'),
+DENTAL_SERVICES_SURGERY_ITEMS: tuple[tuple[str, str | None, str], ...] = (
+    ('surg_tooth_extraction', 'surg_tooth_extraction_detail', 'Tooth extraction'),
+    ('surg_odontectomy', None, 'Odontectomy'),
+    ('surg_operculectomy', None, 'Operculectomy'),
+    ('surg_other_pathological', 'surg_other_pathological_detail', 'Other pathological case'),
 )
 
 DENTAL_SERVICES_PROSTHO_ITEMS: tuple[tuple[str, str | None, str], ...] = (
@@ -1183,8 +1187,8 @@ DENTAL_SERVICES_PROSTHO_ITEMS: tuple[tuple[str, str | None, str], ...] = (
 )
 
 DENTAL_SERVICES_ENDO_ITEMS: tuple[tuple[str, str, str], ...] = (
-    ('endo_anterior', 'endo_anterior_detail', 'Endodontics (Anterior)'),
-    ('endo_posterior', 'endo_posterior_detail', 'Endodontics (Posterior)'),
+    ('endo_anterior', 'endo_anterior_detail', 'Anterior'),
+    ('endo_posterior', 'endo_posterior_detail', 'Posterior'),
 )
 
 DENTAL_SERVICES_PEDIATRIC_ITEMS: tuple[tuple[str, str | None, str], ...] = (
@@ -1213,13 +1217,11 @@ DENTAL_SERVICES_WIDGETS: dict[str, forms.Widget] = {
     'oper_onlay_inlay': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
     'oper_onlay_inlay_detail': DENTAL_SERVICES_DETAIL_INPUT,
     'surg_tooth_extraction': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
-    'surg_tooth_extraction_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify teeth/details...'}),
+    'surg_tooth_extraction_detail': DENTAL_SERVICES_DETAIL_TEXTAREA,
     'surg_odontectomy': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
-    'surg_odontectomy_detail': DENTAL_SERVICES_DETAIL_INPUT,
     'surg_operculectomy': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
-    'surg_operculectomy_detail': DENTAL_SERVICES_DETAIL_INPUT,
     'surg_other_pathological': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
-    'surg_other_pathological_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify case...'}),
+    'surg_other_pathological_detail': DENTAL_SERVICES_DETAIL_TEXTAREA,
     'prosth_complete_denture': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
     'prosth_rpd': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
     'prosth_rpd_detail': DENTAL_SERVICES_DETAIL_INPUT,
@@ -1230,9 +1232,9 @@ DENTAL_SERVICES_WIDGETS: dict[str, forms.Widget] = {
     'prosth_veneers_laminates': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
     'prosth_veneers_laminates_detail': DENTAL_SERVICES_DETAIL_INPUT,
     'endo_anterior': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
-    'endo_anterior_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify teeth...'}),
+    'endo_anterior_detail': DENTAL_SERVICES_DETAIL_TEXTAREA,
     'endo_posterior': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
-    'endo_posterior_detail': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Specify teeth...'}),
+    'endo_posterior_detail': DENTAL_SERVICES_DETAIL_TEXTAREA,
     'pedo_fluoride': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
     'pedo_sealant': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
     'pedo_sealant_detail': DENTAL_SERVICES_DETAIL_INPUT,
@@ -1243,7 +1245,11 @@ DENTAL_SERVICES_WIDGETS: dict[str, forms.Widget] = {
     'pedo_space_maintainer': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
     'pedo_space_maintainer_detail': DENTAL_SERVICES_DETAIL_INPUT,
     'currently_undergoing_treatment': forms.CheckboxInput(attrs={'class': DENTAL_SERVICES_CHECKBOX_CLASS}),
-    'currently_undergoing_treatment_detail': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'Please specify current treatment...'}),
+    'currently_undergoing_treatment_detail': forms.Textarea(attrs={
+        'class': 'form-textarea',
+        'rows': 3,
+        'placeholder': 'Please specify current treatment...',
+    }),
     'dentist_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Signature over Printed Name'}),
     'dentist_date': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
     'dentist_license_no': forms.TextInput(attrs={'class': 'form-input'}),
@@ -1357,12 +1363,28 @@ class DentalServicesPersonalInfoForm(forms.ModelForm):
         for name in ['last_name', 'first_name']:
             if name in self.fields:
                 self.fields[name].required = True
+        label_map = {
+            'last_name': 'Last name',
+            'first_name': 'First name',
+            'middle_name': 'Middle name',
+            'address': 'Address',
+            'age': 'Age',
+            'gender': 'Gender',
+            'date_of_birth': 'Date of birth',
+            'contact_number': 'Contact number',
+            'department': 'Department',
+        }
+        for name, label in label_map.items():
+            if name in self.fields:
+                self.fields[name].label = label
 
 
 class DentalServicesPerioForm(DentalServicesCheckboxDetailMixin, forms.ModelForm):
     """Periodontics services checklist tab."""
 
     service_item_defs = DENTAL_SERVICES_PERIO_ITEMS
+    service_category_label = 'Periodontics'
+    show_services_intro = True
 
     class Meta:
         model = DentalServicesRequest
@@ -1374,6 +1396,7 @@ class DentalServicesOperativeForm(DentalServicesCheckboxDetailMixin, forms.Model
     """Operative dentistry services checklist tab."""
 
     service_item_defs = DENTAL_SERVICES_OPERATIVE_ITEMS
+    service_category_label = 'Operative Dentistry'
     checkbox_detail_pairs = tuple((flag, detail) for flag, detail, _ in DENTAL_SERVICES_OPERATIVE_ITEMS)
 
     class Meta:
@@ -1386,7 +1409,10 @@ class DentalServicesSurgeryForm(DentalServicesCheckboxDetailMixin, forms.ModelFo
     """Surgery services checklist tab."""
 
     service_item_defs = DENTAL_SERVICES_SURGERY_ITEMS
-    checkbox_detail_pairs = tuple((flag, detail) for flag, detail, _ in DENTAL_SERVICES_SURGERY_ITEMS)
+    service_category_label = 'Surgery'
+    checkbox_detail_pairs = tuple(
+        (flag, detail) for flag, detail, _ in DENTAL_SERVICES_SURGERY_ITEMS if detail
+    )
 
     class Meta:
         model = DentalServicesRequest
@@ -1398,6 +1424,7 @@ class DentalServicesProsthoForm(DentalServicesCheckboxDetailMixin, forms.ModelFo
     """Prosthodontics services checklist tab."""
 
     service_item_defs = DENTAL_SERVICES_PROSTHO_ITEMS
+    service_category_label = 'Prosthodontics'
     checkbox_detail_pairs = tuple(
         (flag, detail) for flag, detail, _ in DENTAL_SERVICES_PROSTHO_ITEMS if detail
     )
@@ -1412,6 +1439,7 @@ class DentalServicesEndoForm(DentalServicesCheckboxDetailMixin, forms.ModelForm)
     """Endodontics services checklist tab."""
 
     service_item_defs = DENTAL_SERVICES_ENDO_ITEMS
+    service_category_label = 'Endodontics'
     checkbox_detail_pairs = tuple((flag, detail) for flag, detail, _ in DENTAL_SERVICES_ENDO_ITEMS)
 
     class Meta:
@@ -1424,6 +1452,7 @@ class DentalServicesPediatricForm(DentalServicesCheckboxDetailMixin, forms.Model
     """Pediatric dentistry services checklist tab."""
 
     service_item_defs = DENTAL_SERVICES_PEDIATRIC_ITEMS
+    service_category_label = 'Pediatric'
     checkbox_detail_pairs = tuple(
         (flag, detail) for flag, detail, _ in DENTAL_SERVICES_PEDIATRIC_ITEMS if detail
     )

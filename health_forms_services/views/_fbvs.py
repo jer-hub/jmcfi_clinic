@@ -401,7 +401,7 @@ def export_form_json(request, pk):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Dental Records Form (F-HSS-20-0003) — create, review, delete, chart API
+# Dental Health Forms (Dental Form 2) — create, review, delete
 # ═══════════════════════════════════════════════════════════════════════════
 
 
@@ -411,22 +411,25 @@ def create_dental_form(request):
     selected_patient = None
     if request.method == 'POST':
         selected_patient, selected_patient_error = _selected_patient_from_request(request)
-        personal_form = DentalHealthPersonalInfoForm(request.POST)
+        personal_form = DentalServicesPersonalInfoForm(request.POST)
         if selected_patient_error:
             personal_form.add_error(None, selected_patient_error)
         if personal_form.is_valid():
-            dental_form = DentalHealthForm(user=selected_patient or request.user)
+            service_form = DentalServicesRequest(user=selected_patient or request.user)
             for field in personal_form.cleaned_data:
-                setattr(dental_form, field, personal_form.cleaned_data[field])
-            dental_form.status = DentalHealthForm.Status.PENDING
-            dental_form.save()
-            messages.success(request, 'Dental records form created. You can now fill in clinical details.')
-            return redirect('health_forms_services:edit_dental_form', pk=dental_form.pk)
+                setattr(service_form, field, personal_form.cleaned_data[field])
+            service_form.status = DentalServicesRequest.Status.PENDING
+            service_form.save()
+            messages.success(request, 'Dental health form created. You can now fill in the services checklist.')
+            return redirect(
+                reverse('health_forms_services:edit_dental_form', kwargs={'pk': service_form.pk})
+                + '?section=perio'
+            )
     else:
         preselected = _preselected_patient_from_request(request)
         selected_patient = preselected
         initial = _patient_profile_prefill_payload(preselected) if preselected else None
-        personal_form = DentalHealthPersonalInfoForm(initial=initial)
+        personal_form = DentalServicesPersonalInfoForm(initial=initial)
 
     return render(request, 'health_forms_services/create_dental_form.html', {
         'personal_form': personal_form,
@@ -441,14 +444,14 @@ def review_dental_form(request, pk):
         messages.error(request, 'Permission denied.')
         return redirect('health_forms_services:dental_form_detail', pk=pk)
 
-    dental_form = get_object_or_404(DentalHealthForm, pk=pk)
-    form = DentalHealthFormReviewForm(request.POST, instance=dental_form)
+    service_form = get_object_or_404(DentalServicesRequest, pk=pk)
+    form = DentalServicesReviewForm(request.POST, instance=service_form)
     if form.is_valid():
-        dental_form = form.save(commit=False)
-        dental_form.reviewed_by = request.user
-        dental_form.reviewed_at = timezone.now()
-        dental_form.save()
-        messages.success(request, f'Form status updated to {dental_form.get_status_display()}.')
+        service_form = form.save(commit=False)
+        service_form.reviewed_by = request.user
+        service_form.reviewed_at = timezone.now()
+        service_form.save()
+        messages.success(request, f'Form status updated to {service_form.get_status_display()}.')
     else:
         messages.error(request, 'Invalid form data.')
     return redirect('health_forms_services:dental_form_detail', pk=pk)
@@ -459,20 +462,92 @@ def review_dental_form(request, pk):
 def delete_dental_form(request, pk):
     user = request.user
     if user.role in ['staff', 'doctor', 'admin']:
+        service_form = get_object_or_404(DentalServicesRequest, pk=pk)
+    else:
+        service_form = get_object_or_404(DentalServicesRequest, pk=pk, user=user)
+
+    if service_form.status not in ['pending', 'rejected', 'incomplete']:
+        messages.error(request, 'Cannot delete a form that has been processed.')
+        return redirect('health_forms_services:dental_form_detail', pk=pk)
+
+    service_form.delete()
+    messages.success(request, 'Dental health form deleted successfully.')
+    return redirect('health_forms_services:dental_forms_list')
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Dental Services (HSS-Form0003) — create, review, delete, chart API
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+@login_required
+@role_required('staff', 'doctor')
+def create_dental_services(request):
+    selected_patient = None
+    if request.method == 'POST':
+        selected_patient, selected_patient_error = _selected_patient_from_request(request)
+        personal_form = DentalHealthPersonalInfoForm(request.POST)
+        if selected_patient_error:
+            personal_form.add_error(None, selected_patient_error)
+        if personal_form.is_valid():
+            dental_form = DentalHealthForm(user=selected_patient or request.user)
+            for field in personal_form.cleaned_data:
+                setattr(dental_form, field, personal_form.cleaned_data[field])
+            dental_form.status = DentalHealthForm.Status.PENDING
+            dental_form.save()
+            messages.success(request, 'Dental services form created. You can now fill in clinical details.')
+            return redirect('health_forms_services:edit_dental_services', pk=dental_form.pk)
+    else:
+        preselected = _preselected_patient_from_request(request)
+        selected_patient = preselected
+        initial = _patient_profile_prefill_payload(preselected) if preselected else None
+        personal_form = DentalHealthPersonalInfoForm(initial=initial)
+
+    return render(request, 'health_forms_services/create_dental_services.html', {
+        'personal_form': personal_form,
+        **_patient_picker_create_context(request, 'dental_services', selected_patient),
+    })
+
+
+@login_required
+@require_POST
+def review_dental_services(request, pk):
+    if request.user.role not in ['staff', 'doctor', 'admin']:
+        messages.error(request, 'Permission denied.')
+        return redirect('health_forms_services:dental_services_detail', pk=pk)
+
+    dental_form = get_object_or_404(DentalHealthForm, pk=pk)
+    form = DentalHealthFormReviewForm(request.POST, instance=dental_form)
+    if form.is_valid():
+        dental_form = form.save(commit=False)
+        dental_form.reviewed_by = request.user
+        dental_form.reviewed_at = timezone.now()
+        dental_form.save()
+        messages.success(request, f'Form status updated to {dental_form.get_status_display()}.')
+    else:
+        messages.error(request, 'Invalid form data.')
+    return redirect('health_forms_services:dental_services_detail', pk=pk)
+
+
+@login_required
+@role_required('staff', 'doctor')
+def delete_dental_services(request, pk):
+    user = request.user
+    if user.role in ['staff', 'doctor', 'admin']:
         dental_form = get_object_or_404(DentalHealthForm, pk=pk)
     else:
         dental_form = get_object_or_404(DentalHealthForm, pk=pk, user=user)
 
     if dental_form.status not in ['pending', 'rejected', 'incomplete']:
         messages.error(request, 'Cannot delete a form that has been processed.')
-        return redirect('health_forms_services:dental_form_detail', pk=pk)
+        return redirect('health_forms_services:dental_services_detail', pk=pk)
 
     dental_form.delete()
-    messages.success(request, 'Dental records form deleted successfully.')
-    return redirect('health_forms_services:dental_forms_list')
+    messages.success(request, 'Dental services form deleted successfully.')
+    return redirect('health_forms_services:dental_services_list')
 
 
-# ── Dental Chart API ───────────────────────────────────────────────────────
+# ── Dental Chart API (HSS-Form0003) ───────────────────────────────────────
 
 
 @login_required
@@ -781,81 +856,6 @@ def delete_chart_entry(request, pk, entry_id):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Dental Services Request (Dental Form 2) — create, review, delete
-# ═══════════════════════════════════════════════════════════════════════════
-
-
-@login_required
-@role_required('staff', 'doctor')
-def create_dental_services(request):
-    selected_patient = None
-    if request.method == 'POST':
-        selected_patient, selected_patient_error = _selected_patient_from_request(request)
-        personal_form = DentalServicesPersonalInfoForm(request.POST)
-        if selected_patient_error:
-            personal_form.add_error(None, selected_patient_error)
-        if personal_form.is_valid():
-            service_form = DentalServicesRequest(user=selected_patient or request.user)
-            for field in personal_form.cleaned_data:
-                setattr(service_form, field, personal_form.cleaned_data[field])
-            service_form.status = DentalServicesRequest.Status.PENDING
-            service_form.save()
-            messages.success(request, 'Dental services request created. You can now fill in the services checklist.')
-            return redirect(
-                reverse('health_forms_services:edit_dental_services', kwargs={'pk': service_form.pk})
-                + '?section=perio'
-            )
-    else:
-        preselected = _preselected_patient_from_request(request)
-        selected_patient = preselected
-        initial = _patient_profile_prefill_payload(preselected) if preselected else None
-        personal_form = DentalServicesPersonalInfoForm(initial=initial)
-
-    return render(request, 'health_forms_services/create_dental_services.html', {
-        'personal_form': personal_form,
-        **_patient_picker_create_context(request, 'dental_services', selected_patient),
-    })
-
-
-@login_required
-@require_POST
-def review_dental_services(request, pk):
-    if request.user.role not in ['staff', 'doctor', 'admin']:
-        messages.error(request, 'Permission denied.')
-        return redirect('health_forms_services:dental_services_detail', pk=pk)
-
-    service_form = get_object_or_404(DentalServicesRequest, pk=pk)
-    form = DentalServicesReviewForm(request.POST, instance=service_form)
-    if form.is_valid():
-        service_form = form.save(commit=False)
-        service_form.reviewed_by = request.user
-        service_form.reviewed_at = timezone.now()
-        service_form.save()
-        messages.success(request, f'Form status updated to {service_form.get_status_display()}.')
-    else:
-        messages.error(request, 'Invalid form data.')
-    return redirect('health_forms_services:dental_services_detail', pk=pk)
-
-
-@login_required
-@role_required('staff', 'doctor')
-def delete_dental_services(request, pk):
-    user = request.user
-    if user.role in ['staff', 'doctor', 'admin']:
-        service_form = get_object_or_404(DentalServicesRequest, pk=pk)
-    else:
-        service_form = get_object_or_404(DentalServicesRequest, pk=pk, user=user)
-
-    if service_form.status not in ['pending', 'rejected', 'incomplete']:
-        messages.error(request, 'Cannot delete a form that has been processed.')
-        return redirect('health_forms_services:dental_services_detail', pk=pk)
-
-    service_form.delete()
-    messages.success(request, 'Dental services request deleted successfully.')
-    return redirect('health_forms_services:dental_services_list')
-
-
-# ═══════════════════════════════════════════════════════════════════════════
 # Prescriptions (F-HSS-20-0004) — create, review, delete, item API
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -996,17 +996,17 @@ def export_patient_chart_docx(request, pk):
 @login_required
 @role_required('staff', 'doctor')
 def export_dental_form_docx(request, pk):
-    form = get_object_or_404(DentalHealthForm, pk=pk)
-    doc = generate_dental_form(form)
-    filename = f"Dental_Records_{form.last_name}_{form.first_name}.docx"
+    form = get_object_or_404(DentalServicesRequest, pk=pk)
+    doc = generate_dental_services(form)
+    filename = f"Dental_Health_Form_{form.last_name}_{form.first_name}.docx"
     return doc_to_response(doc, filename)
 
 
 @login_required
 @role_required('staff', 'doctor')
 def export_dental_services_docx(request, pk):
-    form = get_object_or_404(DentalServicesRequest, pk=pk)
-    doc = generate_dental_services(form)
+    form = get_object_or_404(DentalHealthForm, pk=pk)
+    doc = generate_dental_form(form)
     filename = f"Dental_Services_{form.last_name}_{form.first_name}.docx"
     return doc_to_response(doc, filename)
 

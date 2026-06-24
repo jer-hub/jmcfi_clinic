@@ -243,11 +243,10 @@ class HealthProfileForm(models.Model):
 
 
 class DentalHealthForm(models.Model):
-    """Dental Records Form (F-HSS-20-0003) - matching the JMCFI Dental Records PDF.
+    """Dental Services form (HSS-Form0003).
 
-    Comprehensive dental examination form with personal info, FDI dental chart,
-    soft tissue exam, oral health condition, periodontal exam, tooth count,
-    clinical data, and conditions/recommendations.
+    Comprehensive dental examination with FDI chart, soft tissue exam,
+    periodontal exam, tooth count, clinical data, and conditions.
     """
 
     class Status(models.TextChoices):
@@ -401,12 +400,12 @@ class DentalHealthForm(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        verbose_name = 'Dental Records Form'
-        verbose_name_plural = 'Dental Records Forms'
+        verbose_name = 'Dental Services Form'
+        verbose_name_plural = 'Dental Services Forms'
 
     def __str__(self):
         name = f"{self.last_name}, {self.first_name}".strip(', ') or self.user.get_full_name()
-        return f"Dental Records - {name} ({self.created_at.strftime('%Y-%m-%d')})"
+        return f"Dental Services - {name} ({self.created_at.strftime('%Y-%m-%d')})"
 
     def get_full_name(self):
         """Return full name in Last, First Middle format"""
@@ -514,11 +513,11 @@ class DentalFormToothSurface(models.Model):
 
 
 class DentalServicesRequest(models.Model):
-    """Dental Services Request Form — DENTAL FORM 2
-    
-    A checklist-based request form used by the dental clinic to record
-    which dental services a patient needs. Categories: Periodontics,
-    Operative Dentistry, Surgery, Prosthodontics, Endodontics, Pediatric.
+    """Dental Health Form — Dental Form 2
+
+    Checklist-based form used by the dental clinic to record which services
+    a patient needs. Categories: Periodontics, Operative Dentistry, Surgery,
+    Prosthodontics, Endodontics, Pediatric.
     """
 
     class Status(models.TextChoices):
@@ -630,8 +629,8 @@ class DentalServicesRequest(models.Model):
 
     class Meta:
         ordering = ['-created_at']
-        verbose_name = 'Dental Services Request'
-        verbose_name_plural = 'Dental Services Requests'
+        verbose_name = 'Dental Health Form'
+        verbose_name_plural = 'Dental Health Forms'
 
     def __str__(self):
         name = f"{self.last_name}, {self.first_name}".strip(', ') or self.user.get_full_name()
@@ -651,26 +650,26 @@ class DentalServicesRequest(models.Model):
         """Return list of selected service labels"""
         services = []
         service_map = {
-            'perio_oral_prophylaxis': 'Oral Prophylaxis',
-            'perio_scaling_root_planning': 'Scaling & Root Planning',
-            'oper_class_i': 'Class I Restoration',
-            'oper_class_ii': 'Class II Restoration',
-            'oper_class_iii': 'Class III Restoration',
-            'oper_class_iv': 'Class IV Restoration',
-            'oper_class_v': 'Class V Restoration',
-            'oper_class_vi': 'Class VI Restoration',
+            'perio_oral_prophylaxis': 'Oral prophylaxis',
+            'perio_scaling_root_planning': 'Scaling and root planning',
+            'oper_class_i': 'Class I restoration',
+            'oper_class_ii': 'Class II restoration',
+            'oper_class_iii': 'Class III restoration',
+            'oper_class_iv': 'Class IV restoration',
+            'oper_class_v': 'Class V restoration',
+            'oper_class_vi': 'Class VI restoration',
             'oper_onlay_inlay': 'Onlay / Inlay',
-            'surg_tooth_extraction': 'Tooth Extraction',
+            'surg_tooth_extraction': 'Tooth extraction',
             'surg_odontectomy': 'Odontectomy',
             'surg_operculectomy': 'Operculectomy',
-            'surg_other_pathological': 'Other Pathological Case',
+            'surg_other_pathological': 'Other pathological case',
             'prosth_complete_denture': 'Complete Denture',
             'prosth_rpd': 'RPD',
             'prosth_fpd': 'FPD',
             'prosth_single_crown': 'Single Crown',
             'prosth_veneers_laminates': 'Veneers / Laminates',
-            'endo_anterior': 'Endodontics (Anterior)',
-            'endo_posterior': 'Endodontics (Posterior)',
+            'endo_anterior': 'Anterior',
+            'endo_posterior': 'Posterior',
             'pedo_fluoride': 'Fluoride',
             'pedo_sealant': 'Sealant',
             'pedo_pulpotomy': 'Pulpotomy',

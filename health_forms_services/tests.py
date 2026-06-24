@@ -194,27 +194,6 @@ class HealthFormsPatientPickerTests(TestCase):
 				'last_name': 'Patient',
 				'first_name': 'Ana',
 				'middle_name': 'M',
-				'address': '123 Main St',
-				'age': '21',
-				'gender': 'female',
-				'date_of_birth': '',
-				'contact_number': '09171234567',
-				'department': 'BSN - College of Nursing',
-			},
-			follow=True,
-		)
-		self.assertEqual(response.status_code, 200)
-		created = DentalServicesRequest.objects.latest('created_at')
-		self.assertEqual(created.user_id, self.patient.id)
-
-	def test_create_dental_form_uses_selected_patient_user(self):
-		response = self.client.post(
-			reverse('health_forms_services:create_dental_form'),
-			{
-				'selected_user_id': str(self.patient.id),
-				'last_name': 'Patient',
-				'first_name': 'Ana',
-				'middle_name': 'M',
 				'age': '21',
 				'gender': 'female',
 				'civil_status': 'single',
@@ -236,29 +215,30 @@ class HealthFormsPatientPickerTests(TestCase):
 		created = DentalHealthForm.objects.latest('created_at')
 		self.assertEqual(created.user_id, self.patient.id)
 
+	def test_create_dental_form_uses_selected_patient_user(self):
+		response = self.client.post(
+			reverse('health_forms_services:create_dental_form'),
+			{
+				'selected_user_id': str(self.patient.id),
+				'last_name': 'Patient',
+				'first_name': 'Ana',
+				'middle_name': 'M',
+				'address': '123 Main St',
+				'age': '21',
+				'gender': 'female',
+				'date_of_birth': '',
+				'contact_number': '09171234567',
+				'department': 'BSN - College of Nursing',
+			},
+			follow=True,
+		)
+		self.assertEqual(response.status_code, 200)
+		created = DentalServicesRequest.objects.latest('created_at')
+		self.assertEqual(created.user_id, self.patient.id)
+
 	def test_invalid_selected_user_is_rejected(self):
 		response = self.client.post(
 			reverse('health_forms_services:create_dental_services'),
-			{
-				'selected_user_id': '999999',
-				'last_name': 'Doctor',
-				'first_name': 'Picker',
-				'middle_name': '',
-				'address': '',
-				'age': '',
-				'gender': '',
-				'date_of_birth': '',
-				'contact_number': '',
-				'department': '',
-			},
-		)
-		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, 'Please select a valid patient from the search results.')
-		self.assertFalse(DentalServicesRequest.objects.exists())
-
-	def test_invalid_selected_user_is_rejected_for_dental_form(self):
-		response = self.client.post(
-			reverse('health_forms_services:create_dental_form'),
 			{
 				'selected_user_id': '999999',
 				'last_name': 'Doctor',
@@ -283,6 +263,26 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Please select a valid patient from the search results.')
 		self.assertFalse(DentalHealthForm.objects.exists())
+
+	def test_invalid_selected_user_is_rejected_for_dental_form(self):
+		response = self.client.post(
+			reverse('health_forms_services:create_dental_form'),
+			{
+				'selected_user_id': '999999',
+				'last_name': 'Doctor',
+				'first_name': 'Picker',
+				'middle_name': '',
+				'address': '',
+				'age': '',
+				'gender': '',
+				'date_of_birth': '',
+				'contact_number': '',
+				'department': '',
+			},
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Please select a valid patient from the search results.')
+		self.assertFalse(DentalServicesRequest.objects.exists())
 
 	def test_no_selected_user_keeps_creator_assignment(self):
 		self.client.post(
@@ -834,7 +834,7 @@ class DentalServicesProcessFlowTests(TestCase):
 
 	def test_list_search_by_last_name(self):
 		response = self.client.get(
-			reverse('health_forms_services:dental_services_list'),
+			reverse('health_forms_services:dental_forms_list'),
 			{'search': 'Patient'},
 		)
 		self.assertEqual(response.status_code, 200)
@@ -842,7 +842,7 @@ class DentalServicesProcessFlowTests(TestCase):
 
 	def test_edit_page_shows_multi_tab_checklist(self):
 		response = self.client.get(
-			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]),
 		)
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Periodontics')
@@ -855,7 +855,7 @@ class DentalServicesProcessFlowTests(TestCase):
 
 	def test_operative_section_save_persists_checkbox_and_detail(self):
 		response = self.client.post(
-			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]),
 			{
 				'section': 'operative',
 				'oper_class_i': 'on',
@@ -868,11 +868,25 @@ class DentalServicesProcessFlowTests(TestCase):
 		self.request.refresh_from_db()
 		self.assertTrue(self.request.oper_class_i)
 		self.assertEqual(self.request.oper_class_i_detail, 'Tooth #16')
-		self.assertIn('Class I Restoration', self.request.selected_services)
+		self.assertIn('Class I restoration', self.request.selected_services)
+
+	def test_surgery_section_allows_odontectomy_without_detail(self):
+		response = self.client.post(
+			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]),
+			{
+				'section': 'surgery',
+				'surg_odontectomy': 'on',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(response.json()['success'])
+		self.request.refresh_from_db()
+		self.assertTrue(self.request.surg_odontectomy)
 
 	def test_operative_section_requires_detail_when_checked(self):
 		response = self.client.post(
-			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]),
 			{
 				'section': 'operative',
 				'oper_class_i': 'on',
@@ -885,7 +899,7 @@ class DentalServicesProcessFlowTests(TestCase):
 
 	def test_perio_section_save_persists(self):
 		response = self.client.post(
-			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]),
 			{
 				'section': 'perio',
 				'perio_oral_prophylaxis': 'on',
@@ -895,23 +909,23 @@ class DentalServicesProcessFlowTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		self.request.refresh_from_db()
 		self.assertTrue(self.request.perio_oral_prophylaxis)
-		self.assertIn('Oral Prophylaxis', self.request.selected_services)
+		self.assertIn('Oral prophylaxis', self.request.selected_services)
 
 	def test_detail_page_shows_selected_services(self):
 		self.request.oper_class_ii = True
 		self.request.oper_class_ii_detail = 'Tooth #26'
 		self.request.save(update_fields=['oper_class_ii', 'oper_class_ii_detail'])
 		response = self.client.get(
-			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+			reverse('health_forms_services:dental_form_detail', args=[self.request.pk]),
 		)
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Operative Dentistry')
-		self.assertContains(response, 'Class II Restoration')
+		self.assertContains(response, 'Class II restoration')
 		self.assertContains(response, 'Tooth #26')
 
 	def test_dental_services_detail_shows_all_service_categories(self):
 		response = self.client.get(
-			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+			reverse('health_forms_services:dental_form_detail', args=[self.request.pk]),
 		)
 		self.assertEqual(response.status_code, 200)
 		for heading in (
@@ -920,7 +934,7 @@ class DentalServicesProcessFlowTests(TestCase):
 			'Surgery',
 			'Prosthodontics',
 			'Endodontics',
-			'Pediatric Dentistry',
+			'Pediatric',
 			'Treatment Status',
 			'Dentist Information',
 		):
@@ -939,22 +953,22 @@ class DentalServicesProcessFlowTests(TestCase):
 			'oper_class_i_detail',
 		])
 		response = self.client.get(
-			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+			reverse('health_forms_services:dental_form_detail', args=[self.request.pk]),
 		)
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, 'Oral Prophylaxis')
-		self.assertNotContains(response, 'Scaling &amp; Root Planning')
-		self.assertNotContains(response, 'Class I Restoration')
+		self.assertContains(response, 'Oral prophylaxis')
+		self.assertNotContains(response, 'Scaling and root planning')
+		self.assertNotContains(response, 'Class I restoration')
 
 	def test_dental_services_detail_shows_service_detail_text(self):
 		self.request.surg_tooth_extraction = True
 		self.request.surg_tooth_extraction_detail = 'Tooth #38'
 		self.request.save(update_fields=['surg_tooth_extraction', 'surg_tooth_extraction_detail'])
 		response = self.client.get(
-			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+			reverse('health_forms_services:dental_form_detail', args=[self.request.pk]),
 		)
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, 'Tooth Extraction')
+		self.assertContains(response, 'Tooth extraction')
 		self.assertContains(response, 'Tooth #38')
 
 	def test_dental_services_detail_shows_treatment_and_dentist_block(self):
@@ -971,7 +985,7 @@ class DentalServicesProcessFlowTests(TestCase):
 			'dentist_license_no',
 		])
 		response = self.client.get(
-			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+			reverse('health_forms_services:dental_form_detail', args=[self.request.pk]),
 		)
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Currently Undergoing Treatment')
@@ -981,18 +995,18 @@ class DentalServicesProcessFlowTests(TestCase):
 
 	def test_dental_services_detail_docx_link_visible(self):
 		response = self.client.get(
-			reverse('health_forms_services:dental_services_detail', args=[self.request.pk]),
+			reverse('health_forms_services:dental_form_detail', args=[self.request.pk]),
 		)
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Download .docx')
 		self.assertContains(
 			response,
-			reverse('health_forms_services:export_dental_services_docx', args=[self.request.pk]),
+			reverse('health_forms_services:export_dental_form_docx', args=[self.request.pk]),
 		)
 
 	def test_dentist_tab_prefills_current_processing_clinician(self):
 		response = self.client.get(
-			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]) + '?section=dentist_other',
+			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]) + '?section=dentist_other',
 		)
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Assign clinician')
@@ -1013,7 +1027,7 @@ class DentalServicesProcessFlowTests(TestCase):
 		other_profile.save(update_fields=['license_number'])
 
 		response = self.client.post(
-			reverse('health_forms_services:edit_dental_services', args=[self.request.pk]),
+			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]),
 			{
 				'section': 'dentist_other',
 				'dentist_user': str(other_doctor.pk),
@@ -1033,7 +1047,7 @@ class DentalServicesProcessFlowTests(TestCase):
 
 	def test_create_redirects_to_perio_tab(self):
 		response = self.client.post(
-			reverse('health_forms_services:create_dental_services'),
+			reverse('health_forms_services:create_dental_form'),
 			{
 				'selected_user_id': str(self.patient.id),
 				'last_name': 'Searchable',
@@ -1050,7 +1064,7 @@ class DentalServicesProcessFlowTests(TestCase):
 		created = DentalServicesRequest.objects.latest('created_at')
 		self.assertRedirects(
 			response,
-			reverse('health_forms_services:edit_dental_services', args=[created.pk]) + '?section=perio',
+			reverse('health_forms_services:edit_dental_form', args=[created.pk]) + '?section=perio',
 		)
 
 

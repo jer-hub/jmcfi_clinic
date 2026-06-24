@@ -32,19 +32,14 @@ urlpatterns = [
     path('<int:pk>/export/docx/', views.export_health_profile_docx, name='export_health_profile_docx'),
     path('bulk-review/', HealthProfileBulkReviewView.as_view(), name='bulk_review'),
     
-    # Dental Health Forms (class-based views for list/detail/edit)
-    path('dental/', DentalListView.as_view(), name='dental_forms_list'),
+    # Dental Health Forms — Dental Form 2 (services checklist)
+    path('dental/', DentalServicesListView.as_view(), name='dental_forms_list'),
     path('dental/new/', views.create_dental_form, name='create_dental_form'),
-    path('dental/<int:pk>/', DentalDetailView.as_view(), name='dental_form_detail'),
-    path('dental/<int:pk>/edit/', DentalEditView.as_view(), name='edit_dental_form'),
+    path('dental/<int:pk>/', DentalServicesDetailView.as_view(), name='dental_form_detail'),
+    path('dental/<int:pk>/edit/', DentalServicesEditView.as_view(), name='edit_dental_form'),
     path('dental/<int:pk>/review/', views.review_dental_form, name='review_dental_form'),
     path('dental/<int:pk>/delete/', views.delete_dental_form, name='delete_dental_form'),
     path('dental/<int:pk>/export/docx/', views.export_dental_form_docx, name='export_dental_form_docx'),
-    # Dental Chart API
-    path('dental/<int:pk>/chart/api/', views.dental_form_chart_api_get, name='dental_chart_api_get'),
-    path('dental/<int:pk>/chart/api/update/', views.dental_form_chart_api_update, name='dental_chart_api_update'),
-    path('dental/<int:pk>/chart/api/bulk-update/', views.dental_form_chart_api_bulk_update, name='dental_chart_api_bulk_update'),
-    path('dental/<int:pk>/chart/api/<int:tooth_id>/delete/', views.dental_form_chart_api_delete, name='dental_chart_api_delete'),
     
     # Patient Charts (class-based views for list/detail/edit)
     path('patient-chart/', PatientChartListView.as_view(), name='patient_chart_list'),
@@ -57,14 +52,19 @@ urlpatterns = [
     path('patient-chart/<int:pk>/entry/add/', views.add_chart_entry, name='add_chart_entry'),
     path('patient-chart/<int:pk>/entry/<int:entry_id>/delete/', views.delete_chart_entry, name='delete_chart_entry'),
 
-    # Dental Services Request (class-based views for list/detail/edit)
-    path('dental-services/', DentalServicesListView.as_view(), name='dental_services_list'),
+    # Dental Services — HSS-Form0003 (dental records / examination)
+    path('dental-services/', DentalListView.as_view(), name='dental_services_list'),
     path('dental-services/new/', views.create_dental_services, name='create_dental_services'),
-    path('dental-services/<int:pk>/', DentalServicesDetailView.as_view(), name='dental_services_detail'),
-    path('dental-services/<int:pk>/edit/', DentalServicesEditView.as_view(), name='edit_dental_services'),
+    path('dental-services/<int:pk>/', DentalDetailView.as_view(), name='dental_services_detail'),
+    path('dental-services/<int:pk>/edit/', DentalEditView.as_view(), name='edit_dental_services'),
     path('dental-services/<int:pk>/review/', views.review_dental_services, name='review_dental_services'),
     path('dental-services/<int:pk>/delete/', views.delete_dental_services, name='delete_dental_services'),
     path('dental-services/<int:pk>/export/docx/', views.export_dental_services_docx, name='export_dental_services_docx'),
+    # Dental chart API (HSS-Form0003)
+    path('dental-services/<int:pk>/chart/api/', views.dental_form_chart_api_get, name='dental_chart_api_get'),
+    path('dental-services/<int:pk>/chart/api/update/', views.dental_form_chart_api_update, name='dental_chart_api_update'),
+    path('dental-services/<int:pk>/chart/api/bulk-update/', views.dental_form_chart_api_bulk_update, name='dental_chart_api_bulk_update'),
+    path('dental-services/<int:pk>/chart/api/<int:tooth_id>/delete/', views.dental_form_chart_api_delete, name='dental_chart_api_delete'),
 
     # Prescriptions (class-based views for list/detail/edit)
     path('prescription/', PrescriptionListView.as_view(), name='prescription_list'),

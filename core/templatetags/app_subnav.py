@@ -281,7 +281,7 @@ def health_forms_services_subnav(context):
             ),
         ),
         nav_item(
-            'Dental Forms',
+            'Dental Health Forms',
             'health_forms_services:dental_forms_list',
             icon='fa-tooth',
             active=is_active(

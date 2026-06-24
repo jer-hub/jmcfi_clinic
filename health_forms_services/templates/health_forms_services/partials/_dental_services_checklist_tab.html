@@ -1,6 +1,11 @@
 {# ── Dental Services checklist tab (perio, operative, surgery, etc.) ── #}
 <div class="space-y-4">
-  <p class="text-xs text-gray-500">Select requested services. Provide details when a service requires specification.</p>
+  {% if form.show_services_intro %}
+  <p class="text-sm font-medium text-gray-800">Please check services that are needed:</p>
+  {% endif %}
+  {% if form.service_category_label %}
+  <h3 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">{{ form.service_category_label }}</h3>
+  {% endif %}
   <div class="space-y-3">
     {% for item in form.service_items %}
     <div class="rounded-lg border border-gray-200 bg-gray-50/40 p-4">

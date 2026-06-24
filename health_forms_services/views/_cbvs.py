@@ -25,29 +25,29 @@ from ..forms import (
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Dental Health Forms (F-HSS-20-0003)
+# Dental Services — HSS-Form0003 (dental records / examination)
 # ═══════════════════════════════════════════════════════════════════════════
 
 class DentalListView(BaseFormListView):
     model = DentalHealthForm
-    template_name = 'health_forms_services/dental_forms_list.html'
-    detail_url_name = 'health_forms_services:dental_form_detail'
-    edit_url_name = 'health_forms_services:edit_dental_form'
-    create_url_name = 'health_forms_services:create_dental_form'
-    form_type_label = 'Dental Records Forms'
+    template_name = 'health_forms_services/dental_services_list.html'
+    detail_url_name = 'health_forms_services:dental_services_detail'
+    edit_url_name = 'health_forms_services:edit_dental_services'
+    create_url_name = 'health_forms_services:create_dental_services'
+    form_type_label = 'Dental Services (HSS-Form0003)'
     search_fields = ['last_name', 'first_name', 'user__email', 'email_address']
     status_choices = DentalHealthForm.Status
 
 
 class DentalDetailView(BaseFormDetailView):
     model = DentalHealthForm
-    template_name = 'health_forms_services/dental_form_detail.html'
-    list_url_name = 'health_forms_services:dental_forms_list'
-    edit_url_name = 'health_forms_services:edit_dental_form'
-    export_url_name = 'health_forms_services:export_dental_form_docx'
-    docx_export_url_name = 'health_forms_services:export_dental_form_docx'
-    review_url_name = 'health_forms_services:review_dental_form'
-    delete_url_name = 'health_forms_services:delete_dental_form'
+    template_name = 'health_forms_services/dental_services_detail.html'
+    list_url_name = 'health_forms_services:dental_services_list'
+    edit_url_name = 'health_forms_services:edit_dental_services'
+    export_url_name = 'health_forms_services:export_dental_services_docx'
+    docx_export_url_name = 'health_forms_services:export_dental_services_docx'
+    review_url_name = 'health_forms_services:review_dental_services'
+    delete_url_name = 'health_forms_services:delete_dental_services'
 
     @property
     def detail_sections(self):
@@ -102,9 +102,9 @@ class DentalDetailView(BaseFormDetailView):
 
 class DentalEditView(BaseFormEditView):
     model = DentalHealthForm
-    template_name = 'health_forms_services/edit_dental_form.html'
-    detail_url_name = 'health_forms_services:dental_form_detail'
-    edit_url_name = 'health_forms_services:edit_dental_form'
+    template_name = 'health_forms_services/edit_dental_services.html'
+    detail_url_name = 'health_forms_services:dental_services_detail'
+    edit_url_name = 'health_forms_services:edit_dental_services'
     form_class_map = {
         'personal': DentalHealthPersonalInfoForm,
         'examination': DentalHealthExaminationForm,
@@ -273,28 +273,28 @@ class PrescriptionEditView(BaseFormEditView):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Dental Services Request (Dental Form 2)
+# Dental Health Forms — Dental Form 2 (services checklist)
 # ═══════════════════════════════════════════════════════════════════════════
 
 class DentalServicesListView(BaseFormListView):
     model = DentalServicesRequest
-    template_name = 'health_forms_services/dental_services_list.html'
-    detail_url_name = 'health_forms_services:dental_services_detail'
-    edit_url_name = 'health_forms_services:edit_dental_services'
-    create_url_name = 'health_forms_services:create_dental_services'
-    form_type_label = 'Dental Services Requests'
+    template_name = 'health_forms_services/dental_forms_list.html'
+    detail_url_name = 'health_forms_services:dental_form_detail'
+    edit_url_name = 'health_forms_services:edit_dental_form'
+    create_url_name = 'health_forms_services:create_dental_form'
+    form_type_label = 'Dental Health Forms (Dental Form 2)'
     search_fields = ['last_name', 'first_name', 'middle_name', 'user__email']
     status_choices = DentalServicesRequest.Status
 
 
 class DentalServicesDetailView(BaseFormDetailView):
     model = DentalServicesRequest
-    template_name = 'health_forms_services/dental_services_detail.html'
-    list_url_name = 'health_forms_services:dental_services_list'
-    edit_url_name = 'health_forms_services:edit_dental_services'
-    review_url_name = 'health_forms_services:review_dental_services'
-    delete_url_name = 'health_forms_services:delete_dental_services'
-    docx_export_url_name = 'health_forms_services:export_dental_services_docx'
+    template_name = 'health_forms_services/dental_form_detail.html'
+    list_url_name = 'health_forms_services:dental_forms_list'
+    edit_url_name = 'health_forms_services:edit_dental_form'
+    review_url_name = 'health_forms_services:review_dental_form'
+    delete_url_name = 'health_forms_services:delete_dental_form'
+    docx_export_url_name = 'health_forms_services:export_dental_form_docx'
 
     @staticmethod
     def _bool_field(label, value, span='half'):
@@ -332,8 +332,8 @@ class DentalServicesDetailView(BaseFormDetailView):
                 'Periodontics',
                 'fa-teeth',
                 [
-                    ('Oral Prophylaxis', obj.perio_oral_prophylaxis, None),
-                    ('Scaling & Root Planning', obj.perio_scaling_root_planning, None),
+                    ('Oral prophylaxis', obj.perio_oral_prophylaxis, None),
+                    ('Scaling and root planning', obj.perio_scaling_root_planning, None),
                 ],
             ),
             (
@@ -341,12 +341,12 @@ class DentalServicesDetailView(BaseFormDetailView):
                 'Operative Dentistry',
                 'fa-tooth',
                 [
-                    ('Class I Restoration', obj.oper_class_i, obj.oper_class_i_detail),
-                    ('Class II Restoration', obj.oper_class_ii, obj.oper_class_ii_detail),
-                    ('Class III Restoration', obj.oper_class_iii, obj.oper_class_iii_detail),
-                    ('Class IV Restoration', obj.oper_class_iv, obj.oper_class_iv_detail),
-                    ('Class V Restoration', obj.oper_class_v, obj.oper_class_v_detail),
-                    ('Class VI Restoration', obj.oper_class_vi, obj.oper_class_vi_detail),
+                    ('Class I restoration', obj.oper_class_i, obj.oper_class_i_detail),
+                    ('Class II restoration', obj.oper_class_ii, obj.oper_class_ii_detail),
+                    ('Class III restoration', obj.oper_class_iii, obj.oper_class_iii_detail),
+                    ('Class IV restoration', obj.oper_class_iv, obj.oper_class_iv_detail),
+                    ('Class V restoration', obj.oper_class_v, obj.oper_class_v_detail),
+                    ('Class VI restoration', obj.oper_class_vi, obj.oper_class_vi_detail),
                     ('Onlay / Inlay', obj.oper_onlay_inlay, obj.oper_onlay_inlay_detail),
                 ],
             ),
@@ -355,10 +355,10 @@ class DentalServicesDetailView(BaseFormDetailView):
                 'Surgery',
                 'fa-syringe',
                 [
-                    ('Tooth Extraction', obj.surg_tooth_extraction, obj.surg_tooth_extraction_detail),
-                    ('Odontectomy', obj.surg_odontectomy, obj.surg_odontectomy_detail),
-                    ('Operculectomy', obj.surg_operculectomy, obj.surg_operculectomy_detail),
-                    ('Other Pathological', obj.surg_other_pathological, obj.surg_other_pathological_detail),
+                    ('Tooth extraction', obj.surg_tooth_extraction, obj.surg_tooth_extraction_detail),
+                    ('Odontectomy', obj.surg_odontectomy, None),
+                    ('Operculectomy', obj.surg_operculectomy, None),
+                    ('Other pathological case', obj.surg_other_pathological, obj.surg_other_pathological_detail),
                 ],
             ),
             (
@@ -384,7 +384,7 @@ class DentalServicesDetailView(BaseFormDetailView):
             ),
             (
                 'pediatric',
-                'Pediatric Dentistry',
+                'Pediatric',
                 'fa-child',
                 [
                     ('Fluoride', obj.pedo_fluoride, None),
@@ -461,16 +461,6 @@ class DentalServicesDetailView(BaseFormDetailView):
             'fields': dentist_fields,
         })
 
-        if obj.review_notes:
-            sections.append({
-                'key': 'review',
-                'label': 'Review Notes',
-                'icon': 'fa-comment-medical',
-                'fields': [
-                    self._text_field('Notes', obj.review_notes, span='full'),
-                ],
-            })
-
         return sections
 
     def get_object(self):
@@ -481,9 +471,9 @@ class DentalServicesDetailView(BaseFormDetailView):
 
 class DentalServicesEditView(BaseFormEditView):
     model = DentalServicesRequest
-    template_name = 'health_forms_services/edit_dental_services.html'
-    detail_url_name = 'health_forms_services:dental_services_detail'
-    edit_url_name = 'health_forms_services:edit_dental_services'
+    template_name = 'health_forms_services/edit_dental_form.html'
+    detail_url_name = 'health_forms_services:dental_form_detail'
+    edit_url_name = 'health_forms_services:edit_dental_form'
     form_class_map = {
         'personal': DentalServicesPersonalInfoForm,
         'perio': DentalServicesPerioForm,
@@ -507,12 +497,16 @@ class DentalServicesEditView(BaseFormEditView):
     field_groups = {
         'personal': [
             {
-                'label': 'Patient Information',
-                'fields': [
-                    'last_name', 'first_name', 'middle_name',
-                    'age', 'gender', 'date_of_birth',
-                    'contact_number', 'department', 'address',
-                ],
+                'label': 'Name (Last name, First name, Middle name)',
+                'fields': ['last_name', 'first_name', 'middle_name'],
+            },
+            {
+                'label': 'Address',
+                'fields': ['address'],
+            },
+            {
+                'label': '',
+                'fields': ['age', 'gender', 'date_of_birth', 'contact_number', 'department'],
             },
         ],
     }

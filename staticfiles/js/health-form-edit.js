@@ -5,9 +5,10 @@
   'use strict';
 
   var dirty = {};
-  var pendingSwitchTarget = null;
+  var pendingLeaveAction = null;
   var sectionSnapshots = {};
   var suppressDirty = false;
+  var allowUnload = false;
 
   function getCookie(name) {
     var cookieValue = null;
@@ -35,6 +36,12 @@
 
   function getFormForSection(section) {
     return document.querySelector('form[data-section="' + section + '"]');
+  }
+
+  function hasUnsavedChanges() {
+    return Object.keys(dirty).some(function (key) {
+      return dirty[key];
+    });
   }
 
   function setTabStatus(section, status) {
@@ -82,8 +89,7 @@
     if (!targetKey) return;
     var active = getActiveSection();
     if (!skipDirtyCheck && active && dirty[active] && targetKey !== active) {
-      pendingSwitchTarget = targetKey;
-      showUnsavedModal();
+      promptLeave({ type: 'tab', target: targetKey });
       return false;
     }
     var tabs = document.querySelectorAll('[data-tab]');
@@ -110,6 +116,48 @@
     return document.getElementById('unsaved-changes-modal');
   }
 
+  function configureUnsavedModal(action) {
+    var modal = getUnsavedModal();
+    if (!modal) return;
+    var prompt = modal.querySelector('[data-unsaved-modal-prompt]');
+    var saveBtn = document.getElementById('unsaved-save-switch');
+    var discardBtn = document.getElementById('unsaved-discard-switch');
+    var stayBtn = document.getElementById('unsaved-stay');
+
+    if (action && action.type === 'reload') {
+      if (prompt) {
+        prompt.textContent = 'You have unsaved changes. Reloading will discard them unless you save first.';
+      }
+      if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-floppy-disk mr-1.5"></i>Save &amp; reload';
+      if (discardBtn) discardBtn.innerHTML = '<i class="fas fa-rotate-right mr-1.5"></i>Discard &amp; reload';
+      if (stayBtn) stayBtn.textContent = 'Stay on this page';
+      return;
+    }
+
+    if (action && action.type === 'navigate') {
+      if (prompt) {
+        prompt.textContent = 'You have unsaved changes. Leaving will discard them unless you save first.';
+      }
+      if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-floppy-disk mr-1.5"></i>Save &amp; leave';
+      if (discardBtn) discardBtn.innerHTML = '<i class="fas fa-arrow-right mr-1.5"></i>Discard &amp; leave';
+      if (stayBtn) stayBtn.textContent = 'Stay on this page';
+      return;
+    }
+
+    if (prompt) {
+      prompt.textContent = prompt.getAttribute('data-default-prompt') || prompt.textContent;
+    }
+    if (saveBtn && saveBtn.getAttribute('data-default-html')) {
+      saveBtn.innerHTML = saveBtn.getAttribute('data-default-html');
+    }
+    if (discardBtn && discardBtn.getAttribute('data-default-html')) {
+      discardBtn.innerHTML = discardBtn.getAttribute('data-default-html');
+    }
+    if (stayBtn && stayBtn.getAttribute('data-default-html')) {
+      stayBtn.innerHTML = stayBtn.getAttribute('data-default-html');
+    }
+  }
+
   function resetUnsavedModal() {
     var modal = getUnsavedModal();
     if (!modal) return;
@@ -130,6 +178,7 @@
         btn.innerHTML = btn.getAttribute('data-default-html');
       }
     });
+    configureUnsavedModal({ type: 'tab' });
   }
 
   function setUnsavedModalButtonsDisabled(disabled) {
@@ -159,6 +208,7 @@
     var modal = getUnsavedModal();
     if (!modal) return;
     resetUnsavedModal();
+    configureUnsavedModal(pendingLeaveAction);
     modal.style.display = 'block';
     modal.setAttribute('aria-hidden', 'false');
   }
@@ -169,6 +219,47 @@
     modal.style.display = 'none';
     modal.setAttribute('aria-hidden', 'true');
     resetUnsavedModal();
+  }
+
+  function clearPendingLeaveAction() {
+    pendingLeaveAction = null;
+  }
+
+  function promptLeave(action) {
+    pendingLeaveAction = action;
+    showUnsavedModal();
+  }
+
+  function completeLeaveAfterDiscard() {
+    var action = pendingLeaveAction;
+    var active = getActiveSection();
+    if (active) discardSectionChanges(active);
+    hideUnsavedModal();
+    allowUnload = true;
+    clearPendingLeaveAction();
+
+    if (action && action.type === 'tab' && action.target) {
+      switchToSection(action.target, true);
+    } else if (action && action.type === 'reload') {
+      window.location.reload();
+    } else if (action && action.type === 'navigate' && action.href) {
+      window.location.assign(action.href);
+    }
+  }
+
+  function completeLeaveAfterSave() {
+    var action = pendingLeaveAction;
+    hideUnsavedModal();
+    clearPendingLeaveAction();
+    allowUnload = true;
+
+    if (action && action.type === 'reload') {
+      window.location.reload();
+    } else if (action && action.type === 'navigate' && action.href) {
+      window.location.assign(action.href);
+    } else if (action && action.type === 'tab' && action.target) {
+      switchToSection(action.target, true);
+    }
   }
 
   function escapeFieldName(name) {
@@ -518,8 +609,7 @@
         var active = getActiveSection();
         if (active && dirty[active] && targetKey !== active) {
           e.preventDefault();
-          pendingSwitchTarget = targetKey;
-          showUnsavedModal();
+          promptLeave({ type: 'tab', target: targetKey });
           return;
         }
         switchToSection(targetKey, true);
@@ -538,20 +628,14 @@
 
     function closeModal() {
       hideUnsavedModal();
-      pendingSwitchTarget = null;
+      clearPendingLeaveAction();
     }
 
     if (stayBtn) stayBtn.addEventListener('click', closeModal);
     if (backdrop) backdrop.addEventListener('click', closeModal);
 
     if (discardBtn) {
-      discardBtn.addEventListener('click', function () {
-        var active = getActiveSection();
-        var target = pendingSwitchTarget;
-        if (active) discardSectionChanges(active);
-        closeModal();
-        if (target) switchToSection(target, true);
-      });
+      discardBtn.addEventListener('click', completeLeaveAfterDiscard);
     }
 
     if (saveBtn && !saveBtn.getAttribute('data-default-html')) {
@@ -567,11 +651,9 @@
     if (saveBtn) {
       saveBtn.addEventListener('click', function () {
         var active = getActiveSection();
-        var target = pendingSwitchTarget;
         var form = getFormForSection(active);
         if (!form) {
-          closeModal();
-          if (target) switchToSection(target, true);
+          completeLeaveAfterSave();
           return;
         }
         var originalSaveHtml = saveBtn.getAttribute('data-default-html') || saveBtn.innerHTML;
@@ -581,29 +663,85 @@
           triggerBtn: saveBtn,
           originalTriggerHtml: originalSaveHtml,
           onSuccess: function () {
-            hideUnsavedModal();
-            pendingSwitchTarget = null;
-            if (target) switchToSection(target, true);
+            completeLeaveAfterSave();
           },
           onError: function () {
             hideUnsavedModal();
-            pendingSwitchTarget = null;
+            clearPendingLeaveAction();
           },
         });
       });
     }
   }
 
+  function isReloadShortcut(e) {
+    if (e.key === 'F5') return true;
+    if (!(e.ctrlKey || e.metaKey)) return false;
+    if (e.key !== 'r' && e.key !== 'R') return false;
+    return true;
+  }
+
+  function promptReloadLeave() {
+    promptLeave({ type: 'reload' });
+  }
+
+  function initReloadGuard() {
+    document.addEventListener('keydown', function (e) {
+      if (!hasUnsavedChanges() || !isReloadShortcut(e)) return;
+      e.preventDefault();
+      promptReloadLeave();
+    });
+  }
+
+  function initNavigationApiReloadGuard() {
+    if (!window.navigation || typeof window.navigation.addEventListener !== 'function') return;
+    window.navigation.addEventListener('navigate', function (e) {
+      if (allowUnload || !hasUnsavedChanges() || e.navigationType !== 'reload') return;
+      e.preventDefault();
+      promptReloadLeave();
+    });
+  }
+
+  function isSameDocumentNavigation(url) {
+    return (
+      url.origin === window.location.origin &&
+      url.pathname === window.location.pathname &&
+      url.search === window.location.search &&
+      !!url.hash
+    );
+  }
+
+  function shouldGuardLeaveLink(link) {
+    if (!link || link.target === '_blank' || link.hasAttribute('download')) return false;
+    var href = link.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return false;
+    try {
+      return !isSameDocumentNavigation(new URL(link.href, window.location.href));
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function initNavigationGuard() {
+    document.addEventListener(
+      'click',
+      function (e) {
+        if (!hasUnsavedChanges()) return;
+        var link = e.target.closest('a[href]');
+        if (!shouldGuardLeaveLink(link)) return;
+        e.preventDefault();
+        promptLeave({ type: 'navigate', href: link.href });
+      },
+      true
+    );
+  }
+
   function initBeforeUnload() {
     window.addEventListener('beforeunload', function (e) {
-      var anyDirty = Object.keys(dirty).some(function (key) {
-        return dirty[key];
-      });
-      if (anyDirty) {
-        e.preventDefault();
-        e.returnValue = 'You have unsaved changes.';
-        return e.returnValue;
-      }
+      if (allowUnload || !hasUnsavedChanges()) return;
+      e.preventDefault();
+      e.returnValue = '';
+      return e.returnValue;
     });
   }
 
@@ -611,6 +749,9 @@
     initForms();
     initTabs();
     initModal();
+    initReloadGuard();
+    initNavigationApiReloadGuard();
+    initNavigationGuard();
     initBeforeUnload();
     window.requestAnimationFrame(function () {
       document.querySelectorAll('form[data-section]').forEach(function (form) {

@@ -559,7 +559,7 @@ def generate_dental_form(form):
     """F-HSS-20-0003 — Dental Records Form."""
     doc = Document()
     _setup_page(doc)
-    _add_letterhead(doc, "Dental Records", "F-HSS-20-0003")
+    _add_letterhead(doc, "Dental Services", "HSS-Form0003")
 
     # Personal info
     _add_section_header(doc, "Personal Information")
@@ -726,7 +726,7 @@ def generate_dental_form(form):
         license_no=_val(form.dentist_license_no),
     )
 
-    _add_footer(doc, "F-HSS-20-0003")
+    _add_footer(doc, "HSS-Form0003")
     return doc
 
 
@@ -738,7 +738,7 @@ def generate_dental_services(form):
     """Dental Form 2 — Dental Services Request."""
     doc = Document()
     _setup_page(doc)
-    _add_letterhead(doc, "Dental Services Request", "Dental Form 2")
+    _add_letterhead(doc, "Dental Health Form", "Dental Form 2")
 
     # Personal info
     _add_section_header(doc, "Personal Information")
@@ -755,25 +755,26 @@ def generate_dental_services(form):
     ], cols=3)
 
     # ── Services Checklist ──
+    _add_section_header(doc, "Please check services that are needed")
     categories = [
         ("Periodontics", [
-            ("Oral Prophylaxis", form.perio_oral_prophylaxis, ""),
-            ("Scaling & Root Planning", form.perio_scaling_root_planning, ""),
+            ("Oral prophylaxis", form.perio_oral_prophylaxis, ""),
+            ("Scaling and root planning", form.perio_scaling_root_planning, ""),
         ]),
         ("Operative Dentistry", [
-            ("Class I Restoration", form.oper_class_i, form.oper_class_i_detail),
-            ("Class II Restoration", form.oper_class_ii, form.oper_class_ii_detail),
-            ("Class III Restoration", form.oper_class_iii, form.oper_class_iii_detail),
-            ("Class IV Restoration", form.oper_class_iv, form.oper_class_iv_detail),
-            ("Class V Restoration", form.oper_class_v, form.oper_class_v_detail),
-            ("Class VI Restoration", form.oper_class_vi, form.oper_class_vi_detail),
+            ("Class I restoration", form.oper_class_i, form.oper_class_i_detail),
+            ("Class II restoration", form.oper_class_ii, form.oper_class_ii_detail),
+            ("Class III restoration", form.oper_class_iii, form.oper_class_iii_detail),
+            ("Class IV restoration", form.oper_class_iv, form.oper_class_iv_detail),
+            ("Class V restoration", form.oper_class_v, form.oper_class_v_detail),
+            ("Class VI restoration", form.oper_class_vi, form.oper_class_vi_detail),
             ("Onlay / Inlay", form.oper_onlay_inlay, form.oper_onlay_inlay_detail),
         ]),
         ("Surgery", [
-            ("Tooth Extraction", form.surg_tooth_extraction, form.surg_tooth_extraction_detail),
-            ("Odontectomy", form.surg_odontectomy, form.surg_odontectomy_detail),
-            ("Operculectomy", form.surg_operculectomy, form.surg_operculectomy_detail),
-            ("Other Pathological", form.surg_other_pathological, form.surg_other_pathological_detail),
+            ("Tooth extraction", form.surg_tooth_extraction, form.surg_tooth_extraction_detail),
+            ("Odontectomy", form.surg_odontectomy, ""),
+            ("Operculectomy", form.surg_operculectomy, ""),
+            ("Other pathological case", form.surg_other_pathological, form.surg_other_pathological_detail),
         ]),
         ("Prosthodontics", [
             ("Complete Denture", form.prosth_complete_denture, ""),
@@ -786,7 +787,7 @@ def generate_dental_services(form):
             ("Anterior", form.endo_anterior, form.endo_anterior_detail),
             ("Posterior", form.endo_posterior, form.endo_posterior_detail),
         ]),
-        ("Pediatric Dentistry", [
+        ("Pediatric", [
             ("Fluoride", form.pedo_fluoride, ""),
             ("Sealant", form.pedo_sealant, form.pedo_sealant_detail),
             ("Pulpotomy", form.pedo_pulpotomy, form.pedo_pulpotomy_detail),
@@ -816,6 +817,12 @@ def generate_dental_services(form):
         p = doc.add_paragraph()
         _run(p, "Currently undergoing treatment: ", bold=True, size=Pt(9))
         _run(p, _val(form.currently_undergoing_treatment_detail), size=Pt(9))
+
+    if form.dentist_date:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        p.paragraph_format.space_before = Pt(12)
+        _run(p, f"Date: {_val(form.dentist_date)}", size=Pt(9))
 
     _add_signature_block(
         doc,

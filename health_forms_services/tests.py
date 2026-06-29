@@ -10,6 +10,7 @@ from health_forms_services.models import (
 	DentalServicesRequest,
 	HealthProfileForm,
 	PatientChart,
+	PatientChartEntry,
 	Prescription,
 )
 
@@ -157,6 +158,14 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertEqual(mappings.get('blood_type'), 'blood_type')
 		self.assertEqual(mappings.get('allergies'), 'allergies')
 		self.assertEqual(mappings.get('medical_conditions'), 'medical_conditions')
+
+	def test_create_patient_chart_page_uses_grouped_sections(self):
+		response = self.client.get(reverse('health_forms_services:create_patient_chart'))
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Name &amp; Demographics')
+		self.assertContains(response, 'Address &amp; Birth')
+		self.assertContains(response, 'Designation')
+		self.assertContains(response, 'In Case of Emergency')
 
 	def test_create_patient_chart_uses_selected_patient_user(self):
 		response = self.client.post(
@@ -483,39 +492,51 @@ class HealthFormSectionSaveTests(TestCase):
 	def test_ajax_section_save_returns_json_and_persists(self):
 		response = self.client.post(
 			self.edit_url,
-			self._personal_post_data(first_name='Janet'),
+			self._medical_post_data(allergies='Sulfa drugs'),
 			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
 		)
 		self.assertEqual(response.status_code, 200)
 		payload = response.json()
 		self.assertTrue(payload['success'])
-		self.assertEqual(payload['section'], 'personal')
+		self.assertEqual(payload['section'], 'medical')
 		self.health_form.refresh_from_db()
-		self.assertEqual(self.health_form.first_name, 'Janet')
+		self.assertEqual(self.health_form.allergies, 'Sulfa drugs')
+
+	def test_personal_section_ajax_save_is_read_only(self):
+		response = self.client.post(
+			self.edit_url,
+			self._personal_post_data(first_name='Janet'),
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 403)
+		payload = response.json()
+		self.assertFalse(payload['success'])
+		self.health_form.refresh_from_db()
+		self.assertEqual(self.health_form.first_name, 'Jane')
 
 	def test_ajax_invalid_section_returns_field_errors(self):
 		response = self.client.post(
 			self.edit_url,
-			self._personal_post_data(mobile_number='invalid'),
+			self._medical_post_data(menarche_age='not-a-number'),
 			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
 		)
 		self.assertEqual(response.status_code, 400)
 		payload = response.json()
 		self.assertFalse(payload['success'])
-		self.assertIn('mobile_number', payload['errors'])
+		self.assertIn('menarche_age', payload['errors'])
 
 	def test_non_ajax_save_redirects_to_edit_with_section(self):
 		response = self.client.post(
 			self.edit_url,
-			self._personal_post_data(first_name='Janice'),
+			self._medical_post_data(allergies='Aspirin'),
 		)
 		self.assertRedirects(
 			response,
-			f'{self.edit_url}?section=personal',
+			f'{self.edit_url}?section=medical',
 			fetch_redirect_response=False,
 		)
 		self.health_form.refresh_from_db()
-		self.assertEqual(self.health_form.first_name, 'Janice')
+		self.assertEqual(self.health_form.allergies, 'Aspirin')
 
 	def test_physical_section_save_calculates_bmi(self):
 		response = self.client.post(
@@ -669,8 +690,8 @@ class HealthFormSectionSaveTests(TestCase):
 		for field in ('mobile_number', 'telephone_number', 'guardian_contact'):
 			with self.subTest(field=field):
 				response = self._ajax_save(self._personal_post_data(**{field: '09171234567'}))
-				self.assertEqual(response.status_code, 400)
-				self.assertIn(field, response.json()['errors'])
+				self.assertEqual(response.status_code, 403)
+				self.assertFalse(response.json()['success'])
 
 	def test_medical_section_saves_all_fields(self):
 		response = self._ajax_save(self._medical_post_data())
@@ -772,7 +793,6 @@ class HealthFormSectionSaveTests(TestCase):
 
 	def test_all_sections_save_in_sequence_without_data_loss(self):
 		sections = [
-			(self._personal_post_data(middle_name='Seq'), 'middle_name', 'Seq'),
 			(self._medical_post_data(allergies='Seq allergy'), 'allergies', 'Seq allergy'),
 			(self._physical_post_data(exam_general='Seq exam'), 'exam_general', 'Seq exam'),
 			(self._diagnostic_post_data(test_others='Seq tests'), 'test_others', 'Seq tests'),
@@ -785,8 +805,6 @@ class HealthFormSectionSaveTests(TestCase):
 				self.assertTrue(response.json()['success'])
 				self.health_form.refresh_from_db()
 				self.assertEqual(getattr(self.health_form, field), expected)
-		# Earlier section data should remain after later saves
-		self.assertEqual(self.health_form.middle_name, 'Seq')
 		self.assertEqual(self.health_form.allergies, 'Seq allergy')
 
 
@@ -1270,6 +1288,229 @@ class DentalHealthFormProcessFlowTests(TestCase):
 			response,
 			reverse('health_forms_services:edit_dental_services', args=[created.pk]) + '?section=chart',
 		)
+
+
+@override_settings(
+	MIDDLEWARE=[
+		middleware
+		for middleware in settings.MIDDLEWARE
+		if middleware != 'core.middleware.ProfileCompleteMiddleware'
+	]
+)
+class PatientChartProcessFlowTests(TestCase):
+	def setUp(self):
+		self.doctor = User.objects.create_user(
+			email='doctor-chart@test.com',
+			password='DoctorPass123!',
+			role='doctor',
+			is_staff=True,
+			is_active=True,
+			first_name='Chart',
+			last_name='Doctor',
+		)
+		_complete_staff_like_profile(self.doctor, 'DOC-CHART-001')
+		self.patient = User.objects.create_user(
+			email='patient-chart@test.com',
+			password='PatientPass123!',
+			role='patient',
+			is_active=True,
+			first_name='Maria',
+			last_name='Chart',
+		)
+		self.chart = PatientChart.objects.create(
+			user=self.patient,
+			last_name='Chart',
+			first_name='Maria',
+			email_address='patient-chart@test.com',
+			contact_number='09171234567',
+			designation='student',
+			gender='female',
+		)
+		self.client.force_login(self.doctor)
+		self.detail_url = reverse('health_forms_services:patient_chart_detail', args=[self.chart.pk])
+		self.edit_url = reverse('health_forms_services:edit_patient_chart', args=[self.chart.pk])
+
+	def _personal_post_data(self, **overrides):
+		data = {
+			'section': 'personal',
+			'last_name': 'Chart',
+			'first_name': 'Maria',
+			'middle_name': '',
+			'address': '123 Campus Ave',
+			'date_of_birth': '',
+			'place_of_birth': '',
+			'age': '20',
+			'gender': 'female',
+			'civil_status': 'single',
+			'email_address': 'patient-chart@test.com',
+			'contact_number': '09171234567',
+			'telephone_number': '',
+			'designation': 'student',
+			'department_college_office': 'College of Nursing',
+			'guardian_name': 'Parent Name',
+			'guardian_contact': '09179876543',
+		}
+		data.update(overrides)
+		return data
+
+	def test_edit_personal_not_readonly(self):
+		response = self.client.get(self.edit_url)
+		self.assertEqual(response.status_code, 200)
+		content = response.content.decode()
+		self.assertIn('data-section-save="ajax"', content)
+		self.assertNotIn('Personal information is read-only', content)
+		self.assertNotRegex(
+			content,
+			r'<form[^>]*data-section="personal"[^>]*data-section-readonly="1"',
+		)
+		self.assertContains(response, 'Name &amp; Demographics')
+
+	def test_create_form_designation_uses_student_and_employee_labels(self):
+		response = self.client.get(reverse('health_forms_services:create_patient_chart'))
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Student')
+		self.assertContains(response, 'Employee')
+		self.assertNotContains(response, '>Patient</option>')
+
+	def test_edit_personal_saves(self):
+		response = self.client.post(
+			self.edit_url,
+			self._personal_post_data(first_name='Mariana', address='456 New St'),
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		payload = response.json()
+		self.assertTrue(payload['success'])
+		self.assertEqual(payload['section'], 'personal')
+		self.chart.refresh_from_db()
+		self.assertEqual(self.chart.first_name, 'Mariana')
+		self.assertEqual(self.chart.address, '456 New St')
+
+	def test_detail_shows_entry_form_and_export(self):
+		response = self.client.get(self.detail_url)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Consultation Log')
+		self.assertContains(response, 'patient-chart-entry-form')
+		self.assertContains(response, 'patient-chart-entries.js')
+		self.assertContains(response, 'Download .docx')
+		self.assertContains(response, 'Patient Chart (F-HSS-20-0002)')
+		self.assertContains(response, 'No consultation entries yet')
+
+	def test_add_chart_entry(self):
+		add_url = reverse('health_forms_services:add_chart_entry', args=[self.chart.pk])
+		response = self.client.post(
+			add_url,
+			{
+				'date_and_time': '2025-06-15T14:30',
+				'findings': 'Mild headache',
+				'doctors_orders': 'Rest and hydration',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		payload = response.json()
+		self.assertTrue(payload['success'])
+		entry_data = payload['entry']
+		self.assertEqual(entry_data['findings'], 'Mild headache')
+		self.assertEqual(entry_data['doctors_orders'], 'Rest and hydration')
+		self.assertIn('delete_url', entry_data)
+		entry = PatientChartEntry.objects.get(pk=entry_data['id'])
+		self.assertEqual(entry.patient_chart_id, self.chart.pk)
+		self.assertEqual(entry.recorded_by_id, self.doctor.id)
+
+	def test_add_chart_entry_requires_findings_or_orders(self):
+		add_url = reverse('health_forms_services:add_chart_entry', args=[self.chart.pk])
+		response = self.client.post(
+			add_url,
+			{'date_and_time': '2025-06-15T14:30', 'findings': '', 'doctors_orders': ''},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 400)
+		payload = response.json()
+		self.assertFalse(payload['success'])
+		self.assertIn('__all__', payload['errors'])
+
+	def test_add_chart_entries_back_to_back(self):
+		"""Two consecutive adds should both succeed (regression for double-submit reset bug)."""
+		add_url = reverse('health_forms_services:add_chart_entry', args=[self.chart.pk])
+		for idx, findings in enumerate(['First visit', 'Second visit'], start=1):
+			response = self.client.post(
+				add_url,
+				{
+					'date_and_time': f'2025-06-1{idx}T10:00',
+					'findings': findings,
+					'doctors_orders': '',
+				},
+				HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+			)
+			self.assertEqual(response.status_code, 200, msg=response.content)
+			self.assertTrue(response.json()['success'])
+		self.assertEqual(self.chart.entries.count(), 2)
+
+	def test_update_chart_entry(self):
+		entry = PatientChartEntry.objects.create(
+			patient_chart=self.chart,
+			findings='Initial findings',
+			doctors_orders='Initial orders',
+			recorded_by=self.doctor,
+		)
+		update_url = reverse(
+			'health_forms_services:update_chart_entry',
+			args=[self.chart.pk, entry.pk],
+		)
+		response = self.client.post(
+			update_url,
+			{
+				'date_and_time': '2025-06-16T09:00',
+				'findings': 'Updated findings',
+				'doctors_orders': 'Updated orders',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		payload = response.json()
+		self.assertTrue(payload['success'])
+		entry.refresh_from_db()
+		self.assertEqual(entry.findings, 'Updated findings')
+		self.assertEqual(entry.doctors_orders, 'Updated orders')
+		self.assertIn('update_url', payload['entry'])
+
+	def test_detail_shows_findings_and_orders_fields(self):
+		response = self.client.get(self.detail_url)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Findings')
+		self.assertContains(response, "Doctor's Orders")
+		self.assertContains(response, 'Examination findings')
+		self.assertContains(response, 'Medications, follow-up')
+
+	def test_delete_chart_entry(self):
+		entry = PatientChartEntry.objects.create(
+			patient_chart=self.chart,
+			findings='To remove',
+			doctors_orders='Follow up',
+			recorded_by=self.doctor,
+		)
+		delete_url = reverse(
+			'health_forms_services:delete_chart_entry',
+			args=[self.chart.pk, entry.pk],
+		)
+		response = self.client.post(delete_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(response.json()['success'])
+		self.assertFalse(PatientChartEntry.objects.filter(pk=entry.pk).exists())
+
+	def test_detail_lists_existing_entries(self):
+		PatientChartEntry.objects.create(
+			patient_chart=self.chart,
+			findings='Stable vitals',
+			doctors_orders='Continue meds',
+			recorded_by=self.doctor,
+		)
+		response = self.client.get(self.detail_url)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Stable vitals')
+		self.assertContains(response, 'Continue meds')
+		self.assertContains(response, 'id="entries-table-wrap"')
 
 
 class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):

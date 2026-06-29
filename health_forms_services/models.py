@@ -703,7 +703,7 @@ class PatientChart(models.Model):
         INCOMPLETE = 'incomplete', 'Incomplete'
     
     class Designation(models.TextChoices):
-        STUDENT = 'student', 'Patient'
+        STUDENT = 'student', 'Student'
         EMPLOYEE = 'employee', 'Employee'
     
     class Gender(models.TextChoices):

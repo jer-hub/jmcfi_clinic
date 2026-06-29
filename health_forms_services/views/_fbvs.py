@@ -107,6 +107,11 @@ def _patient_search_result_payload(patient):
 def _patient_profile_prefill_payload(patient):
     """Shared payload contract for auto-prefilling create transaction forms."""
     profile = getattr(patient, 'patient_profile', None)
+    staff_profile = getattr(patient, 'staff_profile', None)
+    if staff_profile and not profile:
+        default_designation = 'employee'
+    else:
+        default_designation = 'student'
     return {
         'id': patient.id,
         'name': patient.get_full_name() or patient.email or '',
@@ -128,7 +133,7 @@ def _patient_profile_prefill_payload(patient):
         'address': getattr(profile, 'address', '') or '',
         'contact_number': getattr(profile, 'phone', '') or '',
         'telephone_number': getattr(profile, 'telephone_number', '') or '',
-        'designation': 'student',
+        'designation': default_designation,
         'department_college_office': (
             ' - '.join(filter(None, [getattr(profile, 'course', ''), getattr(profile, 'department', '')]))
             if profile else ''
@@ -825,6 +830,25 @@ def delete_patient_chart(request, pk):
     return redirect('health_forms_services:patient_chart_list')
 
 
+def _chart_entry_json(entry, chart):
+    return {
+        'id': entry.id,
+        'date_and_time': timezone.localtime(entry.date_and_time).strftime('%b %d, %Y %I:%M %p'),
+        'date_and_time_input': timezone.localtime(entry.date_and_time).strftime('%Y-%m-%dT%H:%M'),
+        'findings': entry.findings,
+        'doctors_orders': entry.doctors_orders,
+        'recorded_by': entry.recorded_by.get_full_name() if entry.recorded_by else '',
+        'update_url': reverse(
+            'health_forms_services:update_chart_entry',
+            kwargs={'pk': chart.pk, 'entry_id': entry.id},
+        ),
+        'delete_url': reverse(
+            'health_forms_services:delete_chart_entry',
+            kwargs={'pk': chart.pk, 'entry_id': entry.id},
+        ),
+    }
+
+
 @login_required
 @require_POST
 @role_required('staff', 'doctor')
@@ -838,14 +862,30 @@ def add_chart_entry(request, pk):
         entry.save()
         return JsonResponse({
             'success': True,
-            'entry': {
-                'id': entry.id,
-                'date_and_time': entry.date_and_time.strftime('%b %d, %Y %I:%M %p'),
-                'findings': entry.findings,
-                'doctors_orders': entry.doctors_orders,
-                'recorded_by': entry.recorded_by.get_full_name() if entry.recorded_by else '',
-            },
+            'entry': _chart_entry_json(entry, chart),
         })
+    errors = form.errors.get('__all__')
+    if errors:
+        return JsonResponse({'success': False, 'errors': {'__all__': errors}}, status=400)
+    return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+
+
+@login_required
+@require_POST
+@role_required('staff', 'doctor')
+def update_chart_entry(request, pk, entry_id):
+    chart = get_object_or_404(PatientChart, pk=pk)
+    entry = get_object_or_404(PatientChartEntry, pk=entry_id, patient_chart=chart)
+    form = PatientChartEntryForm(request.POST, instance=entry)
+    if form.is_valid():
+        entry = form.save()
+        return JsonResponse({
+            'success': True,
+            'entry': _chart_entry_json(entry, chart),
+        })
+    errors = form.errors.get('__all__')
+    if errors:
+        return JsonResponse({'success': False, 'errors': {'__all__': errors}}, status=400)
     return JsonResponse({'success': False, 'errors': form.errors}, status=400)
 
 

@@ -50,6 +50,7 @@ urlpatterns = [
     path('patient-chart/<int:pk>/delete/', views.delete_patient_chart, name='delete_patient_chart'),
     path('patient-chart/<int:pk>/export/docx/', views.export_patient_chart_docx, name='export_patient_chart_docx'),
     path('patient-chart/<int:pk>/entry/add/', views.add_chart_entry, name='add_chart_entry'),
+    path('patient-chart/<int:pk>/entry/<int:entry_id>/update/', views.update_chart_entry, name='update_chart_entry'),
     path('patient-chart/<int:pk>/entry/<int:entry_id>/delete/', views.delete_chart_entry, name='delete_chart_entry'),
 
     # Dental Services — HSS-Form0003 (dental records / examination)

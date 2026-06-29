@@ -222,6 +222,20 @@ class BaseFormEditView(View):
     detail_url_name = None
     edit_url_name = None
     doctors_queryset = None
+    personal_readonly = False
+
+    def get_edit_context(self, obj, *, active_section, form_instances):
+        return {
+            'form_obj': obj,
+            'forms': form_instances,
+            'tabs': self.tabs or [],
+            'field_groups': self.field_groups or {},
+            'active_section': active_section,
+            'doctors': self.get_doctors(),
+            'detail_url': reverse(self.detail_url_name, kwargs={'pk': obj.pk}) if self.detail_url_name else None,
+            'personal_readonly': getattr(self, 'personal_readonly', False),
+            'edit_form_type': getattr(self, 'edit_form_type', ''),
+        }
 
     @method_decorator(login_required)
     @method_decorator(role_required('staff', 'doctor', 'admin'))
@@ -266,6 +280,9 @@ class BaseFormEditView(View):
             # Backward-compatible path for forms that do not accept `user`.
             return form_class(**kwargs)
 
+    def get_extra_edit_context(self, obj):
+        return {}
+
     def get(self, request, *args, **kwargs):
         obj = self.get_object()
         form_instances = {}
@@ -274,15 +291,7 @@ class BaseFormEditView(View):
         for key, form_class in (self.form_class_map or {}).items():
             form_instances[key] = self._build_form(form_class, instance=obj)
 
-        ctx = {
-            'form_obj': obj,
-            'forms': form_instances,
-            'tabs': self.tabs or [],
-            'field_groups': self.field_groups or {},
-            'active_section': active_section,
-            'doctors': self.get_doctors(),
-            'detail_url': reverse(self.detail_url_name, kwargs={'pk': obj.pk}) if self.detail_url_name else None,
-        }
+        ctx = self.get_edit_context(obj, active_section=active_section, form_instances=form_instances)
         ctx.update(self.get_extra_edit_context(obj))
         return render(request, self.template_name, ctx)
 
@@ -302,7 +311,6 @@ class BaseFormEditView(View):
         if form.is_valid():
             saved_obj = form.save(commit=False)
 
-            # Hook for subclasses — auto-calculate BMI etc.
             if hasattr(self, 'after_section_save'):
                 self.after_section_save(saved_obj, section)
 
@@ -322,26 +330,13 @@ class BaseFormEditView(View):
             errors = {field: [str(error) for error in error_list] for field, error_list in form.errors.items()}
             return JsonResponse({'success': False, 'errors': errors}, status=400)
 
-        # Re-render the edit page with the invalid form so field-level
-        # validation errors are visible to the user.
         form_instances = {}
         for key, form_class in (self.form_class_map or {}).items():
             if key == section:
-                form_instances[key] = form  # the invalid form with errors
+                form_instances[key] = form
             else:
                 form_instances[key] = self._build_form(form_class, instance=obj)
 
-        ctx = {
-            'form_obj': obj,
-            'forms': form_instances,
-            'tabs': self.tabs or [],
-            'field_groups': self.field_groups or {},
-            'active_section': section,
-            'doctors': self.get_doctors(),
-            'detail_url': reverse(self.detail_url_name, kwargs={'pk': obj.pk}) if self.detail_url_name else None,
-        }
+        ctx = self.get_edit_context(obj, active_section=section, form_instances=form_instances)
         ctx.update(self.get_extra_edit_context(obj))
         return render(request, self.template_name, ctx)
-
-    def get_extra_edit_context(self, obj):
-        return {}

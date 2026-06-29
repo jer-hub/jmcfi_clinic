@@ -1,0 +1,62 @@
+{# Consultation log — F-HSS-20-0002. Expects chart_entries, entry_form, can_manage_entries, add_entry_url, form_obj #}
+{% load static %}
+<section class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden" id="patient-chart-entries-panel" aria-labelledby="consultation-log-heading">
+  <div class="px-4 sm:px-5 py-3 sm:py-4 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+    <div class="flex items-center gap-2 min-w-0">
+      <span class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+        <i class="fas fa-list text-sm" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0">
+        <h2 id="consultation-log-heading" class="text-sm sm:text-base font-semibold text-gray-900">Consultation Log</h2>
+        <p class="text-xs text-gray-500">F-HSS-20-0002 — Date and Time, Findings, and Doctor's Orders.</p>
+      </div>
+    </div>
+    <span class="text-xs text-gray-400 tabular-nums" id="entries-count-label">
+      {{ chart_entries|length }} entr{{ chart_entries|length|pluralize:"y,ies" }}
+    </span>
+  </div>
+
+  {% if can_manage_entries %}
+  <div class="px-4 sm:px-5 py-4 border-b border-gray-100 bg-gray-50/40">
+    {% include 'health_forms_services/partials/_patient_chart_entry_form.html' %}
+  </div>
+  {% endif %}
+
+  <div class="px-4 sm:px-5 py-4">
+    <div id="entries-empty-state" class="{% if chart_entries %}hidden{% endif %} rounded-xl border border-dashed border-gray-200 bg-gray-50/80 px-6 py-10 text-center">
+      <span class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white border border-gray-200 text-gray-300">
+        <i class="fas fa-clipboard-list text-xl" aria-hidden="true"></i>
+      </span>
+      <p class="text-sm font-medium text-gray-600">No consultation entries yet</p>
+      {% if can_manage_entries %}
+      <p class="mt-1 text-xs text-gray-400">Record findings and doctor's orders using the form above.</p>
+      {% endif %}
+    </div>
+
+    {% include 'health_forms_services/partials/_patient_chart_entries_table.html' %}
+  </div>
+</section>
+
+{% if can_manage_entries %}
+<script src="{% static 'js/patient-chart-entries.js' %}"></script>
+<script>
+  if (window.initPatientChartEntries) {
+    initPatientChartEntries({
+      formId: 'patient-chart-entry-form',
+      addUrl: '{{ add_entry_url|escapejs }}',
+      entryIdInputId: 'patient-chart-entry-id',
+      submitButtonId: 'patient-chart-entry-submit',
+      editModeBannerId: 'patient-chart-entry-form-mode',
+      cancelEditButtonId: 'patient-chart-entry-cancel-edit',
+      dateInputId: '{{ entry_form.date_and_time.id_for_label }}',
+      findingsInputId: '{{ entry_form.findings.id_for_label }}',
+      ordersInputId: '{{ entry_form.doctors_orders.id_for_label }}',
+      defaultDateTime: '{{ entry_default_datetime|escapejs }}',
+      tableBodyId: 'patient-chart-entries-body',
+      emptyStateId: 'entries-empty-state',
+      tableWrapId: 'entries-table-wrap',
+      countLabelId: 'entries-count-label',
+    });
+  }
+</script>
+{% endif %}

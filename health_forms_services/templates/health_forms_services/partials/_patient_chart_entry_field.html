@@ -1,0 +1,10 @@
+{# Single consultation log field. Args: field, error_key (defaults to field.name) #}
+<div class="min-w-0 flex flex-col">
+  <label for="{{ field.id_for_label }}"
+         class="block xl:sr-only text-xs font-semibold uppercase tracking-wider text-gray-500 mb-1.5">
+    {{ field.label }}
+  </label>
+  {{ field }}
+  <p class="mt-1 text-xs text-red-600 font-medium hidden"
+     data-entry-error="{{ error_key|default:field.name }}"></p>
+</div>

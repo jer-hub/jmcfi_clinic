@@ -506,22 +506,27 @@ def generate_patient_chart(chart):
         ("Last Name", chart.last_name),
         ("First Name", chart.first_name),
         ("Middle Name", chart.middle_name),
-        ("Address", chart.address),
-        ("Date of Birth", chart.date_of_birth),
-        ("Place of Birth", chart.place_of_birth),
         ("Age", chart.age),
         ("Gender", chart.get_gender_display() if chart.gender else ""),
         ("Civil Status", chart.get_civil_status_display() if chart.civil_status else ""),
-        ("Email", chart.email_address),
+    ], cols=3)
+    _add_data_grid(doc, [
+        ("Address", chart.address),
+        ("Date of Birth", chart.date_of_birth),
+        ("Place of Birth", chart.place_of_birth),
+    ], cols=3)
+    _add_data_grid(doc, [
+        ("Email Address", chart.email_address),
         ("Contact No.", chart.contact_number),
         ("Telephone No.", chart.telephone_number),
-        ("Designation", chart.get_designation_display() if chart.designation else ""),
-        ("Dept / College / Office", chart.department_college_office),
     ], cols=3)
-
     _add_data_grid(doc, [
-        ("Guardian / Emergency Contact", chart.guardian_name),
-        ("Contact Number", chart.guardian_contact),
+        ("Designation", chart.get_designation_display() if chart.designation else ""),
+        ("Department / College / Office", chart.department_college_office),
+    ], cols=2)
+    _add_data_grid(doc, [
+        ("Name of Guardian", chart.guardian_name),
+        ("Contact No.", chart.guardian_contact),
     ], cols=2)
 
     # ── Consultation Log ──

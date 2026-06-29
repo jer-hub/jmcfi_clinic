@@ -1,2 +1,9 @@
 {# ── Patient Chart detail — extends shared _base_detail.html ── #}
 {% extends 'health_forms_services/_base_detail.html' %}
+{% load static %}
+
+{% block detail_extra_content %}
+<div class="mt-4 sm:mt-5">
+  {% include 'health_forms_services/partials/_patient_chart_entries_panel.html' %}
+</div>
+{% endblock detail_extra_content %}

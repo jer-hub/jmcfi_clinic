@@ -20,6 +20,7 @@
     {% include "components/page_header.html" with title="Edit Form" icon="fa-pen-to-square" %}
 
     <div class="bg-white rounded-card border border-gray-200 shadow-sm mb-6">
+      {% if tabs|length > 1 %}
       <nav class="flex w-full border-b border-gray-200" id="form-tabs" role="tablist">
           {% for tab in tabs %}
           <button type="button"
@@ -41,6 +42,7 @@
           </button>
           {% endfor %}
       </nav>
+      {% endif %}
     </div>
 
     {# ── Global validation error banner ── #}
@@ -75,8 +77,8 @@
       <form method="post"
             action=""
             data-section="{{ tab_key }}"
-            {% if tab_key != 'personal' %}data-section-save="ajax"{% endif %}
-            {% if tab_key == 'personal' %}data-section-readonly="1"{% endif %}
+            {% if tab_key != 'personal' or not personal_readonly %}data-section-save="ajax"{% endif %}
+            {% if tab_key == 'personal' and personal_readonly %}data-section-readonly="1"{% endif %}
             class="space-y-6 flex flex-col min-h-[50vh]"
             novalidate
             {% if tab_key == 'medical' %}x-data="immunizationMedicalForm({{ form.immunization_flags_json }})"{% elif tab_key == 'diagnostic' %}x-data="diagnosticTestsForm({{ form.diagnostic_flags_json }})"{% elif tab_key == 'physical' %}x-data="anthropometricsForm()"{% elif tab_key == 'conditions' and 'examination' in forms %}x-data="dentalConditionsForm({{ form.cond_others_checked_json }})"{% endif %}>
@@ -180,7 +182,7 @@
         <div class="flex-1"></div>
 
         {# ── Sticky section save bar ── #}
-        {% if tab_key == 'personal' %}
+        {% if tab_key == 'personal' and personal_readonly %}
         <div class="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mt-6 bg-gray-50/95 backdrop-blur-sm border-t border-gray-200 flex items-center gap-2 z-10">
           <span class="text-sm text-gray-600 font-medium flex items-center gap-2">
             <i class="fas fa-lock text-gray-400"></i>Personal information is read-only

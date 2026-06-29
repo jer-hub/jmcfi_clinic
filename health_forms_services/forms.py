@@ -1075,9 +1075,54 @@ class DentalHealthFormReviewForm(forms.ModelForm):
 # PATIENT CHART FORMS (F-HSS-20-0002)
 # ========================================================================
 
+PATIENT_CHART_PERSONAL_SECTIONS: tuple[dict[str, object], ...] = (
+    {
+        'label': 'Name & Demographics',
+        'icon': 'fa-user',
+        'icon_bg': 'bg-primary-50',
+        'icon_color': 'text-primary-600',
+        'description': 'Legal name, age, gender, and civil status (F-HSS-20-0002).',
+        'fields': ('last_name', 'first_name', 'middle_name', 'age', 'gender', 'civil_status'),
+        'grid_cols': 'md:grid-cols-3',
+    },
+    {
+        'label': 'Address & Birth',
+        'icon': 'fa-location-dot',
+        'icon_bg': 'bg-amber-50',
+        'icon_color': 'text-amber-600',
+        'description': 'Residential address, date of birth, and place of birth.',
+        'fields': ('address', 'date_of_birth', 'place_of_birth'),
+        'grid_cols': 'md:grid-cols-3',
+    },
+    {
+        'label': 'Contact Information',
+        'icon': 'fa-phone',
+        'icon_bg': 'bg-emerald-50',
+        'icon_color': 'text-emerald-600',
+        'description': 'Email address and phone numbers.',
+        'fields': ('email_address', 'contact_number', 'telephone_number'),
+    },
+    {
+        'label': 'Designation',
+        'icon': 'fa-building',
+        'icon_bg': 'bg-violet-50',
+        'icon_color': 'text-violet-600',
+        'description': 'Student or employee affiliation and department/college/office.',
+        'fields': ('designation', 'department_college_office'),
+    },
+    {
+        'label': 'In Case of Emergency, Please Contact',
+        'icon': 'fa-user-shield',
+        'icon_bg': 'bg-rose-50',
+        'icon_color': 'text-rose-600',
+        'fields': ('guardian_name', 'guardian_contact'),
+    },
+)
+
+
 class PatientChartPersonalInfoForm(forms.ModelForm):
-    """Form for editing Patient Chart personal information section"""
-    
+    """Form for editing Patient Chart personal information section (F-HSS-20-0002)."""
+
     class Meta:
         model = PatientChart
         fields = [
@@ -1105,7 +1150,6 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
                 'placeholder': '+639171234567 or 09171234567'
             }),
             'telephone_number': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Landline (optional)'}),
-            'designation': forms.Select(attrs={'class': 'form-select'}),
             'department_college_office': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Department / College / Office'}),
             'guardian_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Parent/Guardian full name'}),
             'guardian_contact': forms.TextInput(attrs={
@@ -1115,21 +1159,107 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        label_map = {
+            'last_name': 'Last Name',
+            'first_name': 'First Name',
+            'middle_name': 'Middle Name',
+            'address': 'Address',
+            'date_of_birth': 'Date of Birth',
+            'place_of_birth': 'Place of Birth',
+            'age': 'Age',
+            'gender': 'Gender',
+            'civil_status': 'Civil Status',
+            'email_address': 'Email Address',
+            'contact_number': 'Contact No.',
+            'telephone_number': 'Telephone No.',
+            'designation': 'Designation',
+            'department_college_office': 'Department / College / Office',
+            'guardian_name': 'Name of Guardian',
+            'guardian_contact': 'Contact No.',
+        }
+        for name, label in label_map.items():
+            if name in self.fields:
+                self.fields[name].label = label
+        if 'designation' in self.fields:
+            choices = PatientChart.Designation.choices
+            self.fields['designation'].choices = choices
+            self.fields['designation'].empty_label = 'Select designation'
+            self.fields['designation'].widget = forms.Select(
+                choices=[('', 'Select designation'), *choices],
+                attrs={'class': 'form-select'},
+            )
+
+    def personal_info_sections(self):
+        sections = []
+        for section in PATIENT_CHART_PERSONAL_SECTIONS:
+            fields = [
+                {'name': name, 'field': self[name]}
+                for name in section['fields']
+                if name in self.fields
+            ]
+            if fields:
+                sections.append({**section, 'fields': fields})
+        return sections
+
 
 class PatientChartEntryForm(forms.ModelForm):
-    """Form for adding/editing consultation entries"""
-    
+    """Consultation log row — F-HSS-20-0002 (Date/Time, Findings, Doctor's Orders)."""
+
     class Meta:
         model = PatientChartEntry
         fields = ['date_and_time', 'findings', 'doctors_orders']
         widgets = {
-            'date_and_time': forms.DateTimeInput(attrs={
-                'class': 'form-input',
-                'type': 'datetime-local',
+            'date_and_time': forms.DateTimeInput(
+                format='%Y-%m-%dT%H:%M',
+                attrs={
+                    'class': 'form-input w-full',
+                    'type': 'datetime-local',
+                },
+            ),
+            'findings': forms.Textarea(attrs={
+                'class': 'form-textarea w-full min-h-[6.5rem] resize-y',
+                'rows': 4,
+                'placeholder': 'Examination findings, diagnosis, or clinical observations…',
             }),
-            'findings': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 3}),
-            'doctors_orders': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 3}),
+            'doctors_orders': forms.Textarea(attrs={
+                'class': 'form-textarea w-full min-h-[6.5rem] resize-y',
+                'rows': 4,
+                'placeholder': 'Medications, follow-up, restrictions, or care instructions…',
+            }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['date_and_time'].label = 'Date and Time'
+        self.fields['date_and_time'].required = False
+        self.fields['date_and_time'].input_formats = [
+            '%Y-%m-%dT%H:%M',
+            '%Y-%m-%dT%H:%M:%S',
+            '%Y-%m-%dT%H:%M:%S.%f',
+            '%Y-%m-%d %H:%M:%S',
+            '%Y-%m-%d %H:%M',
+        ]
+        self.fields['findings'].label = 'Findings'
+        self.fields['doctors_orders'].label = "Doctor's Orders"
+        if not self.is_bound and not getattr(self.instance, 'pk', None):
+            self.initial.setdefault(
+                'date_and_time',
+                timezone.localtime(timezone.now()).strftime('%Y-%m-%dT%H:%M'),
+            )
+
+    def clean(self):
+        cleaned = super().clean()
+        findings = (cleaned.get('findings') or '').strip()
+        doctors_orders = (cleaned.get('doctors_orders') or '').strip()
+        if not findings and not doctors_orders:
+            raise forms.ValidationError(
+                "Enter findings, doctor's orders, or both before saving this entry.",
+            )
+        cleaned['findings'] = findings
+        cleaned['doctors_orders'] = doctors_orders
+        return cleaned
 
 
 class PatientChartReviewForm(forms.ModelForm):

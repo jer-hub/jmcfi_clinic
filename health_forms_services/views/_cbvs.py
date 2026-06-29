@@ -12,6 +12,7 @@ from ..forms import (
     DentalHealthExaminationForm,
     DentalHealthConditionsForm,
     PatientChartPersonalInfoForm,
+    PATIENT_CHART_PERSONAL_SECTIONS,
     PrescriptionPatientForm,
     DentalServicesPersonalInfoForm,
     DentalServicesPerioForm,
@@ -102,63 +103,32 @@ class DentalDetailView(BaseFormDetailView):
 
     @classmethod
     def _personal_groups(cls, obj, examined_by_name):
-        groups = [{
-            'label': 'Name',
-            'fields': [cls._text_field('Full Name', obj.get_full_name(), span='full')],
-        }]
+        from ..detail_sections import (
+            BASE_PERSONAL_FIELD_LABELS,
+            base_personal_value_map,
+            build_personal_info_groups,
+            present_text,
+        )
 
-        value_map = {
-            'date_of_birth': obj.date_of_birth.strftime('%B %d, %Y') if obj.date_of_birth else '',
-            'place_of_birth': obj.place_of_birth,
-            'age': obj.age,
-            'gender': obj.get_gender_display() if obj.gender else '',
-            'civil_status': obj.get_civil_status_display() if obj.civil_status else '',
-            'email_address': obj.email_address or obj.user.email or '',
-            'contact_number': obj.contact_number,
-            'telephone_number': obj.telephone_number,
-            'address': obj.address,
-            'designation': obj.get_designation_display() if obj.designation else '',
-            'department_college_office': obj.department_college_office,
-            'guardian_name': obj.guardian_name,
-            'guardian_contact': obj.guardian_contact,
-            'date_of_examination': obj.date_of_examination.strftime('%B %d, %Y') if obj.date_of_examination else '',
-        }
         label_map = {
-            'date_of_birth': 'Date of Birth',
-            'place_of_birth': 'Place of Birth',
-            'age': 'Age',
-            'gender': 'Gender',
-            'civil_status': 'Civil Status',
-            'email_address': 'Email',
-            'contact_number': 'Contact No.',
-            'telephone_number': 'Telephone No.',
-            'address': 'Address',
-            'designation': 'Designation',
-            'department_college_office': 'Department / College / Office',
-            'guardian_name': 'Guardian / Emergency Contact',
-            'guardian_contact': 'Guardian Contact',
+            **BASE_PERSONAL_FIELD_LABELS,
             'date_of_examination': 'Date of Examination',
         }
-
-        for spec in DENTAL_PERSONAL_INFO_SECTIONS:
-            if spec['label'] == 'Full Name':
-                continue
-            fields = []
-            for fname in spec['fields']:
-                field = cls._present_text(
-                    label_map[fname],
-                    value_map.get(fname),
-                    span='full' if fname == 'address' else 'half',
-                )
-                if field:
-                    fields.append(field)
-            if fields:
-                groups.append({'label': spec['label'], 'fields': fields})
-
-        examined = cls._present_text('Examined By', examined_by_name, span='full')
+        value_map = base_personal_value_map(obj)
+        value_map['date_of_examination'] = (
+            obj.date_of_examination.strftime('%B %d, %Y') if obj.date_of_examination else ''
+        )
+        append_groups = []
+        examined = present_text('Examined By', examined_by_name, span='full')
         if examined:
-            groups.append({'label': 'Clinician', 'fields': [examined]})
-        return groups
+            append_groups.append({'label': 'Clinician', 'fields': [examined]})
+        return build_personal_info_groups(
+            obj,
+            DENTAL_PERSONAL_INFO_SECTIONS,
+            label_map=label_map,
+            value_map=value_map,
+            append_groups=append_groups,
+        )
 
     @classmethod
     def _labeled_fields(cls, obj, field_specs, *, full_width=()):
@@ -422,6 +392,23 @@ class PatientChartDetailView(BaseFormDetailView):
     edit_url_name = 'health_forms_services:edit_patient_chart'
     review_url_name = 'health_forms_services:review_patient_chart'
     delete_url_name = 'health_forms_services:delete_patient_chart'
+    docx_export_url_name = 'health_forms_services:export_patient_chart_docx'
+    form_type_label = 'Patient Chart (F-HSS-20-0002)'
+
+    @classmethod
+    def _personal_groups(cls, obj):
+        from ..detail_sections import (
+            BASE_PERSONAL_FIELD_LABELS,
+            base_personal_value_map,
+            build_personal_info_groups,
+        )
+
+        return build_personal_info_groups(
+            obj,
+            PATIENT_CHART_PERSONAL_SECTIONS,
+            label_map=BASE_PERSONAL_FIELD_LABELS,
+            value_map=base_personal_value_map(obj),
+        )
 
     @property
     def detail_sections(self):
@@ -429,34 +416,41 @@ class PatientChartDetailView(BaseFormDetailView):
         if not obj:
             return []
 
-        info_fields = [
-            {'label': 'Full Name', 'value': obj.get_full_name(), 'span': 'half'},
-            {'label': 'Age / Gender', 'value': f"{obj.age or '—'} / {obj.get_gender_display() or '—'}", 'span': 'half'},
-            {'label': 'Address', 'value': obj.address or '—', 'span': 'full'},
-            {'label': 'Contact', 'value': obj.contact_number or '—', 'span': 'half'},
-        ]
-
-        entry_fields = []
-        for entry in obj.entries.all():
-            date_str = entry.date_and_time.strftime('%b %d, %Y %H:%M') if entry.date_and_time else 'Entry'
-            entry_fields.append({
-                'label': date_str,
-                'value': f"Findings: {entry.findings or '—'}\nOrders: {entry.doctors_orders or '—'}",
-                'type': 'text',
-                'span': 'full',
-            })
-
-        sections = [
-            {'key': 'info', 'label': 'Patient Information', 'icon': 'fa-user', 'fields': info_fields},
-        ]
-        if entry_fields:
-            sections.append({'key': 'entries', 'label': 'Consultation Entries', 'icon': 'fa-list', 'fields': entry_fields})
-        return sections
+        return [{
+            'key': 'personal',
+            'label': 'Personal Information',
+            'icon': 'fa-user',
+            'icon_bg': 'bg-primary-50',
+            'icon_color': 'text-primary-600',
+            'description': 'Patient demographics and contact details.',
+            'groups': self._personal_groups(obj),
+        }]
 
     def get_object(self):
-        obj = super().get_object()
+        qs = PatientChart.objects.select_related('user', 'reviewed_by').prefetch_related(
+            'entries__recorded_by',
+        )
+        pk = self.kwargs.get('pk')
+        user = self.request.user
+        from core.roles import is_patient_role
+        if is_patient_role(user.role):
+            obj = get_object_or_404(qs, pk=pk, user=user)
+        else:
+            obj = get_object_or_404(qs, pk=pk)
         self._cached_obj = obj
         return obj
+
+    def get_context_data(self, obj):
+        from django.utils import timezone
+        from ..forms import PatientChartEntryForm
+
+        ctx = super().get_context_data(obj)
+        ctx['chart_entries'] = list(obj.entries.all())
+        ctx['entry_form'] = PatientChartEntryForm()
+        ctx['entry_default_datetime'] = timezone.localtime(timezone.now()).strftime('%Y-%m-%dT%H:%M')
+        ctx['can_manage_entries'] = self.request.user.role in ('staff', 'doctor', 'admin')
+        ctx['add_entry_url'] = reverse('health_forms_services:add_chart_entry', kwargs={'pk': obj.pk})
+        return ctx
 
 
 class PatientChartEditView(BaseFormEditView):
@@ -464,6 +458,8 @@ class PatientChartEditView(BaseFormEditView):
     template_name = 'health_forms_services/edit_patient_chart.html'
     detail_url_name = 'health_forms_services:patient_chart_detail'
     edit_url_name = 'health_forms_services:edit_patient_chart'
+    edit_form_type = 'patient_chart'
+    personal_readonly = False
     form_class_map = {
         'personal': PatientChartPersonalInfoForm,
     }

@@ -179,6 +179,7 @@ class HealthProfileEditView(BaseFormEditView):
     template_name = 'health_forms_services/edit_form.html'
     detail_url_name = 'health_forms_services:form_detail'
     edit_url_name = 'health_forms_services:edit_form'
+    personal_readonly = True
     form_class_map = {
         'personal': HealthProfilePersonalInfoForm,
         'medical': HealthProfileMedicalHistoryForm,

@@ -11,13 +11,23 @@
 
     {% include "components/page_header.html" with title=title subtitle="Complete the form below to create a dental record" icon="fa-tooth" %}
 
+    <form method="post" novalidate class="space-y-6">
+        {% csrf_token %}
+
         {% if appointment %}
-        <div class="mb-6 rounded-xl border border-gray-200 overflow-hidden shadow-sm">
-            <div class="flex items-center gap-2 px-5 py-2.5 bg-gray-700">
-                <i class="fas fa-calendar-check text-white text-sm"></i>
-                <span class="text-white font-semibold text-sm tracking-wide">Appointment Details</span>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/60">
+                <div class="flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-info-100 text-info-600">
+                        <i class="fas fa-calendar-check text-xs"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-sm font-semibold text-gray-800">Appointment Details</h2>
+                        <p class="text-xs text-gray-500 mt-0.5">Linked appointment for this dental record</p>
+                    </div>
+                </div>
             </div>
-            <div class="bg-gray-50 px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
+            <div class="px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3">
                 <div>
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Patient</p>
                     <p class="text-sm font-semibold text-gray-800 mt-0.5">{{ appointment.patient.get_full_name }}</p>
@@ -38,6 +48,8 @@
         </div>
         {% endif %}
 
+        {% include 'dental_records/partials/_dental_record_patient_section.html' with form=form %}
+
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="p-6 sm:p-8">
 
@@ -54,133 +66,9 @@
         </div>
         {% endif %}
 
-        <form method="post" novalidate>
-            {% csrf_token %}
-
-        {# ── Patient Search & Selection ── #}
-        <section class="mb-8">
-          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
-            <i class="fas fa-search text-primary-600 text-sm"></i>
-            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Patient Search &amp; Selection</h2>
-          </div>
-
-          <div class="relative">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">
-              <i class="fas fa-search mr-1 text-gray-400"></i> Search &amp; Select Patient
-              <span class="ml-1 text-xs text-gray-400 font-normal">(Type at least 2 characters)</span>
-                                </label>
-                                <div class="relative">
-                                    <input type="text" 
-                     x-model="query"
-                     @input.debounce.300ms="searchPatients()"
-                     @keydown.arrow-down.prevent="highlightedIdx = 0; $refs.resultsList?.querySelector('[data-idx=\'0\']')?.focus()"
-                     @keydown.escape="showResults = false"
-                     :disabled="isPreselected && selected"
-                     :class="isPreselected && selected ? 'opacity-50 cursor-not-allowed' : ''"
-                     :placeholder="isPreselected && selected ? 'Patient preselected from appointment' : 'Start typing patient name, email, or ID...'"
-                     class="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg text-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 {% if form.patient.errors %}border-danger-400 focus:ring-danger-200 focus:border-danger-500{% endif %}"
-                     autocomplete="off">
-              <div x-show="loading" class="absolute right-4 top-3.5 pointer-events-none">
-                                        <i class="fas fa-spinner fa-spin text-primary-600"></i>
-                                    </div>
-            </div>
-            <p class="mt-1.5 text-xs text-gray-400">
-                                        <i class="fas fa-info-circle mr-1"></i>
-              Search by name, email, or ID. Click a result to auto-fill the form.
-            </p>
-            {% include 'partials/field_errors.html' with errors=form.patient.errors %}
-
-            {# Search Results Dropdown #}
-            <div x-show="showResults"
-                 x-transition:enter="transition ease-out duration-150"
-                 x-transition:enter-start="opacity-0 -translate-y-1"
-                 x-transition:enter-end="opacity-100 translate-y-0"
-                 x-transition:leave="transition ease-in duration-100"
-                 x-transition:leave-start="opacity-100"
-                 x-transition:leave-end="opacity-0"
-                 @click.outside="showResults = false"
-                 x-cloak
-                 x-ref="resultsList"
-                 class="absolute z-50 left-0 right-0 mt-1 bg-white rounded-lg shadow-xl border border-gray-200 max-h-72 overflow-y-auto">
-
-              <template x-if="results.length === 0 && !loading">
-                <div class="p-6 text-center">
-                  <i class="fas fa-user-slash text-3xl text-gray-300 mb-2"></i>
-                  <p class="text-sm font-medium text-gray-600">No patients found</p>
-                  <p class="text-xs text-gray-400 mt-0.5">Try a different search term</p>
-                </div>
-              </template>
-
-              <template x-if="results.length > 0">
-                <div>
-                  <div class="px-4 py-2 bg-gray-50 border-b border-gray-100 sticky top-0">
-                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      <i class="fas fa-users mr-1"></i>
-                      <span x-text="results.length"></span> Patient<span x-show="results.length !== 1">s</span> Found
-                    </p>
-                  </div>
-                  <template x-for="(patient, idx) in results" :key="patient.id">
-                    <button type="button"
-                            :data-idx="idx"
-                            @click="selectPatient(patient)"
-                            @keydown.arrow-down.prevent="$el.nextElementSibling?.focus()"
-                            @keydown.arrow-up.prevent="$el.previousElementSibling?.focus() || $refs.resultsList?.previousElementSibling?.querySelector('input')?.focus()"
-                            @keydown.escape.prevent="showResults = false"
-                            class="w-full text-left p-3 hover:bg-primary-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors focus:outline-none focus:bg-primary-50 flex items-center gap-3">
-                      <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <i class="fas fa-user text-primary-600 text-sm"></i>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-gray-900" x-text="patient.text"></p>
-                        <p class="text-xs text-gray-500 truncate">
-                          <i class="fas fa-envelope mr-0.5"></i> <span x-text="patient.email"></span>
-                        </p>
-                      </div>
-                      <span x-show="patient.role"
-                            class="px-2 py-0.5 text-xs font-medium rounded-full bg-primary-50 text-primary-700"
-                            x-text="patient.role"></span>
-                    </button>
-                  </template>
-                </div>
-              </template>
-                                    </div>
-                            </div>
-                                
-          {# Selected Patient Display #}
-          <div x-show="selected" x-cloak x-transition class="mt-4">
-            <div class="p-4 bg-success-50 border border-success-200 rounded-lg">
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-10 h-10 bg-success-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <i class="fas fa-user-check text-success-600"></i>
-                                            </div>
-                  <div class="min-w-0">
-                    <p class="text-xs font-semibold text-success-700 uppercase tracking-wide">
-                      <i class="fas fa-check-circle mr-0.5"></i> Selected Patient
-                    </p>
-                    <p class="text-sm font-bold text-gray-900 truncate" x-text="selected?.name || ''"></p>
-                    <p class="text-xs text-gray-500 truncate" x-text="selected?.email || ''"></p>
-                                            </div>
-                                        </div>
-                                        <button type="button" 
-                        @click="clearSelection()"
-                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex-shrink-0">
-                  <i class="fas fa-xmark"></i> Change
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-          {# Hidden patient field #}
-          <div class="hidden">{{ form.patient }}</div>
-        </section>
-
         {# ── Patient Information ── #}
         <section class="mb-8">
-          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
-            <i class="fas fa-user-circle text-primary-600 text-sm"></i>
-            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Patient Information</h2>
-                            </div>
+          {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-user-circle" title="Patient Information" description="ID and name fields auto-fill when a patient is selected." %}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.student_id.label }}</label>
@@ -199,10 +87,7 @@
 
         {# ── Demographics ── #}
         <section class="mb-8">
-          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
-            <i class="fas fa-id-card text-primary-600 text-sm"></i>
-            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Demographics</h2>
-            </div>
+          {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-id-card" title="Demographics" %}
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.age.label }}</label>
@@ -241,10 +126,7 @@
 
         {# ── Contact Information ── #}
         <section class="mb-8">
-          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
-            <i class="fas fa-phone text-primary-600 text-sm"></i>
-            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Contact Information</h2>
-            </div>
+          {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-phone" title="Contact Information" %}
           <div class="mb-5">
             <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.address.label }}</label>
                     {{ form.address }}
@@ -273,10 +155,7 @@
 
         {# ── Institutional Information ── #}
         <section class="mb-8">
-          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
-            <i class="fas fa-building text-primary-600 text-sm"></i>
-            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Institutional Information</h2>
-            </div>
+          {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-building" title="Institutional Information" %}
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.designation.label }}</label>
@@ -293,10 +172,7 @@
 
         {# ── Emergency Contact ── #}
         <section class="mb-8">
-          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
-            <i class="fas fa-user-shield text-primary-600 text-sm"></i>
-            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Emergency Contact</h2>
-            </div>
+          {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-user-shield" title="Emergency Contact" %}
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.guardian_name.label }}</label>
@@ -320,10 +196,7 @@
 
         {# ── Examination Details ── #}
         <section class="mb-8">
-          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
-            <i class="fas fa-stethoscope text-primary-600 text-sm"></i>
-            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Examination Details</h2>
-            </div>
+          {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-stethoscope" title="Examination Details" %}
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.date_of_examination.label }}</label>
@@ -355,10 +228,7 @@
 
         {# ── Patient Consent ── #}
         <section class="mb-8">
-          <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
-            <i class="fas fa-file-signature text-primary-600 text-sm"></i>
-            <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Patient Consent</h2>
-          </div>
+          {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-file-signature" title="Patient Consent" %}
 
           <div class="mb-5 p-5 bg-gray-50 border border-gray-200 rounded-lg">
             <p class="text-sm text-gray-600 italic mb-4">
@@ -434,6 +304,7 @@ function dentalRecordForm() {
     loading: false,
     highlightedIdx: -1,
     isPreselected: {{ preselected_patient|yesno:"true,false" }},
+    patientLocked: {% if appointment and preselected_patient %}true{% else %}false{% endif %},
 
     init() {
     {% if preselected_patient %}
@@ -529,9 +400,8 @@ function dentalRecordForm() {
     },
 
     clearSelection() {
-      if (this.isPreselected) {
-        this.isPreselected = false;
-      }
+      this.patientLocked = false;
+      this.isPreselected = false;
       const fields = [
         'student_id', 'middle_name', 'email', 'age', 'gender', 'civil_status',
                                     'date_of_birth', 'place_of_birth', 'address', 'contact_number',

@@ -100,10 +100,53 @@ def medical_records_subnav(context):
     return enrich_subnav(items, always_show_nav=True)
 
 
+def _dental_record_breadcrumb_label(dental_record):
+    label = dental_record.patient.get_full_name()
+    exam_date = dental_record.date_of_examination
+    if exam_date:
+        label += f' — {exam_date.strftime("%b %d, %Y")}'
+    return label
+
+
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
 def dental_records_subnav(context):
-    vn = view_name(context['request'])
-    role = context['request'].user.role
+    request = context['request']
+    vn = view_name(request)
+    role = request.user.role
+
+    dental_record = context.get('dental_record')
+    if dental_record and vn == 'dental_records:dental_record_detail':
+        return breadcrumb_subnav(
+            [
+                {
+                    'label': 'Dental Records',
+                    'url': reverse('dental_records:dental_record_list'),
+                    'icon': 'fa-tooth',
+                },
+                {
+                    'label': _dental_record_breadcrumb_label(dental_record),
+                    'icon': 'fa-file-lines',
+                },
+            ],
+        )
+
+    if dental_record and vn == 'dental_records:dental_record_edit':
+        return breadcrumb_subnav(
+            [
+                {
+                    'label': 'Dental Records',
+                    'url': reverse('dental_records:dental_record_list'),
+                    'icon': 'fa-tooth',
+                },
+                {
+                    'label': _dental_record_breadcrumb_label(dental_record),
+                    'url': reverse('dental_records:dental_record_detail', args=[dental_record.id]),
+                    'icon': 'fa-file-lines',
+                },
+                {'label': 'Edit', 'icon': 'fa-pen-to-square'},
+            ],
+        )
+
     items = [
         nav_item(
             'Dental Records',

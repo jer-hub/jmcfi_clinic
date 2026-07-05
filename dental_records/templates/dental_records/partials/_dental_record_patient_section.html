@@ -1,0 +1,135 @@
+{# Patient search / selection for dental record create — matches schedule-for-patient UX. #}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200">
+  <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/60 rounded-t-xl">
+    <div class="flex items-center gap-2">
+      <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-primary-100 text-primary-600">
+        <i class="fas fa-user-magnifying-glass text-xs"></i>
+      </span>
+      <div>
+        <h2 class="text-sm font-semibold text-gray-800">Patient</h2>
+        <p class="text-xs text-gray-500 mt-0.5" x-show="patientLocked" x-cloak>
+          Linked to this appointment — selection cannot be changed
+        </p>
+        <p class="text-xs text-gray-500 mt-0.5" x-show="!patientLocked && selected" x-cloak>
+          Selected — you can change the patient before creating the record
+        </p>
+        <p class="text-xs text-gray-500 mt-0.5" x-show="!patientLocked && !selected">
+          Search and select a patient to continue
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="p-5 space-y-4">
+    {# Locked patient (from appointment) #}
+    <template x-if="patientLocked && selected">
+      <div>
+        <div class="flex items-start gap-2 rounded-lg border border-primary-200 bg-primary-50/80 px-3 py-2.5 text-sm text-primary-900 mb-4">
+          <i class="fas fa-link mt-0.5 flex-shrink-0 text-primary-600"></i>
+          <span>Creating a dental record for <strong x-text="selected?.name"></strong> from this appointment.</span>
+        </div>
+        <div class="p-4 bg-gradient-to-r from-primary-50 to-primary-50/50 border border-primary-200 rounded-xl">
+          <div class="flex items-center gap-3.5">
+            <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-base font-semibold flex-shrink-0 shadow-md ring-2 ring-white"
+                  x-text="selected?.name ? selected.name.charAt(0).toUpperCase() : '?'"></span>
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-bold text-gray-900 truncate" x-text="selected?.name || ''"></p>
+              <p class="text-xs text-gray-500 truncate mt-0.5" x-text="selected?.email || ''"></p>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-gray-600 bg-white/90 border border-gray-200 flex-shrink-0">
+              <i class="fas fa-lock text-[10px]" aria-hidden="true"></i> Locked
+            </span>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    {# Search (adjustable mode) #}
+    <div x-show="!patientLocked && !selected" x-cloak>
+      <label for="dental-patient-search" class="sr-only">Search patients</label>
+      <div class="relative" @click.away="showResults = false">
+        <div class="relative">
+          <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
+            <i class="fas text-sm leading-none" :class="loading ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'" aria-hidden="true"></i>
+          </span>
+          <input type="text"
+                 id="dental-patient-search"
+                 x-model="query"
+                 @input.debounce.300ms="searchPatients()"
+                 @keydown.arrow-down.prevent="highlightedIdx = 0; $refs.resultsList?.querySelector('[data-idx=\'0\']')?.focus()"
+                 @keydown.escape="showResults = false"
+                 placeholder="Search by name, email, or patient ID…"
+                 autocomplete="off"
+                 class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl text-sm leading-normal focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 placeholder:text-gray-400 {% if form.patient.errors %}border-danger-400{% endif %}">
+          <button type="button"
+                  x-show="query.length > 0"
+                  x-cloak
+                  @click="query=''; results=[]; showResults=false"
+                  class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 hover:text-gray-600"
+                  aria-label="Clear search">
+            <i class="fas fa-circle-xmark text-sm leading-none"></i>
+          </button>
+        </div>
+        <p class="mt-1.5 text-xs text-gray-400">Type at least 2 characters to search</p>
+        {% include 'partials/field_errors.html' with errors=form.patient.errors %}
+
+        <div x-show="showResults"
+             x-transition
+             @click.outside="showResults = false"
+             x-cloak
+             x-ref="resultsList"
+             class="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-72 overflow-y-auto ring-1 ring-black/5">
+          <template x-if="results.length === 0 && !loading && query.trim().length >= 2">
+            <div class="px-4 py-8 text-center text-sm text-gray-500">No patients found</div>
+          </template>
+          <template x-if="results.length > 0">
+            <div class="p-1.5">
+              <template x-for="(patient, idx) in results" :key="patient.id">
+                <button type="button"
+                        :data-idx="idx"
+                        @click="selectPatient(patient)"
+                        @keydown.arrow-down.prevent="$el.nextElementSibling?.focus()"
+                        @keydown.arrow-up.prevent="$el.previousElementSibling?.focus() || $refs.resultsList?.previousElementSibling?.querySelector('input')?.focus()"
+                        @keydown.escape.prevent="showResults = false"
+                        class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left border border-transparent hover:bg-gray-50 focus:outline-none focus:bg-primary-50">
+                  <span class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-sm font-semibold flex-shrink-0"
+                        x-text="((patient.text || patient.name || '?')).charAt(0).toUpperCase()"></span>
+                  <div class="min-w-0 flex-1">
+                    <span class="font-semibold text-gray-900 truncate block" x-text="patient.text || patient.name"></span>
+                    <span class="text-xs text-gray-500 truncate block" x-text="patient.email"></span>
+                  </div>
+                </button>
+              </template>
+            </div>
+          </template>
+          <div x-show="loading" class="px-4 py-6 text-center text-xs text-gray-500">
+            <i class="fas fa-spinner fa-spin text-primary-500"></i> Searching…
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {# Selected patient (adjustable mode) #}
+    <div x-show="!patientLocked && selected" x-cloak>
+      <div class="relative p-4 bg-gradient-to-r from-primary-50 to-primary-50/50 border border-primary-200 rounded-xl">
+        <div class="flex items-center gap-3.5 pr-20">
+          <span class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white text-base font-semibold flex-shrink-0 shadow-md ring-2 ring-white"
+                x-text="selected?.name ? selected.name.charAt(0).toUpperCase() : '?'"></span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-bold text-gray-900 truncate" x-text="selected?.name || ''"></p>
+            <p class="text-xs text-gray-500 truncate mt-0.5" x-text="selected?.email || ''"></p>
+          </div>
+        </div>
+        <button type="button"
+                @click="clearSelection()"
+                class="absolute top-3 right-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-gray-500 bg-white/80 border border-gray-200 hover:text-danger-600 hover:border-danger-200 hover:bg-danger-50">
+          <i class="fas fa-xmark text-[10px]"></i> Change
+        </button>
+      </div>
+    </div>
+
+    <p x-show="!selected && !patientLocked" class="text-xs text-danger-600">Select a patient to continue with the form.</p>
+
+    <div class="hidden">{{ form.patient }}</div>
+  </div>
+</div>

@@ -1,0 +1,71 @@
+{# Equal-width dental record tabs — fits one row without horizontal scroll. #}
+{# Args: variant — "edit" (Progress Notes) or "detail" (Consent) #}
+{% with tab_btn="flex flex-1 min-w-0 items-center justify-center gap-1 px-1 sm:px-1.5 py-2 sm:py-2.5 border-b-2 text-[11px] sm:text-xs font-medium transition-colors focus:outline-none" %}
+<nav class="grid grid-cols-4 sm:flex sm:w-full -mb-px" aria-label="Tabs">
+  <button type="button" @click="tab='demographics'"
+          :class="tab==='demographics' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Demographics">
+    <i class="fas fa-user text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">Demographics</span>
+  </button>
+  <button type="button" @click="tab='questionnaire'"
+          :class="tab==='questionnaire' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Health Questionnaire">
+    <i class="fas fa-clipboard-list text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">Health Q.</span>
+  </button>
+  <button type="button" @click="tab='systems'"
+          :class="tab==='systems' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Systems Review">
+    <i class="fas fa-heartbeat text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">Systems</span>
+  </button>
+  <button type="button" @click="tab='history'"
+          :class="tab==='history' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Dental History">
+    <i class="fas fa-history text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">History</span>
+  </button>
+  {% if is_pediatric %}
+  <button type="button" @click="tab='pediatric'"
+          :class="tab==='pediatric' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Pediatric Patient History">
+    <i class="fas fa-child text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">Pediatric</span>
+  </button>
+  {% endif %}
+  <button type="button" @click="tab='exam'"
+          :class="tab==='exam' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Extraoral & Intraoral Examination">
+    <i class="fas fa-stethoscope text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">Exam</span>
+  </button>
+  <button type="button" @click="tab='vitals'"
+          :class="tab==='vitals' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Vital Signs">
+    <i class="fas fa-thermometer text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">Vitals</span>
+  </button>
+  <button type="button" @click="tab='chart'"
+          :class="tab==='chart' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Interactive Dental Chart">
+    <i class="fas fa-teeth text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">Chart</span>
+  </button>
+  {% if variant == 'edit' %}
+  <button type="button" @click="tab='notes'"
+          :class="tab==='notes' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Progress Notes">
+    <i class="fas fa-notes-medical text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">Notes</span>
+  </button>
+  {% else %}
+  <button type="button" @click="tab='consent'"
+          :class="tab==='consent' ? 'border-primary-600 text-primary-700 bg-primary-50/50' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+          class="{{ tab_btn }}" title="Patient Consent">
+    <i class="fas fa-file-signature text-[10px] flex-shrink-0" aria-hidden="true"></i>
+    <span class="truncate">Consent</span>
+  </button>
+  {% endif %}
+</nav>
+{% endwith %}

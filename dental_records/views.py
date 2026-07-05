@@ -349,11 +349,6 @@ def dental_record_detail(request, record_id):
             'surfaces': surfaces_data,
         })
     
-    exam_date = dental_record.date_of_examination
-    breadcrumb_label = dental_record.patient.get_full_name()
-    if exam_date:
-        breadcrumb_label += f' — {exam_date.strftime("%b %d, %Y")}'
-
     context = {
         'dental_record': dental_record,
         'examination': examination,
@@ -365,10 +360,6 @@ def dental_record_detail(request, record_id):
         'dental_chart': dental_chart,
         'dental_chart_json': json.dumps(dental_chart_json),
         'is_pediatric': dental_record.age and dental_record.age < 18,
-        'breadcrumbs': [
-            {'label': 'Dental Records', 'url': reverse('dental_records:dental_record_list')},
-            {'label': breadcrumb_label},
-        ],
     }
     
     return render(request, 'dental_records/dental_record_detail.html', context)
@@ -537,10 +528,33 @@ def dental_record_edit(request, record_id):
         except PediatricDentalHistory.DoesNotExist:
             pediatric_history = None
     
+    edit_sections = [
+        'demographics', 'questionnaire', 'systems', 'history', 'exam', 'vitals', 'chart', 'notes',
+    ]
+    if is_pediatric:
+        edit_sections.insert(4, 'pediatric')
+    active_section = request.GET.get('section', 'demographics')
+    if active_section not in edit_sections:
+        active_section = 'demographics'
+
     if request.method == 'POST':
         # Determine which form was submitted
         form_type = request.POST.get('form_type')
-        is_htmx = request.headers.get('HX-Request')
+        is_ajax = (
+            request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            or request.headers.get('HX-Request')
+        )
+
+        # form_type (POST) → data-section (tab key)
+        section_by_form_type = {
+            'demographics': 'demographics',
+            'health_questionnaire': 'questionnaire',
+            'systems_review': 'systems',
+            'dental_history': 'history',
+            'pediatric_history': 'pediatric',
+            'examination': 'exam',
+            'vital_signs': 'vitals',
+        }
         
         # Mapping of form_type → (FormClass, instance, success_message)
         form_map = {
@@ -560,12 +574,21 @@ def dental_record_edit(request, record_id):
             if form.is_valid():
                 form.save()
                 _audit_dental(request, dental_record, 'edit', section=form_type)
-                if is_htmx:
-                    return JsonResponse({'success': True, 'message': success_msg})
+                if is_ajax:
+                    section_key = section_by_form_type.get(form_type, form_type)
+                    return JsonResponse({
+                        'success': True,
+                        'section': section_key,
+                        'message': success_msg,
+                    })
                 messages.success(request, success_msg)
                 return redirect('dental_records:dental_record_edit', record_id=record_id)
-            elif is_htmx:
-                return JsonResponse({'success': False, 'errors': form.errors}, status=400)
+            elif is_ajax:
+                errors = {
+                    field: [str(error) for error in error_list]
+                    for field, error_list in form.errors.items()
+                }
+                return JsonResponse({'success': False, 'errors': errors}, status=400)
         
         elif form_type == 'progress_note':
             progress_date = request.POST.get('progress_date')
@@ -618,11 +641,6 @@ def dental_record_edit(request, record_id):
         for n in progress_notes_qs
     ])
     
-    exam_date = dental_record.date_of_examination
-    bc_label = dental_record.patient.get_full_name()
-    if exam_date:
-        bc_label += f' — {exam_date.strftime("%b %d, %Y")}'
-
     context = {
         'dental_record': dental_record,
         'appointment': dental_record.appointment,
@@ -636,12 +654,8 @@ def dental_record_edit(request, record_id):
         'pediatric_history_form': pediatric_history_form,
         'dental_chart': dental_chart,
         'is_pediatric': is_pediatric,
+        'active_section': active_section,
         'title': f'Edit Dental Record - {dental_record.patient.get_full_name()}',
-        'breadcrumbs': [
-            {'label': 'Dental Records', 'url': reverse('dental_records:dental_record_list')},
-            {'label': bc_label, 'url': reverse('dental_records:dental_record_detail', args=[dental_record.id])},
-            {'label': 'Edit'},
-        ],
     }
     
     return render(request, 'dental_records/dental_record_edit.html', context)

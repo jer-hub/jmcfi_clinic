@@ -1,0 +1,10 @@
+{# Sticky section save bar — matches health_forms_services/_base_edit.html #}
+<div class="sticky bottom-0 -mx-5 sm:-mx-6 px-5 sm:px-6 py-3 mt-6 bg-white/95 backdrop-blur-sm border-t border-gray-200 flex justify-end items-center gap-3 z-10">
+  <span data-save-indicator="{{ section_key }}" class="hidden text-xs text-success-600 font-medium">
+    <i class="fas fa-check mr-1"></i>Saved
+  </span>
+  <button type="submit"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
+    <i class="fas fa-floppy-disk"></i>Save {{ section_label }}
+  </button>
+</div>

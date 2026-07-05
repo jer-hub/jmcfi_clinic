@@ -7,21 +7,28 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="{ tab: 'demographics' }">
-  {% include "components/page_header.html" with title="Dental Record Details" subtitle="Comprehensive dental health record" icon="fa-tooth" breadcrumbs=breadcrumbs %}
+  {% include 'dental_records/_subnav.html' %}
 
-  {# ── Action Bar ── #}
-  <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
-    <div class="flex flex-wrap gap-2">
+  {% include "components/page_header.html" with title="Dental Record Details" subtitle="Comprehensive dental health record" icon="fa-tooth" %}
+
+  {# ── Status & Actions Bar ── #}
+  <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       {% if dental_record.status == 'completed' %}
         {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" %}
       {% else %}
         {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" %}
       {% endif %}
+      {% if dental_record.date_of_examination %}
+      <span class="text-sm text-gray-500">Examined {{ dental_record.date_of_examination|date:"M d, Y" }}</span>
+      {% endif %}
+      <span class="text-sm text-gray-400 hidden sm:inline">· Created {{ dental_record.created_at|date:"M d, Y" }}</span>
     </div>
-    <div class="flex flex-wrap items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
       {% if user|can_write_dental_records %}
-        <a href="{% url 'dental_records:dental_record_edit' dental_record.id %}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 shadow-sm transition-colors">
-          <i class="fas fa-pen-to-square"></i><span class="hidden sm:inline">Edit</span>
+        <a href="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+           class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors">
+          <i class="fas fa-pen-to-square" aria-hidden="true"></i>Edit
         </a>
       {% endif %}
     </div>
@@ -30,55 +37,7 @@
   {# ── Tab Navigation ── #}
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
     <div class="border-b border-gray-200">
-      <nav class="flex overflow-x-auto -mb-px px-3" aria-label="Tabs" style="scrollbar-width: thin;">
-        <button @click="tab='demographics'"
-                :class="tab==='demographics' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none">
-          <i class="fas fa-user text-xs"></i> Demographics
-        </button>
-        <button @click="tab='questionnaire'"
-                :class="tab==='questionnaire' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none">
-          <i class="fas fa-clipboard-list text-xs"></i> <span class="hidden sm:inline">Health Questionnaire</span><span class="sm:hidden">Health Q.</span>
-        </button>
-        <button @click="tab='systems'"
-                :class="tab==='systems' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none">
-          <i class="fas fa-heartbeat text-xs"></i> <span class="hidden sm:inline">Systems Review</span><span class="sm:hidden">Systems</span>
-        </button>
-        <button @click="tab='history'"
-                :class="tab==='history' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none">
-          <i class="fas fa-history text-xs"></i> <span class="hidden sm:inline">Dental History</span><span class="sm:hidden">History</span>
-        </button>
-        {% if is_pediatric %}
-        <button @click="tab='pediatric'"
-                :class="tab==='pediatric' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none">
-          <i class="fas fa-child text-xs"></i> Pediatric
-        </button>
-        {% endif %}
-        <button @click="tab='exam'"
-                :class="tab==='exam' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none">
-          <i class="fas fa-stethoscope text-xs"></i> Exam
-        </button>
-        <button @click="tab='vitals'"
-                :class="tab==='vitals' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none">
-          <i class="fas fa-thermometer text-xs"></i> Vitals
-        </button>
-        <button @click="tab='chart'"
-                :class="tab==='chart' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none">
-          <i class="fas fa-teeth text-xs"></i> Dental Chart
-        </button>
-        <button @click="tab='consent'"
-                :class="tab==='consent' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none">
-          <i class="fas fa-file-signature text-xs"></i> Consent
-        </button>
-      </nav>
+      {% include 'dental_records/partials/_dental_record_tab_nav.html' with variant='detail' %}
     </div>
 
     {# ══════════════════════════════════════════ #}

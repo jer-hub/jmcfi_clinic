@@ -2,7 +2,9 @@
   <span class="w-2 h-2 bg-primary-500 rounded-full"></span>
   {{ total_count }} record{{ total_count|pluralize }}
 </span>
-<div id="jmcfi-dental-edit-action-bar" class="flex flex-wrap items-center justify-between gap-3 mb-6" hx-swap-oob="true">
+<div id="jmcfi-dental-edit-action-bar"
+     class="bg-white rounded-card border border-gray-200 shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+     hx-swap-oob="true">
 {% include "dental_records/_dental_edit_action_bar_inner.html" %}
 </div>
 <div id="jmcfi-dr-list-stats" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6" hx-swap-oob="true">

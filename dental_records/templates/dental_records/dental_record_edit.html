@@ -5,50 +5,20 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-  {% include "components/page_header.html" with title=title subtitle="Comprehensive dental health record" icon="fa-tooth" breadcrumbs=breadcrumbs %}
+  {% include 'dental_records/_subnav.html' %}
 
-  {# ── Action Bar ── #}
-  <div id="jmcfi-dental-edit-action-bar" class="flex flex-wrap items-center justify-between gap-3 mb-6">
+  {% include "components/page_header.html" with title=title subtitle="Comprehensive dental health record" icon="fa-tooth" actions_include="dental_records/_dental_edit_header_actions.html" %}
+
+  {# ── Status & Actions Bar ── #}
+  <div id="jmcfi-dental-edit-action-bar"
+       class="bg-white rounded-card border border-gray-200 shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
     {% include "dental_records/_dental_edit_action_bar_inner.html" %}
   </div>
 
   {# ── Tabbed Edit Panel ── #}
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8"
-       x-data="{ tab: 'demographics' }">
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
     <div class="border-b border-gray-200">
-      <nav class="flex overflow-x-auto -mb-px px-3" aria-label="Tabs" style="scrollbar-width: thin;">
-        {% with btn_cls="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none" %}
-        <button type="button" @click="tab='demographics'"
-                :class="tab==='demographics' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="{{ btn_cls }}"><i class="fas fa-user text-xs"></i> Demographics</button>
-        <button type="button" @click="tab='questionnaire'"
-                :class="tab==='questionnaire' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="{{ btn_cls }}"><i class="fas fa-clipboard-list text-xs"></i> <span class="hidden sm:inline">Health Questionnaire</span><span class="sm:hidden">Health Q.</span></button>
-        <button type="button" @click="tab='systems'"
-                :class="tab==='systems' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="{{ btn_cls }}"><i class="fas fa-heartbeat text-xs"></i> <span class="hidden sm:inline">Systems Review</span><span class="sm:hidden">Systems</span></button>
-        <button type="button" @click="tab='history'"
-                :class="tab==='history' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="{{ btn_cls }}"><i class="fas fa-history text-xs"></i> <span class="hidden sm:inline">Dental History</span><span class="sm:hidden">History</span></button>
-        {% if is_pediatric %}
-        <button type="button" @click="tab='pediatric'"
-                :class="tab==='pediatric' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="{{ btn_cls }}"><i class="fas fa-child text-xs"></i> Pediatric</button>
-        {% endif %}
-        <button type="button" @click="tab='exam'"
-                :class="tab==='exam' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="{{ btn_cls }}"><i class="fas fa-stethoscope text-xs"></i> Exam</button>
-        <button type="button" @click="tab='vitals'"
-                :class="tab==='vitals' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="{{ btn_cls }}"><i class="fas fa-thermometer text-xs"></i> Vitals</button>
-        <button type="button" @click="tab='chart'"
-                :class="tab==='chart' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="{{ btn_cls }}"><i class="fas fa-teeth text-xs"></i> Dental Chart</button>
-        <button type="button" @click="tab='notes'"
-                :class="tab==='notes' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                class="{{ btn_cls }}"><i class="fas fa-notes-medical text-xs"></i> <span class="hidden sm:inline">Progress Notes</span><span class="sm:hidden">Notes</span></button>
-        {% endwith %}
-      </nav>
+      {% include 'dental_records/partials/_dental_record_edit_tab_nav.html' with active_section=active_section %}
     </div>
 
     <div class="p-5 sm:p-6">
@@ -56,13 +26,16 @@
       {# ════════════════════════════════════ #}
       {# ── Demographics Tab               ── #}
       {# ════════════════════════════════════ #}
-      <div x-show="tab==='demographics'" x-cloak>
-        <form method="post" class="space-y-6"
-              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-              hx-swap="none"
-              hx-on::after-request="handleFormResponse(event, 'Demographics')">
+      <div data-tab-panel="demographics" class="{% if active_section != 'demographics' %}hidden{% endif %}">
+        <form method="post"
+              action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              data-section="demographics"
+              data-section-save="ajax"
+              class="space-y-6 flex flex-col min-h-[50vh]"
+              novalidate>
           {% csrf_token %}
           <input type="hidden" name="form_type" value="demographics">
+          <div data-section-error-banner class="hidden mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg items-start gap-3"></div>
 
           {% if demographics_form.non_field_errors %}
           <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
@@ -215,24 +188,24 @@
             {% endif %}
           </section>
 
-          <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Demographics
-            </button>
-          </div>
+          <div class="flex-1"></div>
+          {% include 'dental_records/partials/_dental_record_section_save_bar.html' with section_key='demographics' section_label='Demographics' %}
         </form>
       </div>
 
       {# ════════════════════════════════════ #}
       {# ── Health Questionnaire Tab       ── #}
       {# ════════════════════════════════════ #}
-      <div x-show="tab==='questionnaire'" x-cloak>
-        <form method="post" class="space-y-6"
-              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-              hx-swap="none"
-              hx-on::after-request="handleFormResponse(event, 'Health Questionnaire')">
+      <div data-tab-panel="questionnaire" class="{% if active_section != 'questionnaire' %}hidden{% endif %}">
+        <form method="post"
+              action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              data-section="questionnaire"
+              data-section-save="ajax"
+              class="space-y-6 flex flex-col min-h-[50vh]"
+              novalidate>
           {% csrf_token %}
           <input type="hidden" name="form_type" value="health_questionnaire">
+          <div data-section-error-banner class="hidden mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg items-start gap-3"></div>
 
           {% if health_questionnaire_form.non_field_errors %}
           <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
@@ -245,24 +218,24 @@
 
           {% health_questionnaire_form_sections health_questionnaire_form %}
 
-          <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Health Questionnaire
-            </button>
-          </div>
+          <div class="flex-1"></div>
+          {% include 'dental_records/partials/_dental_record_section_save_bar.html' with section_key='questionnaire' section_label='Health Q.' %}
         </form>
       </div>
 
       {# ════════════════════════════════════ #}
       {# ── Systems Review Tab             ── #}
       {# ════════════════════════════════════ #}
-      <div x-show="tab==='systems'" x-cloak>
-        <form method="post" class="space-y-6"
-              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-              hx-swap="none"
-              hx-on::after-request="handleFormResponse(event, 'Systems Review')">
+      <div data-tab-panel="systems" class="{% if active_section != 'systems' %}hidden{% endif %}">
+        <form method="post"
+              action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              data-section="systems"
+              data-section-save="ajax"
+              class="space-y-6 flex flex-col min-h-[50vh]"
+              novalidate>
           {% csrf_token %}
           <input type="hidden" name="form_type" value="systems_review">
+          <div data-section-error-banner class="hidden mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg items-start gap-3"></div>
 
           {% if systems_review_form.non_field_errors %}
           <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
@@ -275,24 +248,24 @@
 
           {% systems_review_form_sections systems_review_form %}
 
-          <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Systems Review
-            </button>
-          </div>
+          <div class="flex-1"></div>
+          {% include 'dental_records/partials/_dental_record_section_save_bar.html' with section_key='systems' section_label='Systems' %}
         </form>
       </div>
 
       {# ════════════════════════════════════ #}
       {# ── Dental History Tab             ── #}
       {# ════════════════════════════════════ #}
-      <div x-show="tab==='history'" x-cloak>
-        <form method="post" class="space-y-6"
-              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-              hx-swap="none"
-              hx-on::after-request="handleFormResponse(event, 'Dental History')">
+      <div data-tab-panel="history" class="{% if active_section != 'history' %}hidden{% endif %}">
+        <form method="post"
+              action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              data-section="history"
+              data-section-save="ajax"
+              class="space-y-6 flex flex-col min-h-[50vh]"
+              novalidate>
           {% csrf_token %}
           <input type="hidden" name="form_type" value="dental_history">
+          <div data-section-error-banner class="hidden mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg items-start gap-3"></div>
 
           {% if dental_history_form.non_field_errors %}
           <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
@@ -305,11 +278,8 @@
 
           {% dental_history_form_sections dental_history_form %}
 
-          <div class="flex justify-end pt-5 border-t border-gray-200">
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Dental History
-            </button>
-          </div>
+          <div class="flex-1"></div>
+          {% include 'dental_records/partials/_dental_record_section_save_bar.html' with section_key='history' section_label='History' %}
         </form>
       </div>
 
@@ -317,13 +287,16 @@
       {# ── Pediatric Tab                  ── #}
       {# ════════════════════════════════════ #}
       {% if is_pediatric %}
-      <div x-show="tab==='pediatric'" x-cloak>
-        <form method="post" class="space-y-6"
-              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-              hx-swap="none"
-              hx-on::after-request="handleFormResponse(event, 'Pediatric History')">
+      <div data-tab-panel="pediatric" class="{% if active_section != 'pediatric' %}hidden{% endif %}">
+        <form method="post"
+              action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              data-section="pediatric"
+              data-section-save="ajax"
+              class="space-y-6 flex flex-col min-h-[50vh]"
+              novalidate>
           {% csrf_token %}
           <input type="hidden" name="form_type" value="pediatric_history">
+          <div data-section-error-banner class="hidden mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg items-start gap-3"></div>
 
           {% if pediatric_history_form.non_field_errors %}
           <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
@@ -353,11 +326,8 @@
             </div>
           </section>
 
-          <div class="flex justify-end pt-5 border-t border-gray-200">
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Pediatric History
-            </button>
-          </div>
+          <div class="flex-1"></div>
+          {% include 'dental_records/partials/_dental_record_section_save_bar.html' with section_key='pediatric' section_label='Pediatric' %}
         </form>
       </div>
       {% endif %}
@@ -365,13 +335,16 @@
       {# ════════════════════════════════════ #}
       {# ── Examination Tab                ── #}
       {# ════════════════════════════════════ #}
-      <div x-show="tab==='exam'" x-cloak>
-        <form method="post" class="space-y-6"
-              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-              hx-swap="none"
-              hx-on::after-request="handleFormResponse(event, 'Examination')">
+      <div data-tab-panel="exam" class="{% if active_section != 'exam' %}hidden{% endif %}">
+        <form method="post"
+              action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              data-section="exam"
+              data-section-save="ajax"
+              class="space-y-6 flex flex-col min-h-[50vh]"
+              novalidate>
           {% csrf_token %}
           <input type="hidden" name="form_type" value="examination">
+          <div data-section-error-banner class="hidden mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg items-start gap-3"></div>
 
           {% if examination_form.non_field_errors %}
           <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
@@ -384,113 +357,24 @@
 
           {% dental_examination_form_sections examination_form %}
 
-          <div class="flex justify-end pt-5 border-t border-gray-200">
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Examination
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {# ════════════════════════════════════ #}
-      {# ── Pediatric Tab                  ── #}
-      {# ════════════════════════════════════ #}
-      {% if is_pediatric %}
-      <div x-show="tab==='pediatric'" x-cloak>
-        <form method="post" class="space-y-6"
-              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-              hx-swap="none"
-              hx-on::after-request="handleFormResponse(event, 'Pediatric History')">
-          {% csrf_token %}
-          <input type="hidden" name="form_type" value="pediatric_history">
-
-          {% if pediatric_history_form.non_field_errors %}
-          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
-            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
-            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
-              {% for error in pediatric_history_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
-            </ul>
-          </div>
-          {% endif %}
-
-          <section>
-            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-child text-primary-600 text-sm"></i>
-              <h3 class="text-sm font-semibold text-gray-800">Pediatric Dental History</h3>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {% for field in pediatric_history_form %}
-              <div>
-                {% if field.field.widget.input_type == 'checkbox' %}
-                <div class="flex items-center">{{ field }}<label for="{{ field.id_for_label }}" class="ml-2 text-sm text-gray-700">{{ field.label }}</label></div>
-                {% else %}
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ field.label }}</label>{{ field }}
-                {% endif %}
-                {% include 'partials/field_errors.html' with errors=field.errors %}
-              </div>
-              {% endfor %}
-            </div>
-          </section>
-
-          <div class="flex justify-end pt-5 border-t border-gray-200">
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Pediatric History
-            </button>
-          </div>
-        </form>
-      </div>
-      {% endif %}
-
-      {# ════════════════════════════════════ #}
-      {# ── Examination Tab                ── #}
-      {# ════════════════════════════════════ #}
-      <div x-show="tab==='exam'" x-cloak>
-        <form method="post" class="space-y-6"
-              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-              hx-swap="none"
-              hx-on::after-request="handleFormResponse(event, 'Examination')">
-          {% csrf_token %}
-          <input type="hidden" name="form_type" value="examination">
-
-          {% if examination_form.non_field_errors %}
-          <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
-            <i class="fas fa-triangle-exclamation text-danger-600 mt-0.5 flex-shrink-0"></i>
-            <ul class="text-sm text-danger-800 list-disc list-inside space-y-1">
-              {% for error in examination_form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
-            </ul>
-          </div>
-          {% endif %}
-
-          <section>
-            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-stethoscope text-primary-600 text-sm"></i>
-              <h3 class="text-sm font-semibold text-gray-800">Dental Examination</h3>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {% for field in examination_form %}
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ field.label }}</label>{{ field }}{% include 'partials/field_errors.html' with errors=field.errors %}</div>
-              {% endfor %}
-            </div>
-          </section>
-
-          <div class="flex justify-end pt-5 border-t border-gray-200">
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Examination
-            </button>
-          </div>
+          <div class="flex-1"></div>
+          {% include 'dental_records/partials/_dental_record_section_save_bar.html' with section_key='exam' section_label='Exam' %}
         </form>
       </div>
 
       {# ════════════════════════════════════ #}
       {# ── Vital Signs Tab                ── #}
       {# ════════════════════════════════════ #}
-      <div x-show="tab==='vitals'" x-cloak>
-        <form method="post" class="space-y-6"
-              hx-post="{% url 'dental_records:dental_record_edit' dental_record.id %}"
-              hx-swap="none"
-              hx-on::after-request="handleFormResponse(event, 'Vital Signs')">
+      <div data-tab-panel="vitals" class="{% if active_section != 'vitals' %}hidden{% endif %}">
+        <form method="post"
+              action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
+              data-section="vitals"
+              data-section-save="ajax"
+              class="space-y-6 flex flex-col min-h-[50vh]"
+              novalidate>
           {% csrf_token %}
           <input type="hidden" name="form_type" value="vital_signs">
+          <div data-section-error-banner class="hidden mb-4 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg items-start gap-3"></div>
 
           {% if vital_signs_form.non_field_errors %}
           <div class="mb-4 bg-danger-50 border-l-4 border-danger-400 rounded-r-lg p-4 flex items-start gap-3">
@@ -513,25 +397,22 @@
             </div>
           </section>
 
-          <div class="flex justify-end pt-5 border-t border-gray-200 mt-6">
-            <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium">
-              <i class="fas fa-save"></i> Save Vital Signs
-            </button>
-          </div>
+          <div class="flex-1"></div>
+          {% include 'dental_records/partials/_dental_record_section_save_bar.html' with section_key='vitals' section_label='Vitals' %}
         </form>
       </div>
 
       {# ════════════════════════════════════ #}
       {# ── Dental Chart Tab               ── #}
       {# ════════════════════════════════════ #}
-      <div x-show="tab==='chart'" x-cloak>
+      <div data-tab-panel="chart" class="{% if active_section != 'chart' %}hidden{% endif %}">
         {% include 'dental_records/partials/interactive_dental_chart.html' %}
       </div>
 
       {# ════════════════════════════════════ #}
       {# ── Progress Notes Tab             ── #}
       {# ════════════════════════════════════ #}
-      <div x-show="tab==='notes'" x-cloak
+      <div data-tab-panel="notes" class="{% if active_section != 'notes' %}hidden{% endif %}"
            x-data="progressNotes()"
            x-init="init()">
 
@@ -649,6 +530,41 @@
   </div>{# end card #}
 </div>
 
+{# ── Unsaved changes confirmation modal (health forms pattern) ── #}
+<div id="unsaved-changes-modal" class="fixed inset-0 z-50" aria-hidden="true" role="dialog" aria-modal="true" style="display:none">
+  <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" data-unsaved-backdrop></div>
+  <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full mx-auto confirm-dialog">
+      <div class="px-5 sm:px-6 pt-5 sm:pt-6 pb-3 text-center">
+        <div class="mx-auto w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center mb-3">
+          <i class="fas fa-triangle-exclamation text-amber-500 text-xl"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900">Unsaved Changes</h3>
+        <p class="mt-2 text-sm text-gray-500" data-unsaved-modal-prompt data-default-prompt="This section has unsaved changes. What would you like to do?">This section has unsaved changes. What would you like to do?</p>
+        <div data-unsaved-modal-status class="hidden mt-3 rounded-lg px-3 py-2 text-sm font-medium" role="status" aria-live="polite"></div>
+      </div>
+      <div class="px-5 sm:px-6 pb-5 sm:pb-6 space-y-2" data-unsaved-modal-actions>
+        <button type="button" id="unsaved-save-switch"
+                class="w-full px-4 py-2.5 rounded-lg text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white transition-colors">
+          <i class="fas fa-floppy-disk mr-1.5"></i>Save &amp; switch
+        </button>
+        <button type="button" id="unsaved-discard-switch"
+                class="w-full px-4 py-2.5 rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+          <i class="fas fa-arrow-right mr-1.5"></i>Discard &amp; switch
+        </button>
+        <button type="button" id="unsaved-stay"
+                class="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+          Stay on this tab
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block scripts %}
+{{ block.super }}
+<script src="{% static 'js/health-form-edit.js' %}"></script>
 <script>
 function confirmDeleteTooth(recordId, toothId, toothNumber) {
   window.dispatchEvent(new CustomEvent('open-modal', {
@@ -701,14 +617,6 @@ function handleToothFormResponse(event) {
     window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Tooth successfully added/updated!', type: 'success' } }));
   } else {
     window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Error updating tooth. Please try again.', type: 'error' } }));
-  }
-}
-
-function handleFormResponse(event, formName) {
-  if (event.detail.successful) {
-    window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: `${formName} updated successfully!`, type: 'success' } }));
-  } else {
-    window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: `Error updating ${formName}. Please check the form and try again.`, type: 'error' } }));
   }
 }
 
@@ -784,4 +692,4 @@ function progressNotes() {
 }
 </script>
 <script src="{% static 'js/phone-input.js' %}"></script>
-{% endblock %}
+{% endblock scripts %}

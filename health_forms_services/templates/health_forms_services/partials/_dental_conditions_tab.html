@@ -72,9 +72,36 @@
         {% endif %}
       </div>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-        {% include 'health_forms_services/partials/_field.html' with field=form.dentist_name %}
+        {% include 'health_forms_services/partials/_field.html' with field=form.dentist_user %}
         {% include 'health_forms_services/partials/_field.html' with field=form.dentist_license_no %}
+        {{ form.dentist_name }}
       </div>
     </div>
   </section>
 </div>
+
+<script>
+(function attachDentalConditionsDentistSync() {
+  var select = document.querySelector('[data-dental-dentist-select]');
+  var nameInput = document.querySelector('[data-dental-dentist-name]');
+  var licenseInput = document.querySelector('[data-dental-dentist-license]');
+  if (!select || select.dataset.syncBound === '1') return;
+  select.dataset.syncBound = '1';
+
+  function fillDentist() {
+    var option = select.options[select.selectedIndex];
+    if (!option || !option.value) return;
+    if (nameInput) {
+      nameInput.value = (option.textContent || '').trim();
+    }
+    if (licenseInput) {
+      licenseInput.value = option.getAttribute('data-license') || '';
+    }
+  }
+
+  select.addEventListener('change', fillDentist);
+  if (select.value) {
+    fillDentist();
+  }
+})();
+</script>

@@ -1,0 +1,31 @@
+{# Clinical notes from prescription_body — diagnosis, treatment notes, instructions. #}
+{% load form_tags %}
+{% with sections=form_obj.prescription_body|prescription_body_sections %}
+{% if sections.diagnosis or sections.instructions or sections.medications %}
+<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+  <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+    <h2 class="text-sm font-semibold text-gray-900">Clinical Notes</h2>
+  </div>
+  <div class="px-4 sm:px-6 py-3 sm:py-4 space-y-4">
+    {% if sections.diagnosis %}
+    <section>
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Diagnosis / Impression</h3>
+      <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ sections.diagnosis }}</p>
+    </section>
+    {% endif %}
+    {% if sections.medications and not form_obj.items.exists %}
+    <section>
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Medications / Treatment</h3>
+      <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ sections.medications }}</p>
+    </section>
+    {% endif %}
+    {% if sections.instructions %}
+    <section>
+      <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Special Instructions</h3>
+      <p class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ sections.instructions }}</p>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+{% endwith %}

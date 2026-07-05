@@ -1,6 +1,4 @@
-import re
 from django import template
-
 register = template.Library()
 
 
@@ -21,18 +19,16 @@ def dict_key(d, key):
 
 @register.filter(name='strip_diagnosis_medications')
 def strip_diagnosis_medications(value):
-    """Strip 'Diagnosis:' prefix and everything after 'Medications:' from the body text.
-    
-    The medications are now displayed separately in the Prescribed Medications section,
-    so we remove them from the prescription notes display.
-    """
-    if not value:
-        return value
-    
-    # Remove "Diagnosis:" prefix (case-insensitive)
-    text = re.sub(r'^Diagnosis:\s*', '', value, flags=re.IGNORECASE)
-    
-    # Remove everything from "Medications:" onwards (case-insensitive)
-    text = re.sub(r'\n?Medications:.*', '', text, flags=re.IGNORECASE | re.DOTALL)
-    
-    return text.strip()
+    """Return diagnosis text from prescription body without section markers."""
+    from health_forms_services.forms import split_prescription_body
+
+    sections = split_prescription_body(value or '')
+    return sections['diagnosis']
+
+
+@register.filter(name='prescription_body_sections')
+def prescription_body_sections(value):
+    """Parse prescription body into diagnosis, medications, and instructions."""
+    from health_forms_services.forms import split_prescription_body
+
+    return split_prescription_body(value or '')

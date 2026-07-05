@@ -1001,8 +1001,36 @@ class DentalHealthExaminationForm(forms.ModelForm):
         ]
 
 
+class DoctorSelectWidget(forms.Select):
+    """Select widget that adds data-license and data-ptr attributes to each option."""
+
+    def create_option(self, name, value, label, *args, **kwargs):
+        option = super().create_option(name, value, label, *args, **kwargs)
+        if value:
+            pk = value if isinstance(value, (int, str)) else getattr(value, 'value', value)
+            try:
+                user = User.objects.select_related('staff_profile').get(pk=pk)
+                profile = getattr(user, 'staff_profile', None)
+                option['attrs']['data-license'] = (profile.license_number or '') if profile else ''
+                option['attrs']['data-ptr'] = (profile.ptr_no or '') if profile else ''
+            except (User.DoesNotExist, ValueError, TypeError):
+                pass
+        return option
+
+
 class DentalHealthConditionsForm(forms.ModelForm):
     """Form for conditions/recommendations, remarks, and dentist info"""
+
+    dentist_user = forms.ModelChoiceField(
+        queryset=User.objects.filter(role='doctor', is_active=True).order_by('first_name', 'last_name'),
+        required=False,
+        label='Select Dentist',
+        empty_label='Select dentist',
+        widget=DoctorSelectWidget(attrs={
+            'class': 'form-select',
+            'data-dental-dentist-select': 'true',
+        }),
+    )
 
     class Meta:
         model = DentalHealthForm
@@ -1033,21 +1061,68 @@ class DentalHealthConditionsForm(forms.ModelForm):
             'cond_others_detail': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'Specify other conditions...'}),
             'cond_no_treatment_needed': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
             'remarks': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 3, 'placeholder': 'Additional remarks...'}),
-            'dentist_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Signature over Printed Name'}),
-            'dentist_license_no': forms.TextInput(attrs={'class': 'form-input'}),
+            'dentist_name': forms.HiddenInput(attrs={'data-dental-dentist-name': 'true'}),
+            'dentist_license_no': forms.TextInput(attrs={
+                'class': 'form-input bg-gray-50 cursor-default',
+                'readonly': True,
+                'data-dental-dentist-license': 'true',
+                'placeholder': 'Auto-filled from selected dentist',
+            }),
         }
 
+    def _prefill_dentist_from_user(self, doctor_user):
+        if not self.fields['dentist_user'].queryset.filter(pk=doctor_user.pk).exists():
+            return
+        profile = getattr(doctor_user, 'staff_profile', None)
+        self.initial.setdefault('dentist_user', doctor_user.pk)
+        self.initial.setdefault('dentist_name', doctor_user.get_full_name())
+        if profile and profile.license_number:
+            self.initial.setdefault('dentist_license_no', profile.license_number)
+        elif profile and profile.ptr_no:
+            self.initial.setdefault('dentist_license_no', profile.ptr_no)
+
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         for name, label in DENTAL_CONDITION_CHECKBOXES:
             self.fields[name].label = label
         self.fields['cond_others'].label = 'Others'
         self.fields['cond_others_detail'].label = 'Specify other conditions'
         self.fields['remarks'].label = 'Remarks'
-        self.fields['dentist_name'].label = 'Dentist Name'
         self.fields['dentist_license_no'].label = 'License No.'
         if not bool(self['cond_others'].value()):
             self.fields['cond_others_detail'].widget.attrs['disabled'] = True
+
+        if not self.is_bound:
+            if self.instance and self.instance.pk and self.instance.dentist_name:
+                matching = User.objects.filter(
+                    role='doctor',
+                    is_active=True,
+                ).filter(
+                    first_name__icontains=self.instance.dentist_name.split()[0]
+                    if self.instance.dentist_name.split() else ''
+                ).first()
+                if matching:
+                    self.initial['dentist_user'] = matching.pk
+            elif user and user.role == 'doctor' and user.is_active:
+                self._prefill_dentist_from_user(user)
+
+    def clean(self):
+        cleaned = super().clean()
+        dentist = cleaned.get('dentist_user')
+        if dentist:
+            dentist = (
+                User.objects.select_related('staff_profile')
+                .filter(pk=dentist.pk)
+                .first()
+            ) or dentist
+            profile = getattr(dentist, 'staff_profile', None)
+            cleaned['dentist_name'] = dentist.get_full_name()
+            if profile:
+                license_no = (profile.license_number or profile.ptr_no or '').strip()
+                if license_no:
+                    cleaned['dentist_license_no'] = license_no
+        return cleaned
 
     def condition_checkboxes(self):
         return [
@@ -1077,22 +1152,22 @@ class DentalHealthFormReviewForm(forms.ModelForm):
 
 PATIENT_CHART_PERSONAL_SECTIONS: tuple[dict[str, object], ...] = (
     {
+        'key': 'name_demographics',
         'label': 'Name & Demographics',
         'icon': 'fa-user',
         'icon_bg': 'bg-primary-50',
         'icon_color': 'text-primary-600',
         'description': 'Legal name, age, gender, and civil status (F-HSS-20-0002).',
         'fields': ('last_name', 'first_name', 'middle_name', 'age', 'gender', 'civil_status'),
-        'grid_cols': 'md:grid-cols-3',
     },
     {
+        'key': 'address_birth',
         'label': 'Address & Birth',
         'icon': 'fa-location-dot',
         'icon_bg': 'bg-amber-50',
         'icon_color': 'text-amber-600',
         'description': 'Residential address, date of birth, and place of birth.',
         'fields': ('address', 'date_of_birth', 'place_of_birth'),
-        'grid_cols': 'md:grid-cols-3',
     },
     {
         'label': 'Contact Information',
@@ -1137,7 +1212,11 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
             'last_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Dela Cruz'}),
             'first_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Juan'}),
             'middle_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Santos'}),
-            'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'House/Unit No., Street, Barangay, City/Municipality, Province'}),
+            'address': forms.Textarea(attrs={
+                'class': 'form-textarea w-full',
+                'rows': 3,
+                'placeholder': 'House/Unit No., Street, Barangay, City/Municipality, Province',
+            }),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date', 'placeholder': 'mm/dd/yyyy'}),
             'place_of_birth': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'City/Municipality, Province'}),
             'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
@@ -1182,6 +1261,32 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
         for name, label in label_map.items():
             if name in self.fields:
                 self.fields[name].label = label
+        field_help = {
+            'last_name': 'As it appears on official records or school ID.',
+            'first_name': 'Given name as it appears on official records.',
+            'middle_name': 'Optional — leave blank if not applicable.',
+            'age': 'Patient age in years.',
+            'gender': 'Select the patient’s gender.',
+            'civil_status': 'Select the patient’s civil status.',
+            'address': 'Include house or unit number, street, barangay, city or municipality, and province.',
+            'date_of_birth': 'As it appears on official records or school ID.',
+            'place_of_birth': 'City or municipality and province where the patient was born.',
+        }
+        for name, help_text in field_help.items():
+            if name in self.fields:
+                self.fields[name].help_text = help_text
+        if 'gender' in self.fields:
+            gender_choices = PatientChart.Gender.choices
+            self.fields['gender'].widget = forms.Select(
+                choices=[('', 'Select gender'), *gender_choices],
+                attrs={'class': 'form-select'},
+            )
+        if 'civil_status' in self.fields:
+            civil_choices = PatientChart.CivilStatus.choices
+            self.fields['civil_status'].widget = forms.Select(
+                choices=[('', 'Select civil status'), *civil_choices],
+                attrs={'class': 'form-select'},
+            )
         if 'designation' in self.fields:
             choices = PatientChart.Designation.choices
             self.fields['designation'].choices = choices
@@ -1739,23 +1844,6 @@ class DentalServicesReviewForm(forms.ModelForm):
 # PRESCRIPTION FORMS (F-HSS-20-0004)
 # ========================================================================
 
-class DoctorSelectWidget(forms.Select):
-    """Select widget that adds data-license and data-ptr attributes to each option."""
-
-    def create_option(self, name, value, label, *args, **kwargs):
-        option = super().create_option(name, value, label, *args, **kwargs)
-        if value:
-            pk = value if isinstance(value, (int, str)) else getattr(value, 'value', value)
-            try:
-                user = User.objects.select_related('staff_profile').get(pk=pk)
-                profile = getattr(user, 'staff_profile', None)
-                option['attrs']['data-license'] = (profile.license_number or '') if profile else ''
-                option['attrs']['data-ptr'] = (profile.ptr_no or '') if profile else ''
-            except (User.DoesNotExist, ValueError, TypeError):
-                pass
-        return option
-
-
 SECTION_DIAGNOSIS = '___DIAGNOSIS___'
 SECTION_MEDICATIONS = '___MEDICATIONS___'
 SECTION_INSTRUCTIONS = '___INSTRUCTIONS___'
@@ -1776,6 +1864,49 @@ def join_prescription_body(diagnosis, medications, instructions):
     return '\n'.join(parts)
 
 
+def split_prescription_body(body):
+    """Parse stored prescription body into diagnosis, medications, and instructions."""
+    result = {'diagnosis': '', 'medications': '', 'instructions': ''}
+    if not body or not str(body).strip():
+        return result
+
+    text = str(body).strip()
+    if not any(marker in text for marker in (SECTION_DIAGNOSIS, SECTION_MEDICATIONS, SECTION_INSTRUCTIONS)):
+        legacy = re.sub(r'^Diagnosis:\s*', '', text, flags=re.IGNORECASE)
+        legacy = re.sub(r'\n?Medications:.*', '', legacy, flags=re.IGNORECASE | re.DOTALL)
+        result['diagnosis'] = legacy.strip()
+        return result
+
+    current = None
+    chunks = {'diagnosis': [], 'medications': [], 'instructions': []}
+    for line in text.splitlines():
+        if line == SECTION_DIAGNOSIS:
+            current = 'diagnosis'
+        elif line == SECTION_MEDICATIONS:
+            current = 'medications'
+        elif line == SECTION_INSTRUCTIONS:
+            current = 'instructions'
+        elif current:
+            chunks[current].append(line)
+
+    for key in result:
+        result[key] = '\n'.join(chunks[key]).strip()
+    return result
+
+
+def format_prescription_body_for_display(body, *, include_medications=True):
+    """Render stored body text without internal section markers."""
+    sections = split_prescription_body(body)
+    lines = []
+    if sections['diagnosis']:
+        lines.append(f"Diagnosis: {sections['diagnosis']}")
+    if include_medications and sections['medications']:
+        lines.append(f"Medications: {sections['medications']}")
+    if sections['instructions']:
+        lines.append(f"Instructions: {sections['instructions']}")
+    return '\n'.join(lines)
+
+
 class PrescriptionPatientForm(forms.ModelForm):
     """Form for prescription patient information and physician details"""
 
@@ -1783,6 +1914,7 @@ class PrescriptionPatientForm(forms.ModelForm):
         queryset=User.objects.filter(role='doctor', is_active=True).order_by('first_name', 'last_name'),
         required=False,
         label='Select Physician',
+        empty_label='Select physician',
         widget=DoctorSelectWidget(attrs={
             'class': 'block w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-300 rounded-lg focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 focus:outline-none hover:border-gray-400 transition-colors appearance-none',
             'data-physician-select': 'true',
@@ -1864,36 +1996,54 @@ class PrescriptionPatientForm(forms.ModelForm):
             }),
         }
 
+    def _prefill_physician_from_user(self, doctor_user):
+        if not self.fields['physician'].queryset.filter(pk=doctor_user.pk).exists():
+            return
+        self.initial.setdefault('physician', doctor_user.pk)
+        self.initial.setdefault('physician_name', doctor_user.get_full_name())
+        profile = getattr(doctor_user, 'staff_profile', None)
+        if profile:
+            self.initial.setdefault('license_no', profile.license_number or '')
+            self.initial.setdefault('ptr_no', profile.ptr_no or '')
+
     def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         self.fields['patient_name'].required = True
 
-        # # Split the existing prescription_body into separate fields
-        # if self.instance and self.instance.pk:
-        #     parts = split_prescription_body(self.instance.prescription_body)
-        #     self.initial['diagnosis'] = parts['diagnosis']
-        #     self.initial['medications'] = parts['medications']
-        #     self.initial['instructions'] = parts['instructions']
-        # elif self.initial.get('prescription_body'):
-        #     parts = split_prescription_body(self.initial['prescription_body'])
-        #     self.initial['diagnosis'] = parts['diagnosis']
-        #     self.initial['medications'] = parts['medications']
-        #     self.initial['instructions'] = parts['instructions']
+        if not self.is_bound:
+            if self.instance and self.instance.pk and self.instance.prescription_body:
+                parts = split_prescription_body(self.instance.prescription_body)
+                self.initial.setdefault('diagnosis', parts['diagnosis'])
+                self.initial.setdefault('medications', parts['medications'])
+                self.initial.setdefault('instructions', parts['instructions'])
+            elif self.initial.get('prescription_body'):
+                parts = split_prescription_body(self.initial['prescription_body'])
+                self.initial.setdefault('diagnosis', parts['diagnosis'])
+                self.initial.setdefault('medications', parts['medications'])
+                self.initial.setdefault('instructions', parts['instructions'])
 
-        # If an existing prescription has physician data, pre-select the matching doctor
-        if self.instance and self.instance.pk and self.instance.physician_name:
-            matching = User.objects.filter(
-                role__in=['doctor', 'staff'],
-                first_name__isnull=False,
-            ).filter(
-                first_name__icontains=self.instance.physician_name.split()[0] if self.instance.physician_name.split() else ''
-            ).first()
-            if matching:
-                self.initial['physician'] = matching.id
+            if self.instance and self.instance.pk and self.instance.physician_name:
+                matching = User.objects.filter(
+                    role__in=['doctor', 'staff'],
+                    first_name__isnull=False,
+                ).filter(
+                    first_name__icontains=self.instance.physician_name.split()[0] if self.instance.physician_name.split() else ''
+                ).first()
+                if matching:
+                    self.initial['physician'] = matching.id
+            elif user and user.role == 'doctor' and user.is_active:
+                self._prefill_physician_from_user(user)
 
     def clean(self):
         cleaned = super().clean()
-        # Combine the separate fields into prescription_body
+        physician = cleaned.get('physician')
+        if physician:
+            profile = getattr(physician, 'staff_profile', None)
+            cleaned['physician_name'] = physician.get_full_name()
+            if profile:
+                cleaned['license_no'] = profile.license_number or cleaned.get('license_no', '')
+                cleaned['ptr_no'] = profile.ptr_no or cleaned.get('ptr_no', '')
         cleaned['prescription_body'] = join_prescription_body(
             cleaned.get('diagnosis', ''),
             cleaned.get('medications', ''),

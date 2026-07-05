@@ -875,9 +875,15 @@ def generate_prescription(rx):
     ptr_no = _val(rx.ptr_no, "")
 
     # Build Rx body text
+    from .forms import format_prescription_body_for_display
+
     rx_lines = []
-    if rx.prescription_body:
-        rx_lines.append(rx.prescription_body)
+    body_text = format_prescription_body_for_display(
+        rx.prescription_body,
+        include_medications=not rx.items.exists(),
+    )
+    if body_text:
+        rx_lines.append(body_text)
     items = rx.items.all()
     for idx, item in enumerate(items, 1):
         parts = [f"{idx}. {item.medication_name}"]

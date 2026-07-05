@@ -3,7 +3,12 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from core.models import PatientProfile, StaffProfile, User
-from health_forms_services.forms import DIAGNOSTIC_TEST_TRIPLETS, IMMUNIZATION_FLAG_DATE_PAIRS
+from health_forms_services.forms import (
+	DIAGNOSTIC_TEST_TRIPLETS,
+	IMMUNIZATION_FLAG_DATE_PAIRS,
+	join_prescription_body,
+	split_prescription_body,
+)
 from health_forms_services.forms import HealthProfilePersonalInfoForm
 from health_forms_services.models import (
 	DentalHealthForm,
@@ -12,6 +17,7 @@ from health_forms_services.models import (
 	PatientChart,
 	PatientChartEntry,
 	Prescription,
+	PrescriptionItem,
 )
 
 
@@ -381,6 +387,176 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		created = Prescription.objects.latest('created_at')
 		self.assertEqual(created.user_id, self.patient.id)
+
+	def test_create_prescription_defaults_physician_for_logged_in_doctor(self):
+		profile = self.doctor.staff_profile
+		profile.license_number = '123123'
+		profile.ptr_no = '22333'
+		profile.save(update_fields=['license_number', 'ptr_no'])
+
+		response = self.client.get(reverse('health_forms_services:create_prescription'))
+		self.assertEqual(response.status_code, 200)
+		form = response.context['form']
+		self.assertEqual(form.initial.get('physician'), self.doctor.pk)
+		self.assertEqual(form.initial.get('physician_name'), self.doctor.get_full_name())
+		self.assertEqual(form.initial.get('license_no'), '123123')
+		self.assertEqual(form.initial.get('ptr_no'), '22333')
+		self.assertContains(
+			response,
+			f'<option value="{self.doctor.pk}" selected',
+			html=False,
+		)
+
+	def test_create_prescription_leaves_physician_blank_for_staff(self):
+		staff = User.objects.create_user(
+			email='staff-picker@test.com',
+			password='StaffPass123!',
+			role='staff',
+			is_staff=True,
+			is_active=True,
+			first_name='Clinic',
+			last_name='Staff',
+		)
+		_complete_staff_like_profile(staff, 'STAFF-HF-001')
+		self.client.force_login(staff)
+
+		response = self.client.get(reverse('health_forms_services:create_prescription'))
+		self.assertEqual(response.status_code, 200)
+		form = response.context['form']
+		self.assertIsNone(form.initial.get('physician'))
+		self.assertContains(response, 'Select physician')
+		self.assertNotContains(
+			response,
+			f'<option value="{self.doctor.pk}" selected',
+			html=False,
+		)
+
+	def test_create_prescription_saves_selected_physician_for_staff(self):
+		staff = User.objects.create_user(
+			email='staff-rx@test.com',
+			password='StaffPass123!',
+			role='staff',
+			is_staff=True,
+			is_active=True,
+			first_name='Clinic',
+			last_name='Staff',
+		)
+		_complete_staff_like_profile(staff, 'STAFF-HF-002')
+		profile = self.doctor.staff_profile
+		profile.license_number = '123123'
+		profile.ptr_no = '22333'
+		profile.save(update_fields=['license_number', 'ptr_no'])
+		self.client.force_login(staff)
+
+		response = self.client.post(
+			reverse('health_forms_services:create_prescription'),
+			{
+				'selected_user_id': str(self.patient.id),
+				'patient_name': 'Ana Patient',
+				'age': '21',
+				'gender': 'female',
+				'address': '123 Main St',
+				'date': '',
+				'diagnosis': '',
+				'medications': '',
+				'instructions': '',
+				'physician': str(self.doctor.pk),
+				'physician_name': '',
+				'license_no': '',
+				'ptr_no': '',
+			},
+			follow=True,
+		)
+		self.assertEqual(response.status_code, 200)
+		created = Prescription.objects.latest('created_at')
+		self.assertEqual(created.physician_name, self.doctor.get_full_name())
+		self.assertEqual(created.license_no, '123123')
+		self.assertEqual(created.ptr_no, '22333')
+
+	def test_create_prescription_defaults_physician_for_logged_in_doctor(self):
+		profile = self.doctor.staff_profile
+		profile.license_number = '123123'
+		profile.ptr_no = '22333'
+		profile.save(update_fields=['license_number', 'ptr_no'])
+
+		response = self.client.get(reverse('health_forms_services:create_prescription'))
+		self.assertEqual(response.status_code, 200)
+		form = response.context['form']
+		self.assertEqual(form.initial.get('physician'), self.doctor.pk)
+		self.assertEqual(form.initial.get('physician_name'), self.doctor.get_full_name())
+		self.assertEqual(form.initial.get('license_no'), '123123')
+		self.assertEqual(form.initial.get('ptr_no'), '22333')
+		self.assertContains(
+			response,
+			f'<option value="{self.doctor.pk}" selected',
+			html=False,
+		)
+
+	def test_create_prescription_leaves_physician_blank_for_staff(self):
+		staff = User.objects.create_user(
+			email='staff-picker@test.com',
+			password='StaffPass123!',
+			role='staff',
+			is_staff=True,
+			is_active=True,
+			first_name='Clinic',
+			last_name='Staff',
+		)
+		_complete_staff_like_profile(staff, 'STAFF-HF-001')
+		self.client.force_login(staff)
+
+		response = self.client.get(reverse('health_forms_services:create_prescription'))
+		self.assertEqual(response.status_code, 200)
+		form = response.context['form']
+		self.assertIsNone(form.initial.get('physician'))
+		self.assertContains(response, 'Select physician')
+		self.assertNotContains(
+			response,
+			f'<option value="{self.doctor.pk}" selected',
+			html=False,
+		)
+
+	def test_create_prescription_saves_selected_physician_for_staff(self):
+		staff = User.objects.create_user(
+			email='staff-rx@test.com',
+			password='StaffPass123!',
+			role='staff',
+			is_staff=True,
+			is_active=True,
+			first_name='Clinic',
+			last_name='Staff',
+		)
+		_complete_staff_like_profile(staff, 'STAFF-HF-002')
+		profile = self.doctor.staff_profile
+		profile.license_number = '123123'
+		profile.ptr_no = '22333'
+		profile.save(update_fields=['license_number', 'ptr_no'])
+		self.client.force_login(staff)
+
+		response = self.client.post(
+			reverse('health_forms_services:create_prescription'),
+			{
+				'selected_user_id': str(self.patient.id),
+				'patient_name': 'Ana Patient',
+				'age': '21',
+				'gender': 'female',
+				'address': '123 Main St',
+				'date': '',
+				'diagnosis': '',
+				'medications': '',
+				'instructions': '',
+				'physician': str(self.doctor.pk),
+				'physician_name': '',
+				'license_no': '',
+				'ptr_no': '',
+			},
+			follow=True,
+		)
+		self.assertEqual(response.status_code, 200)
+		created = Prescription.objects.latest('created_at')
+		self.assertEqual(created.physician_name, self.doctor.get_full_name())
+		self.assertEqual(created.license_no, '123123')
+		self.assertEqual(created.ptr_no, '22333')
 
 	def test_manual_entry_page_includes_patient_picker_script(self):
 		response = self.client.get(reverse('health_forms_services:manual_entry'))
@@ -1109,9 +1285,9 @@ class DentalHealthFormProcessFlowTests(TestCase):
 			first_name='Dental',
 			last_name='Doctor',
 		)
-		doctor_profile = _complete_staff_like_profile(self.doctor, 'DOC-HSS-001')
-		doctor_profile.license_number = 'PRC-HSS-001'
-		doctor_profile.save(update_fields=['license_number'])
+		_complete_staff_like_profile(self.doctor, 'DOC-HSS-001')
+		self.doctor.staff_profile.license_number = 'PRC-HSS-001'
+		self.doctor.staff_profile.save(update_fields=['license_number'])
 		self.patient = User.objects.create_user(
 			email='patient-hss@test.com',
 			password='PatientPass123!',
@@ -1182,8 +1358,9 @@ class DentalHealthFormProcessFlowTests(TestCase):
 				'cond_others': '',
 				'cond_others_detail': '',
 				'remarks': 'Follow up in 2 weeks',
-				'dentist_name': 'Dr. Dental Doctor',
-				'dentist_license_no': 'PRC-HSS-001',
+				'dentist_user': str(self.doctor.pk),
+				'dentist_name': '',
+				'dentist_license_no': '',
 			},
 			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
 		)
@@ -1192,7 +1369,43 @@ class DentalHealthFormProcessFlowTests(TestCase):
 		self.form.refresh_from_db()
 		self.assertTrue(self.form.cond_needs_oral_prophylaxis)
 		self.assertEqual(self.form.remarks, 'Follow up in 2 weeks')
-		self.assertEqual(self.form.dentist_name, 'Dr. Dental Doctor')
+		self.assertEqual(self.form.dentist_name, self.doctor.get_full_name())
+		self.assertEqual(self.form.dentist_license_no, 'PRC-HSS-001')
+
+	def test_conditions_tab_defaults_attending_dentist_for_doctor(self):
+		response = self.client.get(
+			reverse('health_forms_services:edit_dental_services', args=[self.form.pk]) + '?section=conditions',
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Select Dentist')
+		self.assertContains(
+			response,
+			f'value="{self.doctor.pk}" selected',
+			html=False,
+		)
+
+	def test_conditions_tab_leaves_dentist_blank_for_staff(self):
+		staff = User.objects.create_user(
+			email='staff-hss@test.com',
+			password='StaffPass123!',
+			role='staff',
+			is_staff=True,
+			is_active=True,
+			first_name='Clinic',
+			last_name='Staff',
+		)
+		_complete_staff_like_profile(staff, 'STAFF-HSS-001')
+		self.client.force_login(staff)
+		response = self.client.get(
+			reverse('health_forms_services:edit_dental_services', args=[self.form.pk]) + '?section=conditions',
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Select Dentist')
+		self.assertNotContains(
+			response,
+			f'value="{self.doctor.pk}" selected',
+			html=False,
+		)
 
 	def test_chart_api_update_persists(self):
 		response = self.client.post(
@@ -1547,4 +1760,102 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 				'ptr_no',
 			],
 		)
+
+
+@override_settings(
+	MIDDLEWARE=[
+		middleware
+		for middleware in settings.MIDDLEWARE
+		if middleware != 'core.middleware.ProfileCompleteMiddleware'
+	]
+)
+class PrescriptionBodyFormatTests(TestCase):
+	def setUp(self):
+		self.doctor = User.objects.create_user(
+			email='rx-detail@test.com',
+			password='DoctorPass123!',
+			role='doctor',
+			is_staff=True,
+			is_active=True,
+			first_name='Rx',
+			last_name='Doctor',
+		)
+		_complete_staff_like_profile(self.doctor, 'DOC-RX-001')
+		self.client.force_login(self.doctor)
+
+	def test_split_prescription_body_parses_section_markers(self):
+		body = join_prescription_body('tonsil', 'Paracetamol 500 mg', 'Take after meals')
+		sections = split_prescription_body(body)
+		self.assertEqual(sections['diagnosis'], 'tonsil')
+		self.assertEqual(sections['medications'], 'Paracetamol 500 mg')
+		self.assertEqual(sections['instructions'], 'Take after meals')
+
+	def test_split_prescription_body_handles_legacy_diagnosis_prefix(self):
+		sections = split_prescription_body('Diagnosis: tonsillitis\nMedications: Amoxicillin')
+		self.assertEqual(sections['diagnosis'], 'tonsillitis')
+		self.assertEqual(sections['medications'], '')
+		self.assertEqual(sections['instructions'], '')
+
+	def test_prescription_detail_renders_clinical_notes_without_markers(self):
+		prescription = Prescription.objects.create(
+			user=self.doctor,
+			patient_name='Test Patient',
+			prescription_body=join_prescription_body('tonsil', '', ''),
+		)
+		response = self.client.get(
+			reverse('health_forms_services:prescription_detail', args=[prescription.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Clinical Notes')
+		self.assertContains(response, 'Diagnosis / Impression')
+		self.assertContains(response, 'tonsil')
+		self.assertNotContains(response, '___DIAGNOSIS___')
+
+	def test_add_prescription_item_persists_and_shows_on_detail(self):
+		prescription = Prescription.objects.create(
+			user=self.doctor,
+			patient_name='Test Patient',
+		)
+		add_url = reverse('health_forms_services:add_prescription_item', args=[prescription.pk])
+		response = self.client.post(
+			add_url,
+			{
+				'medication_name': 'Amoxicillin',
+				'dosage': '500 mg',
+				'frequency': '3× daily',
+				'duration': '7 days',
+				'quantity': '#21',
+				'instructions': 'Take after meals',
+			},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		payload = response.json()
+		self.assertTrue(payload['success'])
+		self.assertEqual(PrescriptionItem.objects.filter(prescription=prescription).count(), 1)
+
+		detail_response = self.client.get(
+			reverse('health_forms_services:prescription_detail', args=[prescription.pk]),
+		)
+		self.assertEqual(detail_response.status_code, 200)
+		self.assertContains(detail_response, 'Amoxicillin')
+		self.assertContains(detail_response, '500 mg')
+
+	def test_edit_prescription_shows_existing_items(self):
+		prescription = Prescription.objects.create(
+			user=self.doctor,
+			patient_name='Test Patient',
+		)
+		PrescriptionItem.objects.create(
+			prescription=prescription,
+			medication_name='Paracetamol',
+			dosage='500 mg',
+		)
+		response = self.client.get(
+			reverse('health_forms_services:edit_prescription', args=[prescription.pk]),
+		)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Paracetamol')
+		self.assertContains(response, '500 mg')
+		self.assertContains(response, 'prescription-items-form.js')
 

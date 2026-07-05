@@ -77,17 +77,8 @@
           </div>
         </div>
 
-        {# ── Prescription Notes ── #}
-        {% if form_obj.prescription_body %}
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-          <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
-            <h2 class="text-sm font-semibold text-gray-900">Prescription Notes</h2>
-          </div>
-          <div class="px-4 sm:px-6 py-3 sm:py-4">
-            <div class="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{{ form_obj.prescription_body|strip_diagnosis_medications }}</div>
-          </div>
-        </div>
-        {% endif %}
+        {# ── Clinical Notes ── #}
+        {% include 'health_forms_services/partials/_prescription_clinical_notes.html' %}
 
         {# ═══════════════════════════════════════════════════════════════ #}
         {# ── PRESCRIBED MEDICATIONS SECTION ── #}

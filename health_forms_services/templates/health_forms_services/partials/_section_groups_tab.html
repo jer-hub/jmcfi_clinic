@@ -74,6 +74,14 @@
 
       {% include 'health_forms_services/partials/_institutional_details_section.html' with section=section %}
 
+    {% elif section.key == 'address_birth' %}
+
+      {% include 'health_forms_services/partials/_patient_chart_address_birth_section.html' with section=section %}
+
+    {% elif section.key == 'name_demographics' %}
+
+      {% include 'health_forms_services/partials/_patient_chart_name_demographics_section.html' with section=section %}
+
     {% else %}
 
       <div class="flex items-center gap-2 mb-4">

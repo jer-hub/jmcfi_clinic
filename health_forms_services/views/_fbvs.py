@@ -910,7 +910,7 @@ def create_prescription(request):
     selected_patient = None
     if request.method == 'POST':
         selected_patient, selected_patient_error = _selected_patient_from_request(request)
-        form = PrescriptionPatientForm(request.POST)
+        form = PrescriptionPatientForm(request.POST, user=request.user)
         if selected_patient_error:
             form.add_error(None, selected_patient_error)
         if form.is_valid():
@@ -933,7 +933,7 @@ def create_prescription(request):
             }
         else:
             initial = None
-        form = PrescriptionPatientForm(initial=initial)
+        form = PrescriptionPatientForm(initial=initial, user=request.user)
 
     return render(request, 'health_forms_services/create_prescription.html', {
         'form': form,

@@ -527,28 +527,13 @@ class PrescriptionEditView(BaseFormEditView):
         ],
     }
 
-    def get(self, request, *args, **kwargs):
-        obj = self.get_object()
-        form_instances = {}
-        active_section = request.GET.get('section', (self.tabs[0]['key'] if self.tabs else 'personal'))
-
-        for key, form_class in (self.form_class_map or {}).items():
-            form_instances[key] = form_class(instance=obj)
-
+    def get_extra_edit_context(self, obj):
         from ..forms import PrescriptionItemForm
-        detail_url = reverse(self.detail_url_name, args=[obj.pk]) if self.detail_url_name else None
-        ctx = {
-            'form_obj': obj,
-            'forms': form_instances,
-            'tabs': self.tabs or [],
-            'field_groups': self.field_groups or {},
-            'active_section': active_section,
-            'doctors': self.get_doctors(),
-            'detail_url': detail_url,
+
+        return {
             'prescription_items': obj.items.all(),
             'item_form': PrescriptionItemForm(),
         }
-        return render(request, self.template_name, ctx)
 
 
 # ═══════════════════════════════════════════════════════════════════════════

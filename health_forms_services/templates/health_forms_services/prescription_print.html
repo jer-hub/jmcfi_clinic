@@ -1,4 +1,4 @@
-{% load static %}
+{% load static form_tags %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -280,9 +280,21 @@
         <div class="rx-body">
             <img src="{% static 'img/rx_symbol.png' %}" alt="Rx" class="rx-symbol">
 
-            {% if prescription.prescription_body %}
-            <div class="rx-body-text">{{ prescription.prescription_body }}</div>
+            {% with sections=prescription.prescription_body|prescription_body_sections %}
+            {% if sections.diagnosis or sections.instructions or sections.medications %}
+            <div class="rx-body-text">
+              {% if sections.diagnosis %}
+              <div><strong>Diagnosis:</strong> {{ sections.diagnosis }}</div>
+              {% endif %}
+              {% if sections.medications and not items %}
+              <div><strong>Medications:</strong> {{ sections.medications }}</div>
+              {% endif %}
+              {% if sections.instructions %}
+              <div><strong>Instructions:</strong> {{ sections.instructions }}</div>
+              {% endif %}
+            </div>
             {% endif %}
+            {% endwith %}
 
             {% if items %}
             <div class="rx-items">

@@ -1,0 +1,42 @@
+{# Patient Chart — legal name row, then demographics row (F-HSS-20-0002). #}
+<div class="flex items-center gap-2 mb-4">
+  <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ section.icon_bg }} {{ section.icon_color }}">
+    <i class="fas {{ section.icon }} text-sm"></i>
+  </span>
+  <div>
+    <h3 class="text-sm font-semibold text-gray-900">{{ section.label }}</h3>
+    {% if section.description %}
+    <p class="text-xs text-gray-500">{{ section.description }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="space-y-4">
+  <div class="rounded-lg border border-gray-200 p-4 space-y-3">
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Full legal name</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+      {% for item in section.fields %}
+        {% if item.name == 'last_name' or item.name == 'first_name' or item.name == 'middle_name' %}
+        <div data-section-field data-field-name="{{ item.name }}"
+             class="{% if item.field.errors %}has-error{% endif %}">
+          {% include 'health_forms_services/partials/_field.html' with field=item.field %}
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="rounded-lg border border-gray-200 p-4 space-y-3">
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Demographics</p>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+      {% for item in section.fields %}
+        {% if item.name == 'age' or item.name == 'gender' or item.name == 'civil_status' %}
+        <div data-section-field data-field-name="{{ item.name }}"
+             class="{% if item.field.errors %}has-error{% endif %}">
+          {% include 'health_forms_services/partials/_field.html' with field=item.field %}
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>

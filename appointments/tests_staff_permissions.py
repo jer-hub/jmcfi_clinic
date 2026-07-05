@@ -228,3 +228,43 @@ class StaffClinicalPermissionsTests(TestCase):
             time=time(14, 0),
         )
         self.assertEqual(appointment.doctor_id, self.doctor.id)
+
+    def test_schedule_for_patient_accepts_legacy_student_query_param(self):
+        self.client.force_login(self.doctor)
+        url = reverse('appointments:schedule_for_patient') + f'?student={self.patient.id}'
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['patient_locked'])
+        self.assertEqual(response.context['prefill_patient']['id'], self.patient.id)
+        self.assertContains(response, 'Book Appointment Again')
+        self.assertContains(response, self.patient.get_full_name())
+        self.assertContains(response, 'Booking again for')
+        self.assertContains(response, 'name="book_again"')
+
+    def test_schedule_for_patient_without_query_uses_adjustable_picker(self):
+        self.client.force_login(self.doctor)
+        response = self.client.get(reverse('appointments:schedule_for_patient'))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['patient_locked'])
+        self.assertIsNone(response.context['prefill_patient'])
+        self.assertContains(response, 'Schedule for a Patient')
+        self.assertContains(response, 'id="patient-search"')
+        self.assertNotContains(response, 'Booking again for')
+
+    def test_schedule_validation_error_keeps_adjustable_picker_without_book_again(self):
+        self.client.force_login(self.doctor)
+        response = self.client.post(
+            reverse('appointments:schedule_for_patient'),
+            {
+                'patient': self.patient.id,
+                'appointment_type': '',
+                'date': '',
+                'time': '',
+                'reason': '',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['patient_locked'])
+        self.assertContains(response, 'Schedule for a Patient')
+        self.assertContains(response, 'Change')
+        self.assertNotContains(response, 'Booking again for')

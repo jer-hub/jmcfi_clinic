@@ -3,7 +3,7 @@
 {% block title %}Schedule for Patient - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-{% if prefill_patient %}
+{% if prefill_patient and not patient_locked %}
 {{ prefill_patient|json_script:"schedule-patient-prefill" }}
 {% endif %}
 {% if staff_picks_doctor %}
@@ -15,7 +15,11 @@
      x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }}, staffPicksDoctor: {{ staff_picks_doctor|yesno:'true,false' }} })">
     {% include 'appointments/_subnav.html' %}
 
+    {% if patient_locked and prefill_patient %}
+    {% include "components/page_header.html" with title="Book Appointment Again" subtitle="Confirm the next visit for "|add:prefill_patient.name icon="fa-calendar-plus" %}
+    {% else %}
     {% include "components/page_header.html" with title="Schedule for a Patient" subtitle="Book an appointment on behalf of a patient" icon="fa-user-plus" %}
+    {% endif %}
 
     {% if messages %}
     <div class="space-y-2 mb-6">
@@ -93,31 +97,35 @@
                     </div>
                 </div>
                 <input type="hidden" name="patient" value="{{ prefill_patient.id }}">
+                <input type="hidden" name="book_again" value="1">
                 {% else %}
 
                 {# Search (hidden when a patient is selected) #}
                 <div x-show="!hasSelectedStudent" x-cloak>
                     <label for="patient-search" class="sr-only">Search patients</label>
                     <div class="relative" @click.away="showResults = false">
-                        <i class="fas fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"
-                           :class="searching && 'fa-spinner fa-spin'"></i>
-                        <input type="text" id="patient-search"
-                               placeholder="Search by name, email, or patient ID…"
-                               x-model="patientQuery"
-                               @input.debounce.300ms="searchPatients()"
-                               @focus="if(searchResults.length) showResults = true"
-                               @keydown.escape="showResults = false"
-                               @keydown.arrow-down.prevent="highlightNext()"
-                               @keydown.arrow-up.prevent="highlightPrev()"
-                               @keydown.enter.prevent="selectHighlighted()"
-                               autocomplete="off"
-                               class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 placeholder:text-gray-400">
-                        <button type="button" x-show="patientQuery.length > 0" x-cloak
-                                @click="patientQuery=''; searchResults=[]; showResults=false"
-                                class="absolute right-3.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                                aria-label="Clear search">
-                            <i class="fas fa-circle-xmark text-sm"></i>
-                        </button>
+                        <div class="relative">
+                            <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-400">
+                                <i class="fas text-sm leading-none" :class="searching ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'" aria-hidden="true"></i>
+                            </span>
+                            <input type="text" id="patient-search"
+                                   placeholder="Search by name, email, or patient ID…"
+                                   x-model="patientQuery"
+                                   @input.debounce.300ms="searchPatients()"
+                                   @focus="if(searchResults.length) showResults = true"
+                                   @keydown.escape="showResults = false"
+                                   @keydown.arrow-down.prevent="highlightNext()"
+                                   @keydown.arrow-up.prevent="highlightPrev()"
+                                   @keydown.enter.prevent="selectHighlighted()"
+                                   autocomplete="off"
+                                   class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl text-sm leading-normal focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 placeholder:text-gray-400">
+                            <button type="button" x-show="patientQuery.length > 0" x-cloak
+                                    @click="patientQuery=''; searchResults=[]; showResults=false"
+                                    class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 hover:text-gray-600"
+                                    aria-label="Clear search">
+                                <i class="fas fa-circle-xmark text-sm leading-none"></i>
+                            </button>
+                        </div>
 
                         <p class="mt-1.5 text-xs text-gray-400" x-show="!showResults && patientQuery.length < 2">
                             Type at least 2 characters to search

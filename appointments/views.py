@@ -912,6 +912,13 @@ def _schedule_for_patient_redirect(patient_id=None):
     return redirect(base)
 
 
+def _schedule_for_patient_patient_param(request, patient_id_hint=None):
+    """Resolve patient id from POST hint, ?patient=, or legacy ?student=."""
+    if patient_id_hint is not None:
+        return patient_id_hint
+    return request.GET.get('patient') or request.GET.get('student')
+
+
 def _schedule_for_patient_get_context(request, patient_id_hint=None, form_data=None):
     active_type_keys = set(
         AppointmentTypeDefault.objects
@@ -929,23 +936,26 @@ def _schedule_for_patient_get_context(request, patient_id_hint=None, form_data=N
 
     prefill_patient = None
     prefill_invalid = False
-    param = patient_id_hint if patient_id_hint is not None else request.GET.get('patient')
-    if param:
+    url_patient_param = request.GET.get('patient') or request.GET.get('student')
+    post_book_again = request.method == 'POST' and request.POST.get('book_again') == '1'
+    book_again = bool(url_patient_param) or post_book_again
+    resolve_param = patient_id_hint if patient_id_hint is not None else url_patient_param
+    if resolve_param:
         try:
             patient = User.objects.select_related('patient_profile').get(
-                pk=int(param),
+                pk=int(resolve_param),
                 role__in=PATIENT_ROLE_VALUES,
             )
             prefill_patient = _patient_prefill_payload(patient)
         except (User.DoesNotExist, ValueError, TypeError):
-            prefill_invalid = True
+            prefill_invalid = bool(url_patient_param)
 
     fd = form_data or {}
     context = {
         'appointment_types': appointment_types,
         'prefill_patient': prefill_patient,
         'prefill_invalid': prefill_invalid,
-        'patient_locked': prefill_patient is not None,
+        'patient_locked': book_again and prefill_patient is not None,
         'staff_picks_doctor': request.user.role == ROLE_STAFF,
         'form_data': fd,
         'form_data_json': json.dumps(fd),

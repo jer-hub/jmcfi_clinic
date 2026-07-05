@@ -93,7 +93,7 @@
                     {% endif %}
                   {% endif %}
                   {% if appointment.status == 'completed' or appointment.status == 'missed' %}
-                    <a href="{% url 'appointments:schedule_for_patient' %}?student={{ appointment.patient.id }}"
+                    <a href="{% url 'appointments:schedule_for_patient' %}?patient={{ appointment.patient.id }}"
                        class="p-1.5 rounded text-primary-700 hover:bg-primary-50 transition-colors"
                        title="Book again">
                       <i class="fas fa-calendar-plus" aria-hidden="true"></i>

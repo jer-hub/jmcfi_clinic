@@ -206,7 +206,6 @@ jmcfi_clinic/
 |------|----------|
 | Django settings | `backend/settings.py` |
 | Supabase (Postgres + Storage) | [`docs/SUPABASE.md`](docs/SUPABASE.md) — copy [`.env.example`](.env.example) to `.env` |
-| Railway production deploy | [`docs/RAILWAY.md`](docs/RAILWAY.md) — Dockerfile, Daphne, Redis, env vars |
 | Clinic & role settings | Admin UI → Settings, or `ClinicSettings` / `RoleSettings` models |
 | Profile required fields | `core/profile_policy.py` |
 | Google OAuth | `.env` + `core/adapters.py` |
@@ -246,7 +245,6 @@ python manage.py migrate
 | Document | Description |
 |----------|-------------|
 | `docs/SUPABASE.md` | Local Supabase CLI, Postgres, and Storage setup |
-| `docs/RAILWAY.md` | Production deployment on Railway (Docker, Daphne, Redis) |
 | `core/GOOGLE_STUDENT_PROFILE_POLICY.md` | Patient profile completion on Google signup |
 | `appointments/APPOINTMENT_SCHEDULING_POLICY.md` | Scheduling rules |
 | `document_request/DOCUMENT_REQUEST_POLICY.md` | Document request workflow |

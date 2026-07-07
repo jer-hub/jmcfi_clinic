@@ -283,25 +283,6 @@ def csrf_failure(request, reason=''):
     return render(request, 'core/restricted_access.html', context, status=403)
 
 
-def health_check(request):
-    """Lightweight liveness probe for Railway (no DB)."""
-    return JsonResponse({"status": "ok"})
-
-
-def health_ready(request):
-    """Readiness probe — verifies database connectivity."""
-    from django.db import connection
-
-    try:
-        connection.ensure_connection()
-    except Exception:
-        return JsonResponse(
-            {"status": "error", "database": "unavailable"},
-            status=503,
-        )
-    return JsonResponse({"status": "ok", "database": "connected"})
-
-
 @require_http_methods(["GET", "POST"])
 def accept_invite(request, token):
     """Accept a user invitation and activate account when invite is valid."""

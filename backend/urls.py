@@ -19,7 +19,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 
+from core.views import health_check, health_ready
+
 urlpatterns = [
+    path('health/', health_check, name='health_check'),
+    path('health/ready/', health_ready, name='health_ready'),
     path('admin/', admin.site.urls),
     path('accounts/', include('allauth.urls')),
     path('messages/', include('messaging.urls')),

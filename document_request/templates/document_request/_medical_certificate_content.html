@@ -93,9 +93,9 @@
         text-align: justify;
     }
 
-    .bottom-fixed {
-        margin-top: auto;
-        padding-top: 1rem;
+    .certificate-footer {
+        margin-top: 2rem;
+        padding-top: 0;
     }
 
     .physician-block {
@@ -133,7 +133,7 @@
         margin-top: 0.125rem;
     }
 
-    .form-footer {
+    .certificate-footer-note {
         font-size: 0.65rem;
         font-style: italic;
         text-align: center;
@@ -141,45 +141,37 @@
         padding-bottom: 0.25rem;
         line-height: 1.3;
         color: #000;
+        margin: 0;
     }
 
-    /* PDF render overrides for stable layout and font rendering */
-    body.pdf-render .certificate-page {
-        display: block;
-        position: relative;
-        min-height: 9.5in;
-        padding: 0;
-        padding-bottom: 140pt;
-    }
-
-    body.pdf-render .certificate-page,
-    body.pdf-render .letterhead,
-    body.pdf-render .cert-title,
-    body.pdf-render .date-row,
-    body.pdf-render .cert-body,
-    body.pdf-render .section-header,
-    body.pdf-render .section-lines,
-    body.pdf-render .content-line,
-    body.pdf-render .bottom-fixed,
-    body.pdf-render .physician-block,
-    body.pdf-render .license-line,
-    body.pdf-render .ptr-line,
-    body.pdf-render .form-footer {
+    /* PDF typography + block layout overrides */
+    .certificate-page--pdf .letterhead,
+    .certificate-page--pdf .cert-title,
+    .certificate-page--pdf .date-row,
+    .certificate-page--pdf .cert-body,
+    .certificate-page--pdf .section-header,
+    .certificate-page--pdf .section-lines,
+    .certificate-page--pdf .content-line,
+    .certificate-page--pdf .certificate-footer,
+    .certificate-page--pdf .physician-block,
+    .certificate-page--pdf .license-line,
+    .certificate-page--pdf .ptr-line,
+    .certificate-page--pdf .certificate-footer-note {
         display: block;
         width: 100%;
     }
 
-    body.pdf-render .letterhead > div {
+    .certificate-page--pdf .letterhead > div {
         display: block;
         width: 100%;
     }
 
-    body.pdf-render .letterhead {
+    .certificate-page--pdf .letterhead {
         margin-bottom: 5pt;
         line-height: 1;
     }
 
-    body.pdf-render .institution-name {
+    .certificate-page--pdf .institution-name {
         font-family: 'OldEnglish', "Old English Text MT", "Goudy Text MT", "Bookman Old Style", serif !important;
         font-size: 26pt;
         font-weight: normal;
@@ -187,7 +179,7 @@
         margin: 0;
     }
 
-    body.pdf-render .institution-sub {
+    .certificate-page--pdf .institution-sub {
         font-family: "Times New Roman", serif;
         font-size: 10pt;
         letter-spacing: 1.8pt;
@@ -196,99 +188,90 @@
         line-height: 1;
     }
 
-    body.pdf-render .institution-address {
+    .certificate-page--pdf .institution-address {
         font-family: "Times New Roman", serif;
         font-size: 9.5pt;
         margin-top: 1pt;
         line-height: 1.05;
     }
 
-    body.pdf-render .department {
+    .certificate-page--pdf .department {
         font-size: 15pt;
         font-weight: 700;
         margin-top: 4pt;
         line-height: 1;
     }
 
-    body.pdf-render .cert-title {
+    .certificate-page--pdf .cert-title {
         font-size: 13pt;
         margin-top: 14pt;
         margin-bottom: 8pt;
         line-height: 1;
     }
 
-    body.pdf-render .date-row,
-    body.pdf-render .cert-body,
-    body.pdf-render .content-line,
-    body.pdf-render .physician-block {
+    .certificate-page--pdf .date-row,
+    .certificate-page--pdf .cert-body,
+    .certificate-page--pdf .content-line,
+    .certificate-page--pdf .physician-block {
         font-size: 11pt;
     }
 
-    body.pdf-render .date-row {
+    .certificate-page--pdf .date-row {
         padding-right: 24pt;
         margin-top: 10pt;
         margin-bottom: 8pt;
         text-align: right;
     }
 
-    body.pdf-render .cert-body,
-    body.pdf-render .section-lines {
+    .certificate-page--pdf .cert-body,
+    .certificate-page--pdf .section-lines {
         line-height: 1.45;
     }
 
-    body.pdf-render .section-header {
+    .certificate-page--pdf .section-header {
         font-size: 11pt;
         margin-top: 10pt;
         margin-bottom: 4pt;
     }
 
-    body.pdf-render .section-lines {
+    .certificate-page--pdf .section-lines {
         margin-bottom: 4pt;
     }
 
-    body.pdf-render .content-line {
+    .certificate-page--pdf .content-line {
         min-height: 14pt;
         margin-bottom: 1pt;
         text-align: left;
     }
 
-    body.pdf-render .bottom-fixed {
-        position: absolute;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        margin-top: 0;
-        padding-top: 0;
-    }
-
-    body.pdf-render .physician-signature {
+    .certificate-page--pdf .physician-signature {
         display: block;
         height: 42pt;
         width: 140pt;
         margin: 0 auto 4pt;
     }
 
-    body.pdf-render .physician-block {
+    .certificate-page--pdf .physician-block {
         margin-bottom: 22pt;
         text-align: right;
     }
 
-    body.pdf-render .physician-anchor {
+    .certificate-page--pdf .physician-anchor {
         min-width: 220pt;
     }
 
-    body.pdf-render .physician-name {
+    .certificate-page--pdf .physician-name {
         min-width: 220pt;
         display: inline-block;
         width: auto;
     }
 
-    body.pdf-render .license-line,
-    body.pdf-render .ptr-line {
+    .certificate-page--pdf .license-line,
+    .certificate-page--pdf .ptr-line {
         margin-top: 2pt;
     }
 
-    body.pdf-render .form-footer {
+    .certificate-page--pdf .certificate-footer-note {
         clear: both;
         font-size: 8pt;
         padding-top: 0;
@@ -297,9 +280,10 @@
         margin: 0;
     }
 
+
 </style>
 
-<div class="certificate-page">
+<div class="certificate-page{% if certificate_sheet_layout or is_pdf %} certificate-page--sheet{% endif %}{% if is_pdf %} certificate-page--pdf{% endif %}">
     <div class="letterhead">
         <div class="institution-name">JOSE MARIA COLLEGE</div>
         <div class="institution-sub">FOUNDATION, INC.</div>
@@ -345,21 +329,15 @@
         {% endif %}
     </div>
 
-    <div class="bottom-fixed">
+    <footer class="certificate-footer">
         <div class="physician-block">
             <div class="physician-anchor">
-                {% if physician_signature %}
-                    {% if is_pdf and physician_signature_uri %}
+                {% if physician_signature_uri %}
                 <img src="{{ physician_signature_uri }}" alt="Physician signature" class="physician-signature">
-                    {% else %}
+                {% elif physician_signature %}
                 <img src="{{ physician_signature.signature_image.url }}" alt="Physician signature" class="physician-signature">
-                    {% endif %}
                 {% elif certificate.signature_snapshot %}
-                    {% if is_pdf and physician_signature_uri %}
-                <img src="{{ physician_signature_uri }}" alt="Physician signature" class="physician-signature">
-                    {% else %}
                 <img src="{{ certificate.signature_snapshot.url }}" alt="Physician signature" class="physician-signature">
-                    {% endif %}
                 {% endif %}
                 <div class="physician-name">
                     {% if certificate.physician_name %}{{ certificate.physician_name }}, MD{% else %}__________________________ MD{% endif %}
@@ -373,8 +351,8 @@
             </div>
         </div>
 
-        <div class="form-footer">
+        <p class="certificate-footer-note">
             This certificate is issued upon the request of the abovementioned patient for whatever purpose it may serve him/her except cases concerning medico-legal matters.
-        </div>
-    </div>
+        </p>
+    </footer>
 </div>

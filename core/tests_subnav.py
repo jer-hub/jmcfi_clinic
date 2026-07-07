@@ -5,7 +5,7 @@ from django.template.loader import render_to_string
 from django.test import RequestFactory, SimpleTestCase
 
 from core.subnav_helpers import enrich_subnav, nav_dropdown, nav_group, nav_item
-from core.templatetags.app_subnav import pharmacy_subnav
+from core.templatetags.app_subnav import feedback_subnav, pharmacy_subnav
 
 
 class EnrichSubnavTests(SimpleTestCase):
@@ -150,3 +150,33 @@ class PharmacySubnavTemplateTests(SimpleTestCase):
         self.assertIn('x-show="open"', html)
         self.assertIn('role="menu"', html)
         self.assertIn('absolute left-0 top-full z-50', html)
+
+
+class FeedbackSubnavTemplateTests(SimpleTestCase):
+    def _feedback_context(self, view_name='feedback:submit_feedback', *, role='patient'):
+        request = RequestFactory().get('/feedback/submit/')
+        request.resolver_match = type(
+            'M',
+            (),
+            {'view_name': view_name, 'kwargs': {}},
+        )()
+        request.user = type('U', (), {'role': role})()
+        return feedback_subnav(Context({'request': request}))
+
+    def test_submit_page_keeps_tab_strip_not_breadcrumbs(self):
+        ctx = self._feedback_context('feedback:submit_feedback')
+        self.assertFalse(ctx['show_breadcrumbs'])
+        self.assertEqual(len(ctx['items']), 2)
+        self.assertTrue(ctx['items'][1]['active'])
+
+    def test_staff_stats_tab_included(self):
+        ctx = self._feedback_context('feedback:feedback_stats', role='staff')
+        self.assertEqual(len(ctx['items']), 3)
+        self.assertEqual(ctx['nav_aria_label'], 'Feedback sections')
+
+    def test_feedback_nav_uses_shared_wrapper_classes(self):
+        ctx = self._feedback_context()
+        html = render_to_string('components/sub_nav.html', ctx)
+        self.assertIn('aria-label="Feedback sections"', html)
+        self.assertIn('role="tablist"', html)
+        self.assertIn('class="nav-link whitespace-nowrap shrink-0 active"', html)

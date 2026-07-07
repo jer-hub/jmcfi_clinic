@@ -262,7 +262,7 @@ def feedback_subnav(context):
         nav_item(
             'Submit',
             'feedback:submit_feedback',
-            icon='fa-pen',
+            icon='fa-pen-to-square',
             active=is_active(vn, 'feedback:submit_feedback', 'feedback:submit_feedback_appointment'),
         ),
     ]
@@ -275,7 +275,7 @@ def feedback_subnav(context):
                 active=vn == 'feedback:feedback_stats',
             )
         )
-    return enrich_subnav(items)
+    return enrich_subnav(items, always_show_nav=True, nav_aria_label='Feedback sections')
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)

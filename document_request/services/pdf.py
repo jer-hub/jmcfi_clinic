@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 import pdfkit
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.db.models.fields.files import FieldFile
 from django.template.loader import render_to_string
 
 from document_request.models import MedicalCertificate
@@ -20,6 +22,54 @@ def resolve_wkhtmltopdf_path() -> str | None:
     if configured and Path(configured).exists():
         return configured
     return None
+
+
+def _guess_image_mime(name: str) -> str:
+    lowered = (name or '').lower()
+    if lowered.endswith('.jpg') or lowered.endswith('.jpeg'):
+        return 'image/jpeg'
+    if lowered.endswith('.webp'):
+        return 'image/webp'
+    if lowered.endswith('.gif'):
+        return 'image/gif'
+    return 'image/png'
+
+
+def file_field_to_data_uri(file_field: FieldFile | None) -> str:
+    """Embed a stored image for HTML/PDF renderers that cannot reach remote URLs."""
+    if not file_field or not getattr(file_field, 'name', None):
+        return ''
+    try:
+        with file_field.open('rb') as handle:
+            payload = handle.read()
+    except OSError:
+        return ''
+    if not payload:
+        return ''
+    encoded = base64.b64encode(payload).decode('ascii')
+    return f'data:{_guess_image_mime(file_field.name)};base64,{encoded}'
+
+
+def resolve_certificate_signature_data_uri(
+    certificate: MedicalCertificate,
+    *,
+    physician_signature=None,
+) -> str:
+    """Prefer immutable certificate snapshot, then active clinician signature."""
+    if certificate.signature_snapshot:
+        data_uri = file_field_to_data_uri(certificate.signature_snapshot)
+        if data_uri:
+            return data_uri
+
+    if physician_signature is None:
+        physician_signature = get_certificate_signature_display(certificate)
+
+    if physician_signature and getattr(physician_signature, 'signature_image', None):
+        data_uri = file_field_to_data_uri(physician_signature.signature_image)
+        if data_uri:
+            return data_uri
+
+    return ''
 
 
 def _build_pdf_context(certificate: MedicalCertificate) -> dict:
@@ -40,21 +90,10 @@ def _build_pdf_context(certificate: MedicalCertificate) -> dict:
     font_path = next((candidate for candidate in font_candidates if candidate.exists()), None)
     old_english_font_uri = font_path.resolve().as_uri() if font_path else ''
 
-    physician_signature_uri = ''
-    if physician_signature and getattr(physician_signature, 'signature_image', None):
-        try:
-            sig_path = Path(physician_signature.signature_image.path)
-            if sig_path.exists():
-                physician_signature_uri = sig_path.resolve().as_uri()
-        except OSError:
-            physician_signature_uri = ''
-    elif certificate.signature_snapshot:
-        try:
-            snap_path = Path(certificate.signature_snapshot.path)
-            if snap_path.exists():
-                physician_signature_uri = snap_path.resolve().as_uri()
-        except OSError:
-            physician_signature_uri = ''
+    physician_signature_uri = resolve_certificate_signature_data_uri(
+        certificate,
+        physician_signature=physician_signature,
+    )
 
     return {
         'certificate': certificate,
@@ -101,10 +140,14 @@ def generate_and_store_certificate_pdf(certificate: MedicalCertificate) -> Medic
 
 
 def get_or_create_certificate_pdf_bytes(certificate: MedicalCertificate) -> bytes:
-    if certificate.issued_pdf:
-        try:
+    try:
+        pdf_bytes = render_certificate_pdf_bytes(certificate)
+    except PdfGenerationError:
+        if certificate.issued_pdf:
             with certificate.issued_pdf.open('rb') as stored:
                 return stored.read()
-        except OSError:
-            pass
-    return render_certificate_pdf_bytes(certificate)
+        raise
+
+    filename = f'certificate_{certificate.pk}.pdf'
+    certificate.issued_pdf.save(filename, ContentFile(pdf_bytes), save=True)
+    return pdf_bytes

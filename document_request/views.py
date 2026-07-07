@@ -41,7 +41,12 @@ from .services import (
     user_can_initiate_on_behalf,
     user_can_process_documents,
 )
-from .services.policies import assert_can_download_pdf, assert_certificate_accessible
+from .services.policies import (
+    assert_can_download_pdf,
+    assert_certificate_accessible,
+    assert_patient_certificate_preview_allowed,
+)
+from .services.pdf import resolve_certificate_signature_data_uri
 
 User = get_user_model()
 
@@ -77,6 +82,18 @@ def _document_request_list_querystring(get_params) -> str:
 
 def _service_error_message(exc: DocumentRequestServiceError) -> str:
     return exc.message or 'Unable to process this request.'
+
+
+def _certificate_completion_blockers(certificate) -> list[str]:
+    blockers: list[str] = []
+    if not certificate:
+        blockers.append('Medical certificate record is missing.')
+        return blockers
+    if not (certificate.diagnosis or '').strip():
+        blockers.append('Add diagnosis on the certificate before completing.')
+    if not (certificate.remarks_recommendations or '').strip():
+        blockers.append('Add remarks and recommendations on the certificate before completing.')
+    return blockers
 
 
 def _build_request_form_context(user, extra_context=None):
@@ -256,6 +273,7 @@ def _redirect_if_certificate_locked(request, linked_doc_request: DocumentRequest
         return None
     try:
         assert_certificate_accessible(linked_doc_request)
+        assert_patient_certificate_preview_allowed(linked_doc_request, request.user)
     except InvalidTransitionError as exc:
         messages.error(request, exc.message)
         return redirect(
@@ -588,6 +606,16 @@ def _document_request_detail_response(request, doc_request, can_process, missing
         page_title = 'Document Request'
         page_subtitle = 'Request details and certificate'
 
+    completion_blockers = []
+    if can_process and doc_request.is_pending_review:
+        completion_blockers = _certificate_completion_blockers(doc_request.medical_certificate)
+    can_complete_request = (
+        can_process
+        and doc_request.is_pending_review
+        and not missing_signature
+        and not completion_blockers
+    )
+
     return render(
         request,
         'document_request/document_request_detail.html',
@@ -595,6 +623,8 @@ def _document_request_detail_response(request, doc_request, can_process, missing
             'cert_request': doc_request,
             'can_process': can_process,
             'missing_signature': missing_signature,
+            'completion_blockers': completion_blockers,
+            'can_complete_request': can_complete_request,
             'page_title': page_title,
             'page_subtitle': page_subtitle,
         },
@@ -628,6 +658,12 @@ def preview_medical_certificate(request, cert_id):
     if locked_redirect:
         return locked_redirect
     physician_signature = get_certificate_signature_display(certificate)
+    if not physician_signature and user_can_process_documents(request.user):
+        physician_signature = get_clinician_signature(request.user)
+    physician_signature_uri = resolve_certificate_signature_data_uri(
+        certificate,
+        physician_signature=physician_signature,
+    )
 
     diagnosis_lines = [line.strip() for line in (certificate.diagnosis or '').split('\n') if line.strip()][:5]
     remarks_lines = [
@@ -647,6 +683,8 @@ def preview_medical_certificate(request, cert_id):
             'linked_doc_request': linked_doc_request,
             'issue_date': certificate.certificate_date,
             'physician_signature': physician_signature,
+            'physician_signature_uri': physician_signature_uri,
+            'certificate_sheet_layout': True,
             'diagnosis_lines': diagnosis_lines or [''],
             'remarks_lines': remarks_lines or [''],
         },

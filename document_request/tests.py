@@ -1,5 +1,6 @@
 from datetime import date, time
 
+from django.template.loader import render_to_string
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -277,6 +278,16 @@ class DocumentRequestFlowTests(TestCase):
         cert.save()
 
         self.client.force_login(self.doctor)
+        response = self.client.get(
+            reverse('document_request:document_request_detail', args=[doc_request.pk]),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Complete Request')
+        self.assertContains(response, '__jmcfiCompleteDocumentRequestModal(this)')
+        self.assertContains(response, 'data-form-id="processForm"')
+        self.assertContains(response, 'data-doc-complete-submit')
+        self.assertContains(response, 'Upload your signature')
+
         response = self.client.post(
             reverse('document_request:document_request_detail', args=[doc_request.pk]),
             {'action': 'review'},
@@ -285,6 +296,31 @@ class DocumentRequestFlowTests(TestCase):
         doc_request.refresh_from_db()
         self.assertEqual(doc_request.status, DocumentRequest.Status.PENDING_REVIEW)
         self.assertContains(response, 'Upload your signature')
+
+    def test_incomplete_certificate_disables_complete_request(self):
+        doc_request = self._create_pending_request()
+        cert = doc_request.medical_certificate
+        cert.diagnosis = ''
+        cert.remarks_recommendations = 'Needs rest'
+        cert.save()
+
+        self.client.force_login(self.doctor)
+        response = self.client.get(
+            reverse('document_request:document_request_detail', args=[doc_request.pk]),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Add diagnosis on the certificate before completing.')
+        self.assertContains(response, 'Edit certificate')
+        self.assertContains(response, 'disabled')
+
+        response = self.client.post(
+            reverse('document_request:document_request_detail', args=[doc_request.pk]),
+            {'action': 'review'},
+        )
+        self.assertEqual(response.status_code, 200)
+        doc_request.refresh_from_db()
+        self.assertEqual(doc_request.status, DocumentRequest.Status.PENDING_REVIEW)
+        self.assertContains(response, 'Please fill in diagnosis and remarks before completing.')
 
     def test_complete_with_signature_succeeds(self):
         doc_request = self._create_pending_request()
@@ -401,6 +437,45 @@ class DocumentRequestFlowTests(TestCase):
 
         self.assertRedirects(self.client.get(preview_url), detail_url)
         self.assertRedirects(self.client.get(edit_url), detail_url)
+
+    def test_pending_request_disables_view_certificate_for_patient(self):
+        doc_request = self._create_pending_request()
+        cert = doc_request.medical_certificate
+        detail_url = reverse('document_request:document_request_detail', args=[doc_request.pk])
+        preview_url = reverse('document_request:preview_medical_certificate', args=[cert.pk])
+
+        self.client.force_login(self.student)
+        response = self.client.get(detail_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'View Certificate')
+        self.assertContains(response, 'Available after your request is completed')
+        self.assertContains(response, 'aria-disabled="true"')
+        self.assertContains(response, 'In progress')
+        self.assertNotContains(
+            response,
+            f'href="{preview_url}"',
+        )
+
+        self.assertRedirects(self.client.get(preview_url), detail_url)
+
+    def test_completed_request_enables_view_certificate_for_patient(self):
+        doc_request = self._create_pending_request()
+        cert = doc_request.medical_certificate
+        doc_request.status = DocumentRequest.Status.COMPLETED
+        doc_request.save(update_fields=['status', 'updated_at'])
+        cert.status = MedicalCertificate.Status.ISSUED
+        cert.save(update_fields=['status', 'updated_at'])
+
+        preview_url = reverse('document_request:preview_medical_certificate', args=[cert.pk])
+        self.client.force_login(self.student)
+        response = self.client.get(
+            reverse('document_request:document_request_detail', args=[doc_request.pk]),
+        )
+        self.assertContains(response, f'href="{preview_url}"')
+        self.assertNotContains(response, 'Available after your request is completed')
+
+        preview_response = self.client.get(preview_url)
+        self.assertEqual(preview_response.status_code, 200)
 
     def _completed_appointment(self, *, appointment_type='consultation', visit_date=None):
         return Appointment.objects.create(
@@ -625,3 +700,93 @@ class DocumentRequestFlowTests(TestCase):
         self.assertEqual(cert.physician_name, creds['physician_name'])
         self.assertEqual(cert.license_no, creds['license_no'])
         self.assertEqual(cert.ptr_no, creds['ptr_no'])
+
+
+@override_settings(
+    MIDDLEWARE=[
+        middleware
+        for middleware in settings.MIDDLEWARE
+        if middleware != 'core.middleware.ProfileCompleteMiddleware'
+    ]
+)
+class CertificatePdfSignatureTests(TestCase):
+    def setUp(self):
+        self.doctor = User.objects.create_user(
+            email='pdf-doctor@example.com',
+            password='x',
+            role='doctor',
+            first_name='Doc',
+            last_name='Tor',
+        )
+        self.student = User.objects.create_user(
+            email='pdf-student@example.com',
+            password='x',
+            role='patient',
+            first_name='Pat',
+            last_name='Ient',
+        )
+
+    def test_pdf_context_embeds_signature_snapshot_as_data_uri(self):
+        png_bytes = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
+            b'\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
+            b'\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4'
+            b'\x00\x00\x00\x00IEND\xaeB`\x82'
+        )
+        cert = MedicalCertificate.objects.create(
+            user=self.student,
+            patient_name='Pat Ient',
+            status=MedicalCertificate.Status.ISSUED,
+        )
+        cert.signature_snapshot.save(
+            'snapshot.png',
+            SimpleUploadedFile('snapshot.png', png_bytes, content_type='image/png'),
+            save=True,
+        )
+
+        from document_request.services.pdf import _build_pdf_context
+
+        context = _build_pdf_context(cert)
+        self.assertTrue(context['physician_signature_uri'].startswith('data:image/png;base64,'))
+
+        html = render_to_string('document_request/certificate_pdf.html', context)
+        self.assertIn('data:image/png;base64,', html)
+        self.assertIn('Physician signature', html)
+
+    def test_preview_includes_embedded_signature(self):
+        png_bytes = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
+            b'\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89'
+            b'\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4'
+            b'\x00\x00\x00\x00IEND\xaeB`\x82'
+        )
+        cert = MedicalCertificate.objects.create(
+            user=self.student,
+            patient_name='Pat Ient',
+            diagnosis='Healthy',
+            remarks_recommendations='None',
+            status=MedicalCertificate.Status.ISSUED,
+            signed_by=self.doctor,
+            reviewed_by=self.doctor,
+        )
+        cert.signature_snapshot.save(
+            'snapshot.png',
+            SimpleUploadedFile('snapshot.png', png_bytes, content_type='image/png'),
+            save=True,
+        )
+        DocumentRequest.objects.create(
+            patient=self.student,
+            created_by=self.student,
+            document_type='medical_certificate',
+            purpose='Employment',
+            status=DocumentRequest.Status.COMPLETED,
+            medical_certificate=cert,
+        )
+
+        self.client.force_login(self.doctor)
+        response = self.client.get(
+            reverse('document_request:preview_medical_certificate', args=[cert.pk]),
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data:image/png;base64,')
+        self.assertContains(response, 'Physician signature')

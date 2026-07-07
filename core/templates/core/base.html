@@ -643,6 +643,38 @@
         });
       };
 
+      /** Document requests: confirm before marking a pending request completed. */
+      window.__jmcfiCompleteDocumentRequestModal = function (btn) {
+        if (!btn || btn.disabled) return;
+        var formId = btn.getAttribute('data-form-id');
+        if (!formId) return;
+        window.__jmcfiDispatchOpenModal({
+          type: 'info',
+          title: 'Confirm Completion',
+          message: 'Mark this request as completed? Ensure diagnosis and remarks are filled in on the certificate.',
+          actionLabel: 'Complete',
+          size: 'sm',
+          onConfirm: function () {
+            var form = document.getElementById(formId);
+            if (!form) return;
+            var submitBtn = form.querySelector('[data-doc-complete-submit]');
+            if (submitBtn && form.requestSubmit) {
+              form.requestSubmit(submitBtn);
+              return;
+            }
+            if (submitBtn) {
+              submitBtn.click();
+              return;
+            }
+            var actionInput = form.querySelector('[name="action"]');
+            if (actionInput) {
+              actionInput.value = btn.getAttribute('data-action') || 'review';
+            }
+            form.submit();
+          },
+        });
+      };
+
       /** Appointment detail: confirm when Update form sets status to cancelled. */
       window.__jmcfiAppointmentUpdateSubmit = function (e, currentStatus) {
         var form = e.target;

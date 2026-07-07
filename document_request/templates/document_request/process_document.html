@@ -185,7 +185,9 @@
                             {% if cert_request.status == 'pending' %}
                             <button type="button"
                                     {% if missing_signature %}disabled{% endif %}
-                                    @click="$dispatch('open-modal',{type:'info',title:'Confirm Completion',message:'Mark this request as completed? Ensure diagnosis and remarks are filled in on the certificate.',actionLabel:'Complete',onConfirm:function(){document.getElementById('actionInput').value='review';document.getElementById('processForm').submit();}})"
+                                    data-form-id="processForm"
+                                    data-action="review"
+                                    onclick="window.__jmcfiCompleteDocumentRequestModal(this)"
                                     class="w-full inline-flex items-center justify-center gap-2 bg-success-600 hover:bg-success-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                                 <i class="fas fa-circle-check" aria-hidden="true"></i>Complete Request
                             </button>

@@ -47,6 +47,21 @@ def assert_certificate_accessible(doc_request) -> None:
         )
 
 
+def assert_patient_certificate_preview_allowed(doc_request, user) -> None:
+    """Patients may preview certificates only after the request is completed."""
+    from core.roles import is_patient_role
+    from document_request.models import DocumentRequest
+
+    if (
+        doc_request
+        and is_patient_role(user.role)
+        and doc_request.status != DocumentRequest.Status.COMPLETED
+    ):
+        raise InvalidTransitionError(
+            'Certificate preview is available after your request is completed.',
+        )
+
+
 def assert_can_download_pdf(doc_request, certificate) -> None:
     from document_request.models import DocumentRequest, MedicalCertificate
 

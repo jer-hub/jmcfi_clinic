@@ -2,12 +2,12 @@
 {% comment %}
   Cancel appointment POST form + confirmation trigger.
   Required: appointment
-  Optional: cancel_variant ('icon' | 'card'), next_url, form_action, use_htmx_list
+  Optional: cancel_variant ('icon' | 'card' | 'grid'), next_url, form_action, use_htmx_list
 {% endcomment %}
 <form method="post"
       id="cancel-appointment-form-{{ appointment.id }}"
       action="{% if form_action %}{{ form_action }}{% else %}{% url 'appointments:appointment_detail' appointment.id %}{% endif %}"
-      class="{% if cancel_variant == 'card' %}w-full{% else %}inline{% endif %}"
+      class="{% if cancel_variant == 'card' %}w-full{% elif cancel_variant == 'grid' %}contents{% else %}inline{% endif %}"
       {% if use_htmx_list %}hx-post="{% url 'appointments:appointment_detail' appointment.id %}" hx-swap="none"{% endif %}>
   {% csrf_token %}
   <input type="hidden" name="status" value="cancelled">
@@ -36,6 +36,22 @@
       <p class="text-sm font-semibold text-gray-900">Cancel Appointment</p>
       <p class="text-xs text-gray-500 mt-0.5">Remove this from the schedule</p>
     </div>
+  </button>
+  {% elif cancel_variant == 'grid' %}
+  <button type="button"
+          class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-danger-800 transition-all w-full min-h-[2rem] hover:bg-white hover:border-danger-200 hover:shadow-sm"
+          title="Cancel appointment"
+          data-form-id="cancel-appointment-form-{{ appointment.id }}"
+          {% if user|is_patient_role %}
+          data-subtitle="Dr. {{ appointment.doctor.get_full_name }}"
+          data-message="Cancel your appointment on {{ appointment.date|date:'M d, Y' }} at {{ appointment.time|time:'g:i A' }}? This cannot be undone."
+          {% else %}
+          data-subtitle="{{ appointment.patient.get_full_name }}"
+          data-message="Cancel the appointment on {{ appointment.date|date:'M d, Y' }} at {{ appointment.time|time:'g:i A' }}? This cannot be undone."
+          {% endif %}
+          onclick="__jmcfiCancelAppointmentModal(this)">
+    <i class="fas fa-xmark text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
+    <span class="whitespace-nowrap">Cancel</span>
   </button>
   {% else %}
   <button type="button"

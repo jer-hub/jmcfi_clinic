@@ -1,21 +1,29 @@
 {% comment %}
-  Icon-only action for table rows.
+  Table row action link — icon-only or compact grid chip.
 
   Context:
     href   – link URL (required)
-    icon   – Font Awesome class, e.g. fa-eye (required)
-    title  – tooltip and screen-reader label (required)
-    tone   – view | primary | info | success (default primary)
+    icon   – Font Awesome class (required)
+    title  – tooltip (required)
+    label  – visible grid text (defaults to title)
+    tone   – view | primary | info | success | danger (default primary)
+    layout – icon (default) | grid
 {% endcomment %}
-{% with t=tone|default:'primary' %}
+{% with t=tone|default:'primary' display_label=label|default:title %}
 <a href="{{ href }}"
-   class="p-1.5 rounded transition-colors
-          {% if t == 'view' %}text-primary-600 hover:bg-primary-50
-          {% elif t == 'info' %}text-info-700 hover:bg-info-50
-          {% elif t == 'success' %}text-success-700 hover:bg-success-50
-          {% else %}text-primary-700 hover:bg-primary-50{% endif %}"
+   class="{% if layout == 'grid' %}group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none transition-all w-full min-h-[2rem] hover:bg-white hover:shadow-sm
+          {% else %}p-1.5 rounded transition-colors{% endif %}
+          {% if t == 'view' %}{% if layout == 'grid' %}text-primary-700 hover:border-primary-200{% else %}text-primary-600 hover:bg-primary-50{% endif %}
+          {% elif t == 'info' %}{% if layout == 'grid' %}text-info-800 hover:border-info-200{% else %}text-info-700 hover:bg-info-50{% endif %}
+          {% elif t == 'success' %}{% if layout == 'grid' %}text-success-800 hover:border-success-200{% else %}text-success-700 hover:bg-success-50{% endif %}
+          {% elif t == 'danger' %}{% if layout == 'grid' %}text-danger-800 hover:border-danger-200{% else %}text-danger-700 hover:bg-danger-50{% endif %}
+          {% else %}{% if layout == 'grid' %}text-primary-800 hover:border-primary-200{% else %}text-primary-700 hover:bg-primary-50{% endif %}{% endif %}"
    title="{{ title }}">
-  <i class="fas {{ icon }}" aria-hidden="true"></i>
-  <span class="sr-only">{{ title }}</span>
+  <i class="fas {{ icon }}{% if layout == 'grid' %} text-[10px] shrink-0 opacity-80 group-hover:opacity-100{% endif %}" aria-hidden="true"></i>
+  {% if layout == 'grid' %}
+    <span class="whitespace-nowrap">{{ display_label }}</span>
+  {% else %}
+    <span class="sr-only">{{ title }}</span>
+  {% endif %}
 </a>
 {% endwith %}

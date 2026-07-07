@@ -1,12 +1,12 @@
 {% comment %}
   Confirm appointment (pending → confirmed) POST form + modal trigger.
   Required: appointment
-  Optional: confirm_variant ('icon' | 'card'), next_url, form_action, use_htmx_list
+  Optional: confirm_variant ('icon' | 'card' | 'grid'), next_url, form_action, use_htmx_list
 {% endcomment %}
 <form method="post"
       id="confirm-appointment-form-{{ appointment.id }}"
       action="{% if form_action %}{{ form_action }}{% else %}{% url 'appointments:appointment_detail' appointment.id %}{% endif %}"
-      class="{% if confirm_variant == 'card' %}w-full{% else %}inline{% endif %}"
+      class="{% if confirm_variant == 'card' %}w-full{% elif confirm_variant == 'grid' %}contents{% else %}inline{% endif %}"
       {% if use_htmx_list %}hx-post="{% url 'appointments:appointment_detail' appointment.id %}" hx-swap="none"{% endif %}>
   {% csrf_token %}
   <input type="hidden" name="status" value="confirmed">
@@ -30,6 +30,17 @@
       <p class="text-sm font-semibold text-gray-900">Confirm Appointment</p>
       <p class="text-xs text-gray-500 mt-0.5">Notify the student this slot is reserved</p>
     </div>
+  </button>
+  {% elif confirm_variant == 'grid' %}
+  <button type="button"
+          class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-success-800 transition-all w-full min-h-[2rem] hover:bg-white hover:border-success-200 hover:shadow-sm"
+          title="Confirm appointment"
+          data-form-id="confirm-appointment-form-{{ appointment.id }}"
+          data-subtitle="{{ appointment.patient.get_full_name }}"
+          data-message="Confirm the appointment on {{ appointment.date|date:'M d, Y' }} at {{ appointment.time|time:'g:i A' }}? The student will be notified this slot is reserved."
+          onclick="__jmcfiConfirmAppointmentModal(this)">
+    <i class="fas fa-check text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
+    <span class="whitespace-nowrap">Confirm</span>
   </button>
   {% else %}
   <button type="button"

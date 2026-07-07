@@ -645,16 +645,9 @@ def medical_record_detail_page(request, record_id):
         resource_label=_medical_record_label(record),
     )
 
-    bc_label = record.patient.get_full_name()
-    bc_label += f' — {record.created_at.strftime("%b %d, %Y")}'
-
     context = {
         'record': record,
         'title': 'Medical Record',
-        'breadcrumbs': [
-            {'label': 'Medical Records', 'url': reverse('medical_records:medical_records')},
-            {'label': bc_label},
-        ],
     }
 
     return render(request, 'medical_records/medical_record_detail.html', context)

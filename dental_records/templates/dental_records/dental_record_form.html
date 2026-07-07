@@ -4,7 +4,7 @@
 {% block title %}{{ title }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6"
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0"
      x-data="dentalRecordForm()"
      x-init="init()">
     {% include 'dental_records/_subnav.html' %}
@@ -133,18 +133,7 @@
                     {% include 'partials/field_errors.html' with errors=form.address.errors %}
                 </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div data-phone-wrapper>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.contact_number.label }}</label>
-              <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
-                <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
-                            {{ form.contact_number }}
-                        </div>
-                        <div class="mt-1 flex items-center justify-between">
-                <p class="text-xs text-gray-400">e.g. 917 123 4567</p>
-                            <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span>
-                        </div>
-                        {% include 'partials/field_errors.html' with errors=form.contact_number.errors %}
-                    </div>
+            {% include "partials/phone_badge_field.html" with field=form.contact_number %}
                     <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.telephone_number.label }}</label>
                         {{ form.telephone_number }}
@@ -179,18 +168,7 @@
                         {{ form.guardian_name }}
                         {% include 'partials/field_errors.html' with errors=form.guardian_name.errors %}
                     </div>
-                    <div data-phone-wrapper>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.guardian_contact.label }}</label>
-              <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
-                <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
-                            {{ form.guardian_contact }}
-                        </div>
-                        <div class="mt-1 flex items-center justify-between">
-                <p class="text-xs text-gray-400">e.g. 917 123 4567</p>
-                            <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span>
-                        </div>
-                        {% include 'partials/field_errors.html' with errors=form.guardian_contact.errors %}
-                    </div>
+            {% include "partials/phone_badge_field.html" with field=form.guardian_contact %}
                 </div>
         </section>
 

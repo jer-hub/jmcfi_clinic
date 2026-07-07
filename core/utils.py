@@ -88,6 +88,23 @@ def clean_philippine_phone(value):
     )
 
 
+def format_ph_mobile_badge_display(value):
+    """Format a stored PH mobile for +63 badge inputs (10-digit core only)."""
+    if not value:
+        return ''
+    try:
+        e164 = clean_philippine_phone(value)
+    except ValidationError:
+        return value
+    mobile = e164[3:]
+    parts = [mobile[:3]]
+    if len(mobile) > 3:
+        parts.append(mobile[3:6])
+    if len(mobile) > 6:
+        parts.append(mobile[6:10])
+    return ' '.join(parts)
+
+
 def get_user_profile(user):
     """Get user profile based on role"""
     from .models import PatientProfile, StaffProfile

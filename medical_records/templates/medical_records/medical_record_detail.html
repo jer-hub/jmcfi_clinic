@@ -3,8 +3,10 @@
 {% block title %}{{ title }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="{ tab: 'patient' }">
-  {% include "components/page_header.html" with title=title subtitle="Medical visit record and clinical summary" icon="fa-file-medical" breadcrumbs=breadcrumbs %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0" x-data="{ tab: 'patient' }">
+  {% include 'medical_records/_subnav.html' %}
+
+  {% include "components/page_header.html" with title=title subtitle="Medical visit record and clinical summary" icon="fa-file-medical" %}
 
   <div id="jmcfi-mr-detail-header" class="flex flex-wrap items-center justify-between gap-3 mb-6">
     {% include "medical_records/_mr_detail_header_inner.html" %}

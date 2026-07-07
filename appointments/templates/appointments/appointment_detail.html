@@ -5,8 +5,10 @@
 {% block title %}Appointment Details - JMCFI Clinic{% endblock title %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-  {% include "components/page_header.html" with title="Appointment Details" subtitle="View and manage appointment information" icon="fa-calendar-check" breadcrumbs=breadcrumbs %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
+  {% include 'appointments/_subnav.html' %}
+
+  {% include "components/page_header.html" with title="Appointment Details" subtitle="View and manage appointment information" icon="fa-calendar-check" %}
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <div class="lg:col-span-2 space-y-6">

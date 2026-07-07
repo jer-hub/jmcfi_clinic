@@ -90,15 +90,19 @@
             {% endif %}
             <span class="text-xs text-gray-400">{{ form_obj.created_at|date:"M d, Y" }}</span>
           </div>
-          <div class="flex items-center gap-1">
+          <div class="grid grid-cols-2 gap-1.5 justify-end w-[12.5rem] ml-auto">
             <a href="{% url detail_url_name form_obj.pk %}"
-               class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors">
-              <i class="fas fa-eye mr-1"></i>View
+               class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-primary-700 transition-all w-full min-h-[2rem] hover:bg-white hover:border-primary-200 hover:shadow-sm"
+               title="View form">
+              <i class="fas fa-eye text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
+              <span class="whitespace-nowrap">View</span>
             </a>
             {% if edit_url_name %}
             <a href="{% url edit_url_name form_obj.pk %}"
-               class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-              <i class="fas fa-pen mr-1"></i>
+               class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-primary-800 transition-all w-full min-h-[2rem] hover:bg-white hover:border-primary-200 hover:shadow-sm"
+               title="Edit form">
+              <i class="fas fa-pen text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
+              <span class="whitespace-nowrap">Edit</span>
             </a>
             {% endif %}
           </div>
@@ -121,7 +125,7 @@
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-              <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th class="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider w-52 min-w-[13rem]">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
@@ -157,18 +161,14 @@
               <td class="px-4 py-3 text-sm text-gray-500 whitespace-nowrap">
                 {{ form_obj.created_at|date:"M d, Y" }}
               </td>
-              <td class="px-4 py-3 text-right whitespace-nowrap">
-                <div class="flex items-center justify-end gap-1">
-                  <a href="{% url detail_url_name form_obj.pk %}"
-                     class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                     title="View">
-                    <i class="fas fa-eye mr-1"></i>View
-                  </a>
-                  <a href="{% url edit_url_name form_obj.pk %}"
-                     class="inline-flex items-center px-2.5 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors"
-                     title="Edit">
-                    <i class="fas fa-pen mr-1"></i>Edit
-                  </a>
+              <td class="px-3 py-3 text-sm align-top w-52 min-w-[13rem]">
+                <div class="grid grid-cols-2 gap-1.5 ml-auto w-[12.5rem]">
+                  {% url detail_url_name form_obj.pk as detail_href %}
+                  {% include "components/table_icon_link.html" with href=detail_href icon="fa-eye" title="View" tone="view" layout="grid" %}
+                  {% if edit_url_name %}
+                    {% url edit_url_name form_obj.pk as edit_href %}
+                    {% include "components/table_icon_link.html" with href=edit_href icon="fa-pen" title="Edit" layout="grid" %}
+                  {% endif %}
                 </div>
               </td>
             </tr>

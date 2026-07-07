@@ -4,7 +4,7 @@
 {% block title %}{{ title }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
   {% include 'dental_records/_subnav.html' %}
 
   {% include "components/page_header.html" with title=title subtitle="Comprehensive dental health record" icon="fa-tooth" actions_include="dental_records/_dental_edit_header_actions.html" %}
@@ -93,15 +93,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div class="md:col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.address.label }}</label>{{ demographics_form.address }}{% include 'partials/field_errors.html' with errors=demographics_form.address.errors %}</div>
               <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.email.label }}</label>{{ demographics_form.email }}{% include 'partials/field_errors.html' with errors=demographics_form.email.errors %}</div>
-              <div data-phone-wrapper>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.contact_number.label }}</label>
-                <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
-                  <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
-                  {{ demographics_form.contact_number }}
-                </div>
-                <div class="mt-1 flex items-center justify-between"><p class="text-xs text-gray-400">e.g. 917 123 4567</p><span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span></div>
-                {% include 'partials/field_errors.html' with errors=demographics_form.contact_number.errors %}
-              </div>
+              {% include "partials/phone_badge_field.html" with field=demographics_form.contact_number %}
               <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.telephone_number.label }}</label>{{ demographics_form.telephone_number }}{% include 'partials/field_errors.html' with errors=demographics_form.telephone_number.errors %}</div>
             </div>
           </section>
@@ -126,15 +118,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.guardian_name.label }}</label>{{ demographics_form.guardian_name }}{% include 'partials/field_errors.html' with errors=demographics_form.guardian_name.errors %}</div>
-              <div data-phone-wrapper>
-                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.guardian_contact.label }}</label>
-                <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
-                  <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0">+63</span>
-                  {{ demographics_form.guardian_contact }}
-                </div>
-                <div class="mt-1 flex items-center justify-between"><p class="text-xs text-gray-400">e.g. 917 123 4567</p><span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span></div>
-                {% include 'partials/field_errors.html' with errors=demographics_form.guardian_contact.errors %}
-              </div>
+              {% include "partials/phone_badge_field.html" with field=demographics_form.guardian_contact %}
             </div>
           </section>
 

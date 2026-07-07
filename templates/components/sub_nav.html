@@ -14,7 +14,7 @@
 
 {% if show_breadcrumbs %}
 <nav class="{{ nav_mb|default:'mb-4' }} w-fit max-w-full overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm"
-     aria-label="{{ nav_aria_label|default:'Section navigation' }}">
+     aria-label="Breadcrumb">
   <div class="px-3 py-2.5 min-w-max">
     {% include "components/breadcrumbs.html" with crumbs=bc_crumbs embedded=True %}
   </div>

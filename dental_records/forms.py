@@ -6,7 +6,7 @@ Forms for collecting comprehensive dental patient information
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from core.utils import clean_philippine_phone
+from core.utils import clean_philippine_phone, format_ph_mobile_badge_display
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
     DentalHealthQuestionnaire, DentalSystemsReview,
@@ -15,6 +15,31 @@ from .models import (
 )
 
 User = get_user_model()
+
+_PHONE_BADGE_INPUT_ATTRS = {
+    'class': 'flex-1 min-w-0 px-3 pr-8 py-2.5 border-0 focus:outline-none focus:ring-0 bg-transparent',
+    'placeholder': '917 123 4567',
+    'data-phone-input': 'true',
+    'data-phone-badge': 'true',
+    'inputmode': 'tel',
+    'autocomplete': 'tel',
+    'maxlength': '16',
+}
+
+
+def _apply_badge_phone_initials(form):
+    """Show 10-digit local core in +63 badge inputs when editing existing records."""
+    if form.data:
+        return
+    instance = form.instance
+    if not getattr(instance, 'pk', None):
+        return
+    for field_name in ('contact_number', 'guardian_contact'):
+        if field_name not in form.fields:
+            continue
+        raw = getattr(instance, field_name, '') or ''
+        if raw:
+            form.initial[field_name] = format_ph_mobile_badge_display(raw)
 
 
 class DentalRecordForm(forms.ModelForm):
@@ -55,6 +80,7 @@ class DentalRecordForm(forms.ModelForm):
             self.fields['informed_consent_signed'].required = True
             self.fields['consent_signed'].widget.attrs['required'] = 'required'
             self.fields['informed_consent_signed'].widget.attrs['required'] = 'required'
+        _apply_badge_phone_initials(self)
 
     def clean(self):
         cleaned_data = super().clean()
@@ -130,15 +156,7 @@ class DentalRecordForm(forms.ModelForm):
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'email@example.com'
             }),
-            'contact_number': forms.TextInput(attrs={
-                'class': 'flex-1 min-w-0 px-3 pr-8 py-2.5 border-0 focus:outline-none focus:ring-0 bg-transparent',
-                'placeholder': '917 123 4567',
-                'data-phone-input': 'true',
-                'data-phone-badge': 'true',
-                'inputmode': 'tel',
-                'autocomplete': 'tel',
-                'maxlength': '16',
-            }),
+            'contact_number': forms.TextInput(attrs=_PHONE_BADGE_INPUT_ATTRS),
             'telephone_number': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Landline (optional)'
@@ -154,15 +172,7 @@ class DentalRecordForm(forms.ModelForm):
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Emergency Contact Name'
             }),
-            'guardian_contact': forms.TextInput(attrs={
-                'class': 'flex-1 min-w-0 px-3 pr-8 py-2.5 border-0 focus:outline-none focus:ring-0 bg-transparent',
-                'placeholder': '917 123 4567',
-                'data-phone-input': 'true',
-                'data-phone-badge': 'true',
-                'inputmode': 'tel',
-                'autocomplete': 'tel',
-                'maxlength': '16',
-            }),
+            'guardian_contact': forms.TextInput(attrs=_PHONE_BADGE_INPUT_ATTRS),
             'date_of_examination': forms.DateInput(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'type': 'date'
@@ -231,6 +241,7 @@ class StudentDentalIntakeForm(forms.ModelForm):
         self.fields['informed_consent_date'].initial = today
         self.fields['consent_signed'].required = True
         self.fields['informed_consent_signed'].required = True
+        _apply_badge_phone_initials(self)
 
     def clean(self):
         cleaned_data = super().clean()
@@ -292,12 +303,7 @@ class StudentDentalIntakeForm(forms.ModelForm):
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'email@example.com',
             }),
-            'contact_number': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'placeholder': '09XX XXX XXXX',
-                'inputmode': 'tel',
-                'maxlength': '16',
-            }),
+            'contact_number': forms.TextInput(attrs=_PHONE_BADGE_INPUT_ATTRS),
             'telephone_number': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Landline (optional)',
@@ -313,12 +319,7 @@ class StudentDentalIntakeForm(forms.ModelForm):
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Emergency Contact Name',
             }),
-            'guardian_contact': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'placeholder': '09XX XXX XXXX',
-                'inputmode': 'tel',
-                'maxlength': '16',
-            }),
+            'guardian_contact': forms.TextInput(attrs=_PHONE_BADGE_INPUT_ATTRS),
             'consent_signed': forms.CheckboxInput(attrs={
                 'class': 'w-4 h-4 text-primary-600 border-primary-300 rounded accent-primary-600',
             }),

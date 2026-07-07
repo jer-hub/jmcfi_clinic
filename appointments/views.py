@@ -688,15 +688,8 @@ def appointment_detail(request, appointment_id):
 
         return redirect('appointments:appointment_detail', appointment_id=appointment.id)
     
-    from django.urls import reverse
-
-    breadcrumbs = [
-        {'label': 'Appointments', 'url': reverse('appointments:appointment_list')},
-        {'label': f'{appointment.patient.get_full_name()} — {appointment.date.strftime("%b %d, %Y")}'},
-    ]
     return render(request, 'appointments/appointment_detail.html', {
         'appointment': appointment,
-        'breadcrumbs': breadcrumbs,
     })
 
 

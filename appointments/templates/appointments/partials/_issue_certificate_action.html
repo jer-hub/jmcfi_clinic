@@ -2,7 +2,7 @@
   Issue certificate action for completed consultation/dental appointments.
   Required: appointment
   Optional:
-    cert_variant - "icon" (default) or "card"
+    cert_variant - "icon" (default), "card", or "grid"
 {% endcomment %}
 {% with variant=cert_variant|default:'icon' %}
   {% url 'document_request:issue_certificate_from_appointment' appointment.id as cert_request_url %}
@@ -17,6 +17,13 @@
         <p class="text-xs text-gray-500 mt-0.5">Create a certificate for this completed visit</p>
       </div>
       <i class="fas fa-arrow-right text-xs text-gray-300 ml-auto flex-shrink-0"></i>
+    </a>
+  {% elif variant == 'grid' %}
+    <a href="{{ cert_request_url }}"
+       class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-info-800 transition-all w-full min-h-[2rem] hover:bg-white hover:border-info-200 hover:shadow-sm"
+       title="Issue certificate">
+      <i class="fas fa-file-signature text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
+      <span class="whitespace-nowrap">Cert</span>
     </a>
   {% else %}
     <a href="{{ cert_request_url }}"

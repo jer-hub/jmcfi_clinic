@@ -44,6 +44,26 @@ def appointments_subnav(context):
     request = context['request']
     vn = view_name(request)
     role = request.user.role
+
+    appointment = context.get('appointment')
+    if appointment and vn == 'appointments:appointment_detail':
+        return breadcrumb_subnav(
+            [
+                {
+                    'label': 'Appointments',
+                    'url': reverse('appointments:appointment_list'),
+                    'icon': 'fa-calendar-days',
+                },
+                {
+                    'label': (
+                        f'{appointment.patient.get_full_name()}'
+                        f' — {appointment.date.strftime("%b %d, %Y")}'
+                    ),
+                    'icon': 'fa-file-lines',
+                },
+            ],
+        )
+
     items = [
         nav_item(
             'Appointments',
@@ -73,8 +93,26 @@ def appointments_subnav(context):
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
 def medical_records_subnav(context):
-    vn = view_name(context['request'])
-    role = context['request'].user.role
+    request = context['request']
+    vn = view_name(request)
+    role = request.user.role
+
+    record = context.get('record')
+    if record and vn == 'medical_records:medical_record_detail_page':
+        return breadcrumb_subnav(
+            [
+                {
+                    'label': 'Medical Records',
+                    'url': reverse('medical_records:medical_records'),
+                    'icon': 'fa-file-medical',
+                },
+                {
+                    'label': _medical_record_breadcrumb_label(record),
+                    'icon': 'fa-file-lines',
+                },
+            ],
+        )
+
     items = [
         nav_item(
             'Medical Records',
@@ -98,6 +136,12 @@ def medical_records_subnav(context):
         )
     _append_patient_new_appointment(items, context['request'])
     return enrich_subnav(items, always_show_nav=True)
+
+
+def _medical_record_breadcrumb_label(record):
+    label = record.patient.get_full_name()
+    label += f' — {record.created_at.strftime("%b %d, %Y")}'
+    return label
 
 
 def _dental_record_breadcrumb_label(dental_record):

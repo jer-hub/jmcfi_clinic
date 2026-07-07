@@ -2,30 +2,36 @@
   Breadcrumbs.
 
   Context:
-    crumbs – list of {label, url, icon}. The last crumb is rendered as the
-             current page (no link, bolder). First crumb gets a home icon
-             automatically if no icon is specified.
+    crumbs    – list of {label, url, icon}. The last crumb is the current page.
+    embedded  – when True (inside sub_nav), omit outer <nav> to avoid nested landmarks.
 {% endcomment %}
 {% if crumbs %}
-<nav aria-label="Breadcrumb" class="{% if embedded %}{% else %}mb-4{% endif %}">
+{% if embedded %}
+<ol class="flex items-center flex-wrap gap-1.5 text-[13px] min-w-max" role="list">
+{% else %}
+<nav aria-label="Breadcrumb" class="mb-4">
   <ol class="flex items-center flex-wrap gap-1.5 text-[13px]">
+{% endif %}
     {% for crumb in crumbs %}
-      <li class="flex items-center gap-1.5">
+      <li class="flex items-center gap-1.5 min-w-0">
         {% if not forloop.first %}
-          <i class="fas fa-chevron-right text-[0.5rem] text-gray-300"></i>
+          <i class="fas fa-chevron-right text-[0.5rem] text-gray-300 shrink-0" aria-hidden="true"></i>
         {% endif %}
         {% if forloop.last or not crumb.url %}
-          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 font-medium truncate max-w-[14rem]">
-            {% if crumb.icon %}<i class="fas {{ crumb.icon }} text-[10px] opacity-70"></i>{% endif %}
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 font-medium truncate max-w-[14rem]"
+                aria-current="page"
+                title="{{ crumb.label }}">
+            {% if crumb.icon %}<i class="fas {{ crumb.icon }} text-[10px] text-primary-500" aria-hidden="true"></i>{% endif %}
             {{ crumb.label }}
           </span>
         {% else %}
           <a href="{{ crumb.url }}"
-             class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-gray-500 hover:text-primary-600 hover:bg-gray-100 transition-colors truncate max-w-[14rem]">
+             class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-gray-600 hover:text-primary-600 hover:bg-gray-100 transition-colors truncate max-w-[14rem]"
+             title="{{ crumb.label }}">
             {% if forloop.first and not crumb.icon %}
-              <i class="fas fa-home text-[10px] opacity-60"></i>
+              <i class="fas fa-home text-[10px] text-gray-400" aria-hidden="true"></i>
             {% elif crumb.icon %}
-              <i class="fas {{ crumb.icon }} text-[10px] opacity-60"></i>
+              <i class="fas {{ crumb.icon }} text-[10px] text-gray-400" aria-hidden="true"></i>
             {% endif %}
             {{ crumb.label }}
           </a>
@@ -33,5 +39,7 @@
       </li>
     {% endfor %}
   </ol>
+{% if not embedded %}
 </nav>
+{% endif %}
 {% endif %}

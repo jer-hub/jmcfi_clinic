@@ -1,0 +1,19 @@
+{% comment %}
+Philippine mobile field with +63 prefix badge.
+Usage: {% include "partials/phone_badge_field.html" with field=form.contact_number %}
+Optional: label, required, badge_bg (Tailwind bg class suffix, default gray-50)
+{% endcomment %}
+<div data-phone-wrapper>
+  <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">
+    {{ label|default:field.label }}{% if required %}<span class="text-red-500 ml-1">*</span>{% endif %}
+  </label>
+  <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
+    <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-sm font-semibold text-gray-500 select-none whitespace-nowrap flex-shrink-0" aria-hidden="true">+63</span>
+    {{ field }}
+  </div>
+  <div class="mt-1 flex items-center justify-between">
+    <p class="text-xs text-gray-400">e.g. 917 123 4567</p>
+    <span data-phone-counter class="text-xs font-mono bg-gray-50 px-2 py-0.5 rounded text-gray-400">10 digits needed</span>
+  </div>
+  {% include 'partials/field_errors.html' with errors=field.errors %}
+</div>

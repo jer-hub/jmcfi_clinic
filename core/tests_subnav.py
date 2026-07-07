@@ -5,7 +5,7 @@ from django.template.loader import render_to_string
 from django.test import RequestFactory, SimpleTestCase
 
 from core.subnav_helpers import enrich_subnav, nav_dropdown, nav_group, nav_item
-from core.templatetags.app_subnav import feedback_subnav, pharmacy_subnav
+from core.templatetags.app_subnav import feedback_subnav, medical_records_subnav, pharmacy_subnav
 
 
 class EnrichSubnavTests(SimpleTestCase):
@@ -180,3 +180,43 @@ class FeedbackSubnavTemplateTests(SimpleTestCase):
         self.assertIn('aria-label="Feedback sections"', html)
         self.assertIn('role="tablist"', html)
         self.assertIn('class="nav-link whitespace-nowrap shrink-0 active"', html)
+
+
+class MedicalRecordsSubnavTemplateTests(SimpleTestCase):
+    def _medical_context(self, view_name='medical_records:medical_records', *, record=None):
+        request = RequestFactory().get('/medical-records/')
+        request.resolver_match = type(
+            'M',
+            (),
+            {'view_name': view_name, 'kwargs': {}},
+        )()
+        request.user = type('U', (), {'role': 'doctor'})()
+        ctx = {'request': request}
+        if record is not None:
+            ctx['record'] = record
+        return medical_records_subnav(Context(ctx))
+
+    def test_list_page_keeps_tab_strip(self):
+        ctx = self._medical_context()
+        self.assertFalse(ctx['show_breadcrumbs'])
+        self.assertEqual(len(ctx['items']), 2)
+
+    def test_detail_page_uses_breadcrumb_subnav(self):
+        patient = type('P', (), {'get_full_name': lambda self: 'Jerwin Carreon'})()
+        record = type(
+            'R',
+            (),
+            {
+                'patient': patient,
+                'created_at': type('D', (), {'strftime': lambda self, fmt: 'Jul 07, 2026'})(),
+            },
+        )()
+        ctx = self._medical_context('medical_records:medical_record_detail_page', record=record)
+        self.assertTrue(ctx['show_breadcrumbs'])
+        self.assertEqual(ctx['bc_crumbs'][0]['label'], 'Medical Records')
+        self.assertEqual(ctx['bc_crumbs'][1]['label'], 'Jerwin Carreon — Jul 07, 2026')
+
+        html = render_to_string('components/sub_nav.html', ctx)
+        self.assertIn('aria-label="Breadcrumb"', html)
+        self.assertIn('Jerwin Carreon — Jul 07, 2026', html)
+        self.assertIn('text-[13px]', html)

@@ -74,7 +74,19 @@
 
     /** True when the input lives inside a +63 badge container. */
     function hasBadge(input) {
-        return input.dataset.phoneBadge === 'true';
+        if (input.dataset.phoneBadge === 'true') return true;
+        return Boolean(input.closest('[data-phone-wrapper]'));
+    }
+
+    /** Normalize badge input value to E.164 for server submission. */
+    function toBadgeSubmitValue(clean) {
+        if (!clean || clean === '+') return '';
+        const digits = clean.replace(/\+/g, '');
+        let mobile = null;
+        if (digits.startsWith('63') && digits.length >= 12) mobile = digits.slice(2, 12);
+        else if (digits.startsWith('0') && digits.length >= 11) mobile = digits.slice(1, 11);
+        else if (digits.startsWith('9')) mobile = digits.slice(0, 10);
+        return mobile && mobile.length === 10 ? `+63${mobile}` : clean;
     }
 
     /**
@@ -351,7 +363,7 @@
         phoneInputs.forEach(input => {
             const clean = stripToDigits(input.value);
             if (clean) {
-                input.value = clean;
+                input.value = hasBadge(input) ? toBadgeSubmitValue(clean) : clean;
             }
         });
     }

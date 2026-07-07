@@ -268,7 +268,9 @@ class DocumentRequestFlowTests(TestCase):
     def test_student_cannot_access_clinician_signature_page(self):
         self.client.force_login(self.student)
         response = self.client.get(reverse('document_request:clinician_signature'))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/access/restricted/', response['Location'])
+        self.assertIn('reason=forbidden', response['Location'])
 
     def test_complete_requires_signature_for_doctor(self):
         doc_request = self._create_pending_request()

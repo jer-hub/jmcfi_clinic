@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from appointments.models import Appointment
 from dental_records.models import DentalRecord
+from core.tests import _complete_staff_like_profile, _complete_student_profile
 
 
 User = get_user_model()
@@ -28,9 +29,8 @@ class DentalRecordsListTotalsTests(TestCase):
             first_name='Student',
             last_name='One',
         )
-        self.staff.staff_profile.department = 'Clinic'
-        self.staff.staff_profile.phone = '09123456789'
-        self.staff.staff_profile.save(update_fields=['department', 'phone'])
+        _complete_staff_like_profile(self.staff, 'ST-2000')
+        _complete_student_profile(self.student, 'S-2000')
 
     def _create_dental_appointment(self, status, appt_date, hour, appointment_type='dental'):
         return Appointment.objects.create(
@@ -255,7 +255,7 @@ class DentalRecordEditSaveTests(TestCase):
         self.assertContains(response, 'data-section="demographics"')
         self.assertContains(response, 'Back to Details')
         self.assertContains(response, 'rounded-card')
-        self.assertContains(response, 'Section navigation')
+        self.assertContains(response, 'aria-label="Dental record sections"')
         self.assertContains(response, 'Edit')
         self.assertContains(response, 'unsaved-changes-modal')
 

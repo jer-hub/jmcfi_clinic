@@ -13,7 +13,7 @@
           {% endif %}
           <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Consent</th>
           <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
-          <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+          <th class="px-3 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider w-52 min-w-[13rem]">Actions</th>
         </tr>
       </thead>
       <tbody class="bg-white divide-y divide-gray-100">
@@ -59,30 +59,41 @@
                     {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" size="sm" %}
                   {% endif %}
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
-                  <div class="inline-flex items-center gap-1">
+                <td class="px-3 py-3 text-sm align-top w-52 min-w-[13rem]">
+                  <div class="grid grid-cols-2 gap-1.5 ml-auto w-[12.5rem]">
                     {% if user|is_patient_role and record.status != 'completed' %}
-                      <span class="p-1.5 rounded text-gray-400 cursor-not-allowed" title="Still being processed"><i class="fas fa-lock"></i></span>
+                      <span class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-gray-400 w-full min-h-[2rem] cursor-not-allowed col-span-2"
+                            title="Still being processed">
+                        <i class="fas fa-lock text-[10px] shrink-0" aria-hidden="true"></i>
+                        <span class="whitespace-nowrap">Locked</span>
+                      </span>
                     {% else %}
-                      <a href="{% url 'dental_records:dental_record_detail' record.id %}" class="p-1.5 rounded text-primary-600 hover:bg-primary-50 transition-colors" title="View"><i class="fas fa-eye"></i></a>
-                    {% endif %}
-                    {% if user|can_write_dental_records %}
-                      <a href="{% url 'dental_records:dental_record_edit' record.id %}" class="p-1.5 rounded text-info-700 hover:bg-info-50 transition-colors" title="Edit"><i class="fas fa-pen-to-square"></i></a>
-                    {% endif %}
-                    {% if user|can_write_dental_records %}
-                      {% if record.status == 'pending' %}
+                      {% url 'dental_records:dental_record_detail' record.id as detail_url %}
+                      {% include "components/table_icon_link.html" with href=detail_url icon="fa-eye" title="View record" label="View" tone="view" layout="grid" %}
+                      {% if user|can_write_dental_records %}
+                        {% url 'dental_records:dental_record_edit' record.id as edit_url %}
+                        {% include "components/table_icon_link.html" with href=edit_url icon="fa-pen-to-square" title="Edit record" label="Edit" tone="info" layout="grid" %}
+                      {% endif %}
+                      {% if user|can_write_dental_records and record.status == 'pending' %}
                         <button type="button"
                                 data-record-id="{{ record.id }}"
                                 data-subtitle="{{ record.patient.get_full_name|escape }}"
                                 onclick="window.__jmcfiDentalStatusModal(this); return false;"
-                                class="p-1.5 rounded text-success-700 hover:bg-success-50 transition-colors"
-                                title="Mark record completed"><i class="fas fa-circle-check"></i></button>
+                                class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-success-800 transition-all w-full min-h-[2rem] hover:bg-white hover:border-success-200 hover:shadow-sm"
+                                title="Mark record completed">
+                          <i class="fas fa-circle-check text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
+                          <span class="whitespace-nowrap">Done</span>
+                        </button>
                       {% endif %}
-                    {% endif %}
-                    {% if user|has_role:"admin" %}
-                      <button type="button"
-                              @click="$dispatch('open-modal', {type:'danger', title:'Delete Dental Record', subtitle:'{{ record.patient.get_full_name|escapejs }}', actionLabel:'Delete Permanently', size:'sm', formAction:'/dental-records/{{ record.id }}/delete/', hasForm:true})"
-                              class="p-1.5 rounded text-danger-700 hover:bg-danger-50 transition-colors" title="Delete"><i class="fas fa-trash-can"></i></button>
+                      {% if user|has_role:"admin" %}
+                        <button type="button"
+                                @click="$dispatch('open-modal', {type:'danger', title:'Delete Dental Record', subtitle:'{{ record.patient.get_full_name|escapejs }}', actionLabel:'Delete Permanently', size:'sm', formAction:'/dental-records/{{ record.id }}/delete/', hasForm:true})"
+                                class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-danger-800 transition-all w-full min-h-[2rem] hover:bg-white hover:border-danger-200 hover:shadow-sm"
+                                title="Delete record">
+                          <i class="fas fa-trash-can text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
+                          <span class="whitespace-nowrap">Delete</span>
+                        </button>
+                      {% endif %}
                     {% endif %}
                   </div>
                 </td>
@@ -122,8 +133,11 @@
                     {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" size="sm" %}
                   {% endif %}
                 </td>
-                <td class="px-4 py-3 whitespace-nowrap text-right text-sm">
-                  <a href="{% url 'appointments:appointment_detail' appointment.id %}" class="p-1.5 rounded text-warning-700 hover:bg-warning-50 transition-colors" title="View Appointment"><i class="fas fa-calendar"></i></a>
+                <td class="px-3 py-3 text-sm align-top w-52 min-w-[13rem]">
+                  <div class="grid grid-cols-2 gap-1.5 ml-auto w-[12.5rem]">
+                    {% url 'appointments:appointment_detail' appointment.id as appt_url %}
+                    {% include "components/table_icon_link.html" with href=appt_url icon="fa-calendar" title="View appointment" label="Appt" layout="grid" %}
+                  </div>
                 </td>
               </tr>
             {% endwith %}

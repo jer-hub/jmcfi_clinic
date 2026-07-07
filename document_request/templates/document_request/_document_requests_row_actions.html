@@ -3,16 +3,11 @@
   Row actions for document request list (desktop + mobile).
   Expects: cert_request, user
 {% endcomment %}
-{% if user|is_patient_role %}
-  <a href="{% url 'document_request:document_request_detail' cert_request.id %}"
-     class="inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-primary-200 rounded-lg text-primary-700 bg-primary-50 hover:bg-primary-100 text-sm font-medium transition-colors">
-    <i class="fas fa-eye text-sm" aria-hidden="true"></i>
-    <span>View</span>
-  </a>
-{% else %}
-  <a href="{% url 'document_request:document_request_detail' cert_request.id %}"
-     class="inline-flex items-center justify-center gap-1.5 px-3 py-2 border border-primary-200 rounded-lg text-primary-700 bg-primary-50 hover:bg-primary-100 text-sm font-medium transition-colors">
-    <i class="fas fa-pen-to-square text-sm" aria-hidden="true"></i>
-    <span class="hidden sm:inline">Process</span>
-  </a>
-{% endif %}
+<div class="grid grid-cols-1 {% if full_width %}w-full{% else %}ml-auto w-[7rem]{% endif %} gap-1.5">
+  {% url 'document_request:document_request_detail' cert_request.id as detail_url %}
+  {% if user|is_patient_role %}
+    {% include "components/table_icon_link.html" with href=detail_url icon="fa-eye" title="View request" label="View" tone="view" layout="grid" %}
+  {% else %}
+    {% include "components/table_icon_link.html" with href=detail_url icon="fa-pen-to-square" title="Process request" label="Process" layout="grid" %}
+  {% endif %}
+</div>

@@ -7,6 +7,7 @@ from django.urls import reverse
 
 from appointments.models import Appointment
 from medical_records.models import MedicalRecord
+from core.tests import _complete_staff_like_profile, _complete_student_profile
 
 
 User = get_user_model()
@@ -29,10 +30,8 @@ class MedicalRecordsBadgeCountTests(TestCase):
 			last_name='One',
 		)
 
-		# Satisfy ProfileCompleteMiddleware requirements for staff access.
-		self.staff.staff_profile.department = 'Clinic'
-		self.staff.staff_profile.phone = '09123456789'
-		self.staff.staff_profile.save(update_fields=['department', 'phone'])
+		_complete_staff_like_profile(self.staff, 'ST-1000')
+		_complete_student_profile(self.student, 'S-1000')
 
 	def _create_appointment(self, status, hour, appointment_type='checkup', *, appt_date=None):
 		return Appointment.objects.create(

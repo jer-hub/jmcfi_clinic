@@ -142,6 +142,16 @@ Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
 For WebSocket features (messaging), use an ASGI server compatible with Channels if required in your environment.
 
+### Production (Railway)
+
+See [`docs/RAILWAY.md`](docs/RAILWAY.md) for the full runbook. Summary:
+
+1. Connect the GitHub repo to Railway (uses root `Dockerfile` + `railway.json`)
+2. Add a **Redis** service and set `REDIS_URL` on the web service
+3. Point `DATABASE_URL` and Supabase Storage vars at hosted Supabase
+4. Set `DEBUG=False`, generate a Railway domain, and configure Google OAuth redirect URI
+5. Verify `GET /health/` and `GET /health/ready/` after deploy
+
 ---
 
 ## User Roles
@@ -206,6 +216,7 @@ jmcfi_clinic/
 |------|----------|
 | Django settings | `backend/settings.py` |
 | Supabase (Postgres + Storage) | [`docs/SUPABASE.md`](docs/SUPABASE.md) — copy [`.env.example`](.env.example) to `.env` |
+| Railway production deploy | [`docs/RAILWAY.md`](docs/RAILWAY.md) — Dockerfile, Daphne, Redis, env vars |
 | Clinic & role settings | Admin UI → Settings, or `ClinicSettings` / `RoleSettings` models |
 | Profile required fields | `core/profile_policy.py` |
 | Google OAuth | `.env` + `core/adapters.py` |
@@ -245,6 +256,7 @@ python manage.py migrate
 | Document | Description |
 |----------|-------------|
 | `docs/SUPABASE.md` | Local Supabase CLI, Postgres, and Storage setup |
+| `docs/RAILWAY.md` | Railway production deployment runbook |
 | `core/GOOGLE_STUDENT_PROFILE_POLICY.md` | Patient profile completion on Google signup |
 | `appointments/APPOINTMENT_SCHEDULING_POLICY.md` | Scheduling rules |
 | `document_request/DOCUMENT_REQUEST_POLICY.md` | Document request workflow |

@@ -65,7 +65,6 @@ class MaintenanceModeMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         self.exempt_prefixes = (
-            '/health/',
             '/static/',
             '/media/',
             '/accounts/',
@@ -106,7 +105,6 @@ class RoleFeatureAccessMiddleware:
     """Block URLs when the user's role has the feature disabled in RoleSettings."""
 
     EXEMPT_PREFIXES = (
-        '/health/',
         '/static/',
         '/media/',
         '/accounts/',
@@ -178,7 +176,6 @@ class ProfileCompleteMiddleware:
         ]
 
         self.exempt_patterns = [
-            '/health/',
             '/media/',
             '/static/',
             '/accounts/',

@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 
@@ -17,25 +16,7 @@ SECRET_KEY = config(
 DEBUG = config("DEBUG", default=True, cast=bool)
 
 # Ensure ALLOWED_HOSTS is a list. Support comma-separated env via decouple's Csv cast.
-ALLOWED_HOSTS = list(config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv()))
-
-_railway_public_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
-_custom_domain = config("CUSTOM_DOMAIN", default="").strip()
-for _host in (_railway_public_domain, _custom_domain):
-    if _host and _host not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(_host)
-
-CSRF_TRUSTED_ORIGINS = list(
-    config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
-)
-for _origin_host in (_railway_public_domain, _custom_domain):
-    if _origin_host:
-        _origin = f"https://{_origin_host}"
-        if _origin not in CSRF_TRUSTED_ORIGINS:
-            CSRF_TRUSTED_ORIGINS.append(_origin)
-
-if not DEBUG:
-    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
@@ -83,7 +64,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -345,10 +325,6 @@ if USE_SUPABASE_STORAGE and SUPABASE_S3_ENDPOINT_URL and SUPABASE_S3_ACCESS_KEY_
 else:
     STORAGES = _FILESYSTEM_STORAGES
     USE_SUPABASE_STORAGE = False
-
-STORAGES["staticfiles"]["BACKEND"] = (
-    "whitenoise.storage.CompressedManifestStaticFilesStorage"
-)
 
 # PDF generation engine path (wkhtmltopdf)
 WKHTMLTOPDF_CMD = config("WKHTMLTOPDF_CMD", default="")

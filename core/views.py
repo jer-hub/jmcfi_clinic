@@ -157,6 +157,25 @@ def _log_provisioning_action(request, actor, target_user, action, metadata=None)
 # =====================
 
 
+def health_check(request):
+    """Lightweight liveness probe for managed platforms."""
+    return JsonResponse({"status": "ok"})
+
+
+def health_ready(request):
+    """Readiness probe that verifies database connectivity."""
+    from django.db import connection
+
+    try:
+        connection.ensure_connection()
+    except Exception:
+        return JsonResponse(
+            {"status": "error", "database": "unavailable"},
+            status=503,
+        )
+    return JsonResponse({"status": "ok", "database": "connected"})
+
+
 @require_http_methods(["GET", "POST"])
 def admin_login(request):
     """Dedicated password login endpoint for admin-role accounts."""

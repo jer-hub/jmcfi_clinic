@@ -142,6 +142,8 @@ Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
 For WebSocket features (messaging), use an ASGI server compatible with Channels if required in your environment.
 
+Production deploy guidance for DigitalOcean App Platform is available in [`docs/DIGITALOCEAN.md`](docs/DIGITALOCEAN.md).
+
 ---
 
 ## User Roles
@@ -206,6 +208,7 @@ jmcfi_clinic/
 |------|----------|
 | Django settings | `backend/settings.py` |
 | Supabase (Postgres + Storage) | [`docs/SUPABASE.md`](docs/SUPABASE.md) — copy [`.env.example`](.env.example) to `.env` |
+| DigitalOcean deploy runbook | [`docs/DIGITALOCEAN.md`](docs/DIGITALOCEAN.md) |
 | Clinic & role settings | Admin UI → Settings, or `ClinicSettings` / `RoleSettings` models |
 | Profile required fields | `core/profile_policy.py` |
 | Google OAuth | `.env` + `core/adapters.py` |
@@ -245,6 +248,7 @@ python manage.py migrate
 | Document | Description |
 |----------|-------------|
 | `docs/SUPABASE.md` | Local Supabase CLI, Postgres, and Storage setup |
+| `docs/DIGITALOCEAN.md` | Production deployment runbook for DigitalOcean App Platform |
 | `core/GOOGLE_STUDENT_PROFILE_POLICY.md` | Patient profile completion on Google signup |
 | `appointments/APPOINTMENT_SCHEDULING_POLICY.md` | Scheduling rules |
 | `document_request/DOCUMENT_REQUEST_POLICY.md` | Document request workflow |

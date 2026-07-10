@@ -17,12 +17,17 @@ RUN pip install --no-cache-dir uv && uv sync --frozen --no-dev
 
 COPY . .
 
+ENV DJANGO_SETTINGS_MODULE=backend.settings \
+    SECRET_KEY=build-time-only-not-for-production
+
 RUN python manage.py collectstatic --noinput
 
-RUN adduser --disabled-password --gecos "" app && chown -R app:app /app
+RUN chmod +x scripts/start.sh \
+    && adduser --disabled-password --gecos "" app \
+    && chown -R app:app /app
 USER app
 
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8080", "backend.asgi:application"]
+CMD ["bash", "scripts/start.sh"]

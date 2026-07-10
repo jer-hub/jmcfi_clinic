@@ -11,16 +11,23 @@ This runbook deploys JMCFI Clinic to DigitalOcean App Platform while keeping Sup
 ## 2) Create App Platform resources
 
 1. Create a new App in DigitalOcean App Platform from this repository.
-2. Choose **Dockerfile** as the build strategy.
-3. Add one **Web Service** component.
-4. Add one **Managed Redis** component and copy its connection string.
+2. Choose **Dockerfile** as the build strategy (not Python buildpack auto-detect).
+3. Set **Dockerfile path** to `Dockerfile`.
+4. Add one **Web Service** component.
+5. Add one **Managed Redis** component and copy its connection string.
+
+If App Platform still detects a Python buildpack, upload [`.do/app.yaml`](../.do/app.yaml) in **Settings → App Spec** so `dockerfile_path` and `run_command` are explicit.
 
 ## 3) Web service configuration
 
 - **HTTP Port**: `8080`
 - **Health Check Path**: `/health/`
-- **Build Command**: (leave empty, handled by `Dockerfile`)
-- **Run Command**: (leave empty, handled by `Dockerfile`)
+- **Health Check Initial Delay**: `30` seconds (recommended on first deploy)
+- **Build Command**: leave empty (handled by `Dockerfile`)
+- **Run Command**: `bash scripts/start.sh`
+  - If you use Dockerfile correctly, this can also be left empty because `Dockerfile` sets `CMD`.
+  - Do **not** leave a blank Run Command override in the UI; an empty override can replace the Dockerfile `CMD` and cause:
+    `failed to launch: determine start command: when there is no default process a command is required`
 - **Instance count**: start with 1, scale as needed
 
 ## 4) Environment variables
@@ -77,3 +84,33 @@ python manage.py collectstatic --noinput
 
 - Use App Platform deploy history to rollback to the previous successful revision.
 - If schema migration caused issues, restore from Supabase backup and redeploy previous app revision.
+
+## 9) Troubleshooting deploy errors
+
+### `when there is no default process a command is required`
+
+Cause: App Platform is using a Python buildpack without a start command (no `Procfile`/run command), instead of the Docker image.
+
+Fix:
+
+1. Open the app → **Settings** → select the **web** component.
+2. Confirm **Source** uses **Dockerfile** (`Dockerfile`), not buildpack auto-detect.
+3. Set **Run Command** to:
+   ```bash
+   bash scripts/start.sh
+   ```
+4. Clear any blank/whitespace run command override if present.
+5. Redeploy.
+
+### `Readiness probe failed ... connection refused on :8080`
+
+Cause: the web process never started (usually the error above), or the HTTP port mismatch.
+
+Fix:
+
+1. Apply the run-command/Dockerfile fixes above.
+2. Set **HTTP Port** to `8080`.
+3. Set health check path to `/health/`.
+4. Increase health check initial delay to `30` seconds.
+5. Verify required runtime env vars are set (`SECRET_KEY`, `DATABASE_URL`, etc.).
+6. Check **Runtime Logs** for Django/Daphne startup exceptions after redeploy.

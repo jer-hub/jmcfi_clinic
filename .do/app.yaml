@@ -1,0 +1,21 @@
+# DigitalOcean App Platform reference spec.
+# Upload via Apps -> your app -> Settings -> App Spec, or use during app creation.
+#
+# Replace github.repo / branch with your repository details if different.
+
+name: jmcfi-clinic
+region: sgp
+
+services:
+  - name: web
+    dockerfile_path: Dockerfile
+    source_dir: /
+    http_port: 8080
+    instance_count: 1
+    run_command: bash scripts/start.sh
+    health_check:
+      http_path: /health/
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      failure_threshold: 5

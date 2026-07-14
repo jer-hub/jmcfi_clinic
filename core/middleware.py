@@ -21,11 +21,48 @@ _HOST_WITH_PORT_RE = re.compile(r"^(.+?)(?::\d+)?$")
 # CGNAT / carrier-grade NAT + DO App Platform service mesh (not always
 # classified as is_private by every Python version).
 _SHARED_IPV4 = ipaddress.ip_network("100.64.0.0/10")
+_CONCRETE_HOST_RE = re.compile(
+    r"^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)"
+    r"(?:\.(?!-)[a-z0-9-]{1,63}(?<!-))*$"
+)
 
 
 def _host_without_port(host_header: str) -> str:
     match = _HOST_WITH_PORT_RE.match((host_header or "").strip())
     return (match.group(1) if match else host_header or "").strip("[]")
+
+
+def _is_concrete_hostname(host: str | None) -> bool:
+    """True for a real Host header value (not Django wildcards like *.x or .x)."""
+    value = (host or "").strip().lower()
+    if not value or "*" in value or value.startswith(".") or value in ("*", "."):
+        return False
+    try:
+        ipaddress.ip_address(value)
+        return False
+    except ValueError:
+        pass
+    return bool(_CONCRETE_HOST_RE.fullmatch(value))
+
+
+def _health_fallback_host() -> str:
+    candidates = (
+        getattr(settings, "APP_DOMAIN", None),
+        getattr(settings, "CUSTOM_DOMAIN", None),
+        *getattr(settings, "ALLOWED_HOSTS", []),
+    )
+    for candidate in candidates:
+        if _is_concrete_hostname(candidate):
+            return str(candidate).strip().lower()
+    # Django subdomain wildcards are ".example.com" (or legacy "*.example.com").
+    # Synthesize a concrete host that still matches the leading-dot pattern.
+    for candidate in candidates:
+        value = (candidate or "").strip().lower()
+        if value.startswith("*.") and len(value) > 2:
+            value = "." + value[2:]
+        if value.startswith(".") and len(value) > 1 and "*" not in value[1:]:
+            return f"health{value}"
+    return "localhost"
 
 
 def _is_platform_internal_host(host_header: str) -> bool:
@@ -59,18 +96,7 @@ class HealthCheckHostMiddleware:
         path = request.path
         if path == "/health" or path.startswith("/health/"):
             if _is_platform_internal_host(request.META.get("HTTP_HOST", "")):
-                fallback = (
-                    getattr(settings, "APP_DOMAIN", None)
-                    or next(
-                        (
-                            h
-                            for h in getattr(settings, "ALLOWED_HOSTS", [])
-                            if h and h not in ("*", ".")
-                        ),
-                        "localhost",
-                    )
-                )
-                request.META["HTTP_HOST"] = str(fallback)
+                request.META["HTTP_HOST"] = _health_fallback_host()
                 # Probes are plain HTTP; avoid SSL redirects on health endpoints.
                 request.META["HTTP_X_FORWARDED_PROTO"] = "https"
         return self.get_response(request)

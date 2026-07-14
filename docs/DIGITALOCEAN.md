@@ -36,9 +36,9 @@ Set these in the App Platform web service:
 
 - `DEBUG=False`
 - `SECRET_KEY=<strong-random-secret>`
-- `ALLOWED_HOSTS=<your-app>.ondigitalocean.app,<custom-domain-if-any>`
-- `CSRF_TRUSTED_ORIGINS=https://<your-app>.ondigitalocean.app,https://<custom-domain-if-any>`
-- `APP_DOMAIN=<your-app>.ondigitalocean.app`
+- `ALLOWED_HOSTS=<your-app-xxxxxx>.ondigitalocean.app` (full hostname; optional `.ondigitalocean.app` for all DO subdomains — never `*.ondigitalocean.app`)
+- `CSRF_TRUSTED_ORIGINS=https://<your-app-xxxxxx>.ondigitalocean.app,https://<custom-domain-if-any>`
+- `APP_DOMAIN=<your-app-xxxxxx>.ondigitalocean.app` (concrete hostname from the DO app URL, not a wildcard)
 - `CUSTOM_DOMAIN=<custom-domain-if-any>`
 - `DATABASE_URL=<supabase-postgres-url>`
 - `USE_SUPABASE_STORAGE=True`
@@ -115,8 +115,39 @@ Fix:
 5. Verify required runtime env vars are set (`SECRET_KEY`, `DATABASE_URL`, etc.).
 6. Check **Runtime Logs** for Django/Daphne startup exceptions after redeploy.
 
-### `Invalid HTTP_HOST header: '10.x.x.x:8080'` or `'100.x.x.x:8080'`
+### `Invalid HTTP_HOST header: '10.x.x.x:8080'`, `'100.x.x.x:8080'`, or `'*.ondigitalocean.app'`
 
-Cause: App Platform readiness probes call `/health/` using an internal IP as the `Host` header (`10.x` pod IPs or `100.64/10` mesh/CGNAT). Those IPs are not in `ALLOWED_HOSTS`.
+Cause: App Platform readiness probes call `/health/` with an internal IP as `Host` (`10.x` or `100.64/10`). Middleware rewrites that Host using `APP_DOMAIN` / `ALLOWED_HOSTS`. If those vars contain a literal wildcard like `*.ondigitalocean.app`, Django rejects it (RFC 1034) — wildcards are not valid Host header values.
 
-Fix: handled by `HealthCheckHostMiddleware`, which rewrites internal-IP Host headers only for `/health` paths. Redeploy after pulling the latest commit. Ensure `APP_DOMAIN` (or `ALLOWED_HOSTS`) includes your public App Platform hostname.
+Fix: redeploy the latest middleware, and set a **concrete** hostname:
+
+```text
+APP_DOMAIN=your-app-xxxxxx.ondigitalocean.app
+ALLOWED_HOSTS=your-app-xxxxxx.ondigitalocean.app,.ondigitalocean.app
+```
+
+Use `.ondigitalocean.app` (leading dot) to allow all DO subdomains — not `*.ondigitalocean.app`.
+
+### Google `Error 400: redirect_uri_mismatch`
+
+Open the error details. If you see:
+
+```text
+redirect_uri=http://seal-app-22qre.ondigitalocean.app/accounts/google/login/callback/
+```
+
+(note **http**, not https) the app built the wrong scheme behind App Platform’s TLS proxy.
+
+Fix in code: production sets `ACCOUNT_DEFAULT_HTTP_PROTOCOL=https` and `USE_X_FORWARDED_HOST=True`. Redeploy that commit.
+
+In Google Cloud Console, register the **https** URI only:
+
+```text
+https://seal-app-22qre.ondigitalocean.app/accounts/google/login/callback/
+```
+
+Authorized JavaScript origin:
+
+```text
+https://seal-app-22qre.ondigitalocean.app
+```

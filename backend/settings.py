@@ -19,8 +19,19 @@ DEBUG = config("DEBUG", default=True, cast=bool)
 # Ensure ALLOWED_HOSTS is a list. Support comma-separated env via decouple's Csv cast.
 ALLOWED_HOSTS = list(config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv()))
 
-_do_app_domain = os.environ.get("APP_DOMAIN", "").strip()
-_custom_domain = config("CUSTOM_DOMAIN", default="").strip()
+
+def _normalize_allowed_host(host: str) -> str:
+    """Normalize wildcards: Django wants '.example.com', not '*.example.com'."""
+    value = (host or "").strip()
+    if value.startswith("*."):
+        return "." + value[2:]
+    return value
+
+
+ALLOWED_HOSTS = [_normalize_allowed_host(h) for h in ALLOWED_HOSTS if h and h.strip()]
+
+_do_app_domain = _normalize_allowed_host(os.environ.get("APP_DOMAIN", "").strip())
+_custom_domain = _normalize_allowed_host(config("CUSTOM_DOMAIN", default="").strip())
 for _host in (_do_app_domain, _custom_domain):
     if _host and _host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_host)
@@ -28,14 +39,22 @@ for _host in (_do_app_domain, _custom_domain):
 CSRF_TRUSTED_ORIGINS = list(
     config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
 )
+
+
+def _is_concrete_origin_host(host: str) -> bool:
+    value = (host or "").strip()
+    return bool(value) and "*" not in value and not value.startswith(".")
+
+
 for _origin_host in (_do_app_domain, _custom_domain):
-    if _origin_host:
+    if _is_concrete_origin_host(_origin_host):
         _origin = f"https://{_origin_host}"
         if _origin not in CSRF_TRUSTED_ORIGINS:
             CSRF_TRUSTED_ORIGINS.append(_origin)
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    USE_X_FORWARDED_HOST = True
 
 SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=not DEBUG, cast=bool)
 SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=not DEBUG, cast=bool)
@@ -103,8 +122,9 @@ MIDDLEWARE = [
     "core.htmx_utils.HTMXMiddleware",
 ]
 
-# Expose APP_DOMAIN for HealthCheckHostMiddleware host rewrite fallback.
+# Expose for HealthCheckHostMiddleware host rewrite fallback.
 APP_DOMAIN = _do_app_domain
+CUSTOM_DOMAIN = _custom_domain
 
 # Provider specific settings
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='')
@@ -145,6 +165,11 @@ SOCIALACCOUNT_ADAPTER = 'core.adapters.GoogleOnlyAdapter'  # Google-only social 
 
 # Disable email verification for smoother Google login
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # Don't require email verification
+# App Platform terminates TLS; without this, allauth builds http:// redirect_uri.
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = config(
+    "ACCOUNT_DEFAULT_HTTP_PROTOCOL",
+    default="http" if DEBUG else "https",
+)
 
 ROOT_URLCONF = "backend.urls"
 ASGI_APPLICATION = "backend.asgi.application"

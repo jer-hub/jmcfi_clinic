@@ -18,6 +18,9 @@ from .utils import is_profile_complete
 
 
 _HOST_WITH_PORT_RE = re.compile(r"^(.+?)(?::\d+)?$")
+# CGNAT / carrier-grade NAT + DO App Platform service mesh (not always
+# classified as is_private by every Python version).
+_SHARED_IPV4 = ipaddress.ip_network("100.64.0.0/10")
 
 
 def _host_without_port(host_header: str) -> str:
@@ -25,7 +28,8 @@ def _host_without_port(host_header: str) -> str:
     return (match.group(1) if match else host_header or "").strip("[]")
 
 
-def _is_private_or_loopback_host(host_header: str) -> bool:
+def _is_platform_internal_host(host_header: str) -> bool:
+    """True for probe Host values that are IPs, not public DNS names."""
     hostname = _host_without_port(host_header)
     if not hostname:
         return False
@@ -33,37 +37,42 @@ def _is_private_or_loopback_host(host_header: str) -> bool:
         ip = ipaddress.ip_address(hostname)
     except ValueError:
         return False
-    return bool(ip.is_private or ip.is_loopback or ip.is_link_local)
+    if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+        return True
+    if isinstance(ip, ipaddress.IPv4Address) and ip in _SHARED_IPV4:
+        return True
+    # Catch-all for non-global unicast (excludes typical public website hosts).
+    return not ip.is_global
 
 
 class HealthCheckHostMiddleware:
     """
-    App Platform / Kubernetes readiness probes hit the container by private IP
-    (Host: 10.x.x.x:8080). Rewrite that Host for /health/ so Django's
-    ALLOWED_HOSTS check does not reject the probe.
+    App Platform readiness probes hit the container by internal IP
+    (Host: 10.x.x.x:8080 or 100.x.x.x:8080). Rewrite that Host for /health
+    so Django's ALLOWED_HOSTS check does not reject the probe.
     """
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.path.startswith("/health/") and _is_private_or_loopback_host(
-            request.META.get("HTTP_HOST", "")
-        ):
-            fallback = (
-                getattr(settings, "APP_DOMAIN", None)
-                or next(
-                    (
-                        h
-                        for h in getattr(settings, "ALLOWED_HOSTS", [])
-                        if h and h not in ("*", ".")
-                    ),
-                    "localhost",
+        path = request.path
+        if path == "/health" or path.startswith("/health/"):
+            if _is_platform_internal_host(request.META.get("HTTP_HOST", "")):
+                fallback = (
+                    getattr(settings, "APP_DOMAIN", None)
+                    or next(
+                        (
+                            h
+                            for h in getattr(settings, "ALLOWED_HOSTS", [])
+                            if h and h not in ("*", ".")
+                        ),
+                        "localhost",
+                    )
                 )
-            )
-            request.META["HTTP_HOST"] = str(fallback)
-            # Probes are plain HTTP; avoid SSL redirects on health endpoints.
-            request.META["HTTP_X_FORWARDED_PROTO"] = "https"
+                request.META["HTTP_HOST"] = str(fallback)
+                # Probes are plain HTTP; avoid SSL redirects on health endpoints.
+                request.META["HTTP_X_FORWARDED_PROTO"] = "https"
         return self.get_response(request)
 
 

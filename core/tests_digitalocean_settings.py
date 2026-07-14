@@ -70,3 +70,12 @@ class HealthEndpointTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertJSONEqual(response.content, {"status": "ok"})
+
+    def test_health_accepts_do_mesh_ip_host_header(self):
+        """App Platform also probes via 100.64/10 mesh/CGNAT Host values."""
+        response = self.client.get(
+            "/health/",
+            HTTP_HOST="100.127.19.14:8080",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"status": "ok"})

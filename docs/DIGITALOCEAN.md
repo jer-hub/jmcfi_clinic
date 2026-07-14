@@ -115,8 +115,8 @@ Fix:
 5. Verify required runtime env vars are set (`SECRET_KEY`, `DATABASE_URL`, etc.).
 6. Check **Runtime Logs** for Django/Daphne startup exceptions after redeploy.
 
-### `Invalid HTTP_HOST header: '10.x.x.x:8080'`
+### `Invalid HTTP_HOST header: '10.x.x.x:8080'` or `'100.x.x.x:8080'`
 
-Cause: App Platform readiness probes call `/health/` using the container’s private IP as the `Host` header. That IP is not in `ALLOWED_HOSTS`.
+Cause: App Platform readiness probes call `/health/` using an internal IP as the `Host` header (`10.x` pod IPs or `100.64/10` mesh/CGNAT). Those IPs are not in `ALLOWED_HOSTS`.
 
-Fix: already handled in code by `HealthCheckHostMiddleware`, which rewrites private-IP Host headers only for `/health/` paths. Redeploy after pulling the latest commit. Ensure `APP_DOMAIN` (or `ALLOWED_HOSTS`) includes your public App Platform hostname.
+Fix: handled by `HealthCheckHostMiddleware`, which rewrites internal-IP Host headers only for `/health` paths. Redeploy after pulling the latest commit. Ensure `APP_DOMAIN` (or `ALLOWED_HOSTS`) includes your public App Platform hostname.

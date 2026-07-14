@@ -82,6 +82,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # Must run before SecurityMiddleware / CommonMiddleware host checks.
+    "core.middleware.HealthCheckHostMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -91,8 +93,8 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-        "core.middleware.UserActivityMiddleware",  # Track last user activity
-        "core.middleware.SessionTimeoutMiddleware",  # Role-based session timeout
+    "core.middleware.UserActivityMiddleware",  # Track last user activity
+    "core.middleware.SessionTimeoutMiddleware",  # Role-based session timeout
     "core.middleware.MaintenanceModeMiddleware",
     "core.middleware.RoleFeatureAccessMiddleware",
     "core.middleware.RoleMiddleware",
@@ -100,6 +102,9 @@ MIDDLEWARE = [
     "core.access_middleware.HtmxAccessResponseMiddleware",
     "core.htmx_utils.HTMXMiddleware",
 ]
+
+# Expose APP_DOMAIN for HealthCheckHostMiddleware host rewrite fallback.
+APP_DOMAIN = _do_app_domain
 
 # Provider specific settings
 GOOGLE_CLIENT_ID = config('GOOGLE_CLIENT_ID', default='')

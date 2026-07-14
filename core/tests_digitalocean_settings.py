@@ -61,3 +61,12 @@ class HealthEndpointTests(TestCase):
             response.content,
             {"status": "ok", "database": "connected"},
         )
+
+    def test_health_accepts_private_ip_host_header(self):
+        """App Platform readiness probes use the pod private IP as Host."""
+        response = self.client.get(
+            "/health/",
+            HTTP_HOST="10.244.53.17:8080",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertJSONEqual(response.content, {"status": "ok"})

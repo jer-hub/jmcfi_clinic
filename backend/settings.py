@@ -165,11 +165,15 @@ SOCIALACCOUNT_ADAPTER = 'core.adapters.GoogleOnlyAdapter'  # Google-only social 
 
 # Disable email verification for smoother Google login
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # Don't require email verification
-# App Platform terminates TLS; without this, allauth builds http:// redirect_uri.
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = config(
-    "ACCOUNT_DEFAULT_HTTP_PROTOCOL",
-    default="http" if DEBUG else "https",
-)
+# App Platform terminates TLS. Force https callbacks whenever a public app
+# hostname is configured — even if DEBUG was left True by mistake.
+_account_http_protocol = config("ACCOUNT_DEFAULT_HTTP_PROTOCOL", default="").strip().lower()
+if _account_http_protocol in ("http", "https"):
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = _account_http_protocol
+elif _do_app_domain or _custom_domain or not DEBUG:
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = "https"
+else:
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = "http"
 
 ROOT_URLCONF = "backend.urls"
 ASGI_APPLICATION = "backend.asgi.application"

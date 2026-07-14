@@ -40,6 +40,7 @@ Set these in the App Platform web service:
 - `CSRF_TRUSTED_ORIGINS=https://<your-app-xxxxxx>.ondigitalocean.app,https://<custom-domain-if-any>`
 - `APP_DOMAIN=<your-app-xxxxxx>.ondigitalocean.app` (concrete hostname from the DO app URL, not a wildcard)
 - `CUSTOM_DOMAIN=<custom-domain-if-any>`
+- `ACCOUNT_DEFAULT_HTTP_PROTOCOL=https` (optional safety; auto-enabled when `APP_DOMAIN` is set)
 - `DATABASE_URL=<supabase-postgres-url>`
 - `USE_SUPABASE_STORAGE=True`
 - `SUPABASE_URL=<https://project-ref.supabase.co>`
@@ -138,16 +139,20 @@ redirect_uri=http://seal-app-22qre.ondigitalocean.app/accounts/google/login/call
 
 (note **http**, not https) the app built the wrong scheme behind App Platform’s TLS proxy.
 
-Fix in code: production sets `ACCOUNT_DEFAULT_HTTP_PROTOCOL=https` and `USE_X_FORWARDED_HOST=True`. Redeploy that commit.
+Usually `DEBUG` is still `True` (settings default) or `APP_DOMAIN` is unset, so allauth keeps `http://` callbacks.
 
-In Google Cloud Console, register the **https** URI only:
+Fix:
 
-```text
-https://seal-app-22qre.ondigitalocean.app/accounts/google/login/callback/
-```
+1. In App Platform env set:
+   ```text
+   DEBUG=False
+   APP_DOMAIN=seal-app-22qre.ondigitalocean.app
+   ACCOUNT_DEFAULT_HTTP_PROTOCOL=https
+   ```
+2. Redeploy the latest commit (HTTPS is forced automatically when `APP_DOMAIN` is set).
+3. Confirm Google Console has only:
+   ```text
+   https://seal-app-22qre.ondigitalocean.app/accounts/google/login/callback/
+   ```
 
-Authorized JavaScript origin:
-
-```text
-https://seal-app-22qre.ondigitalocean.app
-```
+To verify after deploy, the OAuth start URL must contain `redirect_uri=https%3A%2F%2F...` (not `http%3A%2F%2F`).

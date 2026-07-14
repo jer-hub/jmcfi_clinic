@@ -13,8 +13,10 @@ class DigitalOceanSettingsTests(SimpleTestCase):
     def test_secure_proxy_header_enabled_when_debug_false(self):
         previous_debug = os.environ.get("DEBUG")
         previous_protocol = os.environ.get("ACCOUNT_DEFAULT_HTTP_PROTOCOL")
+        previous_app_domain = os.environ.get("APP_DOMAIN")
         os.environ["DEBUG"] = "False"
         os.environ.pop("ACCOUNT_DEFAULT_HTTP_PROTOCOL", None)
+        os.environ.pop("APP_DOMAIN", None)
         try:
             settings_mod = self._reload_settings()
             self.assertEqual(
@@ -32,6 +34,34 @@ class DigitalOceanSettingsTests(SimpleTestCase):
                 os.environ.pop("ACCOUNT_DEFAULT_HTTP_PROTOCOL", None)
             else:
                 os.environ["ACCOUNT_DEFAULT_HTTP_PROTOCOL"] = previous_protocol
+            if previous_app_domain is None:
+                os.environ.pop("APP_DOMAIN", None)
+            else:
+                os.environ["APP_DOMAIN"] = previous_app_domain
+
+    def test_https_protocol_when_app_domain_set_even_if_debug_true(self):
+        previous_debug = os.environ.get("DEBUG")
+        previous_protocol = os.environ.get("ACCOUNT_DEFAULT_HTTP_PROTOCOL")
+        previous_app_domain = os.environ.get("APP_DOMAIN")
+        os.environ["DEBUG"] = "True"
+        os.environ.pop("ACCOUNT_DEFAULT_HTTP_PROTOCOL", None)
+        os.environ["APP_DOMAIN"] = "seal-app-22qre.ondigitalocean.app"
+        try:
+            settings_mod = self._reload_settings()
+            self.assertEqual(settings_mod.ACCOUNT_DEFAULT_HTTP_PROTOCOL, "https")
+        finally:
+            if previous_debug is None:
+                del os.environ["DEBUG"]
+            else:
+                os.environ["DEBUG"] = previous_debug
+            if previous_protocol is None:
+                os.environ.pop("ACCOUNT_DEFAULT_HTTP_PROTOCOL", None)
+            else:
+                os.environ["ACCOUNT_DEFAULT_HTTP_PROTOCOL"] = previous_protocol
+            if previous_app_domain is None:
+                os.environ.pop("APP_DOMAIN", None)
+            else:
+                os.environ["APP_DOMAIN"] = previous_app_domain
 
     def test_whitenoise_manifest_storage_is_configured(self):
         settings_mod = self._reload_settings()

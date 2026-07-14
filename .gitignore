@@ -22,8 +22,20 @@ supabase/.temp
 # Media files (uploaded content)
 media/
 
-# Media files (uploaded content)
-media/
+# collectstatic output (WhiteNoise manifest + gzip). Source assets live in staticfiles/.
+# Dockerfile runs collectstatic on deploy; do not commit generated files under static/.
+static/staticfiles.json
+static/**/*.gz
+# Manifest-hashed filenames: name.<12-char-hash>.ext (or extensionless name.<hash>)
+static/**/*.*????????????.*
+static/**/*.*????????????
+# Copies of staticfiles/ assets emitted into STATIC_ROOT
+static/js/
+static/css/
+static/fonts/
+static/logo/
+static/favicon/
+static/img/
 
 .agents
 .github

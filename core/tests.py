@@ -117,6 +117,27 @@ class GoogleOnlyAdapterDomainPolicyTests(TestCase):
 		clinic.save(update_fields=['google_allowed_domains'])
 		invalidate_settings_cache()
 
+	def _request_with_messages(self):
+		from django.contrib.messages.storage.fallback import FallbackStorage
+		from django.test import RequestFactory
+
+		request = RequestFactory().get('/accounts/login/')
+		request.session = self.client.session
+		request._messages = FallbackStorage(request)
+		return request
+
+	def _sociallogin(self, *, email, provider='google'):
+		from types import SimpleNamespace
+
+		return SimpleNamespace(
+			account=SimpleNamespace(
+				provider=provider,
+				extra_data={'email': email} if email is not None else {},
+			),
+			user=SimpleNamespace(email=email or ''),
+			is_existing=False,
+		)
+
 	@override_settings(GOOGLE_ALLOWED_DOMAINS=[])
 	def test_allows_any_email_when_domain_list_empty(self):
 		self.assertTrue(self.adapter._is_allowed_email('user@example.com'))
@@ -132,6 +153,58 @@ class GoogleOnlyAdapterDomainPolicyTests(TestCase):
 	@override_settings(GOOGLE_ALLOWED_DOMAINS=['jmc.edu.ph'])
 	def test_blocks_invalid_email_format(self):
 		self.assertFalse(self.adapter._is_allowed_email('invalid-email'))
+
+	@override_settings(GOOGLE_ALLOWED_DOMAINS=['jmc.edu.ph', 'jmcfi.edu.ph'])
+	def test_domain_rejection_message_lists_allowed_domains(self):
+		message = self.adapter._domain_rejection_message('person@gmail.com')
+		self.assertIn('person@gmail.com', message)
+		self.assertIn('@jmc.edu.ph', message)
+		self.assertIn('@jmcfi.edu.ph', message)
+		self.assertIn('not allowed', message)
+
+	@override_settings(GOOGLE_ALLOWED_DOMAINS=['jmc.edu.ph', 'jmcfi.edu.ph'])
+	def test_pre_social_login_rejects_unallowed_domain_with_validation_error(self):
+		from allauth.core.exceptions import ImmediateHttpResponse
+
+		request = self._request_with_messages()
+		sociallogin = self._sociallogin(email='outsider@gmail.com')
+
+		with self.assertRaises(ImmediateHttpResponse) as raised:
+			self.adapter.pre_social_login(request, sociallogin)
+
+		response = raised.exception.response
+		self.assertEqual(response.status_code, 302)
+		self.assertEqual(response.url, reverse('account_login'))
+		stored = [str(m) for m in get_messages(request)]
+		self.assertEqual(len(stored), 1)
+		self.assertIn('outsider@gmail.com', stored[0])
+		self.assertIn('@jmc.edu.ph', stored[0])
+
+	@override_settings(GOOGLE_ALLOWED_DOMAINS=['jmc.edu.ph'])
+	def test_login_page_renders_domain_validation_error_inline(self):
+		from django.contrib.auth.models import AnonymousUser
+		from django.contrib.messages import error as add_error
+		from django.contrib.messages.storage.fallback import FallbackStorage
+		from django.template.loader import render_to_string
+		from django.test import RequestFactory
+
+		factory_request = RequestFactory().get('/accounts/login/')
+		factory_request.user = AnonymousUser()
+		factory_request.session = self.client.session
+		factory_request._messages = FallbackStorage(factory_request)
+		add_error(
+			factory_request,
+			'Sign-in failed: outsider@gmail.com is not allowed. '
+			'Only Google accounts from these domains can sign in: @jmc.edu.ph.',
+		)
+		html = render_to_string(
+			'account/login.html',
+			{},
+			request=factory_request,
+		)
+		self.assertIn('outsider@gmail.com is not allowed', html)
+		self.assertIn('role="alert"', html)
+		self.assertIn('@jmc.edu.ph', html)
 
 
 class AdminLoginViewTests(TestCase):

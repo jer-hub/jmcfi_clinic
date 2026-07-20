@@ -6,8 +6,6 @@
 {% block content %}
 <div class="min-h-screen flex items-center justify-center px-4 py-10 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-50 via-white to-info-50">
   <div class="w-full max-w-sm space-y-5">
-    {% include 'partials/messages.html' %}
-
     <div class="bg-white rounded-card shadow-xl border border-gray-100 overflow-hidden">
       <div class="px-8 pt-8 pb-6 text-center">
         <img src="{% static 'logo/jmc-logo.png' %}"
@@ -19,7 +17,24 @@
         <p class="mt-1 text-sm text-gray-500">Sign in to continue</p>
       </div>
 
-      <div class="px-8 pb-8">
+      <div class="px-8 pb-8 space-y-4">
+        {% if messages %}
+          <div class="space-y-2" role="alert" aria-live="polite">
+            {% for message in messages %}
+              <div class="rounded-lg border px-3 py-2.5 text-sm
+                {% if message.tags == 'error' %}border-danger-200 bg-danger-50 text-danger-700
+                {% elif message.tags == 'warning' %}border-amber-200 bg-amber-50 text-amber-800
+                {% elif message.tags == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-800
+                {% else %}border-primary-200 bg-primary-50 text-primary-800{% endif %}">
+                <p class="flex items-start gap-2">
+                  <i class="fas {% if message.tags == 'error' %}fa-circle-exclamation{% elif message.tags == 'warning' %}fa-triangle-exclamation{% else %}fa-circle-info{% endif %} mt-0.5 shrink-0" aria-hidden="true"></i>
+                  <span>{{ message }}</span>
+                </p>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
         <a href="{% provider_login_url 'google' %}"
            class="w-full inline-flex items-center justify-center gap-3 px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-800 shadow-sm hover:bg-gray-50 hover:border-gray-300 hover:shadow transition-all focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:ring-offset-2">
           <svg class="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
@@ -30,7 +45,7 @@
           </svg>
           Continue with Google
         </a>
-        <p class="mt-4 text-center text-xs text-gray-400">Use your institutional Google account</p>
+        <p class="text-center text-xs text-gray-400">Use your institutional Google account</p>
       </div>
     </div>
 

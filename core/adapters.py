@@ -45,9 +45,12 @@ class GoogleOnlyAdapter(DefaultSocialAccountAdapter):
     """
     Adapter to handle Google social account authentication
     """
-    
+
+    def _allowed_domains(self):
+        return {domain.lower() for domain in get_google_allowed_domains() if domain}
+
     def _is_allowed_email(self, email):
-        allowed_domains = {domain.lower() for domain in get_google_allowed_domains()}
+        allowed_domains = self._allowed_domains()
         if not allowed_domains:
             return True
         if not email or '@' not in email:
@@ -55,18 +58,44 @@ class GoogleOnlyAdapter(DefaultSocialAccountAdapter):
         domain = email.rsplit('@', 1)[1].lower()
         return domain in allowed_domains
 
+    def _domain_rejection_message(self, email):
+        """User-facing validation error for Google accounts outside allowed domains."""
+        allowed = sorted(self._allowed_domains())
+        allowed_display = ', '.join(f'@{d}' for d in allowed) if allowed else ''
+
+        if not email or '@' not in str(email):
+            if allowed_display:
+                return (
+                    f'Sign-in failed: Google did not provide a valid email. '
+                    f'Use an institutional account ({allowed_display}).'
+                )
+            return 'Sign-in failed: Google did not provide a valid email address.'
+
+        email = str(email).strip()
+        domain = email.rsplit('@', 1)[1].lower()
+        if allowed_display:
+            return (
+                f'Sign-in failed: {email} is not allowed. '
+                f'Only Google accounts from these domains can sign in: {allowed_display}.'
+            )
+        return (
+            f'Sign-in failed: {email} (@{domain}) is not authorized for this system.'
+        )
+
+    def _reject_social_login(self, request, message):
+        messages.error(request, message)
+        raise ImmediateHttpResponse(HttpResponseRedirect(reverse('account_login')))
+
     def pre_social_login(self, request, sociallogin):
         """
         Block social login early when email/domain is not allowed.
         """
         if sociallogin.account.provider != 'google':
-            messages.error(request, 'Only Google authentication is allowed.')
-            raise ImmediateHttpResponse(HttpResponseRedirect(reverse('account_login')))
+            self._reject_social_login(request, 'Only Google authentication is allowed.')
 
         email = (sociallogin.account.extra_data or {}).get('email') or sociallogin.user.email
         if not self._is_allowed_email(email):
-            messages.error(request, 'This Google account is not authorized for this system.')
-            raise ImmediateHttpResponse(HttpResponseRedirect(reverse('account_login')))
+            self._reject_social_login(request, self._domain_rejection_message(email))
 
     def is_open_for_signup(self, request, sociallogin):
         """
@@ -74,7 +103,9 @@ class GoogleOnlyAdapter(DefaultSocialAccountAdapter):
         """
         email = (sociallogin.account.extra_data or {}).get('email') or sociallogin.user.email
         if not self._is_allowed_email(email):
-            return False
+            # Defensive: pre_social_login should already reject, but keep signup closed
+            # and surface the same validation error if allauth reaches this path.
+            self._reject_social_login(request, self._domain_rejection_message(email))
         if sociallogin.is_existing:
             return True
         return get_clinic_settings().allow_patient_self_signup

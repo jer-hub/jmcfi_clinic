@@ -67,7 +67,7 @@ JMCFI Clinic is a Django application for clinic operations at an educational ins
 |-------|------------|
 | Backend | Django 5.2, Channels 4.3 |
 | Auth | django-allauth (Google OAuth) |
-| Frontend | HTMX 1.9, Alpine.js 3.x, Tailwind CSS (CDN) |
+| Frontend | HTMX 1.9, Alpine.js 3.x, Tailwind CSS v4 (built CSS) |
 | Database | SQLite (default tests) / Supabase Postgres via `DATABASE_URL` |
 | File storage | Local `media/` or Supabase Storage (S3-compatible) |
 | Package manager | [uv](https://github.com/astral-sh/uv) (`pyproject.toml`) |
@@ -108,7 +108,14 @@ JMCFI Clinic is a Django application for clinic operations at an educational ins
    pip install -e .
    ```
 
-3. **Environment variables** (create `.env` in the project root)
+3. **Build Tailwind CSS** (requires Node.js 20+)
+   ```bash
+   npm install
+   npm run build:css
+   ```
+   Use `npm run watch:css` while editing templates. Production builds CSS in the Dockerfile.
+
+4. **Environment variables** (create `.env` in the project root)
    ```env
    SECRET_KEY=your-secret-key
    DEBUG=True
@@ -117,12 +124,12 @@ JMCFI Clinic is a Django application for clinic operations at an educational ins
    GOOGLE_ALLOWED_DOMAINS=jmc.edu.ph,jmcfi.edu.ph
    ```
 
-4. **Apply migrations**
+5. **Apply migrations**
    ```bash
    python manage.py migrate
    ```
 
-5. **Optional: create a Django superuser**
+6. **Optional: create a Django superuser**
    ```bash
    python manage.py createsuperuser
    ```

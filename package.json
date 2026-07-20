@@ -1,0 +1,12 @@
+{
+  "name": "jmcfi-clinic-frontend",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./frontend/css/input.css -o ./staticfiles/css/app.css --minify",
+    "watch:css": "tailwindcss -i ./frontend/css/input.css -o ./staticfiles/css/app.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.11",
+    "tailwindcss": "^4.1.11"
+  }
+}

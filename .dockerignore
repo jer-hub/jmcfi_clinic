@@ -9,7 +9,6 @@ __pycache__
 *.sqlite3
 db.sqlite3
 media
-staticfiles
 .env
 .env.*
 .cursor
@@ -19,3 +18,6 @@ node_modules
 *.md
 docs
 agent-transcripts
+# Keep staticfiles/ in the image (source assets + built Tailwind CSS).
+# Exclude only local collectstatic output under static/.
+static

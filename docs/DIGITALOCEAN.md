@@ -67,6 +67,7 @@ python manage.py migrate --noinput
 Run locally before pushing:
 
 ```bash
+npm run build:css
 python manage.py check
 python manage.py test core.tests_digitalocean_settings
 python manage.py collectstatic --noinput

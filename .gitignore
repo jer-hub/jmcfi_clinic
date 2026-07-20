@@ -42,3 +42,6 @@ static/img/
 .vscode
 .instructions.md
 .clinerules
+
+# Node / Tailwind build
+node_modules/

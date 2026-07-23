@@ -191,3 +191,38 @@ function studentListField(initialValue) {
         },
     };
 }
+
+function ageFromDateOfBirth(isoDate) {
+    if (!isoDate) return '';
+    const dob = new Date(`${isoDate}T00:00:00`);
+    if (Number.isNaN(dob.getTime())) return '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (dob > today) return '';
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+        age -= 1;
+    }
+    return String(Math.max(age, 0));
+}
+
+function bindAgeFromDateOfBirth() {
+    const form = document.querySelector('form.edit-profile-form');
+    if (!form) return;
+    const dobInput = form.querySelector('#id_date_of_birth');
+    const ageInput = form.querySelector('#id_age');
+    if (!dobInput || !ageInput) return;
+
+    const syncAge = () => {
+        ageInput.value = ageFromDateOfBirth(dobInput.value);
+    };
+
+    dobInput.addEventListener('change', syncAge);
+    dobInput.addEventListener('input', syncAge);
+    if (dobInput.value) {
+        syncAge();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', bindAgeFromDateOfBirth);

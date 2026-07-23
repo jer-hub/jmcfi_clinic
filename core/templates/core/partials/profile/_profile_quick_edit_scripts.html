@@ -279,6 +279,10 @@ function quickEditModal() {
                 } else {
                     this.currentValues[payload.field_name] = payload.raw_value;
                     this.applyFieldUpdate(payload.field_name, payload.display_value, payload.raw_value, payload.full_name || '');
+                    if (payload.field_name === 'date_of_birth' && Object.prototype.hasOwnProperty.call(payload, 'age')) {
+                        this.currentValues.age = payload.age;
+                        this.applyFieldUpdate('age', payload.age_display || 'Not specified', payload.age, '');
+                    }
                 }
                 this.closeModal();
             } catch (error) {

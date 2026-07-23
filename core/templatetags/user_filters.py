@@ -5,6 +5,16 @@ register = template.Library()
 
 
 @register.filter
+def format_person_name(user, profile=None):
+    """Title-cased full name (first, middle, last) for any user/profile."""
+    if not user:
+        return ''
+    from core.utils import person_display_name
+
+    return person_display_name(user, profile)
+
+
+@register.filter
 def format_student_name(user):
     """Title-cased student display name (first, middle, last)."""
     if not user:
@@ -15,9 +25,9 @@ def format_student_name(user):
 
     if role_matches(getattr(user, 'role', None), ROLE_PATIENT):
         return student_display_name(user)
-    from core.utils import title_case_name
+    from core.utils import person_display_name
 
-    return title_case_name(user.get_full_name() or user.email or '')
+    return person_display_name(user)
 
 
 @register.filter

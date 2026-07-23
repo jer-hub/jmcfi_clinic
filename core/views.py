@@ -62,7 +62,8 @@ from .utils import (
     get_user_profile, paginate_queryset,
     get_missing_profile_fields, get_client_ip,
     resolve_notification_url, student_display_name, patient_search_q,
-    user_visible_notifications, normalize_person_name,
+    user_visible_notifications, normalize_person_name, person_display_name,
+    age_from_date_of_birth,
 )
 from .profile_forms import (
     get_or_create_profile,
@@ -737,7 +738,7 @@ def quick_edit_profile(request):
         'first_name', 'last_name',
         'phone', 'telephone_number', 'emergency_contact', 'emergency_phone',
         'address', 'allergies', 'medical_conditions', 'middle_name',
-        'place_of_birth', 'religion', 'citizenship', 'age', 'course', 'year_level', 'department',
+        'place_of_birth', 'religion', 'citizenship', 'course', 'year_level', 'department',
         'specialization'
     ]
 
@@ -815,7 +816,7 @@ def quick_edit_profile(request):
                 raise ValueError(f'{field_name.replace("_", " ").title()} contains invalid characters.')
 
         if field_name == 'middle_name':
-            field_value = ' '.join(field_value.split())
+            field_value = normalize_person_name(field_value)
             if field_value and len(field_value) > 100:
                 raise ValueError('Middle Name must be 100 characters or fewer.')
             if field_value and not re.fullmatch(r"[A-Za-z][A-Za-z .'-]*", field_value):
@@ -948,6 +949,10 @@ def quick_edit_profile(request):
         
         # Set the value
         setattr(target_obj, field_name, field_value)
+        computed_age = None
+        if field_name == 'date_of_birth':
+            computed_age = age_from_date_of_birth(field_value)
+            target_obj.age = computed_age
         target_obj.save()
 
         raw_value = getattr(target_obj, field_name, '')
@@ -977,20 +982,20 @@ def quick_edit_profile(request):
         
         success_message = f'Successfully updated your {field_name.replace("_", " ").title()}.'
         if is_ajax:
-            full_name = (
-                f"{request.user.first_name} {profile.middle_name} {request.user.last_name}"
-                .replace('  ', ' ')
-                .strip()
-                .upper()
-            )
-            return JsonResponse({
+            payload = {
                 'success': True,
                 'message': success_message,
                 'field_name': field_name,
                 'raw_value': raw_value,
                 'display_value': display_value,
-                'full_name': full_name,
-            })
+                'full_name': person_display_name(request.user, profile),
+            }
+            if field_name == 'date_of_birth':
+                payload['age'] = computed_age if computed_age is not None else ''
+                payload['age_display'] = (
+                    f'{computed_age} years old' if computed_age is not None else 'Not specified'
+                )
+            return JsonResponse(payload)
 
         messages.success(request, success_message)
     except (ValueError, ValidationError) as e:

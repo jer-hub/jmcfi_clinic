@@ -1,3 +1,4 @@
+{% load user_filters %}
 <div x-show="activeTab === 'personal'" x-cloak>
   {% if profile %}
   <div>
@@ -11,9 +12,7 @@
         <div class="flex-1 min-w-0">
           <p class="text-xs font-medium text-gray-500">Full name</p>
           <p class="text-sm font-medium text-gray-900 mt-0.5" data-profile-field="full_name">
-            {{ user.first_name }}
-            {% if profile.middle_name %}{{ profile.middle_name }} {% endif %}
-            {{ user.last_name }}
+            {{ user|format_person_name:profile }}
           </p>
         </div>
         <div class="flex-shrink-0 flex items-center gap-1.5 self-center">
@@ -34,9 +33,6 @@
           <p class="text-sm font-medium text-gray-900 mt-0.5" data-profile-field="age">
             {% if profile.age %}{{ profile.age }} years old{% else %}Not specified{% endif %}
           </p>
-        </div>
-        <div class="flex-shrink-0 self-center">
-          {% include "core/partials/profile/_profile_quick_edit_button.html" with label="Age" edit_field="age" edit_label="Age" edit_type="number" edit_raw=profile.age %}
         </div>
       </div>
       {% include "core/partials/profile/_profile_field_row.html" with label="Civil status" icon="fa-heart" field_name="civil_status" value=profile.get_civil_status_display|default:"Not specified" editable=True edit_field="civil_status" edit_label="Civil Status" edit_type="select" edit_raw=profile.civil_status is_last=False %}

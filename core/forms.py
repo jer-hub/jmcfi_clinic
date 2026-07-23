@@ -14,7 +14,7 @@ from .models import (
 )
 from .profile_policy import apply_profile_required_fields_to_form, sync_widget_required_attrs
 from .academic_catalog import is_course_optional_for_department
-from .utils import normalize_person_name
+from .utils import normalize_person_name, age_from_date_of_birth
 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
@@ -152,7 +152,9 @@ class StudentProfileForm(forms.ModelForm):
                 'class': INPUT_CLASS,
                 'min': '0',
                 'max': '150',
-                'required': True
+                'required': True,
+                'readonly': True,
+                'title': 'Age is calculated from Date of Birth',
             }),
             'address': forms.Textarea(attrs={
                 'class': TEXTAREA_CLASS + ' resize-none',
@@ -190,7 +192,6 @@ class StudentProfileForm(forms.ModelForm):
             }),
             'blood_type': forms.Select(attrs={
                 'class': SELECT_CLASS,
-                'required': True
             }),
             'allergies': forms.Textarea(attrs={
                 'class': TEXTAREA_CLASS + ' resize-none',
@@ -209,7 +210,7 @@ class StudentProfileForm(forms.ModelForm):
         self.editor = kwargs.pop('editor', None)
         super().__init__(*args, **kwargs)
         # Add empty choice for select fields
-        self.fields['blood_type'].empty_label = "Select your blood type"
+        self.fields['blood_type'].empty_label = "Select your blood type (optional)"
         self.fields['gender'].empty_label = "Select gender"
         self.fields['civil_status'].empty_label = "Select civil status"
 
@@ -219,6 +220,13 @@ class StudentProfileForm(forms.ModelForm):
         elif self.instance and self.instance.pk and getattr(self.instance, 'user', None):
             role = getattr(self.instance.user, 'role', None) or 'patient'
         apply_profile_required_fields_to_form(self, role)
+
+        # Blood type is always optional (label + product policy), even if role settings
+        # still list it until migrations / settings cache catch up.
+        if 'blood_type' in self.fields:
+            self.fields['blood_type'].required = False
+            self.fields['blood_type'].widget.attrs.pop('required', None)
+            self.fields['blood_type'].widget.attrs.pop('aria-required', None)
 
         for contact_field in ['phone', 'emergency_phone']:
             if contact_field not in self.fields:
@@ -239,6 +247,9 @@ class StudentProfileForm(forms.ModelForm):
 
     def clean(self):
         cleaned_data = super().clean()
+        dob = cleaned_data.get('date_of_birth')
+        if dob and 'age' in self.fields:
+            cleaned_data['age'] = age_from_date_of_birth(dob)
 
         department = (cleaned_data.get('department') or '').strip()
         course = (cleaned_data.get('course') or '').strip()
@@ -273,6 +284,9 @@ class StudentProfileForm(forms.ModelForm):
 
     def clean_telephone_number(self):
         return clean_strict_ph_number(self.cleaned_data.get('telephone_number'), required=False)
+
+    def clean_middle_name(self):
+        return normalize_person_name(self.cleaned_data.get('middle_name', ''))
 
     def clean_emergency_phone(self):
         return clean_strict_ph_number(
@@ -365,7 +379,9 @@ class StaffProfileForm(forms.ModelForm):
                 'class': INPUT_CLASS,
                 'min': '0',
                 'max': '150',
-                'required': True
+                'required': True,
+                'readonly': True,
+                'title': 'Age is calculated from Date of Birth',
             }),
             'address': forms.Textarea(attrs={
                 'class': TEXTAREA_CLASS + ' resize-none',
@@ -492,8 +508,18 @@ class StaffProfileForm(forms.ModelForm):
             required=self.fields['phone'].required,
         )
 
+    def clean(self):
+        cleaned_data = super().clean()
+        dob = cleaned_data.get('date_of_birth')
+        if dob and 'age' in self.fields:
+            cleaned_data['age'] = age_from_date_of_birth(dob)
+        return cleaned_data
+
     def clean_telephone_number(self):
         return clean_strict_ph_number(self.cleaned_data.get('telephone_number'), required=False)
+
+    def clean_middle_name(self):
+        return normalize_person_name(self.cleaned_data.get('middle_name', ''))
 
     def clean_emergency_phone(self):
         required = (

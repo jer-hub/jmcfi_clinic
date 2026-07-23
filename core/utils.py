@@ -357,6 +357,22 @@ def resolve_notification_url(notification):
     return None
 
 
+def age_from_date_of_birth(date_of_birth, today=None):
+    """Return whole years of age from a date of birth, or None if unset/invalid."""
+    if not date_of_birth:
+        return None
+    from datetime import date
+
+    if today is None:
+        today = date.today()
+    if date_of_birth > today:
+        return None
+    years = today.year - date_of_birth.year
+    if (today.month, today.day) < (date_of_birth.month, date_of_birth.day):
+        years -= 1
+    return max(years, 0)
+
+
 def normalize_person_name(value):
     """Normalize a person name for storage (trim, collapse spaces, title case)."""
     return title_case_name(value)
@@ -414,21 +430,27 @@ def patient_search_q(query: str) -> Q:
 
 
 
-def student_display_name(student):
-    """Full patient display name (first, middle, last) in title case."""
-    profile = getattr(student, 'patient_profile', None)
+def person_display_name(user, profile=None):
+    """Full person display name (first, middle, last) in title case."""
+    if profile is None:
+        profile = getattr(user, 'patient_profile', None) or getattr(user, 'staff_profile', None)
     parts = []
-    if student.first_name:
-        parts.append(title_case_name(student.first_name))
-    if profile and profile.middle_name:
+    if user.first_name:
+        parts.append(title_case_name(user.first_name))
+    if profile and getattr(profile, 'middle_name', None):
         parts.append(title_case_name(profile.middle_name))
-    if student.last_name:
-        parts.append(title_case_name(student.last_name))
+    if user.last_name:
+        parts.append(title_case_name(user.last_name))
     name = ' '.join(parts).strip()
     if name:
         return name
-    fallback = student.get_full_name()
-    return title_case_name(fallback) if fallback else student.email
+    fallback = user.get_full_name()
+    return title_case_name(fallback) if fallback else (user.email or '')
+
+
+def student_display_name(student):
+    """Full patient display name (first, middle, last) in title case."""
+    return person_display_name(student, getattr(student, 'patient_profile', None))
 
 
 def user_wants_in_app_notifications(user) -> bool:

@@ -28,7 +28,6 @@ PATIENT_PROFILE_REQUIRED_FIELDS = [
     'emergency_contact',
     'emergency_phone',
     'department',
-    'blood_type',
 ]
 
 # Deprecated alias — settings JSON may still list student_id until migrated
@@ -121,6 +120,10 @@ def is_profile_field_value_complete(field: str, value) -> bool:
     return True
 
 
+# Always optional on profile forms / completion checks (medical detail, not gatekeeping).
+OPTIONAL_PROFILE_FIELDS = frozenset({'blood_type'})
+
+
 def profile_fields_required_for_role(role: str) -> set[str]:
     """Profile model field names required for *role* (excludes first/last name on User)."""
     from .settings_service import get_profile_required_fields
@@ -129,7 +132,10 @@ def profile_fields_required_for_role(role: str) -> set[str]:
     for field in get_profile_required_fields(role):
         if field in USER_PROFILE_FIELDS:
             continue
-        required.add(normalize_profile_field_name(field))
+        name = normalize_profile_field_name(field)
+        if name in OPTIONAL_PROFILE_FIELDS:
+            continue
+        required.add(name)
     return required
 
 

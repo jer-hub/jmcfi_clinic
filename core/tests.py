@@ -207,6 +207,26 @@ class GoogleOnlyAdapterDomainPolicyTests(TestCase):
 		self.assertIn('@jmc.edu.ph', html)
 
 
+class StudentProfileFormBloodTypeTests(TestCase):
+	def test_blood_type_is_optional_for_patients(self):
+		from core.forms import StudentProfileForm
+		from core.models import RoleSettings
+		from core.settings_service import invalidate_settings_cache
+
+		role = RoleSettings.objects.get(role='patient')
+		# Simulate stale role settings that still list blood_type as required.
+		role.profile_required_fields = list(role.profile_required_fields or []) + ['blood_type']
+		role.save(update_fields=['profile_required_fields'])
+		invalidate_settings_cache(role='patient')
+
+		form = StudentProfileForm(user=type('U', (), {'role': 'patient'})())
+		self.assertIn('blood_type', form.fields)
+		self.assertFalse(form.fields['blood_type'].required)
+		self.assertNotIn('required', form.fields['blood_type'].widget.attrs)
+		html = str(form['blood_type'])
+		self.assertNotIn('required', html)
+
+
 class AdminLoginViewTests(TestCase):
 	def setUp(self):
 		cache.clear()
@@ -612,12 +632,39 @@ class AdminProfileCompletionRequirementTests(TestCase):
 			self._staff_profile_post_data(
 				first_name='jerwin',
 				last_name='carreon',
+				middle_name='arangcon dela',
 			),
 		)
 		self.assertRedirects(response, reverse('core:profile'))
 		self.admin_user.refresh_from_db()
 		self.assertEqual(self.admin_user.first_name, 'Jerwin')
 		self.assertEqual(self.admin_user.last_name, 'Carreon')
+		self.assertEqual(self.admin_user.staff_profile.middle_name, 'Arangcon Dela')
+
+	def test_student_profile_form_title_cases_middle_name(self):
+		from core.forms import StudentProfileForm
+
+		form = StudentProfileForm()
+		form.cleaned_data = {'middle_name': '  maria  clara '}
+		self.assertEqual(form.clean_middle_name(), 'Maria Clara')
+
+	def test_staff_profile_form_computes_age_from_date_of_birth(self):
+		from datetime import date
+
+		from core.forms import StaffProfileForm
+		from core.utils import age_from_date_of_birth
+
+		dob = date(2000, 1, 15)
+		expected_age = age_from_date_of_birth(dob)
+		form = StaffProfileForm(
+			data=self._staff_profile_post_data(
+				date_of_birth=dob.isoformat(),
+				age='1',
+			),
+			user=self.admin_user,
+		)
+		self.assertTrue(form.is_valid(), form.errors)
+		self.assertEqual(form.cleaned_data['age'], expected_age)
 
 	def test_admin_profile_image_url_is_root_absolute(self):
 		"""Relative MEDIA_URL breaks image display on nested routes like /profile/."""
@@ -923,6 +970,30 @@ class ProfilePageRefactorTests(TestCase):
 		self.assertTrue(payload['success'])
 		self.staff_user.staff_profile.refresh_from_db()
 		self.assertEqual(self.staff_user.staff_profile.address, '789 Refactored Street')
+
+	def test_quick_edit_name_keeps_full_name_in_title_case(self):
+		self.staff_user.first_name = 'maria'
+		self.staff_user.last_name = 'santos'
+		self.staff_user.save(update_fields=['first_name', 'last_name'])
+		profile = self.staff_user.staff_profile
+		profile.middle_name = 'dela cruz'
+		profile.save(update_fields=['middle_name'])
+
+		self.client.force_login(self.staff_user)
+		page = self.client.get(reverse('core:profile'))
+		self.assertContains(page, 'Maria Dela Cruz Santos')
+
+		response = self.client.post(
+			reverse('core:quick_edit_profile'),
+			{'field_name': 'first_name', 'field_value': 'juan'},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(response.status_code, 200)
+		payload = response.json()
+		self.assertTrue(payload['success'])
+		self.assertEqual(payload['full_name'], 'Juan Dela Cruz Santos')
+		self.assertEqual(payload['raw_value'], 'Juan')
+		self.assertNotEqual(payload['full_name'], payload['full_name'].upper())
 
 	def test_profile_supports_religion_and_citizenship_fields(self):
 		self.client.force_login(self.staff_user)

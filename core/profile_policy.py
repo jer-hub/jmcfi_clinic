@@ -14,7 +14,6 @@ PATIENT_PROFILE_REQUIRED_FIELDS = [
     'first_name',
     'last_name',
     'patient_id',
-    'middle_name',
     'gender',
     'civil_status',
     'religion',
@@ -38,7 +37,6 @@ STAFF_PROFILE_REQUIRED_FIELDS = [
     'first_name',
     'last_name',
     'staff_id',
-    'middle_name',
     'gender',
     'civil_status',
     'religion',
@@ -59,7 +57,6 @@ ADMIN_PROFILE_REQUIRED_FIELDS = [
     'first_name',
     'last_name',
     'staff_id',
-    'middle_name',
     'gender',
     'civil_status',
     'religion',
@@ -80,7 +77,6 @@ DOCTOR_PROFILE_REQUIRED_FIELDS = [
     'first_name',
     'last_name',
     'staff_id',
-    'middle_name',
     'gender',
     'civil_status',
     'religion',
@@ -120,8 +116,8 @@ def is_profile_field_value_complete(field: str, value) -> bool:
     return True
 
 
-# Always optional on profile forms / completion checks (medical detail, not gatekeeping).
-OPTIONAL_PROFILE_FIELDS = frozenset({'blood_type'})
+# Always optional on profile forms / completion checks (not gatekeeping).
+OPTIONAL_PROFILE_FIELDS = frozenset({'blood_type', 'middle_name'})
 
 
 def profile_fields_required_for_role(role: str) -> set[str]:

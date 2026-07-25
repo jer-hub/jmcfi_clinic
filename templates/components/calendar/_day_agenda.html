@@ -22,8 +22,12 @@
   </div>
   {% endif %}
 
+  {% if calendar_event_chips and calendar_status_chips and calendar_event_filter != 'documents' %}
+  <div class="border-t border-gray-200 mt-3 flex-shrink-0" role="separator" aria-hidden="true"></div>
+  {% endif %}
+
   {% if calendar_status_chips and calendar_event_filter != 'documents' %}
-  <div class="flex flex-wrap gap-1.5 mb-3 flex-shrink-0" role="group" aria-label="Filter by status">
+  <div class="flex flex-wrap gap-1.5 mb-3 flex-shrink-0 {% if calendar_event_chips %}mt-4{% endif %}" role="group" aria-label="Filter by status">
     {% for chip in calendar_status_chips %}
     {% include "components/calendar/_status_filter_chip.html" %}
     {% endfor %}

@@ -37,6 +37,13 @@
       </button>
     </form>
     {% endif %}
+    <button type="button"
+            x-data="{}"
+            @click="$dispatch('open-modal', {type:'warning', title:'Change Role', subtitle:'{{ viewed_user.get_full_name|escapejs }} ({{ viewed_user.email|escapejs }})', size:'lg', hxUrl:'{% url 'core:user_change_role' viewed_user.id %}', actionLabel:'Change Role', hasForm:true})"
+            class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors">
+      <i class="fas fa-user-tag mr-1.5 text-xs"></i>
+      Change role
+    </button>
     <a href="{% url 'core:user_reset_password' viewed_user.id %}"
        class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-colors">
       <i class="fas fa-key mr-1.5 text-xs"></i>

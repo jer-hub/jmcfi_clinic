@@ -208,10 +208,8 @@ function ageFromDateOfBirth(isoDate) {
 }
 
 function bindAgeFromDateOfBirth() {
-    const form = document.querySelector('form.edit-profile-form');
-    if (!form) return;
-    const dobInput = form.querySelector('#id_date_of_birth');
-    const ageInput = form.querySelector('#id_age');
+    const dobInput = document.getElementById('id_date_of_birth');
+    const ageInput = document.getElementById('id_age');
     if (!dobInput || !ageInput) return;
 
     const syncAge = () => {

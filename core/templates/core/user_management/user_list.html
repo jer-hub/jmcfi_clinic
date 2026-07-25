@@ -45,7 +45,8 @@
     </div>
 
     <div class="px-5 py-4 border-b border-gray-200 bg-gray-50/40">
-      <form method="GET"
+      <form id="user-filter-form"
+            method="GET"
             hx-get="{% url 'core:user_management' %}"
             hx-target="#user-table-container"
             hx-swap="innerHTML"
@@ -113,7 +114,11 @@
 
     {% include 'core/user_management/_user_bulk_toolbar.html' %}
 
-    <div id="user-table-container">
+    <div id="user-table-container"
+         hx-get="{% url 'core:user_management' %}"
+         hx-trigger="refreshUserTable from:body"
+         hx-include="#user-filter-form"
+         hx-swap="innerHTML">
       {% include 'core/user_management/_user_table_body.html' %}
     </div>
   </div>

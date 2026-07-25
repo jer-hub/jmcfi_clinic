@@ -239,7 +239,9 @@ class PatientProfile(models.Model):
     ], blank=True, null=True)
     allergies = models.TextField(blank=True, default='')
     medical_conditions = models.TextField(blank=True, default='')
-    # Professional / Licensing (for staff/doctors)
+    # Professional fields retained across patient ↔ staff/doctor role changes.
+    position = models.CharField(max_length=100, blank=True, default='')
+    specialization = models.CharField(max_length=100, blank=True, default='')
     license_number = models.CharField(max_length=50, blank=True)
     ptr_no = models.CharField(max_length=100, blank=True, help_text='Professional Tax Receipt or PTR number')
     
@@ -302,6 +304,9 @@ class StaffProfile(models.Model):
     
     # Institutional Information
     department = models.CharField(max_length=100, blank=True, default='')
+    # Retained across patient ↔ staff role changes (patient academic fields).
+    course = models.CharField(max_length=100, blank=True, default='')
+    year_level = models.CharField(max_length=20, blank=True, default='')
     position = models.CharField(max_length=100, blank=True, default='')
     specialization = models.CharField(max_length=100, blank=True)
     license_number = models.CharField(max_length=50, blank=True)

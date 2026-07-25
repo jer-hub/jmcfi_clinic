@@ -1,0 +1,15 @@
+{% load role_tags %}
+<div id="user-detail-card" class="bg-white border border-gray-100 rounded-card overflow-hidden shadow-sm">
+  {% include "core/user_management/partials/_user_detail_hero.html" %}
+
+  <div x-data="{ activeTab: 'overview' }" class="px-4 sm:px-6 lg:px-8 pb-6">
+    <div class="-mt-4 mb-5 relative z-10">
+      {% include "core/user_management/partials/_user_detail_tab_nav.html" %}
+    </div>
+    {% include "core/user_management/partials/_user_detail_tab_overview.html" %}
+    {% include "core/user_management/partials/_user_detail_tab_profile.html" %}
+    {% include "core/user_management/partials/_user_detail_tab_activity.html" %}
+  </div>
+
+  {% include "core/user_management/partials/_user_detail_footer.html" %}
+</div>

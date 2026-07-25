@@ -99,9 +99,10 @@ def _complete_doctor_profile(user, staff_id):
 	_complete_staff_like_profile(user, staff_id)
 	profile = user.staff_profile
 	profile.position = 'Attending Physician'
+	profile.specialization = 'General Medicine'
 	profile.license_number = 'PRC-123456'
 	profile.ptr_no = 'PTR-789012'
-	profile.save(update_fields=['position', 'license_number', 'ptr_no'])
+	profile.save(update_fields=['position', 'specialization', 'license_number', 'ptr_no'])
 	profile.refresh_from_db()
 	user.__dict__.pop('staff_profile', None)
 	user._state.fields_cache.pop('staff_profile', None)
@@ -225,6 +226,31 @@ class StudentProfileFormBloodTypeTests(TestCase):
 		self.assertNotIn('required', form.fields['blood_type'].widget.attrs)
 		html = str(form['blood_type'])
 		self.assertNotIn('required', html)
+
+	def test_middle_name_is_optional_for_all_roles(self):
+		from core.forms import StaffProfileForm, StudentProfileForm
+		from core.models import RoleSettings
+		from core.settings_service import get_profile_required_fields, invalidate_settings_cache
+
+		for role_name, form_cls in (
+			('patient', StudentProfileForm),
+			('staff', StaffProfileForm),
+			('admin', StaffProfileForm),
+			('doctor', StaffProfileForm),
+		):
+			role = RoleSettings.objects.get(role=role_name)
+			fields = list(role.profile_required_fields or [])
+			if 'middle_name' not in fields:
+				fields.append('middle_name')
+				role.profile_required_fields = fields
+				role.save(update_fields=['profile_required_fields'])
+			invalidate_settings_cache(role=role_name)
+
+			self.assertNotIn('middle_name', get_profile_required_fields(role_name))
+			form = form_cls(user=type('U', (), {'role': role_name})())
+			self.assertIn('middle_name', form.fields)
+			self.assertFalse(form.fields['middle_name'].required)
+			self.assertNotIn('required', form.fields['middle_name'].widget.attrs)
 
 
 class AdminLoginViewTests(TestCase):

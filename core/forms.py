@@ -119,8 +119,7 @@ class StudentProfileForm(forms.ModelForm):
             }),
             'middle_name': forms.TextInput(attrs={
                 'class': INPUT_CLASS,
-                'placeholder': 'Middle Name',
-                'required': True,
+                'placeholder': 'Middle Name (optional)',
             }),
             'gender': forms.Select(attrs={
                 'class': SELECT_CLASS,
@@ -221,12 +220,13 @@ class StudentProfileForm(forms.ModelForm):
             role = getattr(self.instance.user, 'role', None) or 'patient'
         apply_profile_required_fields_to_form(self, role)
 
-        # Blood type is always optional (label + product policy), even if role settings
-        # still list it until migrations / settings cache catch up.
-        if 'blood_type' in self.fields:
-            self.fields['blood_type'].required = False
-            self.fields['blood_type'].widget.attrs.pop('required', None)
-            self.fields['blood_type'].widget.attrs.pop('aria-required', None)
+        # Always optional (label + product policy), even if role settings still list them.
+        for optional_field in ('blood_type', 'middle_name'):
+            if optional_field not in self.fields:
+                continue
+            self.fields[optional_field].required = False
+            self.fields[optional_field].widget.attrs.pop('required', None)
+            self.fields[optional_field].widget.attrs.pop('aria-required', None)
 
         for contact_field in ['phone', 'emergency_phone']:
             if contact_field not in self.fields:
@@ -347,7 +347,7 @@ class StaffProfileForm(forms.ModelForm):
             }),
             'middle_name': forms.TextInput(attrs={
                 'class': INPUT_CLASS,
-                'placeholder': 'Middle Name'
+                'placeholder': 'Middle Name (optional)'
             }),
             'gender': forms.Select(attrs={
                 'class': SELECT_CLASS,
@@ -455,6 +455,12 @@ class StaffProfileForm(forms.ModelForm):
         self.fields['civil_status'].empty_label = "Select civil status"
 
         apply_profile_required_fields_to_form(self, role)
+
+        # Always optional (label + product policy), even if role settings still list it.
+        if 'middle_name' in self.fields:
+            self.fields['middle_name'].required = False
+            self.fields['middle_name'].widget.attrs.pop('required', None)
+            self.fields['middle_name'].widget.attrs.pop('aria-required', None)
 
         # Prefill +63 only for required phone fields (avoid HTML5 pattern blocking optional phones).
         current_phone = self.initial.get('phone')
@@ -733,11 +739,11 @@ class UserCreationForm(forms.ModelForm):
 
 
 class UserEditForm(forms.ModelForm):
-    """Form for editing existing users"""
+    """Form for editing existing users (account fields; role changed separately)."""
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active']
+        fields = ['username', 'email', 'first_name', 'last_name', 'is_active']
         widgets = {
             'username': forms.TextInput(attrs={
                 'class': INPUT_CLASS,
@@ -755,9 +761,6 @@ class UserEditForm(forms.ModelForm):
                 'class': INPUT_CLASS,
                 'placeholder': 'Enter last name'
             }),
-            'role': forms.Select(attrs={
-                'class': SELECT_CLASS
-            }),
             'is_active': forms.CheckboxInput(attrs={
                 'class': CHECKBOX_CLASS,
             })
@@ -765,22 +768,10 @@ class UserEditForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['role'].choices = [
-            ('admin', 'Admin'),
-            ('patient', 'Patient'),
-            ('staff', 'Staff'),
-            ('doctor', 'Doctor'),
-        ]
-        for field_name in ['email', 'first_name', 'last_name', 'role']:
+        for field_name in ['email', 'first_name', 'last_name']:
             self.fields[field_name].required = True
         self.fields['username'].required = False
 
-    def clean_role(self):
-        role = self.cleaned_data.get('role')
-        if role == 'student':
-            return 'patient'
-        return role
-    
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip().lower()
         # Check if email exists for other users
@@ -802,6 +793,45 @@ class UserEditForm(forms.ModelForm):
 
     def clean_last_name(self):
         return normalize_person_name(self.cleaned_data.get('last_name', ''))
+
+
+class UserChangeRoleForm(forms.Form):
+    """Admin-only form to change a user's role outside the edit-profile flow."""
+
+    role = forms.ChoiceField(
+        choices=[
+            ('patient', 'Patient'),
+            ('staff', 'Staff'),
+            ('doctor', 'Doctor'),
+            ('admin', 'Admin'),
+        ],
+        widget=forms.Select(attrs={'class': SELECT_CLASS}),
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        if user is not None:
+            current = 'patient' if user.role == 'student' else user.role
+            self.fields['role'].choices = [
+                choice for choice in self.fields['role'].choices if choice[0] != current
+            ]
+
+    def clean_role(self):
+        role = self.cleaned_data.get('role')
+        if role == 'student':
+            return 'patient'
+        return role
+
+    def clean(self):
+        cleaned = super().clean()
+        if self.user is None:
+            return cleaned
+        new_role = cleaned.get('role')
+        current = 'patient' if self.user.role == 'student' else self.user.role
+        if new_role and new_role == current:
+            raise forms.ValidationError('Select a different role to change.')
+        return cleaned
 
 
 class PasswordResetForm(forms.Form):

@@ -8,8 +8,10 @@ from django.core.cache import cache
 from .profile_policy import (
     ADMIN_PROFILE_REQUIRED_FIELDS,
     DOCTOR_PROFILE_REQUIRED_FIELDS,
+    OPTIONAL_PROFILE_FIELDS,
     PATIENT_PROFILE_REQUIRED_FIELDS,
     STAFF_PROFILE_REQUIRED_FIELDS,
+    normalize_profile_field_name,
 )
 from .roles import LEGACY_ROLE_STUDENT, ROLE_PATIENT, normalize_role
 
@@ -179,14 +181,24 @@ def get_profile_required_fields(role: str) -> list[str]:
     try:
         fields = get_role_settings(role).profile_required_fields
         if fields:
-            return list(fields)
+            raw = list(fields)
+        else:
+            raw = []
     except ValueError:
-        pass
-    fallback = {
-        ROLE_PATIENT: PATIENT_PROFILE_REQUIRED_FIELDS,
-        LEGACY_ROLE_STUDENT: PATIENT_PROFILE_REQUIRED_FIELDS,
-        'staff': STAFF_PROFILE_REQUIRED_FIELDS,
-        'doctor': DOCTOR_PROFILE_REQUIRED_FIELDS,
-        'admin': ADMIN_PROFILE_REQUIRED_FIELDS,
-    }
-    return list(fallback.get(normalize_role(role), []))
+        raw = []
+
+    if not raw:
+        fallback = {
+            ROLE_PATIENT: PATIENT_PROFILE_REQUIRED_FIELDS,
+            LEGACY_ROLE_STUDENT: PATIENT_PROFILE_REQUIRED_FIELDS,
+            'staff': STAFF_PROFILE_REQUIRED_FIELDS,
+            'doctor': DOCTOR_PROFILE_REQUIRED_FIELDS,
+            'admin': ADMIN_PROFILE_REQUIRED_FIELDS,
+        }
+        raw = list(fallback.get(normalize_role(role), []))
+
+    return [
+        field
+        for field in raw
+        if normalize_profile_field_name(field) not in OPTIONAL_PROFILE_FIELDS
+    ]

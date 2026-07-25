@@ -37,6 +37,7 @@ from .forms import (
     AdminLoginForm,
     UserCreationForm,
     UserEditForm,
+    UserChangeRoleForm,
     PasswordResetForm,
     SystemNotificationForm,
     clean_strict_ph_number,
@@ -1279,8 +1280,6 @@ def user_create(request):
 
 def _lock_user_edit_form_for_admin_target(form, is_admin_user):
     if is_admin_user:
-        form.fields['role'].disabled = True
-        form.fields['role'].choices = [('admin', 'Admin')]
         form.fields['is_active'].disabled = True
 
 
@@ -1312,36 +1311,22 @@ def user_edit(request, user_id):
         return redirect('core:user_detail', user_id=user.id)
 
     if request.method == 'POST':
-        old_role = user.role
         user_form = UserEditForm(request.POST, instance=user)
         _lock_user_edit_form_for_admin_target(user_form, is_admin_user)
         profile_form = instantiate_profile_form(
             user, profile=profile, data=request.POST, files=request.FILES, editor=request.user,
         )
 
-        if user_form.is_valid():
-            role_changed = user_form.cleaned_data['role'] != old_role
-            if role_changed:
+        if user_form.is_valid() and profile_form.is_valid():
+            with transaction.atomic():
                 user = user_form.save()
-                swap_profile_for_role_change(user, old_role)
-                messages.info(
-                    request,
-                    f'Role changed from {old_role} to {user.role}. Please update their profile.',
-                )
-                return redirect('core:user_edit', user_id=user.id)
+                profile = profile_form.save(commit=False)
+                profile.user = user
+                profile.save()
+            messages.success(request, 'User updated successfully!')
+            return redirect('core:user_detail', user_id=user.id)
 
-            if profile_form.is_valid():
-                with transaction.atomic():
-                    user = user_form.save()
-                    profile = profile_form.save(commit=False)
-                    profile.user = user
-                    profile.save()
-                messages.success(request, 'User updated successfully!')
-                return redirect('core:user_detail', user_id=user.id)
-
-            messages.error(request, 'Please correct the errors below.')
-        else:
-            messages.error(request, 'Please correct the errors below.')
+        messages.error(request, 'Please correct the errors below.')
     else:
         user_form = UserEditForm(instance=user)
         _lock_user_edit_form_for_admin_target(user_form, is_admin_user)
@@ -1349,6 +1334,118 @@ def user_edit(request, user_id):
 
     context = _user_edit_context(user, user_form, profile_form, profile, is_admin_user)
     return render(request, 'core/user_management/user_edit.html', context)
+
+
+@login_required
+@admin_required
+def user_change_role(request, user_id):
+    """Change a user's role via modal (HTMX) or POST fallback."""
+    user = get_object_or_404(User, id=user_id)
+    modal_template = 'core/user_management/_user_change_role_modal.html'
+
+    def _htmx_error_toast(message, *, status=400, form=None):
+        context = {'viewed_user': user}
+        if form is not None:
+            context['form'] = form
+        else:
+            context['form'] = UserChangeRoleForm(user=user)
+        response = render(request, modal_template, context, status=status)
+        return htmx_add_toast(response, message, 'error')
+
+    if user.role == 'admin':
+        message = 'Cannot change admin user roles.'
+        if is_htmx_request(request):
+            return _htmx_error_toast(message)
+        messages.error(request, message)
+        return redirect('core:user_detail', user_id=user.id)
+
+    if user.id == request.user.id:
+        message = 'Cannot change your own role.'
+        if is_htmx_request(request):
+            return _htmx_error_toast(message)
+        messages.error(request, message)
+        return redirect('core:user_detail', user_id=user.id)
+
+    if request.method == 'POST':
+        form = UserChangeRoleForm(request.POST, user=user)
+        if form.is_valid():
+            old_role = user.role
+            new_role = form.cleaned_data['role']
+            with transaction.atomic():
+                user.role = new_role
+                user.save(update_fields=['role'])
+                swap_profile_for_role_change(user, old_role)
+                _log_provisioning_action(
+                    request,
+                    request.user,
+                    user,
+                    AccountProvisioningAudit.ACTION.ROLE_CHANGED,
+                    metadata={'from': old_role, 'to': new_role},
+                )
+            for key in (
+                f'profile_complete_{user.id}_{old_role}',
+                f'profile_complete_{user.id}_{new_role}',
+                f'profile_complete_{user.id}',
+            ):
+                if key in request.session:
+                    del request.session[key]
+
+            status_message = f'Role changed from {old_role} to {new_role}.'
+
+            if is_htmx_request(request):
+                from django.template.loader import render_to_string
+
+                # Clear relation caches so detail summary sees the new profile model.
+                user.__dict__.pop('patient_profile', None)
+                user.__dict__.pop('staff_profile', None)
+                user._state.fields_cache.pop('patient_profile', None)
+                user._state.fields_cache.pop('staff_profile', None)
+                user.refresh_from_db()
+
+                profile, stats, recent_activity = get_user_detail_summary(user)
+                card_html = render_to_string(
+                    'core/user_management/partials/_user_detail_card.html',
+                    {
+                        'viewed_user': user,
+                        'profile': profile,
+                        'stats': stats,
+                        'recent_activity': recent_activity,
+                    },
+                    request=request,
+                )
+                # Main swap clears modal body; OOB refreshes the detail card in place.
+                response = HttpResponse(
+                    '<div id="user-change-role-modal-body"></div>'
+                    + card_html.replace(
+                        'id="user-detail-card"',
+                        'id="user-detail-card" hx-swap-oob="outerHTML"',
+                        1,
+                    )
+                )
+                response = htmx_add_toast(response, status_message, 'success')
+                # Refresh list + stats when change-role was opened from user management.
+                response = htmx_add_trigger(response, 'refreshUserTable')
+                response = htmx_add_trigger(response, 'refreshUserStats')
+                return response
+
+            messages.success(request, status_message)
+            return redirect('core:user_detail', user_id=user.id)
+
+        error_message = (
+            form.non_field_errors()[0]
+            if form.non_field_errors()
+            else 'Could not change role. Please try again.'
+        )
+        if is_htmx_request(request):
+            return _htmx_error_toast(error_message, form=form)
+        messages.error(request, error_message)
+        return redirect('core:user_detail', user_id=user.id)
+
+    if is_htmx_request(request):
+        form = UserChangeRoleForm(user=user)
+        return render(request, modal_template, {'form': form, 'viewed_user': user})
+
+    return redirect('core:user_detail', user_id=user.id)
 
 
 @login_required

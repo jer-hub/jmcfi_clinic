@@ -82,9 +82,10 @@ def _complete_doctor_profile(user, staff_id):
     _complete_staff_like_profile(user, staff_id)
     profile = user.staff_profile
     profile.position = 'Attending Physician'
+    profile.specialization = 'General Medicine'
     profile.license_number = 'PRC-123456'
     profile.ptr_no = 'PTR-789012'
-    profile.save(update_fields=['position', 'license_number', 'ptr_no'])
+    profile.save(update_fields=['position', 'specialization', 'license_number', 'ptr_no'])
     profile.refresh_from_db()
     user.__dict__.pop('staff_profile', None)
     user._state.fields_cache.pop('staff_profile', None)
@@ -803,7 +804,6 @@ class AdminUserEditProfileTests(TestCase):
                 'email': staff.email,
                 'first_name': staff.first_name,
                 'last_name': staff.last_name,
-                'role': 'staff',
                 'is_active': 'on',
                 'staff_id': 'STAFF-NEW',
                 'middle_name': profile.middle_name,
@@ -849,7 +849,6 @@ class AdminUserEditProfileTests(TestCase):
                 'email': doctor.email,
                 'first_name': doctor.first_name,
                 'last_name': doctor.last_name,
-                'role': 'doctor',
                 'is_active': 'on',
                 'staff_id': profile.staff_id,
                 'middle_name': profile.middle_name,
@@ -878,7 +877,7 @@ class AdminUserEditProfileTests(TestCase):
         profile.refresh_from_db()
         self.assertEqual(profile.position, 'Dental Officer')
 
-    def test_post_role_change_recreates_profile_stub(self):
+    def test_post_role_change_preserves_shared_profile_data(self):
         staff = User.objects.create_user(
             email='role-change-staff@test.com',
             password='StaffPass123!',
@@ -888,45 +887,181 @@ class AdminUserEditProfileTests(TestCase):
             is_active=True,
         )
         _complete_staff_like_profile(staff, 'STAFF-ROLE-OLD')
-        profile = staff.staff_profile
+        old = staff.staff_profile
+        old.address = '99 Preserved Street'
+        old.phone = '+639171112222'
+        old.religion = 'Roman Catholic'
+        old.department = 'College of Science'
+        old.course = 'BS Computer Science'
+        old.year_level = '2nd Year'
+        old.save(update_fields=[
+            'address', 'phone', 'religion', 'department', 'course', 'year_level',
+        ])
 
         response = self.client.post(
-            reverse('core:user_edit', kwargs={'user_id': staff.id}),
-            {
-                'email': staff.email,
-                'first_name': staff.first_name,
-                'last_name': staff.last_name,
-                'role': 'patient',
-                'is_active': 'on',
-                'staff_id': 'SHOULD-NOT-APPLY',
-                'middle_name': profile.middle_name,
-                'gender': profile.gender,
-                'civil_status': profile.civil_status,
-                'religion': profile.religion,
-                'citizenship': profile.citizenship,
-                'date_of_birth': profile.date_of_birth,
-                'place_of_birth': profile.place_of_birth,
-                'age': profile.age,
-                'address': profile.address,
-                'zip_code': profile.zip_code,
-                'phone': profile.phone,
-                'emergency_contact': profile.emergency_contact,
-                'emergency_phone': profile.emergency_phone,
-                'department': profile.department,
-            },
+            reverse('core:user_change_role', kwargs={'user_id': staff.id}),
+            {'role': 'patient'},
         )
         self.assertRedirects(
             response,
-            reverse('core:user_edit', kwargs={'user_id': staff.id}),
+            reverse('core:user_detail', kwargs={'user_id': staff.id}),
         )
         staff.refresh_from_db()
         self.assertEqual(staff.role, 'patient')
         self.assertFalse(StaffProfile.objects.filter(user=staff).exists())
         patient_profile = StudentProfile.objects.get(user=staff)
-        self.assertTrue(patient_profile.patient_id.startswith('TEMP_'))
-        self.assertNotEqual(patient_profile.patient_id, 'SHOULD-NOT-APPLY')
+        self.assertEqual(patient_profile.patient_id, 'STAFF-ROLE-OLD')
+        self.assertEqual(patient_profile.address, '99 Preserved Street')
+        self.assertEqual(patient_profile.phone, '+639171112222')
+        self.assertEqual(patient_profile.religion, 'Roman Catholic')
+        self.assertEqual(patient_profile.middle_name, 'M')
+        self.assertEqual(patient_profile.department, 'College of Science')
+        self.assertEqual(patient_profile.course, 'BS Computer Science')
+        self.assertEqual(patient_profile.year_level, '2nd Year')
+        audit = AccountProvisioningAudit.objects.get(
+            target_user=staff,
+            action=AccountProvisioningAudit.ACTION.ROLE_CHANGED,
+        )
+        self.assertEqual(audit.metadata.get('from'), 'staff')
+        self.assertEqual(audit.metadata.get('to'), 'patient')
 
-    def test_admin_target_role_and_active_fields_locked(self):
+        detail = self.client.get(reverse('core:user_detail', kwargs={'user_id': staff.id}))
+        self.assertContains(detail, 'user-detail-card')
+        self.assertContains(detail, 'Patient')
+        self.assertContains(detail, 'open-modal')
+        self.assertContains(detail, 'Change Role')
+        self.assertContains(detail, reverse('core:user_change_role', kwargs={'user_id': staff.id}))
+
+        # Round-trip back to staff keeps academic fields.
+        round_trip = self.client.post(
+            reverse('core:user_change_role', kwargs={'user_id': staff.id}),
+            {'role': 'staff'},
+        )
+        self.assertRedirects(
+            round_trip,
+            reverse('core:user_detail', kwargs={'user_id': staff.id}),
+        )
+        staff.refresh_from_db()
+        self.assertEqual(staff.role, 'staff')
+        staff_profile = StaffProfile.objects.get(user=staff)
+        self.assertEqual(staff_profile.department, 'College of Science')
+        self.assertEqual(staff_profile.course, 'BS Computer Science')
+        self.assertEqual(staff_profile.year_level, '2nd Year')
+
+        # Promote to doctor via HTMX and keep academic fields.
+        htmx_response = self.client.post(
+            reverse('core:user_change_role', kwargs={'user_id': staff.id}),
+            {'role': 'doctor'},
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(htmx_response.status_code, 200)
+        self.assertNotIn('HX-Redirect', htmx_response.headers)
+        self.assertContains(htmx_response, 'user-detail-card')
+        self.assertContains(htmx_response, 'Doctor')
+        self.assertIn('refreshUserTable', htmx_response.headers.get('HX-Trigger', ''))
+        self.assertIn('refreshUserStats', htmx_response.headers.get('HX-Trigger', ''))
+        staff.refresh_from_db()
+        self.assertEqual(staff.role, 'doctor')
+        staff.staff_profile.refresh_from_db()
+        self.assertEqual(staff.staff_profile.course, 'BS Computer Science')
+        self.assertEqual(staff.staff_profile.year_level, '2nd Year')
+
+        modal = self.client.get(
+            reverse('core:user_change_role', kwargs={'user_id': staff.id}),
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(modal.status_code, 200)
+        self.assertContains(modal, 'user-change-role-modal-body')
+        self.assertContains(modal, 'name="role"')
+
+        user_list = self.client.get(reverse('core:user_management'))
+        self.assertEqual(user_list.status_code, 200)
+        self.assertContains(user_list, 'title="Change role"')
+        self.assertContains(
+            user_list,
+            reverse('core:user_change_role', kwargs={'user_id': staff.id}),
+        )
+        # Admin rows and self should not expose change-role.
+        self.assertNotContains(
+            user_list,
+            reverse('core:user_change_role', kwargs={'user_id': self.admin_user.id}),
+        )
+
+    def test_doctor_role_change_preserves_professional_fields(self):
+        doctor = User.objects.create_user(
+            email='role-change-doctor@test.com',
+            password='DoctorPass123!',
+            role='doctor',
+            first_name='Doc',
+            last_name='Preserved',
+            is_active=True,
+        )
+        _complete_doctor_profile(doctor, 'DOC-ROLE-OLD')
+        old = doctor.staff_profile
+        old.position = 'Dental Officer'
+        old.specialization = 'Orthodontics'
+        old.license_number = 'PRC-DOC-999'
+        old.ptr_no = 'PTR-DOC-999'
+        old.department = 'College of Dentistry'
+        old.save(update_fields=[
+            'position', 'specialization', 'license_number', 'ptr_no', 'department',
+        ])
+
+        to_patient = self.client.post(
+            reverse('core:user_change_role', kwargs={'user_id': doctor.id}),
+            {'role': 'patient'},
+        )
+        self.assertRedirects(
+            to_patient,
+            reverse('core:user_detail', kwargs={'user_id': doctor.id}),
+        )
+        doctor.refresh_from_db()
+        self.assertEqual(doctor.role, 'patient')
+        patient_profile = StudentProfile.objects.get(user=doctor)
+        self.assertEqual(patient_profile.patient_id, 'DOC-ROLE-OLD')
+        self.assertEqual(patient_profile.position, 'Dental Officer')
+        self.assertEqual(patient_profile.specialization, 'Orthodontics')
+        self.assertEqual(patient_profile.license_number, 'PRC-DOC-999')
+        self.assertEqual(patient_profile.ptr_no, 'PTR-DOC-999')
+        self.assertEqual(patient_profile.department, 'College of Dentistry')
+
+        # Round-trip back to doctor keeps professional credentials.
+        to_doctor = self.client.post(
+            reverse('core:user_change_role', kwargs={'user_id': doctor.id}),
+            {'role': 'doctor'},
+        )
+        self.assertRedirects(
+            to_doctor,
+            reverse('core:user_detail', kwargs={'user_id': doctor.id}),
+        )
+        doctor.refresh_from_db()
+        self.assertEqual(doctor.role, 'doctor')
+        staff_profile = StaffProfile.objects.get(user=doctor)
+        self.assertEqual(staff_profile.staff_id, 'DOC-ROLE-OLD')
+        self.assertEqual(staff_profile.position, 'Dental Officer')
+        self.assertEqual(staff_profile.specialization, 'Orthodontics')
+        self.assertEqual(staff_profile.license_number, 'PRC-DOC-999')
+        self.assertEqual(staff_profile.ptr_no, 'PTR-DOC-999')
+        self.assertEqual(staff_profile.department, 'College of Dentistry')
+
+        # staff/admin stay on StaffProfile — no wipe on lateral role change.
+        to_admin = self.client.post(
+            reverse('core:user_change_role', kwargs={'user_id': doctor.id}),
+            {'role': 'admin'},
+        )
+        self.assertRedirects(
+            to_admin,
+            reverse('core:user_detail', kwargs={'user_id': doctor.id}),
+        )
+        doctor.refresh_from_db()
+        self.assertEqual(doctor.role, 'admin')
+        staff_profile.refresh_from_db()
+        self.assertEqual(staff_profile.position, 'Dental Officer')
+        self.assertEqual(staff_profile.specialization, 'Orthodontics')
+        self.assertEqual(staff_profile.license_number, 'PRC-DOC-999')
+        self.assertEqual(staff_profile.ptr_no, 'PTR-DOC-999')
+
+    def test_admin_target_active_field_locked_and_role_absent(self):
         admin_target = User.objects.create_user(
             email='admin-target-edit@test.com',
             password='AdminPass123!',
@@ -942,10 +1077,18 @@ class AdminUserEditProfileTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         user_form = response.context['user_form']
-        self.assertTrue(user_form.fields['role'].disabled)
+        self.assertNotIn('role', user_form.fields)
         self.assertTrue(user_form.fields['is_active'].disabled)
         self.assertContains(response, 'disabled')
+        self.assertNotContains(response, 'name="role"')
 
+        change_role = self.client.get(
+            reverse('core:user_change_role', kwargs={'user_id': admin_target.id}),
+        )
+        self.assertRedirects(
+            change_role,
+            reverse('core:user_detail', kwargs={'user_id': admin_target.id}),
+        )
 
 class AdminUserEditSubnavTests(TestCase):
     def setUp(self):

@@ -612,6 +612,7 @@
         if (!target || !target.id || typeof Alpine === 'undefined') return;
         if (
           target.id === 'deleted-users-shell' ||
+          target.id === 'user-detail-card' ||
           target.id === 'jmcfi-mr-detail-header' ||
           target.id === 'jmcfi-mr-list-table-fragment' ||
           target.id === 'jmcfi-dental-edit-action-bar' ||
@@ -626,7 +627,14 @@
           } catch (e) {
             console.warn('Alpine.initTree after HTMX swap failed', e);
           }
-          if (typeof htmx !== 'undefined' && (target.id === 'deleted-users-shell' || target.id === 'jmcfi-mr-list-table-fragment' || target.id === 'jmcfi-dr-list-table-fragment' || target.id === 'jmcfi-appt-list-table-fragment' || target.id === 'jmcfi-doc-list-table-fragment')) {
+          if (typeof htmx !== 'undefined' && (
+            target.id === 'deleted-users-shell' ||
+            target.id === 'user-detail-card' ||
+            target.id === 'jmcfi-mr-list-table-fragment' ||
+            target.id === 'jmcfi-dr-list-table-fragment' ||
+            target.id === 'jmcfi-appt-list-table-fragment' ||
+            target.id === 'jmcfi-doc-list-table-fragment'
+          )) {
             try {
               htmx.process(target);
             } catch (e2) {

@@ -1,0 +1,38 @@
+<div id="user-change-role-modal-body" class="space-y-6">
+  <div class="bg-gray-50 rounded-xl p-4 border border-gray-200">
+    <div class="flex items-center gap-4">
+      <div class="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-base sm:text-lg">
+        {{ viewed_user.first_name.0|upper }}{{ viewed_user.last_name.0|upper }}
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold text-gray-900 truncate">{{ viewed_user.get_full_name }}</p>
+        <p class="text-xs sm:text-sm text-gray-500 truncate">{{ viewed_user.email }}</p>
+        <p class="text-xs sm:text-sm text-gray-500">Current role: {{ viewed_user.get_role_display }}</p>
+      </div>
+    </div>
+  </div>
+
+  {% if form.non_field_errors %}
+  <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+    {{ form.non_field_errors }}
+  </div>
+  {% endif %}
+
+  <form method="POST"
+        action="{% url 'core:user_change_role' viewed_user.id %}"
+        hx-post="{% url 'core:user_change_role' viewed_user.id %}"
+        hx-target="#user-change-role-modal-body"
+        hx-swap="outerHTML">
+    {% csrf_token %}
+
+    <div>
+      <label for="{{ form.role.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+        New role <span class="text-red-500">*</span>
+      </label>
+      {{ form.role }}
+      {% if form.role.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.role.errors.0 }}</p>
+      {% endif %}
+    </div>
+  </form>
+</div>

@@ -45,7 +45,7 @@
               name="{{ form.email.name }}"
               id="{{ form.email.id_for_label }}"
               class="form-input"
-              placeholder="admin@email.com"
+              placeholder="Enter your email"
               autocomplete="email"
               required
               value="{% if form.email.value %}{{ form.email.value }}{% endif %}"
@@ -70,7 +70,7 @@
               name="{{ form.password.name }}"
               id="{{ form.password.id_for_label }}"
               class="form-input pr-10"
-              placeholder="••••••••"
+              placeholder="Enter your password"
               autocomplete="current-password"
               required
               value="{% if form.password.value %}{{ form.password.value }}{% endif %}"

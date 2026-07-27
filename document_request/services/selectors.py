@@ -110,6 +110,13 @@ def get_assigned_doctors_for_student(student) -> list:
     return []
 
 
+def get_clinician_signature_record(user) -> ClinicianSignature | None:
+    """Return the clinician's signature row for editing (active or inactive)."""
+    if getattr(user, 'role', None) not in ('doctor', 'staff', 'admin'):
+        return None
+    return ClinicianSignature.objects.filter(doctor=user).first()
+
+
 def get_clinician_signature(user) -> ClinicianSignature | None:
     if getattr(user, 'role', None) not in ('doctor', 'staff', 'admin'):
         return None

@@ -265,6 +265,31 @@ class DocumentRequestFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'My Signature')
 
+    def test_clinician_signature_updates_inactive_record(self):
+        """Re-uploading must update the existing row, not insert a duplicate."""
+        png_bytes = (
+            b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01'
+            b'\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01'
+            b'\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        )
+        existing = ClinicianSignature.objects.create(
+            doctor=self.doctor,
+            signature_image=SimpleUploadedFile('old.png', png_bytes, content_type='image/png'),
+            is_active=False,
+            updated_by=self.doctor,
+        )
+        new_image = SimpleUploadedFile('new.png', png_bytes, content_type='image/png')
+        self.client.force_login(self.doctor)
+        response = self.client.post(
+            reverse('document_request:clinician_signature'),
+            {'signature_image': new_image, 'is_active': 'on'},
+        )
+        self.assertRedirects(response, reverse('document_request:clinician_signature'))
+        self.assertEqual(ClinicianSignature.objects.filter(doctor=self.doctor).count(), 1)
+        existing.refresh_from_db()
+        self.assertTrue(existing.is_active)
+        self.assertIn('new.png', existing.signature_image.name)
+
     def test_student_cannot_access_clinician_signature_page(self):
         self.client.force_login(self.student)
         response = self.client.get(reverse('document_request:clinician_signature'))

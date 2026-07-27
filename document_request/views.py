@@ -33,6 +33,7 @@ from .services import (
     create_document_request,
     get_certificate_signature_display,
     get_clinician_signature,
+    get_clinician_signature_record,
     get_document_requests_queryset,
     get_or_create_certificate_pdf_bytes,
     get_status_totals,
@@ -287,7 +288,7 @@ def _redirect_if_certificate_locked(request, linked_doc_request: DocumentRequest
 @role_required(*_CLINICIAN_SIGNATURE_ROLES)
 def clinician_signature(request):
     """Upload and manage the clinician signature used when completing certificates."""
-    signature = get_clinician_signature(request.user)
+    signature = get_clinician_signature_record(request.user)
     signature_form = ClinicianSignatureForm(instance=signature)
 
     if request.method == 'POST':

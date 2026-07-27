@@ -767,6 +767,9 @@
           }
         }
 
+        // Shared by Alpine-validated forms (schedule, etc.).
+        window.jmcfiFocusFormField = focusFormFieldTarget;
+
         function scrollToFirstFormError(form) {
           const hash = window.location.hash;
           if (hash) {

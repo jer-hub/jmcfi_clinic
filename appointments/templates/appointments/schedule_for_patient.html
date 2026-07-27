@@ -9,8 +9,8 @@
 {% if staff_picks_doctor %}
 <script type="application/json" id="schedule-type-doctor-map">{{ type_doctor_map|safe }}</script>
 <script type="application/json" id="schedule-doctors-json">{{ doctors_json|safe }}</script>
-<script type="application/json" id="schedule-form-prefill">{{ form_data_json|safe }}</script>
 {% endif %}
+<script type="application/json" id="schedule-form-prefill">{{ form_data_json|safe }}</script>
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0"
      x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }}, staffPicksDoctor: {{ staff_picks_doctor|yesno:'true,false' }} })">
     {% include 'appointments/_subnav.html' %}
@@ -111,13 +111,14 @@
                             <input type="text" id="patient-search"
                                    placeholder="Search by name, email, or patient ID…"
                                    x-model="patientQuery"
-                                   @input.debounce.300ms="searchPatients()"
+                                   @input.debounce.300ms="searchPatients(); delete errors.patient"
                                    @focus="if(searchResults.length) showResults = true"
                                    @keydown.escape="showResults = false"
                                    @keydown.arrow-down.prevent="highlightNext()"
                                    @keydown.arrow-up.prevent="highlightPrev()"
                                    @keydown.enter.prevent="selectHighlighted()"
                                    autocomplete="off"
+                                   :class="{ 'form-field-error': errors.patient }"
                                    class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-xl text-sm leading-normal focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 placeholder:text-gray-400">
                             <button type="button" x-show="patientQuery.length > 0" x-cloak
                                     @click="patientQuery=''; searchResults=[]; showResults=false"
@@ -160,6 +161,7 @@
                             </div>
                         </div>
                     </div>
+                    <p x-show="errors.patient" x-text="errors.patient" x-cloak class="mt-1.5 text-sm text-danger-600"></p>
                 </div>
 
                 {# Selected patient card #}
@@ -212,13 +214,16 @@
                 <div>
                     <label for="appointment_type" class="block text-sm font-medium text-gray-700 mb-1.5">Appointment Type</label>
                     <select name="appointment_type" id="appointment_type" required
-                            {% if staff_picks_doctor %}x-model="selectedType" @change="selectedDoctor = ''"{% endif %}
+                            x-model="selectedType"
+                            {% if staff_picks_doctor %}@change="selectedDoctor = ''; delete errors.appointment_type; delete errors.doctor"{% else %}@change="delete errors.appointment_type"{% endif %}
+                            :class="{ 'form-field-error': errors.appointment_type }"
                             class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50">
                         <option value="">Select a type…</option>
                         {% for type_key, type_display in appointment_types %}
                         <option value="{{ type_key }}" {% if form_data.appointment_type == type_key %}selected{% endif %}>{{ type_display }}</option>
                         {% endfor %}
                     </select>
+                    <p x-show="errors.appointment_type" x-text="errors.appointment_type" x-cloak class="mt-1.5 text-sm text-danger-600"></p>
                 </div>
 
                 {% if staff_picks_doctor %}
@@ -227,6 +232,8 @@
                     <select name="doctor" id="doctor" required
                             x-model="selectedDoctor"
                             :disabled="!selectedType"
+                            @change="delete errors.doctor"
+                            :class="{ 'form-field-error': errors.doctor }"
                             class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50">
                         <option value="">Select a doctor…</option>
                         <template x-for="doc in filteredDoctors" :key="doc.id">
@@ -235,28 +242,39 @@
                     </select>
                     <p x-show="!selectedType" class="mt-1.5 text-xs text-warning-700">Select an appointment type first.</p>
                     <p x-show="selectedType && filteredDoctors.length === 0" x-cloak class="mt-1.5 text-xs text-danger-600">No doctors are assigned to this appointment type.</p>
+                    <p x-show="errors.doctor" x-text="errors.doctor" x-cloak class="mt-1.5 text-sm text-danger-600"></p>
                 </div>
                 {% endif %}
 
                 <div>
                     <label for="reason" class="block text-sm font-medium text-gray-700 mb-1.5">Reason for Appointment</label>
                     <textarea name="reason" id="reason" rows="3" required
+                              x-model="reason"
+                              @input="delete errors.reason"
+                              :class="{ 'form-field-error': errors.reason }"
                               placeholder="Describe the reason for this appointment…"
                               class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 placeholder:text-gray-400 disabled:bg-gray-50"></textarea>
+                    <p x-show="errors.reason" x-text="errors.reason" x-cloak class="mt-1.5 text-sm text-danger-600"></p>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label for="date" class="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
                         <input type="date" name="date" id="date" required :min="minDate"
-                               @change="validateWeekday($event)"
+                               x-model="selectedDate"
+                               @change="validateWeekday(); delete errors.date"
+                               :class="{ 'form-field-error': errors.date || dateError }"
                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50">
                         <p class="mt-1 text-xs text-gray-500">Weekdays only</p>
                         <p x-show="dateError" x-text="dateError" x-cloak class="mt-1 text-xs text-danger-600"></p>
+                        <p x-show="errors.date" x-text="errors.date" x-cloak class="mt-1 text-sm text-danger-600"></p>
                     </div>
                     <div>
                         <label for="time" class="block text-sm font-medium text-gray-700 mb-1.5">Time</label>
                         <select name="time" id="time" required
+                                x-model="selectedTime"
+                                @change="delete errors.time"
+                                :class="{ 'form-field-error': errors.time }"
                                 class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50">
                             <option value="">Select a time…</option>
                             <optgroup label="Morning">
@@ -277,12 +295,13 @@
                             </optgroup>
                         </select>
                         <p class="mt-1 text-xs text-gray-500">Clinic hours: 9 AM – 5 PM</p>
+                        <p x-show="errors.time" x-text="errors.time" x-cloak class="mt-1 text-sm text-danger-600"></p>
                     </div>
                 </div>
             </div>
         </fieldset>
 
-        <div class="flex items-center justify-end gap-3">
+        <div class="mt-6 flex items-center justify-end gap-3">
             <a href="{% url 'appointments:appointment_list' %}"
                class="inline-flex items-center gap-2 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium rounded-lg transition-colors">
                 Cancel
@@ -323,8 +342,10 @@ function scheduleForPatient(opts = {}) {
     const patientLocked = Boolean(opts.patientLocked);
     const staffPicksDoctor = Boolean(opts.staffPicksDoctor);
     const prefill = patientLocked ? null : readSchedulePatientPrefill();
-    const formPrefill = staffPicksDoctor ? readScheduleJsonScript('schedule-form-prefill', {}) : {};
-    const initialId = prefill && prefill.id != null ? String(prefill.id) : '';
+    const formPrefill = readScheduleJsonScript('schedule-form-prefill', {});
+    const initialId = prefill && prefill.id != null
+        ? String(prefill.id)
+        : (formPrefill.patient ? String(formPrefill.patient) : '');
 
     return {
         patientLocked,
@@ -342,10 +363,14 @@ function scheduleForPatient(opts = {}) {
         selectedPatientYear: prefill ? (prefill.year_level || '') : '',
         selectedType: formPrefill.appointment_type || '',
         selectedDoctor: formPrefill.doctor ? String(formPrefill.doctor) : '',
+        selectedDate: formPrefill.date || '',
+        selectedTime: formPrefill.time || '',
+        reason: formPrefill.reason || '',
         typeDoctorMap: staffPicksDoctor ? readScheduleJsonScript('schedule-type-doctor-map', {}) : {},
         doctors: staffPicksDoctor ? readScheduleJsonScript('schedule-doctors-json', []) : [],
         submitting: false,
         dateError: '',
+        errors: {},
 
         get filteredDoctors() {
             if (!this.staffPicksDoctor || !this.selectedType) return [];
@@ -360,6 +385,14 @@ function scheduleForPatient(opts = {}) {
                 this.$watch('selectedType', () => this.syncSelectedDoctor());
                 this.$nextTick(() => this.syncSelectedDoctor());
             }
+            // After a failed server POST, focus the first empty/invalid field.
+            this.$nextTick(() => {
+                const hasServerError = Boolean(
+                    document.querySelector('[class*="bg-danger-50"][class*="text-danger"]')
+                );
+                if (!hasServerError) return;
+                if (!this.validate()) this.focusFirstError();
+            });
         },
 
         syncSelectedDoctor() {
@@ -377,6 +410,96 @@ function scheduleForPatient(opts = {}) {
 
         get minDate() {
             return new Date().toISOString().split('T')[0];
+        },
+
+        focusField(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            if (typeof window.jmcfiFocusFormField === 'function') {
+                window.jmcfiFocusFormField(el);
+            } else {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.focus();
+            }
+        },
+
+        focusFirstError() {
+            const order = ['patient-search', 'appointment_type', 'doctor', 'reason', 'date', 'time'];
+            const errorKeys = {
+                'patient-search': 'patient',
+                appointment_type: 'appointment_type',
+                doctor: 'doctor',
+                reason: 'reason',
+                date: 'date',
+                time: 'time',
+            };
+            for (const id of order) {
+                const key = errorKeys[id];
+                if (key === 'date' && this.dateError) {
+                    this.focusField(id);
+                    return;
+                }
+                if (!this.errors[key]) continue;
+                this.focusField(id);
+                return;
+            }
+        },
+
+        validate() {
+            this.errors = {};
+            if (!this.patientLocked && !this.hasSelectedStudent) {
+                this.errors.patient = 'Please select a patient.';
+            }
+            if (!this.selectedType) {
+                this.errors.appointment_type = 'Please select an appointment type.';
+            }
+            if (this.staffPicksDoctor) {
+                if (!this.selectedDoctor) {
+                    this.errors.doctor = 'Please select a doctor.';
+                } else if (this.selectedType && this.filteredDoctors.length === 0) {
+                    this.errors.doctor = 'No doctors are assigned to this appointment type.';
+                } else if (!this.filteredDoctors.some((d) => String(d.id) === String(this.selectedDoctor))) {
+                    this.errors.doctor = 'Please select a doctor for this appointment type.';
+                }
+            }
+            if (!this.reason || !String(this.reason).trim()) {
+                this.errors.reason = 'Please enter a reason for the appointment.';
+            }
+            if (!this.selectedDate) {
+                this.errors.date = 'Please select a date.';
+            } else if (this.dateError) {
+                this.errors.date = this.dateError;
+            }
+            if (!this.selectedTime) {
+                this.errors.time = 'Please select a time.';
+            }
+            return Object.keys(this.errors).length === 0;
+        },
+
+        validateWeekday() {
+            const val = this.selectedDate;
+            if (!val) {
+                this.dateError = '';
+                return;
+            }
+            const d = new Date(val + 'T12:00:00');
+            if (d.getDay() === 0 || d.getDay() === 6) {
+                this.dateError = 'Appointments are not available on weekends.';
+                this.selectedDate = '';
+                this.errors.date = this.dateError;
+            } else {
+                this.dateError = '';
+                delete this.errors.date;
+            }
+        },
+
+        handleSubmit(e) {
+            if (!this.validate()) {
+                e.preventDefault();
+                this.$nextTick(() => this.focusFirstError());
+                return;
+            }
+            this.submitting = true;
         },
 
         async searchPatients() {
@@ -428,6 +551,7 @@ function scheduleForPatient(opts = {}) {
             this.searchResults = [];
             this.showResults = false;
             this.highlightedIdx = -1;
+            delete this.errors.patient;
         },
 
         clearPatient() {
@@ -438,43 +562,6 @@ function scheduleForPatient(opts = {}) {
             this.selectedPatientSid = '';
             this.selectedPatientCourse = '';
             this.selectedPatientYear = '';
-        },
-
-        validateWeekday(e) {
-            const val = e.target.value;
-            if (!val) {
-                this.dateError = '';
-                return;
-            }
-            const d = new Date(val + 'T12:00:00');
-            if (d.getDay() === 0 || d.getDay() === 6) {
-                this.dateError = 'Appointments are not available on weekends.';
-                e.target.value = '';
-            } else {
-                this.dateError = '';
-            }
-        },
-
-        handleSubmit(e) {
-            if (!this.patientLocked && !this.hasSelectedStudent) {
-                e.preventDefault();
-                return;
-            }
-            if (this.dateError) {
-                e.preventDefault();
-                return;
-            }
-            if (this.staffPicksDoctor) {
-                if (!this.selectedType || !this.selectedDoctor) {
-                    e.preventDefault();
-                    return;
-                }
-                if (!this.filteredDoctors.some((d) => String(d.id) === String(this.selectedDoctor))) {
-                    e.preventDefault();
-                    return;
-                }
-            }
-            this.submitting = true;
         },
     };
 }

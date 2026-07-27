@@ -217,7 +217,13 @@ function appointmentForm() {
     },
     init() {
       this.$watch('selectedType', () => this.syncSelectedDoctor());
-      this.$nextTick(() => this.syncSelectedDoctor());
+      this.$nextTick(() => {
+        this.syncSelectedDoctor();
+        const hasServerError = Boolean(
+          document.querySelector('.bg-danger-50, [class*="bg-danger-50"]')
+        );
+        if (hasServerError && !this.validate()) this.focusFirstError();
+      });
     },
     syncSelectedDoctor() {
       if (!this.selectedDoctor) return;
@@ -252,9 +258,26 @@ function appointmentForm() {
       if (!this.reason || !this.reason.trim()) this.errors.reason = 'Please describe the reason for your visit.';
       return Object.keys(this.errors).length === 0;
     },
+    focusFirstError() {
+      const order = ['appointment_type', 'doctor', 'date', 'time', 'reason'];
+      for (let i = 0; i < order.length; i++) {
+        const name = order[i];
+        if (!this.errors[name]) continue;
+        const el = document.getElementById(name);
+        if (!el) continue;
+        if (typeof window.jmcfiFocusFormField === 'function') {
+          window.jmcfiFocusFormField(el);
+        } else {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus();
+        }
+        return;
+      }
+    },
     handleSubmit(e) {
       if (!this.validate()) {
         e.preventDefault();
+        this.$nextTick(() => this.focusFirstError());
         return;
       }
       this.submitting = true;

@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -689,6 +691,27 @@ class HealthFormSectionSaveTests(TestCase):
 		self.assertFalse(payload['success'])
 		self.health_form.refresh_from_db()
 		self.assertEqual(self.health_form.first_name, 'Jane')
+
+	def test_edit_personal_fields_are_readonly(self):
+		response = self.client.get(self.edit_url + '?section=personal')
+		self.assertEqual(response.status_code, 200)
+		content = response.content.decode()
+		self.assertIn('Personal information is read-only', content)
+		self.assertRegex(
+			content,
+			r'<form[^>]*data-section="personal"[^>]*data-section-readonly="1"',
+		)
+		self.assertNotRegex(
+			content,
+			r'<form[^>]*data-section="personal"[^>]*data-section-save="ajax"',
+		)
+		first_name_match = re.search(r'<input[^>]*name="first_name"[^>]*>', content)
+		designation_match = re.search(r'<select[^>]*id="id_designation"[^>]*>', content)
+		self.assertIsNotNone(first_name_match)
+		self.assertIsNotNone(designation_match)
+		self.assertIn('disabled', first_name_match.group(0))
+		self.assertIn('disabled', designation_match.group(0))
+		self.assertIn('data-list-field-readonly="1"', content)
 
 	def test_ajax_invalid_section_returns_field_errors(self):
 		response = self.client.post(
@@ -1760,6 +1783,11 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 				'ptr_no',
 			],
 		)
+
+	def test_personal_info_form_readonly_disables_fields(self):
+		form = HealthProfilePersonalInfoForm(readonly=True)
+		for name, field in form.fields.items():
+			self.assertTrue(field.disabled, msg=name)
 
 
 @override_settings(

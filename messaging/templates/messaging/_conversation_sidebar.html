@@ -45,21 +45,22 @@
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center justify-between gap-2">
                             <p class="truncate text-sm font-semibold text-gray-900">{{ item.display_title }}</p>
-                            <p class="shrink-0 text-xs text-gray-500">
-                                {% if item.last_message_at %}
-                                {{ item.last_message_at|date:'g:i A' }}
-                                {% else %}
-                                {{ item.created_at|date:'M d' }}
-                                {% endif %}
-                            </p>
+                            <div class="flex shrink-0 items-center gap-1.5">
+                                <p class="text-xs text-gray-500">
+                                    {% if item.last_message_at %}
+                                    {{ item.last_message_at|date:'g:i A' }}
+                                    {% else %}
+                                    {{ item.created_at|date:'M d' }}
+                                    {% endif %}
+                                </p>
+                                <span
+                                    data-unread-badge="{{ item.id }}"
+                                    class="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary-600 px-1 text-[9px] font-bold leading-tight text-white {% if item.unread_count <= 0 %}hidden{% endif %}"
+                                >{% if item.unread_count > 9 %}9+{% elif item.unread_count > 0 %}{{ item.unread_count }}{% endif %}</span>
+                            </div>
                         </div>
                         <p class="mt-1 truncate text-xs text-gray-600">{{ item.last_message_excerpt|default:'No messages yet.' }}</p>
                     </div>
-                    {% if item.unread_count > 0 %}
-                    <span class="mt-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary-600 px-1.5 py-0.5 text-[10px] font-semibold text-white" data-unread-badge-{{ item.id }}>{{ item.unread_count }}</span>
-                    {% else %}
-                    <span class="mt-1 inline-flex min-w-5 items-center justify-center rounded-full bg-primary-600 px-1.5 py-0.5 text-[10px] font-semibold text-white hidden" data-unread-badge-{{ item.id }}></span>
-                    {% endif %}
                 </div>
             </a>
             {% endfor %}
@@ -195,10 +196,10 @@
       }
 
       // Update unread count badge
-      const badge = link.querySelector('[data-unread-badge-' + conversationId + ']');
+      const badge = link.querySelector('[data-unread-badge="' + conversationId + '"]');
       if (badge) {
         if (unreadCount > 0) {
-          badge.textContent = unreadCount;
+          badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
           badge.classList.remove('hidden');
         } else {
           badge.classList.add('hidden');

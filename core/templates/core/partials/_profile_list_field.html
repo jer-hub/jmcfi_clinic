@@ -6,12 +6,17 @@
     label        – field label
     placeholder  – input placeholder
     help_text    – helper copy below the control
+    readonly     – when true, show tags only (no add/remove controls)
 {% endcomment %}
-<div class="md:col-span-2" data-list-field="{{ field.html_name }}" x-data="studentListField('{{ field.value|default_if_none:""|escapejs }}')">
+<div class="md:col-span-2"
+     data-list-field="{{ field.html_name }}"
+     {% if readonly %}data-list-field-readonly="1"{% endif %}
+     x-data="studentListField('{{ field.value|default_if_none:""|escapejs }}')">
   <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
     {{ label }} <span class="text-gray-400 text-xs">(Optional)</span>
   </label>
-  <div class="space-y-3 rounded-lg border border-gray-100 bg-gray-50/30 p-3">
+  <div class="space-y-3 rounded-lg border border-gray-100 {% if readonly %}bg-gray-50{% else %}bg-gray-50/30{% endif %} p-3">
+    {% if not readonly %}
     <div class="flex gap-2">
       <input type="text"
              x-model="listInput"
@@ -22,21 +27,34 @@
               @click="addItem()"
               class="px-3 py-2 bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 text-sm font-medium">Add</button>
     </div>
+    {% endif %}
     <div class="flex flex-wrap gap-2" x-show="listItems.length > 0">
       <template x-for="(item, idx) in listItems" :key="idx">
         <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-800 text-xs border border-purple-200">
           <span x-text="item"></span>
+          {% if not readonly %}
           <button type="button" @click="removeItem(idx)" class="text-purple-600 hover:text-purple-900">×</button>
+          {% endif %}
         </span>
       </template>
     </div>
+    {% if readonly %}
+    <p x-show="listItems.length === 0" class="text-xs text-gray-500">None listed</p>
+    {% else %}
     <p class="text-xs text-gray-500">Enter one item at a time. Press Enter or Add.</p>
+    {% endif %}
   </div>
-  <textarea name="{{ field.html_name }}" id="{{ field.id_for_label }}" class="hidden" x-model="serializedValue"></textarea>
+  <textarea name="{{ field.html_name }}"
+            id="{{ field.id_for_label }}"
+            class="hidden"
+            {% if readonly %}disabled readonly aria-readonly="true"{% endif %}
+            x-model="serializedValue"></textarea>
   {% if help_text %}
     <p class="mt-1 text-xs text-gray-500">{{ help_text }}</p>
   {% endif %}
+  {% if not readonly %}
   <p x-show="validationError" x-text="validationError" class="mt-2 text-sm text-danger-600"></p>
+  {% endif %}
   {% if field.errors %}
     {% for error in field.errors %}
       <p class="mt-2 text-sm text-danger-600 flex items-center gap-1">

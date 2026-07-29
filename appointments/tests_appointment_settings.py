@@ -62,6 +62,7 @@ class AppointmentTypeSettingsDoctorDropdownTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No doctors selected')
         self.assertContains(response, 'None selected')
+        self.assertNotContains(response, f'id="toggle-form-{default.pk}"')
 
     def test_doctor_assignment_htmx_save_restricts_to_subset(self):
         other_doctor = User.objects.create_user(
@@ -89,8 +90,28 @@ class AppointmentTypeSettingsDoctorDropdownTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Restricted')
+        self.assertContains(response, f'id="settings-row-{type_key}"')
+        self.assertContains(response, f'id="toggle-form-{default.pk}"')
         default = AppointmentTypeDefault.objects.get(appointment_type=type_key)
         self.assertEqual(list(default.assigned_doctors.values_list('pk', flat=True)), [self.doctor.pk])
+
+    def test_doctor_assignment_htmx_save_shows_toggle_for_new_default(self):
+        type_key = 'checkup'
+        AppointmentTypeDefault.objects.filter(appointment_type=type_key).delete()
+        url = reverse('appointments:edit_appointment_type_default', kwargs={'type_key': type_key})
+        response = self.client.post(
+            url,
+            {
+                'appointment_type': type_key,
+                'assigned_doctors': [str(self.doctor.pk)],
+            },
+            HTTP_HX_REQUEST='true',
+        )
+        self.assertEqual(response.status_code, 200)
+        default = AppointmentTypeDefault.objects.get(appointment_type=type_key)
+        self.assertContains(response, f'id="settings-row-{type_key}"')
+        self.assertContains(response, f'id="toggle-form-{default.pk}"')
+        self.assertContains(response, 'peer-checked:bg-primary-600')
 
     def test_clear_doctor_assignment_htmx_save_blocks_booking(self):
         type_key = Appointment.APPOINTMENT_TYPE_CHOICES[0][0]
@@ -104,6 +125,7 @@ class AppointmentTypeSettingsDoctorDropdownTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'None selected')
+        self.assertNotContains(response, f'id="toggle-form-{default.pk}"')
         default.refresh_from_db()
         self.assertFalse(default.assigned_doctors.exists())
 

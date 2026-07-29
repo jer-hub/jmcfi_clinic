@@ -269,15 +269,17 @@ class BaseFormEditView(View):
             return reverse(self.detail_url_name, kwargs={'pk': obj.pk})
         return '/'
 
-    def _build_form(self, form_class, *, instance, data=None):
+    def _build_form(self, form_class, *, instance, data=None, section=None):
         """Build a section form and pass request user when supported."""
         kwargs = {'instance': instance}
         if data is not None:
             kwargs['data'] = data
+        if getattr(self, 'personal_readonly', False) and section == 'personal':
+            kwargs['readonly'] = True
         try:
             return form_class(user=self.request.user, **kwargs)
         except TypeError:
-            # Backward-compatible path for forms that do not accept `user`.
+            kwargs.pop('user', None)
             return form_class(**kwargs)
 
     def get_extra_edit_context(self, obj):
@@ -289,7 +291,7 @@ class BaseFormEditView(View):
         active_section = request.GET.get('section', (self.tabs[0]['key'] if self.tabs else 'personal'))
 
         for key, form_class in (self.form_class_map or {}).items():
-            form_instances[key] = self._build_form(form_class, instance=obj)
+            form_instances[key] = self._build_form(form_class, instance=obj, section=key)
 
         ctx = self.get_edit_context(obj, active_section=active_section, form_instances=form_instances)
         ctx.update(self.get_extra_edit_context(obj))
@@ -307,7 +309,7 @@ class BaseFormEditView(View):
             messages.error(request, 'Invalid section.')
             return redirect(self.get_edit_redirect_url(obj, section))
 
-        form = self._build_form(form_class, instance=obj, data=request.POST)
+        form = self._build_form(form_class, instance=obj, data=request.POST, section=section)
         if form.is_valid():
             saved_obj = form.save(commit=False)
 
@@ -335,7 +337,7 @@ class BaseFormEditView(View):
             if key == section:
                 form_instances[key] = form
             else:
-                form_instances[key] = self._build_form(form_class, instance=obj)
+                form_instances[key] = self._build_form(form_class, instance=obj, section=key)
 
         ctx = self.get_edit_context(obj, active_section=section, form_instances=form_instances)
         ctx.update(self.get_extra_edit_context(obj))

@@ -52,7 +52,7 @@
 
             <div data-section-field data-field-name="{{ item.name }}" class="md:col-span-2">
 
-              {% include "core/partials/_profile_list_field.html" with field=item.field label="Allergies" placeholder="Type allergy then press Enter" help_text="List food, medication, or environmental allergies. Leave empty if none." %}
+              {% include "core/partials/_profile_list_field.html" with field=item.field label="Allergies" placeholder="Type allergy then press Enter" help_text="List food, medication, or environmental allergies. Leave empty if none." readonly=personal_readonly %}
 
             </div>
 
@@ -60,7 +60,7 @@
 
             <div data-section-field data-field-name="{{ item.name }}" class="md:col-span-2">
 
-              {% include "core/partials/_profile_list_field.html" with field=item.field label="Pre-existing Medical Conditions" placeholder="Type condition then press Enter" help_text="List chronic illnesses or conditions. Leave empty if none." %}
+              {% include "core/partials/_profile_list_field.html" with field=item.field label="Pre-existing Medical Conditions" placeholder="Type condition then press Enter" help_text="List chronic illnesses or conditions. Leave empty if none." readonly=personal_readonly %}
 
             </div>
 
@@ -137,6 +137,7 @@
     .filter((form) => form.querySelector('#id_designation'));
 
   personalForms.forEach((form) => {
+    if (form.getAttribute('data-section-readonly') === '1') return;
 
     const designationSelect = form.querySelector('#id_designation');
 

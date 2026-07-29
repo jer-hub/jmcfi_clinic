@@ -4,8 +4,8 @@
       x-data="doctorDropdown({{ item.doctor_count }})"
       x-init="init()"
       hx-post="{% url 'appointments:edit_appointment_type_default' type_key=item.type_key %}"
-      hx-target="#status-{{ item.type_key }}"
-      hx-swap="innerHTML"
+      hx-target="#settings-row-{{ item.type_key }}"
+      hx-swap="outerHTML"
       hx-indicator=".form-spinner-{{ item.type_key }}">
     {% csrf_token %}
     <input type="hidden" name="appointment_type" value="{{ item.type_key }}">

@@ -241,24 +241,26 @@ _use_test_db_url = _running_tests and bool(TEST_DATABASE_URL)
 if _running_tests and not TEST_DATABASE_URL:
     DATABASES = _SQLITE_DATABASE
 elif _use_test_db_url:
-    DATABASES = {
-        "default": dj_database_url.parse(
-            TEST_DATABASE_URL,
-            conn_max_age=0,
-        )
-    }
+    _db = dj_database_url.parse(
+        TEST_DATABASE_URL,
+        conn_max_age=0,
+    )
+    if _db.get("ENGINE", "").endswith("postgresql"):
+        _db["DISABLE_SERVER_SIDE_CURSORS"] = True
+    DATABASES = {"default": _db}
 elif DATABASE_URL:
     _local_supabase = DATABASE_URL.startswith(
         "postgresql://postgres:postgres@127.0.0.1"
     ) or DATABASE_URL.startswith("postgresql://postgres:postgres@localhost")
-    DATABASES = {
-        "default": dj_database_url.parse(
-            DATABASE_URL,
-            conn_max_age=600,
-            conn_health_checks=True,
-            ssl_require=not _local_supabase,
-        )
-    }
+    _db = dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=not _local_supabase,
+    )
+    if _db.get("ENGINE", "").endswith("postgresql"):
+        _db["DISABLE_SERVER_SIDE_CURSORS"] = True
+    DATABASES = {"default": _db}
 else:
     DATABASES = _SQLITE_DATABASE
 

@@ -706,6 +706,116 @@ def _get_doctors_queryset():
     )
 
 
+def _doctors_queryset_for_pks(doctor_pks):
+    if not doctor_pks:
+        return User.objects.none()
+    return (
+        User.objects.filter(pk__in=doctor_pks)
+        .select_related('staff_profile')
+        .order_by('first_name', 'last_name')
+    )
+
+
+def _attach_assigned_doctors_cache(instance, assigned_pks, doctors_by_pk):
+    if not instance:
+        return
+    cached = [doctors_by_pk[pk] for pk in assigned_pks if pk in doctors_by_pk]
+    instance._prefetched_objects_cache = {
+        **getattr(instance, '_prefetched_objects_cache', {}),
+        'assigned_doctors': cached,
+    }
+
+
+def _load_appointment_settings_defaults():
+    from collections import defaultdict
+
+    defaults = list(AppointmentTypeDefault.objects.select_related('updated_by').all())
+    if not defaults:
+        return {}
+
+    through = AppointmentTypeDefault.assigned_doctors.through
+    links = through.objects.filter(
+        appointmenttypedefault_id__in=[default.pk for default in defaults],
+    ).values_list('appointmenttypedefault_id', 'user_id')
+
+    assigned_by_default = defaultdict(list)
+    for default_id, user_id in links:
+        assigned_by_default[default_id].append(user_id)
+
+    by_type = {}
+    for default in defaults:
+        assigned_pks = assigned_by_default.get(default.pk, [])
+        default._assigned_doctor_pks = assigned_pks
+        default._assigned_doctor_count = len(assigned_pks)
+        by_type[default.appointment_type] = default
+    return by_type
+
+
+def _prepare_default_for_settings_row(instance, *, doctors_by_pk):
+    if not instance or not instance.pk:
+        return instance
+
+    assigned_pks = list(
+        AppointmentTypeDefault.assigned_doctors.through.objects.filter(
+            appointmenttypedefault_id=instance.pk,
+        ).values_list('user_id', flat=True)
+    )
+    instance._assigned_doctor_pks = assigned_pks
+    instance._assigned_doctor_count = len(assigned_pks)
+    _attach_assigned_doctors_cache(instance, assigned_pks, doctors_by_pk)
+    return instance
+
+
+def _assigned_doctor_count(instance):
+    if not instance:
+        return 0
+    if hasattr(instance, '_assigned_doctor_count'):
+        return instance._assigned_doctor_count
+    prefetched = getattr(instance, '_prefetched_objects_cache', {}).get('assigned_doctors')
+    if prefetched is not None:
+        return len(prefetched)
+    return AppointmentTypeDefault.assigned_doctors.through.objects.filter(
+        appointmenttypedefault_id=instance.pk,
+    ).count()
+
+
+def _build_appointment_settings_item(*, type_key, type_label, instance, doctor_pks, doctor_count):
+    form = AppointmentTypeDefaultForm(
+        instance=instance,
+        initial={'appointment_type': type_key, 'is_active': True} if not instance else {},
+        auto_id=f'id_{type_key}_%s',
+        doctors_qs=_doctors_queryset_for_pks(doctor_pks),
+    )
+    assigned_doctor_count = _assigned_doctor_count(instance)
+    return {
+        'type_key': type_key,
+        'type_label': type_label,
+        'form': form,
+        'instance': instance,
+        'doctor_count': doctor_count,
+        'assigned_doctor_count': assigned_doctor_count,
+        'has_assigned_doctors': assigned_doctor_count > 0,
+    }
+
+
+def _render_appointment_settings_row(*, request, instance, type_label=None):
+    doctors = list(_get_doctors_queryset())
+    doctors_by_pk = {doctor.pk: doctor for doctor in doctors}
+    instance = _prepare_default_for_settings_row(instance, doctors_by_pk=doctors_by_pk)
+    item = _build_appointment_settings_item(
+        type_key=instance.appointment_type,
+        type_label=type_label or instance.get_appointment_type_display(),
+        instance=instance,
+        doctor_pks=list(doctors_by_pk.keys()),
+        doctor_count=len(doctors),
+    )
+    return render_to_string(
+        'appointments/appointment_settings/_settings_row.html',
+        {'item': item},
+        request=request,
+    )
+
+
 @login_required
 @admin_required
 def appointment_type_settings(request):
@@ -713,29 +823,28 @@ def appointment_type_settings(request):
     View for admin to assign doctors to each appointment type via inline forms.
     """
     appointment_types = dict(Appointment.APPOINTMENT_TYPE_CHOICES)
-    existing_defaults = {
-        d.appointment_type: d
-        for d in AppointmentTypeDefault.objects.prefetch_related('assigned_doctors').all()
-    }
+    existing_defaults = _load_appointment_settings_defaults()
 
-    doctors_qs = _get_doctors_queryset()
-    doctor_count = doctors_qs.count()
+    doctors = list(_get_doctors_queryset())
+    doctors_by_pk = {doctor.pk: doctor for doctor in doctors}
+    doctor_pks = list(doctors_by_pk.keys())
+    doctor_count = len(doctors)
+
+    for instance in existing_defaults.values():
+        _attach_assigned_doctors_cache(instance, instance._assigned_doctor_pks, doctors_by_pk)
 
     settings_data = []
     for type_key, type_label in appointment_types.items():
         instance = existing_defaults.get(type_key)
-        initial = {'appointment_type': type_key, 'is_active': True} if not instance else {}
-        form = AppointmentTypeDefaultForm(
-            instance=instance, initial=initial,
-            auto_id=f'id_{type_key}_%s', doctors_qs=doctors_qs,
+        settings_data.append(
+            _build_appointment_settings_item(
+                type_key=type_key,
+                type_label=type_label,
+                instance=instance,
+                doctor_pks=doctor_pks,
+                doctor_count=doctor_count,
+            )
         )
-        settings_data.append({
-            'type_key': type_key,
-            'type_label': type_label,
-            'form': form,
-            'instance': instance,
-            'doctor_count': doctor_count,
-        })
 
     return render(request, 'appointments/appointment_settings/appointment_type_settings.html', {
         'settings_subnav_active': 'appointments',
@@ -786,24 +895,18 @@ def edit_appointment_type_default(request, type_key=None):
             type_display = default.get_appointment_type_display()
             
             if is_htmx_request(request):
-                from django.template.loader import render_to_string
-
                 default = (
                     AppointmentTypeDefault.objects
-                    .prefetch_related('assigned_doctors')
                     .select_related('updated_by')
                     .get(pk=default.pk)
                 )
-                badge_html = render_to_string(
-                    'appointments/appointment_settings/_status_badge.html',
-                    {
-                        'instance': default,
-                        'total_doctor_count': _get_doctors_queryset().count(),
-                    },
+                row_html = _render_appointment_settings_row(
                     request=request,
+                    instance=default,
+                    type_label=type_display,
                 )
-                
-                response = HttpResponse(badge_html)
+
+                response = HttpResponse(row_html)
                 return htmx_add_toast(response, f'Doctor assignments saved for {type_display}.')
             
             messages.success(
@@ -850,22 +953,9 @@ def toggle_appointment_type_default(request, default_id):
         message_text = f'{default.get_appointment_type_display()} has been {status}.'
 
         if is_htmx_request(request):
-            from django.template.loader import render_to_string
-
-            doctors_qs = _get_doctors_queryset()
-            form = AppointmentTypeDefaultForm(
-                instance=default, auto_id=f'id_{default.appointment_type}_%s',
-                doctors_qs=doctors_qs,
-            )
-            item = {
-                'type_key': default.appointment_type,
-                'type_label': default.get_appointment_type_display(),
-                'form': form,
-                'instance': default,
-            }
-            html = render_to_string(
-                'appointments/appointment_settings/_settings_row.html',
-                {'item': item}, request=request,
+            html = _render_appointment_settings_row(
+                request=request,
+                instance=default,
             )
             response = HttpResponse(html)
             return htmx_add_toast(response, message_text)

@@ -374,6 +374,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        readonly = kwargs.pop('readonly', False)
         super().__init__(*args, **kwargs)
 
         if 'blood_type' in self.fields:
@@ -434,6 +435,14 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                 choice for choice in self.fields['designation'].choices
                 if choice[0] != 'employee'
             ]
+
+        if readonly:
+            for field in self.fields.values():
+                field.disabled = True
+                widget = field.widget
+                existing_class = widget.attrs.get('class', '')
+                widget.attrs['class'] = f'{existing_class} bg-gray-50 cursor-not-allowed opacity-90'.strip()
+                widget.attrs['aria-readonly'] = 'true'
 
     def personal_info_sections(self):
         designation = ''

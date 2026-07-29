@@ -1,4 +1,4 @@
-<div class="bg-white shadow rounded-xl border border-gray-200 overflow-visible {% if item.instance and not item.instance.is_active %}ring-1 ring-red-200{% endif %}">
+<div id="settings-row-{{ item.type_key }}" class="bg-white shadow rounded-xl border border-gray-200 overflow-visible {% if item.instance and not item.instance.is_active %}ring-1 ring-red-200{% endif %}">
     <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)_auto_auto]">
         <!-- Col 1: Type icon + label -->
         <div class="px-4 py-4 sm:px-5 lg:px-6 lg:py-4 border-b border-gray-100 lg:border-b-0 lg:border-r lg:border-gray-100 {% if item.instance and not item.instance.is_active %}opacity-50{% endif %}">
@@ -27,17 +27,18 @@
         <!-- Col 3: Status badge (targeted by HTMX on doctor save) -->
         <div id="status-{{ item.type_key }}" class="px-4 py-4 sm:px-5 lg:px-6 lg:py-4 border-b border-gray-100 lg:border-b-0 lg:border-r lg:border-gray-100 lg:text-center">
             <span class="block text-[11px] font-semibold uppercase tracking-wide text-gray-400 lg:hidden mb-2">Assignment status</span>
-            {% include 'appointments/appointment_settings/_status_badge.html' with instance=item.instance total_doctor_count=item.doctor_count %}
+            {% include 'appointments/appointment_settings/_status_badge.html' with instance=item.instance total_doctor_count=item.doctor_count assigned_doctor_count=item.assigned_doctor_count %}
         </div>
 
         <!-- Col 4: Toggle -->
         <div class="px-4 py-4 sm:px-5 lg:px-6 lg:py-4 lg:text-center">
             <span class="block text-[11px] font-semibold uppercase tracking-wide text-gray-400 lg:hidden mb-2">Toggle</span>
-            {% if item.instance %}
+            {% if item.has_assigned_doctors %}
                 <form id="toggle-form-{{ item.instance.id }}" class="inline"
                       x-data
                       hx-post="{% url 'appointments:toggle_appointment_type_default' default_id=item.instance.id %}"
-                      hx-target="closest .bg-white" hx-swap="outerHTML"
+                      hx-target="#settings-row-{{ item.type_key }}"
+                      hx-swap="outerHTML"
                       hx-indicator=".spinner-{{ item.instance.id }}">
                     {% csrf_token %}
                     <label class="relative inline-flex items-center cursor-pointer" title="Toggle active state">

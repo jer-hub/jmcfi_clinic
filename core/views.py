@@ -49,11 +49,6 @@ from .notification_delivery import (
 )
 from .roles import PATIENT_ROLE_VALUES, ROLE_PATIENT, filter_users_by_role, normalize_role, role_matches
 from .settings_service import get_effective_session_timeout, get_profile_required_fields
-from .profile_policy import (
-    USER_PROFILE_FIELDS,
-    is_profile_field_value_complete,
-    normalize_profile_field_name,
-)
 from .academic_catalog import (
     is_course_optional_for_department,
     patient_catalog_context,
@@ -176,6 +171,23 @@ def health_ready(request):
             status=503,
         )
     return JsonResponse({"status": "ok", "database": "connected"})
+
+
+@require_http_methods(["GET", "POST"])
+def guest_login(request):
+    """Create a fresh walk-in patient session (no Google OAuth)."""
+    if request.user.is_authenticated:
+        from .utils import role_home_url_name
+        return redirect(role_home_url_name(request.user))
+
+    from .walk_in_auth import login_as_walk_in
+
+    login_as_walk_in(request)
+    messages.info(
+        request,
+        'You are signed in as a walk-in guest. Complete your profile to use clinic services.',
+    )
+    return redirect('core:profile_required')
 
 
 @require_http_methods(["GET", "POST"])
@@ -591,24 +603,23 @@ def create_system_notification(request):
 def profile_view(request):
     """Display user profile information"""
     profile = get_user_profile(request.user)
-    
-    # Calculate profile completion percentage
-    completion_percentage = 0
+    missing_fields = get_missing_profile_fields(request.user)
+
+    # Completion % uses the same category-aware required set as the gate.
+    completion_percentage = 100
     if profile:
         required_fields = get_profile_required_fields(request.user.role)
-        
+        if role_matches(request.user.role, ROLE_PATIENT):
+            from .patient_category import category_from_profile, required_profile_fields_for_category
+            required_fields = list(
+                required_profile_fields_for_category(
+                    required_fields,
+                    category_from_profile(profile),
+                )
+            )
         if required_fields:
-            filled_count = 0
-            for field in required_fields:
-                if field in USER_PROFILE_FIELDS:
-                    value = getattr(request.user, field, None)
-                else:
-                    value = getattr(profile, normalize_profile_field_name(field), None)
-                if is_profile_field_value_complete(field, value):
-                    filled_count += 1
-            completion_percentage = int((filled_count / len(required_fields)) * 100)
-        else:
-            completion_percentage = 100
+            filled_count = len(required_fields) - len(missing_fields)
+            completion_percentage = max(0, min(100, int((filled_count / len(required_fields)) * 100)))
     
     catalog = patient_catalog_context()
     year_level_options_by_college = year_levels_by_college()
@@ -626,6 +637,7 @@ def profile_view(request):
         'profile': profile,
         'dental_record': dental_record,
         'completion_percentage': completion_percentage,
+        'missing_fields': missing_fields,
         'course_options': catalog['course_options'],
         'college_options': catalog['college_options'],
         'course_options_by_college_json': catalog['course_options_by_college_json'],

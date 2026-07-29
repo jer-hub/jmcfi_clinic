@@ -14,6 +14,7 @@ urlpatterns = [
     
     # Authentication
     path('auth/admin-login/', views.admin_login, name='admin_login'),
+    path('auth/guest-login/', views.guest_login, name='guest_login'),
     path('access/restricted/', views.restricted_access, name='restricted_access'),
     path('auth/invite/accept/<str:token>/', views.accept_invite, name='accept_invite'),
     path('logout/', views.logout_view, name='logout'),

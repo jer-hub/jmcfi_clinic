@@ -144,6 +144,17 @@ def is_profile_complete(user):
             return False
 
         required_fields = get_profile_required_fields(user.role)
+        from .roles import ROLE_PATIENT, role_matches
+        from .patient_category import category_from_profile, required_profile_fields_for_category
+
+        if role_matches(user.role, ROLE_PATIENT):
+            required_fields = list(
+                required_profile_fields_for_category(
+                    required_fields,
+                    category_from_profile(profile),
+                )
+            )
+
         for field in required_fields:
             if not _profile_field_filled(
                 _profile_field_value(user, profile, field),
@@ -161,6 +172,7 @@ FIELD_LABELS = {
     'last_name':         'Last Name',
     'patient_id':        'Patient ID',
     'student_id':        'Patient ID',  # legacy field name in settings JSON
+    'patient_category':  'Patient Category',
     'middle_name':       'Middle Name',
     'gender':            'Gender',
     'civil_status':      'Civil Status',
@@ -174,6 +186,8 @@ FIELD_LABELS = {
     'emergency_contact': 'Emergency Contact Name',
     'emergency_phone':   'Emergency Contact Number',
     'department':        'Department',
+    'course':            'Course / Program',
+    'year_level':        'Year Level',
     'blood_type':        'Blood Type',
     'staff_id':          'Staff ID',
     'license_number':    'License Number',
@@ -185,6 +199,17 @@ def get_missing_profile_fields(user):
     """Return a list of (field_name, friendly_label) tuples for missing required fields."""
     profile = get_user_profile(user)
     required_fields = get_profile_required_fields(user.role)
+    from .roles import ROLE_PATIENT, role_matches
+    from .patient_category import category_from_profile, required_profile_fields_for_category
+
+    if profile and role_matches(user.role, ROLE_PATIENT):
+        required_fields = list(
+            required_profile_fields_for_category(
+                required_fields,
+                category_from_profile(profile),
+            )
+        )
+
     if not required_fields:
         return []
 

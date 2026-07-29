@@ -204,10 +204,22 @@ class PatientProfile(models.Model):
         ('widowed', 'Widowed'),
         ('separated', 'Separated'),
     ]
+
+    PATIENT_CATEGORY_CHOICES = [
+        ('student', 'Student'),
+        ('employee', 'Employee'),
+        ('walk_in', 'Walk-in'),
+    ]
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='patient_profile')
     patient_id = models.CharField(max_length=20, unique=True)
     profile_image = models.ImageField(upload_to='profiles/patients/', blank=True, null=True, help_text="Profile photo")
+    patient_category = models.CharField(
+        max_length=20,
+        choices=PATIENT_CATEGORY_CHOICES,
+        default='student',
+        help_text='Student, employee, or walk-in — controls academic/institutional fields.',
+    )
     
     # Demographics
     middle_name = models.CharField(max_length=100, blank=True, default='')

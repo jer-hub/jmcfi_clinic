@@ -13,21 +13,22 @@ class HealthProfileForm(models.Model):
         INCOMPLETE = 'incomplete', 'Incomplete'
     
     class Designation(models.TextChoices):
-        STUDENT = 'student', 'Patient'
+        STUDENT = 'student', 'Student'
         STAFF = 'staff', 'Staff'
         DOCTOR = 'doctor', 'Doctor'
         EMPLOYEE = 'employee', 'Employee'
-    
+        WALK_IN = 'walk_in', 'Walk-in'
+
     class Gender(models.TextChoices):
         MALE = 'male', 'Male'
         FEMALE = 'female', 'Female'
-    
+
     class CivilStatus(models.TextChoices):
         SINGLE = 'single', 'Single'
         MARRIED = 'married', 'Married'
         WIDOWED = 'widowed', 'Widowed'
         SEPARATED = 'separated', 'Separated'
-    
+
     # Form metadata
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
@@ -256,8 +257,9 @@ class DentalHealthForm(models.Model):
         INCOMPLETE = 'incomplete', 'Incomplete'
 
     class Designation(models.TextChoices):
-        STUDENT = 'student', 'Patient'
+        STUDENT = 'student', 'Student'
         EMPLOYEE = 'employee', 'Employee'
+        WALK_IN = 'walk_in', 'Walk-in'
 
     class Gender(models.TextChoices):
         MALE = 'male', 'Male'
@@ -705,17 +707,18 @@ class PatientChart(models.Model):
     class Designation(models.TextChoices):
         STUDENT = 'student', 'Student'
         EMPLOYEE = 'employee', 'Employee'
-    
+        WALK_IN = 'walk_in', 'Walk-in'
+
     class Gender(models.TextChoices):
         MALE = 'male', 'Male'
         FEMALE = 'female', 'Female'
-    
+
     class CivilStatus(models.TextChoices):
         SINGLE = 'single', 'Single'
         MARRIED = 'married', 'Married'
         WIDOWED = 'widowed', 'Widowed'
         SEPARATED = 'separated', 'Separated'
-    
+
     # Form metadata
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

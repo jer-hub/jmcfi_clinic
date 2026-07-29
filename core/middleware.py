@@ -159,6 +159,7 @@ class MaintenanceModeMiddleware:
             '/accounts/',
             '/admin/',
             '/auth/admin-login/',
+            '/auth/guest-login/',
             '/access/restricted/',
         )
 
@@ -200,6 +201,7 @@ class RoleFeatureAccessMiddleware:
         '/accounts/',
         '/admin/',
         '/auth/admin-login/',
+        '/auth/guest-login/',
         '/access/restricted/',
     )
 

@@ -3,9 +3,49 @@
      x-data="studentAcademicEditForm(
          '{{ form.department.value|default_if_none:""|escapejs }}',
          '{{ form.course.value|default_if_none:""|escapejs }}',
-         '{{ form.year_level.value|default_if_none:""|escapejs }}'
+         '{{ form.year_level.value|default_if_none:""|escapejs }}',
+         '{{ form.patient_category.value|default_if_none:"student"|escapejs }}'
      )"
      x-init="init()">
+    <!-- Patient Category -->
+    <div class="border-b border-gray-100 pb-8">
+        {% include "core/partials/_form_section_header.html" with title="Patient Category" icon="fa-users" icon_theme="purple" %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="form-group md:col-span-1">
+                <label for="{{ form.patient_category.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Category <span class="text-red-600">*</span>
+                </label>
+                {% if form.patient_category.value == 'walk_in' or form.instance.patient_category == 'walk_in' %}
+                <input type="hidden" name="{{ form.patient_category.html_name }}" value="walk_in">
+                <select id="{{ form.patient_category.id_for_label }}"
+                        x-model="patientCategory"
+                        class="form-select bg-gray-50 text-gray-600"
+                        disabled>
+                    <option value="walk_in" selected>Walk-in</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Walk-in category is set by guest login and cannot be changed.</p>
+                {% else %}
+                <select name="{{ form.patient_category.html_name }}"
+                        id="{{ form.patient_category.id_for_label }}"
+                        x-model="patientCategory"
+                        @change="onCategoryChange()"
+                        class="form-select"
+                        required>
+                    {% for value, label in form.fields.patient_category.choices %}
+                    <option value="{{ value }}"{% if form.patient_category.value == value %} selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+                <p class="mt-1 text-xs text-gray-500">Students need college/course/year. Employees select department only.</p>
+                {% endif %}
+                {% if form.patient_category.errors %}
+                    {% for error in form.patient_category.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
     <!-- Demographics Section -->
      <div class="border-b border-gray-100 pb-8">
         {% include "core/partials/_form_section_header.html" with title="Personal & Demographic Information" icon="fa-user" icon_theme="purple" %}
@@ -13,7 +53,8 @@
             <!-- Student ID / Employee ID -->
             <div class="form-group lg:col-span-1">
                 <label for="{{ form.patient_id.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Student ID / Employee ID <span class="text-red-600">*</span>
+                    <span x-text="patientCategory === 'walk_in' ? 'Walk-in / Patient ID' : (patientCategory === 'employee' ? 'Employee ID' : 'Student ID')"></span>
+                    <span class="text-red-600">*</span>
                 </label>
                 {{ form.patient_id }}
                 {% if form.patient_id.errors %}
@@ -190,11 +231,11 @@
     </div>
 
     <!-- Institutional Information Section -->
-    <div class="border-b border-gray-100 pb-8">
-        {% include "core/partials/_form_section_header.html" with title="Academic Information" icon="fa-graduation-cap" icon_theme="indigo" %}
+    <div class="border-b border-gray-100 pb-8" x-show="patientCategory !== 'walk_in'" x-cloak>
+        {% include "core/partials/_form_section_header.html" with title="Academic / Department Information" icon="fa-graduation-cap" icon_theme="indigo" %}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Department -->
-            <div class="form-group">
+            <div class="form-group" :class="patientCategory === 'employee' ? 'md:col-span-1' : ''">
                 <label for="{{ form.department.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Department / College <span class="text-red-600">*</span>
                 </label>
@@ -203,13 +244,13 @@
                         x-model="department"
                         @change="onDepartmentChange()"
                         class="form-select"
-                        required>
+                        :required="patientCategory !== 'walk_in'">
                     <option value="">Select college/department</option>
                     {% for college in college_options %}
                     <option value="{{ college }}"{% if form.department.value == college %} selected{% endif %}>{{ college }}</option>
                     {% endfor %}
                 </select>
-                <p class="mt-1 text-xs text-gray-500">Select your college/department first</p>
+                <p class="mt-1 text-xs text-gray-500" x-text="patientCategory === 'employee' ? 'Select your workplace college/department' : 'Select your college/department first'"></p>
                 {% if form.department.errors %}
                     {% for error in form.department.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">
@@ -222,8 +263,8 @@
                 {% endif %}
             </div>
 
-            <!-- Course -->
-            <div class="form-group">
+            <!-- Course (students only) -->
+            <div class="form-group" x-show="patientCategory === 'student'" x-cloak>
                 <label for="{{ form.course.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Course / Program
                     <span x-show="!isCourseOptional" class="text-red-600">*</span>
@@ -233,7 +274,7 @@
                         id="{{ form.course.id_for_label }}"
                         x-ref="courseSelect"
                         x-model="course"
-                        :required="!isCourseOptional"
+                        :required="patientCategory === 'student' && !isCourseOptional"
                         class="form-select">
                     <option value="">Select course/program</option>
                 </select>
@@ -250,8 +291,8 @@
                 {% endif %}
             </div>
 
-            <!-- Year Level -->
-            <div class="form-group">
+            <!-- Year Level (students only) -->
+            <div class="form-group" x-show="patientCategory === 'student'" x-cloak>
                 <label for="{{ form.year_level.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Year Level <span class="text-red-600">*</span>
                 </label>
@@ -259,7 +300,7 @@
                         id="{{ form.year_level.id_for_label }}"
                         x-ref="yearLevelSelect"
                         x-model="yearLevel"
-                        required
+                        :required="patientCategory === 'student'"
                         class="form-select">
                     <option value="">Select year level</option>
                 </select>
@@ -276,6 +317,15 @@
                 {% endif %}
             </div>
         </div>
+        <template x-if="patientCategory === 'employee' || patientCategory === 'walk_in'">
+            <div>
+                <input type="hidden" name="course" value="">
+                <input type="hidden" name="year_level" value="">
+            </div>
+        </template>
+        <template x-if="patientCategory === 'walk_in'">
+            <input type="hidden" name="department" value="">
+        </template>
     </div>
 
     <!-- Medical Information Section -->

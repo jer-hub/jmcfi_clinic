@@ -10,6 +10,7 @@
 
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
       {% include "components/stat_card.html" with label="Patients" value=total_patients icon="fa-user-graduate" variant="primary" hint="Registered" %}
+      {% include "components/stat_card.html" with label="Walk-ins" value=walk_in_patients icon="fa-walking" variant="info" hint="Guest login accounts" %}
       {% include "components/stat_card.html" with label="Staff" value=total_staff icon="fa-user-doctor" variant="success" hint="Doctors & staff" %}
       {% include "components/stat_card.html" with label="Appointments" value=total_appointments icon="fa-calendar-days" variant="info" hint="In period" %}
       {% include "components/stat_card.html" with label="Med records" value=total_records icon="fa-file-medical" variant="warning" hint="In period" %}

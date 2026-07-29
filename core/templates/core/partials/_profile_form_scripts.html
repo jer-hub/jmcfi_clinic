@@ -56,12 +56,13 @@ function profileImagePreview() {
 }
 
 {% if include_academic_catalog %}
-function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel) {
+function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel, initialCategory) {
     const catalog = window.__jmcfiAcademicCatalog || {};
     return {
         department: initialDepartment || '',
         course: initialCourse || '',
         yearLevel: initialYearLevel || '',
+        patientCategory: initialCategory || 'student',
         collegeOptions: catalog.colleges || [],
         courseOptionsByCollege: catalog.coursesByCollege || {},
         yearLevelOptionsByCollege: catalog.yearLevelsByCollege || {},
@@ -69,6 +70,20 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
 
         init() {
             this.syncSelections();
+            this.$nextTick(() => {
+                this.refreshDependentSelects();
+            });
+        },
+
+        onCategoryChange() {
+            if (this.patientCategory === 'walk_in') {
+                this.department = '';
+                this.course = '';
+                this.yearLevel = '';
+            } else if (this.patientCategory === 'employee') {
+                this.course = '';
+                this.yearLevel = '';
+            }
             this.$nextTick(() => {
                 this.refreshDependentSelects();
             });
@@ -104,6 +119,9 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
         },
 
         refreshDependentSelects() {
+            if (this.patientCategory !== 'student') {
+                return;
+            }
             this.populateSelect(
                 this.$refs.courseSelect,
                 'Select course/program',

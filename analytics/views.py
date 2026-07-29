@@ -250,21 +250,50 @@ def _appointment_by_weekday(date_from, date_to):
 
 
 def _student_demographics():
-    """Demographics breakdown from StudentProfile."""
+    """Demographics breakdown from PatientProfile (course/year = students only)."""
     from core.models import PatientProfile
+    from core.patient_category import PATIENT_CATEGORY_STUDENT, PATIENT_CATEGORY_WALK_IN
+
+    students = PatientProfile.objects.filter(patient_category=PATIENT_CATEGORY_STUDENT)
     course = list(
-        PatientProfile.objects.exclude(course='').values('course')
+        students.exclude(course='').values('course')
         .annotate(count=Count('id')).order_by('-count')
     )
     year_level = list(
-        PatientProfile.objects.exclude(year_level='').values('year_level')
+        students.exclude(year_level='').values('year_level')
         .annotate(count=Count('id')).order_by('year_level')
     )
     gender = list(
-        PatientProfile.objects.exclude(gender='').values('gender')
+        PatientProfile.objects.exclude(patient_category=PATIENT_CATEGORY_WALK_IN)
+        .exclude(gender='')
+        .values('gender')
         .annotate(count=Count('id')).order_by('-count')
     )
     return {'course': course, 'year_level': year_level, 'gender': gender}
+
+
+def _patient_category_counts():
+    """Patients grouped by patient_category (student / employee / walk_in)."""
+    from core.models import PatientProfile
+    from core.patient_category import PATIENT_CATEGORY_CHOICES, PATIENT_CATEGORY_WALK_IN
+
+    rows = list(
+        PatientProfile.objects.values('patient_category')
+        .annotate(count=Count('id'))
+        .order_by('patient_category')
+    )
+    labels = dict(PATIENT_CATEGORY_CHOICES)
+    for row in rows:
+        raw = row['patient_category'] or 'student'
+        if raw == 'guest':
+            raw = PATIENT_CATEGORY_WALK_IN
+        row['patient_category'] = raw
+        row['label'] = labels.get(raw, raw.replace('_', ' ').title())
+    walk_in_count = next(
+        (r['count'] for r in rows if r['patient_category'] == PATIENT_CATEGORY_WALK_IN),
+        0,
+    )
+    return {'by_category': rows, 'walk_in_patients': walk_in_count}
 
 
 def _financial_summary(date_from, date_to):
@@ -417,6 +446,7 @@ def render_analytics_dashboard(request):
         total_appointments = Appointment.objects.filter(date__gte=date_from, date__lte=date_to).count()
         total_records = MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to).count()
         avg_feedback = Feedback.objects.aggregate(avg=Avg('rating'))['avg'] or 0
+        category_stats = _patient_category_counts()
 
         from appointments.calendar_service import build_admin_calendar_context
 
@@ -436,6 +466,8 @@ def render_analytics_dashboard(request):
 
         context.update({
             'total_patients': total_patients,
+            'walk_in_patients': category_stats['walk_in_patients'],
+            'patients_by_category': category_stats['by_category'],
             'total_staff': total_staff,
             'total_appointments': total_appointments,
             'total_records': total_records,
@@ -813,43 +845,94 @@ def compliance_report_detail(request, pk):
 def _population_health_data(date_from, date_to):
     """Shared aggregates for population health view and exports."""
     from core.models import PatientProfile
+    from core.patient_category import PATIENT_CATEGORY_STUDENT, PATIENT_CATEGORY_WALK_IN
     from medical_records.models import MedicalRecord
     from appointments.models import Appointment
 
     demographics = _student_demographics()
+    category_stats = _patient_category_counts()
+    student_records = MedicalRecord.objects.filter(
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to,
+        patient__patient_profile__patient_category=PATIENT_CATEGORY_STUDENT,
+    )
+    student_appts = Appointment.objects.filter(
+        date__gte=date_from,
+        date__lte=date_to,
+        patient__patient_profile__patient_category=PATIENT_CATEGORY_STUDENT,
+    )
     health_by_course = list(
-        MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to)
-        .values('patient__patient_profile__course')
+        student_records.values('patient__patient_profile__course')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
     health_by_year = list(
-        MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to)
-        .values('patient__patient_profile__year_level')
+        student_records.values('patient__patient_profile__year_level')
         .annotate(count=Count('id'))
         .order_by('patient__patient_profile__year_level')
     )
     appt_by_course = list(
-        Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
-        .values('patient__patient_profile__course')
+        student_appts.values('patient__patient_profile__course')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
+    appt_by_category = list(
+        Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
+        .values('patient__patient_profile__patient_category')
+        .annotate(count=Count('id'))
+        .order_by('patient__patient_profile__patient_category')
+    )
+    records_by_category = list(
+        MedicalRecord.objects.filter(
+            created_at__date__gte=date_from,
+            created_at__date__lte=date_to,
+        )
+        .values('patient__patient_profile__patient_category')
+        .annotate(count=Count('id'))
+        .order_by('patient__patient_profile__patient_category')
+    )
     blood_types = list(
-        PatientProfile.objects.exclude(blood_type='')
+        PatientProfile.objects.exclude(patient_category=PATIENT_CATEGORY_WALK_IN)
+        .exclude(blood_type='')
         .values('blood_type')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
-    records_in_period = sum(item['count'] for item in health_by_course)
-    appt_in_period = sum(item['count'] for item in appt_by_course)
-    total_patients = sum(g['count'] for g in demographics['gender']) or PatientProfile.objects.count()
+    records_in_period = MedicalRecord.objects.filter(
+        created_at__date__gte=date_from, created_at__date__lte=date_to
+    ).count()
+    appt_in_period = Appointment.objects.filter(
+        date__gte=date_from, date__lte=date_to
+    ).count()
+    walk_in_appts = next(
+        (
+            r['count']
+            for r in appt_by_category
+            if r['patient__patient_profile__patient_category'] == PATIENT_CATEGORY_WALK_IN
+        ),
+        0,
+    )
+    walk_in_records = next(
+        (
+            r['count']
+            for r in records_by_category
+            if r['patient__patient_profile__patient_category'] == PATIENT_CATEGORY_WALK_IN
+        ),
+        0,
+    )
+    total_patients = PatientProfile.objects.count()
 
     return {
         'demographics': demographics,
+        'patients_by_category': category_stats['by_category'],
+        'walk_in_patients': category_stats['walk_in_patients'],
+        'walk_in_appointments': walk_in_appts,
+        'walk_in_records': walk_in_records,
+        'appt_by_category': appt_by_category,
+        'records_by_category': records_by_category,
         'health_by_course': health_by_course,
         'health_by_year': health_by_year,
-        'health_by_course_total': records_in_period,
+        'health_by_course_total': sum(item['count'] for item in health_by_course),
         'health_by_year_total': sum(item['count'] for item in health_by_year),
         'appt_by_course': appt_by_course,
         'blood_types': blood_types,
@@ -870,6 +953,9 @@ def _write_population_summary_csv(writer, date_from, date_to):
     writer.writerow(['Summary KPIs'])
     writer.writerow(['Metric', 'Value'])
     writer.writerow(['Registered patients', data['total_patients']])
+    writer.writerow(['Walk-in patients', data.get('walk_in_patients', 0)])
+    writer.writerow(['Walk-in appointments (period)', data.get('walk_in_appointments', 0)])
+    writer.writerow(['Walk-in medical records (period)', data.get('walk_in_records', 0)])
     writer.writerow(['Medical records in period', data['records_in_period']])
     writer.writerow(['Appointments in period', data['appt_in_period']])
     writer.writerow([])
@@ -881,6 +967,7 @@ def _write_population_summary_csv(writer, date_from, date_to):
             writer.writerow([row.get(label_key) or 'Unknown', row['count']])
         writer.writerow([])
 
+    _write_distribution('Patients by category', data.get('patients_by_category') or [], 'label')
     _write_distribution('Gender distribution', demo['gender'], 'gender')
     _write_distribution('Year level distribution', demo['year_level'], 'year_level')
     _write_distribution('Course distribution', demo['course'], 'course')

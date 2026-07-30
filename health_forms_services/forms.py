@@ -5,6 +5,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from core.academic_catalog import active_colleges_queryset, courses_by_college, year_levels_by_college
 from .models import HealthProfileForm, DentalHealthForm, DentalServicesRequest, PatientChart, PatientChartEntry, Prescription, PrescriptionItem
 
 User = get_user_model()
@@ -214,6 +215,7 @@ DENTAL_PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
         'grid_cols': 'md:grid-cols-1',
     },
     {
+        'key': 'institutional_details',
         'label': 'Institution',
         'icon': 'fa-building',
         'icon_bg': 'bg-violet-50',
@@ -236,6 +238,60 @@ DENTAL_PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
         'grid_cols': 'md:grid-cols-1',
     },
 )
+
+GUEST_DESIGNATION_VALUE = 'guest'
+GUEST_DESIGNATION_LABEL = 'Guest'
+GUEST_INSTITUTIONAL_FIELDS: tuple[str, ...] = (
+    'institution_id',
+    'department_college_office',
+    'course',
+    'year_level',
+    'position',
+    'specialization',
+    'license_number',
+    'ptr_no',
+)
+GUEST_CHART_INSTITUTIONAL_FIELDS: tuple[str, ...] = ('department_college_office',)
+
+
+def designation_choices_with_guest(choices):
+    normalized = list(choices or [])
+    values = [value for value, _ in normalized if value]
+    if GUEST_DESIGNATION_VALUE not in values:
+        normalized.append((GUEST_DESIGNATION_VALUE, GUEST_DESIGNATION_LABEL))
+    return normalized
+
+
+def _field_selected_value(form: forms.Form, field_name: str, instance_attr: str | None = None) -> str:
+    value = ''
+    if form.is_bound:
+        value = (form.data.get(form.add_prefix(field_name)) or form.data.get(field_name) or '').strip()
+    if not value:
+        value = (form.initial.get(field_name) or '').strip()
+    if not value and form.instance and instance_attr:
+        value = (getattr(form.instance, instance_attr, None) or '').strip()
+    return value
+
+
+def _apply_academic_select_widgets(form: forms.Form, department_field: str, course_field: str | None = None, year_field: str | None = None):
+    colleges = list(active_colleges_queryset().values_list('name', flat=True))
+    department = _field_selected_value(form, department_field, department_field)
+    courses_map = courses_by_college()
+    years_map = year_levels_by_college()
+
+    if department_field in form.fields:
+        form.fields[department_field].widget = forms.Select(attrs={'class': 'form-select'})
+        form.fields[department_field].choices = [('', 'Select college/department'), *[(name, name) for name in colleges]]
+
+    if course_field and course_field in form.fields:
+        course_options = courses_map.get(department, [])
+        form.fields[course_field].widget = forms.Select(attrs={'class': 'form-select'})
+        form.fields[course_field].choices = [('', 'Select course/program'), *[(name, name) for name in course_options]]
+
+    if year_field and year_field in form.fields:
+        year_options = years_map.get(department, [])
+        form.fields[year_field].widget = forms.Select(attrs={'class': 'form-select'})
+        form.fields[year_field].choices = [('', 'Select year level'), *[(name, name) for name in year_options]]
 
 DENTAL_SOFT_TISSUE_FIELDS: tuple[tuple[str, str], ...] = (
     ('soft_tissue_lips', 'Lips'),
@@ -435,6 +491,27 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                 choice for choice in self.fields['designation'].choices
                 if choice[0] != 'employee'
             ]
+            self.fields['designation'].choices = designation_choices_with_guest(
+                self.fields['designation'].choices
+            )
+        designation_value = ''
+        if self.is_bound:
+            designation_value = (self.data.get(self.add_prefix('designation')) or self.data.get('designation') or '').strip().lower()
+        if not designation_value:
+            designation_value = (self.initial.get('designation') or '').strip().lower()
+        if not designation_value and self.instance and getattr(self.instance, 'designation', None):
+            designation_value = (self.instance.designation or '').strip().lower()
+        if designation_value == 'patient':
+            designation_value = 'student'
+        if designation_value == GUEST_DESIGNATION_VALUE and 'department_college_office' in self.fields:
+            self.fields['department_college_office'].required = False
+
+        _apply_academic_select_widgets(
+            self,
+            department_field='department_college_office',
+            course_field='course',
+            year_field='year_level',
+        )
 
         if readonly:
             for field in self.fields.values():
@@ -444,7 +521,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                 widget.attrs['class'] = f'{existing_class} bg-gray-50 cursor-not-allowed opacity-90'.strip()
                 widget.attrs['aria-readonly'] = 'true'
 
-    def personal_info_sections(self):
+    def _selected_designation(self):
         designation = ''
         if self.is_bound:
             designation = (self.data.get(self.add_prefix('designation')) or self.data.get('designation') or '').strip().lower()
@@ -452,9 +529,12 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             designation = (self.initial.get('designation') or '').strip().lower()
         if not designation and self.instance and getattr(self.instance, 'designation', None):
             designation = (self.instance.designation or '').strip().lower()
-
         if designation == 'patient':
             designation = 'student'
+        return designation
+
+    def personal_info_sections(self):
+        designation = self._selected_designation()
 
         institutional_base = ['designation', 'institution_id', 'department_college_office']
         designation_specific = {
@@ -462,6 +542,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'staff': ['position'],
             'employee': ['position'],
             'doctor': ['position', 'specialization', 'license_number', 'ptr_no'],
+            'guest': [],
         }
 
         sections = []
@@ -475,6 +556,9 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                     section_desc = 'Clinical workplace affiliation and professional credentials.'
                 elif designation in {'staff', 'employee'}:
                     section_desc = 'Workplace affiliation and position details.'
+                elif designation == GUEST_DESIGNATION_VALUE:
+                    section_fields = ['designation']
+                    section_desc = 'Guest patients do not require institutional details.'
                 else:
                     section_desc = 'School affiliation and student details.'
 
@@ -485,6 +569,14 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             ]
             sections.append({**section, 'description': section_desc, 'fields': fields})
         return sections
+
+    def clean(self):
+        cleaned = super().clean()
+        if (cleaned.get('designation') or '').strip().lower() == GUEST_DESIGNATION_VALUE:
+            for field_name in GUEST_INSTITUTIONAL_FIELDS:
+                if field_name in cleaned:
+                    cleaned[field_name] = ''
+        return cleaned
 
     def _clean_strict_ph(self, value):
         value = (value or '').strip()
@@ -704,6 +796,7 @@ class HealthProfileClinicalSummaryForm(forms.ModelForm):
         }
     
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         for name, label in CLINICAL_SUMMARY_NARRATIVE_FIELDS:
             self.fields[name].label = label
@@ -713,6 +806,14 @@ class HealthProfileClinicalSummaryForm(forms.ModelForm):
         self.fields['examining_physician'].choices = [('', 'Select physician')] + [
             (doctor.id, f"Dr. {doctor.get_full_name()}") for doctor in doctors
         ]
+        if self.is_bound or not self.user or self.user.role not in {'doctor', 'staff'}:
+            return
+        if (self.instance and getattr(self.instance, 'examining_physician_id', None)) or self.initial.get('examining_physician'):
+            pass
+        else:
+            self.initial['examining_physician'] = self.user.pk
+        if not ((self.instance and getattr(self.instance, 'examination_date', None)) or self.initial.get('examination_date')):
+            self.initial['examination_date'] = timezone.localdate()
 
     def clinical_narrative_fields(self):
         return [
@@ -886,17 +987,53 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
         for name in required_fields:
             if name in self.fields:
                 self.fields[name].required = True
+        if 'designation' in self.fields:
+            self.fields['designation'].choices = designation_choices_with_guest(
+                self.fields['designation'].choices
+            )
+            self.fields['designation'].widget = forms.Select(
+                choices=[('', 'Select designation'), *self.fields['designation'].choices],
+                attrs={'class': 'form-select'},
+            )
+        _apply_academic_select_widgets(self, department_field='department_college_office')
+
+    def _selected_designation(self):
+        designation = ''
+        if self.is_bound:
+            designation = (self.data.get(self.add_prefix('designation')) or self.data.get('designation') or '').strip().lower()
+        if not designation:
+            designation = (self.initial.get('designation') or '').strip().lower()
+        if not designation and self.instance and getattr(self.instance, 'designation', None):
+            designation = (self.instance.designation or '').strip().lower()
+        if designation == 'patient':
+            designation = 'student'
+        return designation
 
     def dental_personal_sections(self):
+        designation = self._selected_designation()
         sections = []
         for section in DENTAL_PERSONAL_INFO_SECTIONS:
+            section_fields = list(section['fields'])
+            section_desc = section.get('description')
+            if section.get('key') == 'institutional_details':
+                if designation == GUEST_DESIGNATION_VALUE:
+                    section_fields = ['designation']
+                    section_desc = 'Guest patients do not require institutional details.'
+                else:
+                    section_fields = ['designation', 'department_college_office']
             fields = [
                 {'name': name, 'field': self[name]}
-                for name in section['fields']
+                for name in section_fields
                 if name in self.fields
             ]
-            sections.append({**section, 'fields': fields})
+            sections.append({**section, 'description': section_desc, 'fields': fields})
         return sections
+
+    def clean(self):
+        cleaned = super().clean()
+        if (cleaned.get('designation') or '').strip().lower() == GUEST_DESIGNATION_VALUE:
+            cleaned['department_college_office'] = ''
+        return cleaned
 
 
 class DentalHealthExaminationForm(forms.ModelForm):
@@ -1187,6 +1324,7 @@ PATIENT_CHART_PERSONAL_SECTIONS: tuple[dict[str, object], ...] = (
         'fields': ('email_address', 'contact_number', 'telephone_number'),
     },
     {
+        'key': 'institutional_details',
         'label': 'Designation',
         'icon': 'fa-building',
         'icon_bg': 'bg-violet-50',
@@ -1270,6 +1408,7 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
         for name, label in label_map.items():
             if name in self.fields:
                 self.fields[name].label = label
+        _apply_academic_select_widgets(self, department_field='department')
         field_help = {
             'last_name': 'As it appears on official records or school ID.',
             'first_name': 'Given name as it appears on official records.',
@@ -1297,25 +1436,50 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
                 attrs={'class': 'form-select'},
             )
         if 'designation' in self.fields:
-            choices = PatientChart.Designation.choices
+            choices = designation_choices_with_guest(PatientChart.Designation.choices)
             self.fields['designation'].choices = choices
             self.fields['designation'].empty_label = 'Select designation'
             self.fields['designation'].widget = forms.Select(
                 choices=[('', 'Select designation'), *choices],
                 attrs={'class': 'form-select'},
             )
+        _apply_academic_select_widgets(self, department_field='department_college_office')
+
+    def _selected_designation(self):
+        designation = ''
+        if self.is_bound:
+            designation = (self.data.get(self.add_prefix('designation')) or self.data.get('designation') or '').strip().lower()
+        if not designation:
+            designation = (self.initial.get('designation') or '').strip().lower()
+        if not designation and self.instance and getattr(self.instance, 'designation', None):
+            designation = (self.instance.designation or '').strip().lower()
+        if designation == 'patient':
+            designation = 'student'
+        return designation
 
     def personal_info_sections(self):
+        designation = self._selected_designation()
         sections = []
         for section in PATIENT_CHART_PERSONAL_SECTIONS:
+            section_fields = list(section['fields'])
+            section_desc = section.get('description')
+            if section.get('key') == 'institutional_details' and designation == GUEST_DESIGNATION_VALUE:
+                section_fields = ['designation']
+                section_desc = 'Guest patients do not require institutional details.'
             fields = [
                 {'name': name, 'field': self[name]}
-                for name in section['fields']
+                for name in section_fields
                 if name in self.fields
             ]
             if fields:
-                sections.append({**section, 'fields': fields})
+                sections.append({**section, 'description': section_desc, 'fields': fields})
         return sections
+
+    def clean(self):
+        cleaned = super().clean()
+        if (cleaned.get('designation') or '').strip().lower() == GUEST_DESIGNATION_VALUE:
+            cleaned['department_college_office'] = ''
+        return cleaned
 
 
 class PatientChartEntryForm(forms.ModelForm):

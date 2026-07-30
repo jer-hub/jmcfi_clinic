@@ -3,11 +3,16 @@ import re
 from django.conf import settings
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
 from core.models import PatientProfile, StaffProfile, User
+from core.walk_in_auth import create_walk_in_user
 from health_forms_services.forms import (
 	DIAGNOSTIC_TEST_TRIPLETS,
+	DentalHealthPersonalInfoForm,
+	HealthProfileClinicalSummaryForm,
 	IMMUNIZATION_FLAG_DATE_PAIRS,
+	PatientChartPersonalInfoForm,
 	join_prescription_body,
 	split_prescription_body,
 )
@@ -30,6 +35,57 @@ def _complete_staff_like_profile(user, staff_id, department='Clinic Operations')
 	profile.phone = '09123456789'
 	profile.save()
 	return profile
+
+
+class HealthProfileClinicalSummaryFormTests(TestCase):
+	def setUp(self):
+		self.doctor = User.objects.create_user(
+			email='doctor-clinical-form@test.com',
+			password='DoctorPass123!',
+			role='doctor',
+			is_staff=True,
+			is_active=True,
+			first_name='Current',
+			last_name='Doctor',
+		)
+		_complete_staff_like_profile(self.doctor, 'DOC-HF-CLIN-001')
+		self.patient = User.objects.create_user(
+			email='patient-clinical-form@test.com',
+			password='PatientPass123!',
+			role='patient',
+			is_active=True,
+		)
+		self.health_form = HealthProfileForm.objects.create(user=self.patient)
+
+	def test_defaults_examining_physician_to_logged_in_doctor_when_empty(self):
+		form = HealthProfileClinicalSummaryForm(instance=self.health_form, user=self.doctor)
+		self.assertEqual(form.initial.get('examining_physician'), self.doctor.pk)
+
+	def test_does_not_override_existing_examining_physician(self):
+		other_doctor = User.objects.create_user(
+			email='doctor-clinical-form-existing@test.com',
+			password='DoctorPass123!',
+			role='doctor',
+			is_staff=True,
+			is_active=True,
+			first_name='Existing',
+			last_name='Doctor',
+		)
+		_complete_staff_like_profile(other_doctor, 'DOC-HF-CLIN-002')
+		self.health_form.examining_physician = other_doctor
+		self.health_form.save(update_fields=['examining_physician'])
+		form = HealthProfileClinicalSummaryForm(instance=self.health_form, user=self.doctor)
+		self.assertNotEqual(form.initial.get('examining_physician'), self.doctor.pk)
+
+	def test_defaults_examination_date_to_today_when_empty(self):
+		form = HealthProfileClinicalSummaryForm(instance=self.health_form, user=self.doctor)
+		self.assertEqual(form.initial.get('examination_date'), timezone.localdate())
+
+	def test_does_not_override_existing_examination_date(self):
+		self.health_form.examination_date = timezone.localdate().replace(day=1)
+		self.health_form.save(update_fields=['examination_date'])
+		form = HealthProfileClinicalSummaryForm(instance=self.health_form, user=self.doctor)
+		self.assertEqual(form.initial.get('examination_date'), self.health_form.examination_date)
 
 
 @override_settings(
@@ -144,6 +200,11 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertEqual(first['id'], self.patient.id)
 
 	def test_patient_profile_prefill_endpoint_returns_expected_fields(self):
+		from core.doctor_access import ALL_MODULE_KEYS
+		profile = self.doctor.staff_profile
+		profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		profile.save(update_fields=['allowed_clinical_modules'])
+
 		response = self.client.get(
 			reverse('health_forms_services:patient_profile_prefill', args=[self.patient.id]),
 		)
@@ -152,12 +213,34 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertEqual(payload['first_name'], 'Ana')
 		self.assertEqual(payload['last_name'], 'Patient')
 		self.assertEqual(payload['contact_number'], '09171234567')
-		self.assertEqual(payload['department_college_office'], 'BSN - College of Nursing')
+		self.assertEqual(payload['department_college_office'], 'College of Nursing')
 		self.assertEqual(payload['guardian_name'], 'Parent Name')
 		self.assertEqual(payload['blood_type'], 'O+')
 		self.assertEqual(payload['allergies'], 'Peanuts')
 		self.assertEqual(payload['medical_conditions'], 'Asthma')
 		self.assertEqual(payload['zip_code'], '1000')
+
+	def test_patient_profile_prefill_marks_walk_in_as_guest(self):
+		from core.doctor_access import ALL_MODULE_KEYS
+		profile = self.doctor.staff_profile
+		profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		profile.save(update_fields=['allowed_clinical_modules'])
+
+		walk_in_user = create_walk_in_user(first_name='Walk', last_name='Guest')
+		PatientProfile.objects.filter(user=walk_in_user).update(
+			department='College of Nursing',
+			course='BSN',
+			year_level='4th Year',
+		)
+		response = self.client.get(
+			reverse('health_forms_services:patient_profile_prefill', args=[walk_in_user.id]),
+		)
+		self.assertEqual(response.status_code, 200)
+		payload = response.json()
+		self.assertEqual(payload['designation'], 'guest')
+		self.assertEqual(payload['department_college_office'], '')
+		self.assertEqual(payload['course'], '')
+		self.assertEqual(payload['year_level'], '')
 
 	def test_health_profile_picker_mappings_include_medical_fields(self):
 		from health_forms_services.picker_mappings import picker_field_mappings
@@ -706,11 +789,10 @@ class HealthFormSectionSaveTests(TestCase):
 			r'<form[^>]*data-section="personal"[^>]*data-section-save="ajax"',
 		)
 		first_name_match = re.search(r'<input[^>]*name="first_name"[^>]*>', content)
-		designation_match = re.search(r'<select[^>]*id="id_designation"[^>]*>', content)
+		designation_match = re.search(r'<input[^>]*type="hidden"[^>]*id="id_designation"[^>]*>', content)
 		self.assertIsNotNone(first_name_match)
 		self.assertIsNotNone(designation_match)
 		self.assertIn('disabled', first_name_match.group(0))
-		self.assertIn('disabled', designation_match.group(0))
 		self.assertIn('data-list-field-readonly="1"', content)
 
 	def test_ajax_invalid_section_returns_field_errors(self):
@@ -1601,11 +1683,12 @@ class PatientChartProcessFlowTests(TestCase):
 		)
 		self.assertContains(response, 'Name &amp; Demographics')
 
-	def test_create_form_designation_uses_student_and_employee_labels(self):
+	def test_create_form_designation_includes_guest_label(self):
 		response = self.client.get(reverse('health_forms_services:create_patient_chart'))
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Student')
 		self.assertContains(response, 'Employee')
+		self.assertContains(response, 'Guest')
 		self.assertNotContains(response, '>Patient</option>')
 
 	def test_edit_personal_saves(self):
@@ -1755,6 +1838,11 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 		institutional = next(s for s in sections if s.get('key') == 'institutional_details')
 		return [item['name'] for item in institutional['fields']]
 
+	def test_designation_field_includes_guest_option(self):
+		form = HealthProfilePersonalInfoForm()
+		choice_values = [value for value, _ in form.fields['designation'].choices]
+		self.assertIn('guest', choice_values)
+
 	def test_designation_field_excludes_employee_option(self):
 		form = HealthProfilePersonalInfoForm()
 		choice_values = [value for value, _ in form.fields['designation'].choices]
@@ -1784,10 +1872,79 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 			],
 		)
 
+	def test_institutional_fields_for_guest_designation(self):
+		form = HealthProfilePersonalInfoForm(initial={'designation': 'guest'})
+		field_names = self._institutional_field_names(form)
+		self.assertEqual(field_names, ['designation'])
+
+	def test_guest_clean_clears_institutional_fields(self):
+		form = HealthProfilePersonalInfoForm(data={
+			'last_name': 'Guest',
+			'first_name': 'User',
+			'date_of_birth': '2000-01-01',
+			'gender': 'female',
+			'designation': 'guest',
+			'department_college_office': 'College of Nursing',
+			'mobile_number': '+639171234567',
+			'email_address': 'guest@example.com',
+			'institution_id': '24-0001',
+			'course': 'BSN',
+			'year_level': '4th Year',
+			'position': 'Nurse',
+			'specialization': 'Internal Medicine',
+			'license_number': 'PRC-123',
+			'ptr_no': 'PTR-456',
+		})
+		self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+		self.assertEqual(form.cleaned_data['department_college_office'], '')
+		self.assertEqual(form.cleaned_data['institution_id'], '')
+		self.assertEqual(form.cleaned_data['course'], '')
+		self.assertEqual(form.cleaned_data['year_level'], '')
+		self.assertEqual(form.cleaned_data['position'], '')
+		self.assertEqual(form.cleaned_data['specialization'], '')
+		self.assertEqual(form.cleaned_data['license_number'], '')
+		self.assertEqual(form.cleaned_data['ptr_no'], '')
+
 	def test_personal_info_form_readonly_disables_fields(self):
 		form = HealthProfilePersonalInfoForm(readonly=True)
 		for name, field in form.fields.items():
 			self.assertTrue(field.disabled, msg=name)
+
+
+class DentalAndChartGuestDesignationTests(TestCase):
+	def test_dental_personal_sections_for_guest_hide_department(self):
+		form = DentalHealthPersonalInfoForm(initial={'designation': 'guest'})
+		sections = form.dental_personal_sections()
+		institution = next(s for s in sections if s.get('label') == 'Institution')
+		field_names = [item['name'] for item in institution['fields']]
+		self.assertEqual(field_names, ['designation'])
+
+	def test_dental_personal_clean_clears_department_for_guest(self):
+		form = DentalHealthPersonalInfoForm(data={
+			'last_name': 'Guest',
+			'first_name': 'Dental',
+			'designation': 'guest',
+			'department_college_office': 'College of Nursing',
+		})
+		self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+		self.assertEqual(form.cleaned_data['department_college_office'], '')
+
+	def test_patient_chart_sections_for_guest_hide_department(self):
+		form = PatientChartPersonalInfoForm(initial={'designation': 'guest'})
+		sections = form.personal_info_sections()
+		designation_section = next(s for s in sections if s.get('label') == 'Designation')
+		field_names = [item['name'] for item in designation_section['fields']]
+		self.assertEqual(field_names, ['designation'])
+
+	def test_patient_chart_clean_clears_department_for_guest(self):
+		form = PatientChartPersonalInfoForm(data={
+			'last_name': 'Chart',
+			'first_name': 'Guest',
+			'designation': 'guest',
+			'department_college_office': 'College of Nursing',
+		})
+		self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+		self.assertEqual(form.cleaned_data['department_college_office'], '')
 
 
 @override_settings(

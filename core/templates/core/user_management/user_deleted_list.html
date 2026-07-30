@@ -97,17 +97,17 @@
                        aria-label="Select {{ user_item.get_full_name }}">
                 {% include "components/avatar.html" with user=user_item size="md" %}
                 <div class="min-w-0">
-                  <p class="text-sm font-semibold text-gray-900 truncate">{{ user_item.get_full_name }}</p>
-                  <p class="text-xs text-gray-500 truncate">{% if user_item.username %}@{{ user_item.username }}{% else %}{{ user_item.email }}{% endif %}</p>
+                  <p class="text-sm font-semibold text-gray-900 truncate" title="{{ user_item.get_full_name }}">{{ user_item.get_full_name }}</p>
+                  <p class="text-xs text-gray-500 truncate" title="{% if user_item.username %}@{{ user_item.username }}{% else %}{{ user_item.email }}{% endif %}">{% if user_item.username %}@{{ user_item.username }}{% else %}{{ user_item.email }}{% endif %}</p>
                 </div>
               </div>
               {% include "components/status_badge.html" with label="Deleted" variant="muted" size="sm" %}
             </div>
 
             <div class="p-4 space-y-3">
-              <div>
+              <div class="min-w-0">
                 <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Email</p>
-                <p class="text-sm text-gray-900 break-all">{{ user_item.email }}</p>
+                <p class="text-sm text-gray-900 truncate" title="{{ user_item.email }}">{{ user_item.email }}</p>
               </div>
               <div class="grid grid-cols-2 gap-3 text-sm">
                 <div>
@@ -136,39 +136,51 @@
         {% endfor %}
       </div>
 
-      <div class="hidden md:block overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200">
+      <div class="hidden md:block">
+        <table class="w-full table-fixed divide-y divide-gray-200">
+          <colgroup>
+            <col class="w-10">
+            <col>
+            <col class="w-[28%]">
+            <col class="w-[7.5rem]">
+            <col class="w-[8.5rem]">
+            <col class="w-[7.5rem]">
+          </colgroup>
           <thead class="bg-gray-50">
             <tr>
-              <th scope="col" class="px-4 py-3 text-left w-10">
+              <th scope="col" class="px-2 py-3 text-left">
                 <span class="sr-only">Select</span>
               </th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deleted on</th>
-              <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th scope="col" class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+              <th scope="col" class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+              <th scope="col" class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+              <th scope="col" class="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Deleted</th>
+              <th scope="col" class="px-2 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             {% for user_item in users %}
               <tr class="hover:bg-gray-50 transition-colors deleted-user-row">
-                <td class="px-4 py-3 whitespace-nowrap">
+                <td class="px-2 py-2.5 align-middle">
                   <input type="checkbox" name="user_ids" value="{{ user_item.id }}" form="deleted-users-bulk-form"
                          class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500/30"
                          aria-label="Select {{ user_item.get_full_name }}">
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap">
-                  <div class="flex items-center gap-3">
-                    {% include "components/avatar.html" with user=user_item size="md" %}
-                    <div>
-                      <p class="text-sm font-medium text-gray-900">{{ user_item.get_full_name }}</p>
-                      <p class="text-xs text-gray-500">{% if user_item.username %}@{{ user_item.username }}{% else %}{{ user_item.email }}{% endif %}</p>
+                <td class="px-3 py-2.5 align-middle min-w-0">
+                  <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="flex-shrink-0">
+                      {% include "components/avatar.html" with user=user_item size="sm" %}
+                    </div>
+                    <div class="min-w-0">
+                      <p class="text-sm font-medium text-gray-900 truncate" title="{{ user_item.get_full_name }}">{{ user_item.get_full_name }}</p>
+                      <p class="text-xs text-gray-500 truncate" title="{% if user_item.username %}@{{ user_item.username }}{% else %}{{ user_item.email }}{% endif %}">{% if user_item.username %}@{{ user_item.username }}{% else %}{{ user_item.email }}{% endif %}</p>
                     </div>
                   </div>
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-700">{{ user_item.email }}</td>
-                <td class="px-6 py-3 whitespace-nowrap">
+                <td class="px-2 py-2.5 align-middle min-w-0">
+                  <p class="text-sm text-gray-700 truncate" title="{{ user_item.email }}">{{ user_item.email }}</p>
+                </td>
+                <td class="px-2 py-2.5 align-middle">
                   {% if user_item.role == 'admin' %}
                     {% include "components/status_badge.html" with label=user_item.get_role_display variant="danger" size="sm" %}
                   {% elif user_item.role == 'staff' or user_item.role == 'doctor' %}
@@ -177,13 +189,11 @@
                     {% include "components/status_badge.html" with label=user_item.get_role_display variant="info" size="sm" %}
                   {% endif %}
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500">
-                  {{ user_item.deleted_at|date:"M d, Y - g:i A" }}
+                <td class="px-2 py-2.5 align-middle text-xs text-gray-500 whitespace-nowrap" title="{{ user_item.deleted_at|date:'M d, Y - g:i A' }}">
+                  {{ user_item.deleted_at|date:"M j, Y" }}
                 </td>
-                <td class="px-6 py-3 whitespace-nowrap text-right text-sm font-medium">
-                  <div class="flex items-center justify-end">
-                    {% include "core/user_management/_deleted_user_row_actions.html" with user_item=user_item %}
-                  </div>
+                <td class="px-2 py-2.5 align-middle text-right">
+                  {% include "core/user_management/_deleted_user_row_actions.html" with user_item=user_item %}
                 </td>
               </tr>
             {% endfor %}

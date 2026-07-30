@@ -19,6 +19,9 @@ function quickEditModal() {
         academicCollege: '',
         academicCourse: '',
         academicYearLevel: '',
+        collegeQuery: '',
+        collegeOpen: false,
+        collegeHighlight: 0,
         isSaving: false,
         currentValues: {},
         validationError: '',
@@ -58,12 +61,122 @@ function quickEditModal() {
                 this.academicCourse = this.currentValues.course || '{{ profile.course|default:""|escapejs }}';
                 this.academicYearLevel = this.currentValues.year_level || '{{ profile.year_level|default:""|escapejs }}';
             }
+            if (fieldType === 'course_select') {
+                this.collegeQuery = this.selectedCollege || '';
+            } else if (fieldType === 'academic_bundle') {
+                this.collegeQuery = this.academicCollege || '';
+            } else {
+                this.collegeQuery = '';
+            }
+            this.collegeOpen = false;
+            this.collegeHighlight = 0;
             this.validationError = '';
             this.isOpen = true;
         },
 
         get collegeFieldOptions() {
             return (window.__jmcfiAcademicCatalog || {}).colleges || [];
+        },
+
+        get filteredCollegeSearchOptions() {
+            const q = (this.collegeQuery || '').trim().toLowerCase();
+            if (!q) return this.collegeFieldOptions;
+            return this.collegeFieldOptions.filter((name) => String(name).toLowerCase().includes(q));
+        },
+
+        openCollegeSearch(mode) {
+            this.collegeOpen = true;
+            const options = this.filteredCollegeSearchOptions;
+            const current = mode === 'course' ? this.selectedCollege : this.academicCollege;
+            const selectedIdx = current ? options.indexOf(current) : -1;
+            this.collegeHighlight = selectedIdx >= 0 ? selectedIdx : 0;
+        },
+
+        startCollegeSearch(mode) {
+            this.collegeQuery = '';
+            this.openCollegeSearch(mode);
+            this.$nextTick(() => {
+                if (this.$refs.collegeSearch) this.$refs.collegeSearch.focus();
+            });
+        },
+
+        closeCollegeSearch(mode) {
+            this.collegeOpen = false;
+            if (mode === 'course') {
+                this.collegeQuery = this.selectedCollege || '';
+            } else if (mode === 'academic') {
+                this.collegeQuery = this.academicCollege || '';
+            }
+        },
+
+        collegeInitial(name) {
+            const text = String(name || '').trim();
+            if (!text) return '?';
+            const words = text.split(/\s+/).filter(Boolean);
+            if (words.length >= 2) {
+                return (words[0][0] + words[1][0]).toUpperCase();
+            }
+            return text.slice(0, 2).toUpperCase();
+        },
+
+        selectCollegeOption(option, mode) {
+            const value = option || '';
+            if (mode === 'course') {
+                this.selectedCollege = value;
+                if (this.fieldValue && !this.filteredCourseOptions.includes(this.fieldValue)) {
+                    this.fieldValue = '';
+                }
+            } else {
+                this.academicCollege = value;
+                if (this.academicCourse && !this.filteredAcademicCourseOptions.includes(this.academicCourse)) {
+                    this.academicCourse = '';
+                }
+                if (this.academicYearLevel && !this.yearLevelFieldOptions.includes(this.academicYearLevel)) {
+                    this.academicYearLevel = '';
+                }
+            }
+            this.collegeQuery = value;
+            this.collegeOpen = false;
+            this.validationError = '';
+        },
+
+        clearCollegeSelection(mode) {
+            if (mode === 'course') {
+                this.selectedCollege = '';
+                this.fieldValue = '';
+            } else {
+                this.academicCollege = '';
+                this.academicCourse = '';
+                this.academicYearLevel = '';
+            }
+            this.collegeQuery = '';
+            this.collegeOpen = true;
+            this.collegeHighlight = 0;
+            this.validationError = '';
+            this.$nextTick(() => {
+                if (this.$refs.collegeSearch) this.$refs.collegeSearch.focus();
+            });
+        },
+
+        highlightNextCollege() {
+            const len = this.filteredCollegeSearchOptions.length;
+            if (!len) return;
+            this.collegeOpen = true;
+            this.collegeHighlight = (this.collegeHighlight + 1) % len;
+        },
+
+        highlightPrevCollege() {
+            const len = this.filteredCollegeSearchOptions.length;
+            if (!len) return;
+            this.collegeOpen = true;
+            this.collegeHighlight = (this.collegeHighlight - 1 + len) % len;
+        },
+
+        selectHighlightedCollege(mode) {
+            const options = this.filteredCollegeSearchOptions;
+            if (!options.length) return;
+            const idx = Math.min(Math.max(this.collegeHighlight, 0), options.length - 1);
+            this.selectCollegeOption(options[idx], mode);
         },
 
         get yearLevelFieldOptions() {
@@ -351,6 +464,9 @@ function quickEditModal() {
             this.academicCollege = '';
             this.academicCourse = '';
             this.academicYearLevel = '';
+            this.collegeQuery = '';
+            this.collegeOpen = false;
+            this.collegeHighlight = 0;
             this.validationError = '';
         }
     }

@@ -605,18 +605,22 @@ def profile_view(request):
     profile = get_user_profile(request.user)
     missing_fields = get_missing_profile_fields(request.user)
 
-    # Completion % uses the same category-aware required set as the gate.
+    # Completion % uses the same required set as the gate (walk-ins skip institutional).
     completion_percentage = 100
     if profile:
         required_fields = get_profile_required_fields(request.user.role)
         if role_matches(request.user.role, ROLE_PATIENT):
-            from .patient_category import category_from_profile, required_profile_fields_for_category
-            required_fields = list(
-                required_profile_fields_for_category(
-                    required_fields,
-                    category_from_profile(profile),
-                )
-            )
+            from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
+            if is_walk_in_user(request.user):
+                required_fields = [
+                    f for f in required_fields
+                    if f not in WALK_IN_INSTITUTIONAL_FIELDS
+                ]
+            elif getattr(profile, 'is_employee', False):
+                required_fields = [
+                    f for f in required_fields
+                    if f not in {'course', 'year_level'}
+                ]
         if required_fields:
             filled_count = len(required_fields) - len(missing_fields)
             completion_percentage = max(0, min(100, int((filled_count / len(required_fields)) * 100)))
@@ -677,6 +681,13 @@ def quick_edit_profile(request):
             if is_ajax:
                 return JsonResponse({'success': False, 'error': 'Academic quick edit is only available for patients.'}, status=400)
             messages.error(request, 'Academic quick edit is only available for patients.')
+            return redirect('core:profile')
+
+        from .walk_in_auth import is_walk_in_user
+        if is_walk_in_user(request.user):
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': 'Academic information is not used for walk-in guests.'}, status=400)
+            messages.error(request, 'Academic information is not used for walk-in guests.')
             return redirect('core:profile')
 
         department = request.POST.get('department', '').strip()
@@ -1159,8 +1170,12 @@ def edit_profile(request):
             request.session['profile_welcome_shown'] = True
     
     catalog_context = {}
+    include_academic_catalog = False
     if role_matches(request.user.role, ROLE_PATIENT):
-        catalog_context = patient_catalog_context_for_form(form, request.user)
+        from .walk_in_auth import is_walk_in_user
+        include_academic_catalog = not is_walk_in_user(request.user)
+        if include_academic_catalog:
+            catalog_context = patient_catalog_context_for_form(form, request.user)
 
     context = {
         'form': form,
@@ -1169,7 +1184,7 @@ def edit_profile(request):
         'subject_user': request.user,
         'is_first_time': is_first_time,
         'dental_record': dental_record,
-        'include_academic_catalog': role_matches(request.user.role, ROLE_PATIENT),
+        'include_academic_catalog': include_academic_catalog,
         **catalog_context,
     }
     

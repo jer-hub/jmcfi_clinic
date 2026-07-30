@@ -145,15 +145,18 @@ def is_profile_complete(user):
 
         required_fields = get_profile_required_fields(user.role)
         from .roles import ROLE_PATIENT, role_matches
-        from .patient_category import category_from_profile, required_profile_fields_for_category
+        from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
 
-        if role_matches(user.role, ROLE_PATIENT):
-            required_fields = list(
-                required_profile_fields_for_category(
-                    required_fields,
-                    category_from_profile(profile),
-                )
-            )
+        if role_matches(user.role, ROLE_PATIENT) and is_walk_in_user(user):
+            required_fields = [
+                f for f in required_fields
+                if f not in WALK_IN_INSTITUTIONAL_FIELDS
+            ]
+        elif role_matches(user.role, ROLE_PATIENT) and getattr(profile, 'is_employee', False):
+            required_fields = [
+                f for f in required_fields
+                if f not in {'course', 'year_level'}
+            ]
 
         for field in required_fields:
             if not _profile_field_filled(
@@ -172,7 +175,6 @@ FIELD_LABELS = {
     'last_name':         'Last Name',
     'patient_id':        'Patient ID',
     'student_id':        'Patient ID',  # legacy field name in settings JSON
-    'patient_category':  'Patient Category',
     'middle_name':       'Middle Name',
     'gender':            'Gender',
     'civil_status':      'Civil Status',
@@ -200,15 +202,22 @@ def get_missing_profile_fields(user):
     profile = get_user_profile(user)
     required_fields = get_profile_required_fields(user.role)
     from .roles import ROLE_PATIENT, role_matches
-    from .patient_category import category_from_profile, required_profile_fields_for_category
+    from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
 
-    if profile and role_matches(user.role, ROLE_PATIENT):
-        required_fields = list(
-            required_profile_fields_for_category(
-                required_fields,
-                category_from_profile(profile),
-            )
-        )
+    if role_matches(user.role, ROLE_PATIENT) and is_walk_in_user(user):
+        required_fields = [
+            f for f in required_fields
+            if f not in WALK_IN_INSTITUTIONAL_FIELDS
+        ]
+    elif (
+        profile
+        and role_matches(user.role, ROLE_PATIENT)
+        and getattr(profile, 'is_employee', False)
+    ):
+        required_fields = [
+            f for f in required_fields
+            if f not in {'course', 'year_level'}
+        ]
 
     if not required_fields:
         return []

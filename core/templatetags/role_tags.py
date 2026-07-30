@@ -21,6 +21,16 @@ def is_patient_role(user):
 
 
 @register.filter
+def is_walk_in_user(user):
+    """True when the user is a walk-in/guest (@walkin.local)."""
+    if not user:
+        return False
+    from core.walk_in_auth import is_walk_in_user as check_walk_in
+
+    return check_walk_in(user)
+
+
+@register.filter
 def split_list_items(value):
     """Split multiline/comma-separated text into cleaned non-empty items."""
     if not value:

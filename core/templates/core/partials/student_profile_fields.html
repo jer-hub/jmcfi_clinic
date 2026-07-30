@@ -1,11 +1,15 @@
+{% load role_tags %}
 <!-- Patient profile fields -->
 <div class="space-y-8"
+     {% if not user|is_walk_in_user %}
      x-data="studentAcademicEditForm(
          '{{ form.department.value|default_if_none:""|escapejs }}',
          '{{ form.course.value|default_if_none:""|escapejs }}',
-         '{{ form.year_level.value|default_if_none:""|escapejs }}'
+         '{{ form.year_level.value|default_if_none:""|escapejs }}',
+         {% if form.is_employee.value %}true{% else %}false{% endif %}
      )"
-     x-init="init()">
+     x-init="init()"
+     {% endif %}>
     <!-- Demographics Section -->
      <div class="border-b border-gray-100 pb-8">
         {% include "core/partials/_form_section_header.html" with title="Personal & Demographic Information" icon="fa-user" icon_theme="purple" %}
@@ -189,27 +193,160 @@
         </div>
     </div>
 
-    <!-- Institutional Information Section -->
+    {% if not user|is_walk_in_user %}
+    <!-- Institutional Information Section (hidden for walk-in/guest users) -->
     <div class="border-b border-gray-100 pb-8">
         {% include "core/partials/_form_section_header.html" with title="Academic Information" icon="fa-graduation-cap" icon_theme="indigo" %}
+        <div class="mb-4">
+            <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                <input type="checkbox"
+                       name="{{ form.is_employee.html_name }}"
+                       id="{{ form.is_employee.id_for_label }}"
+                       value="on"
+                       class="form-checkbox"
+                       x-model="isEmployee"
+                       @change="onEmployeeChange()"
+                       {% if form.is_employee.value %}checked{% endif %}>
+                <span>I am an employee</span>
+            </label>
+            <p class="mt-1 text-xs text-gray-500">Employees only select College/Department (no course or year level).</p>
+            {% if form.is_employee.errors %}
+                {% for error in form.is_employee.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ error }}</p>
+                {% endfor %}
+            {% endif %}
+        </div>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             <!-- Department -->
-            <div class="form-group">
-                <label for="{{ form.department.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+            <div class="form-group" :class="isEmployee ? 'md:col-span-1' : ''">
+                <label for="department-search" class="block text-sm font-semibold text-gray-700 mb-2">
                     Department / College <span class="text-red-600">*</span>
                 </label>
-                <select name="department"
-                        id="{{ form.department.id_for_label }}"
-                        x-model="department"
-                        @change="onDepartmentChange()"
-                        class="form-select"
-                        required>
-                    <option value="">Select college/department</option>
-                    {% for college in college_options %}
-                    <option value="{{ college }}"{% if form.department.value == college %} selected{% endif %}>{{ college }}</option>
-                    {% endfor %}
-                </select>
-                <p class="mt-1 text-xs text-gray-500">Select your college/department first</p>
+                <input type="hidden"
+                       name="department"
+                       id="{{ form.department.id_for_label }}"
+                       :value="department"
+                       required>
+                <div class="relative" @click.outside="closeDepartmentDropdown()">
+                    {# Selected summary (closed) #}
+                    <div x-show="department && !departmentOpen"
+                         x-cloak
+                         class="flex w-full items-center gap-3 rounded-xl border border-primary-200 bg-gradient-to-r from-primary-50 to-white px-3.5 py-3 shadow-sm ring-1 ring-primary-100">
+                        <button type="button"
+                                @click="startDepartmentSearch()"
+                                class="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none">
+                            <span class="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-sm font-semibold text-white shadow-sm"
+                                  x-text="departmentInitial"></span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block truncate text-sm font-semibold text-gray-900" x-text="department"></span>
+                                <span class="mt-0.5 block text-xs text-primary-700">Tap to search or change</span>
+                            </span>
+                            <i class="fas fa-chevron-down text-xs text-primary-500" aria-hidden="true"></i>
+                        </button>
+                        <button type="button"
+                                @click="clearDepartment()"
+                                class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                                aria-label="Clear department">
+                            <i class="fas fa-circle-xmark text-sm" aria-hidden="true"></i>
+                        </button>
+                    </div>
+
+                    {# Search trigger (empty or open) #}
+                    <div x-show="!department || departmentOpen" x-cloak class="form-input-icon">
+                        <i class="fas fa-magnifying-glass form-input-icon__icon text-sm" aria-hidden="true"></i>
+                        <input type="text"
+                               id="department-search"
+                               x-ref="departmentSearch"
+                               x-model="departmentQuery"
+                               @focus="openDepartmentDropdown()"
+                               @input="onDepartmentQueryInput()"
+                               @keydown.arrow-down.prevent="highlightNextDepartment()"
+                               @keydown.arrow-up.prevent="highlightPrevDepartment()"
+                               @keydown.enter.prevent="selectHighlightedDepartment()"
+                               @keydown.escape.prevent="closeDepartmentDropdown()"
+                               autocomplete="off"
+                               role="combobox"
+                               :placeholder="isEmployee ? 'Search workplace college/department…' : 'Type to find your college/department…'"
+                               class="form-input pr-10"
+                               :class="departmentOpen ? 'border-primary-400 ring-2 ring-primary-500/20' : ''"
+                               aria-autocomplete="list"
+                               aria-controls="department-options"
+                               :aria-expanded="departmentOpen.toString()">
+                        <button type="button"
+                                x-show="departmentQuery"
+                                x-cloak
+                                @click="departmentQuery = ''; openDepartmentDropdown(); departmentHighlight = 0"
+                                class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                                aria-label="Clear search">
+                            <i class="fas fa-circle-xmark text-sm" aria-hidden="true"></i>
+                        </button>
+                    </div>
+
+                    <div x-show="departmentOpen"
+                         x-cloak
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 -translate-y-1"
+                         x-transition:enter-end="opacity-100 translate-y-0"
+                         x-transition:leave="transition ease-in duration-100"
+                         x-transition:leave-start="opacity-100 translate-y-0"
+                         x-transition:leave-end="opacity-0 -translate-y-1"
+                         id="department-options"
+                         class="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl ring-1 ring-black/5">
+                        <div class="sticky top-0 flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50 px-3 py-2">
+                            <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                                <span x-text="filteredCollegeOptions.length"></span>
+                                <span x-text="filteredCollegeOptions.length === 1 ? ' match' : ' matches'"></span>
+                            </p>
+                            <p class="hidden text-[10px] text-gray-400 sm:block">
+                                <kbd class="rounded border border-gray-200 bg-white px-1 py-0.5 font-sans">↑↓</kbd>
+                                move
+                                <kbd class="ml-1 rounded border border-gray-200 bg-white px-1 py-0.5 font-sans">Enter</kbd>
+                                select
+                            </p>
+                        </div>
+                        <div x-ref="departmentList" class="max-h-56 overflow-y-auto p-1.5">
+                            <template x-if="filteredCollegeOptions.length">
+                                <ul role="listbox" aria-label="College and department options">
+                                    <template x-for="(option, idx) in filteredCollegeOptions" :key="option">
+                                        <li role="option" :aria-selected="(idx === departmentHighlight).toString()">
+                                            <button type="button"
+                                                    :data-dept-idx="idx"
+                                                    class="flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors"
+                                                    :class="idx === departmentHighlight
+                                                        ? 'border-primary-200 bg-primary-50'
+                                                        : (option === department ? 'border-primary-100 bg-primary-50/60' : 'border-transparent hover:bg-gray-50')"
+                                                    @mouseenter="departmentHighlight = idx"
+                                                    @click="selectDepartment(option)">
+                                                <span class="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                                                      :class="idx === departmentHighlight || option === department
+                                                          ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white'
+                                                          : 'bg-gray-100 text-gray-600'"
+                                                      x-text="collegeInitial(option)"></span>
+                                                <span class="min-w-0 flex-1">
+                                                    <span class="block truncate text-sm font-medium"
+                                                          :class="idx === departmentHighlight || option === department ? 'text-primary-900' : 'text-gray-800'"
+                                                          x-text="option"></span>
+                                                </span>
+                                                <i class="fas fa-check text-xs text-primary-600"
+                                                   x-show="option === department"
+                                                   x-cloak
+                                                   aria-hidden="true"></i>
+                                            </button>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                            <div x-show="!filteredCollegeOptions.length" class="px-3 py-8 text-center">
+                                <i class="fas fa-building-columns mb-2 text-2xl text-gray-300" aria-hidden="true"></i>
+                                <p class="text-sm font-medium text-gray-600">No matches</p>
+                                <p class="mt-1 text-xs text-gray-400">Try another name or abbreviation</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-1.5 text-xs text-gray-500"
+                   x-show="!department"
+                   x-text="isEmployee ? 'Required — search and pick your workplace college/department' : 'Required — pick a college first to filter course and year level'"></p>
                 {% if form.department.errors %}
                     {% for error in form.department.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">
@@ -223,7 +360,7 @@
             </div>
 
             <!-- Course -->
-            <div class="form-group">
+            <div class="form-group" x-show="!isEmployee" x-cloak>
                 <label for="{{ form.course.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Course / Program
                     <span x-show="!isCourseOptional" class="text-red-600">*</span>
@@ -233,7 +370,7 @@
                         id="{{ form.course.id_for_label }}"
                         x-ref="courseSelect"
                         x-model="course"
-                        :required="!isCourseOptional"
+                        :required="!isEmployee && !isCourseOptional"
                         class="form-select">
                     <option value="">Select course/program</option>
                 </select>
@@ -251,7 +388,7 @@
             </div>
 
             <!-- Year Level -->
-            <div class="form-group">
+            <div class="form-group" x-show="!isEmployee" x-cloak>
                 <label for="{{ form.year_level.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Year Level <span class="text-red-600">*</span>
                 </label>
@@ -259,7 +396,7 @@
                         id="{{ form.year_level.id_for_label }}"
                         x-ref="yearLevelSelect"
                         x-model="yearLevel"
-                        required
+                        :required="!isEmployee"
                         class="form-select">
                     <option value="">Select year level</option>
                 </select>
@@ -276,7 +413,19 @@
                 {% endif %}
             </div>
         </div>
+        <template x-if="isEmployee">
+            <div>
+                <input type="hidden" name="course" value="">
+                <input type="hidden" name="year_level" value="">
+            </div>
+        </template>
     </div>
+    {% else %}
+    {# Walk-ins: omit academic UI; server clears these on save. #}
+    <input type="hidden" name="department" value="">
+    <input type="hidden" name="course" value="">
+    <input type="hidden" name="year_level" value="">
+    {% endif %}
 
     <!-- Medical Information Section -->
     <div>

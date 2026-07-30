@@ -108,10 +108,23 @@ def _patient_profile_prefill_payload(patient):
     """Shared payload contract for auto-prefilling create transaction forms."""
     profile = getattr(patient, 'patient_profile', None)
     staff_profile = getattr(patient, 'staff_profile', None)
+    is_employee = bool(getattr(profile, 'is_employee', False)) if profile else False
     if staff_profile and not profile:
+        default_designation = 'employee'
+        is_employee = True
+    elif is_employee:
         default_designation = 'employee'
     else:
         default_designation = 'student'
+
+    department = getattr(profile, 'department', '') or ''
+    course = '' if is_employee else (getattr(profile, 'course', '') or '')
+    year_level = '' if is_employee else (getattr(profile, 'year_level', '') or '')
+    if is_employee:
+        department_college_office = department
+    else:
+        department_college_office = ' - '.join(filter(None, [course, department])) if profile else ''
+
     return {
         'id': patient.id,
         'name': patient.get_full_name() or patient.email or '',
@@ -134,24 +147,17 @@ def _patient_profile_prefill_payload(patient):
         'contact_number': getattr(profile, 'phone', '') or '',
         'telephone_number': getattr(profile, 'telephone_number', '') or '',
         'designation': default_designation,
-        'department_college_office': (
-            ' - '.join(filter(None, [getattr(profile, 'course', ''), getattr(profile, 'department', '')]))
-            if profile else ''
-        ),
-        'department': (
-            ' - '.join(filter(None, [getattr(profile, 'course', ''), getattr(profile, 'department', '')]))
-            if profile else ''
-        ),
+        'department_college_office': department_college_office,
+        'department': department_college_office,
         'guardian_name': getattr(profile, 'emergency_contact', '') or '',
         'guardian_contact': getattr(profile, 'emergency_phone', '') or '',
         'patient_id': getattr(profile, 'patient_id', '') or '',
-        'name': patient.get_full_name() or patient.email or '',
         'permanent_address': getattr(profile, 'address', '') or '',
         'zip_code': getattr(profile, 'zip_code', '') or '',
         'current_address': getattr(profile, 'address', '') or '',
         'mobile_number': getattr(profile, 'phone', '') or '',
-        'course': getattr(profile, 'course', '') or '',
-        'year_level': getattr(profile, 'year_level', '') or '',
+        'course': course,
+        'year_level': year_level,
         'institution_id': getattr(profile, 'patient_id', '') or '',
         'blood_type': getattr(profile, 'blood_type', '') or '',
         'allergies': getattr(profile, 'allergies', '') or '',

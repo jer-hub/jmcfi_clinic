@@ -24,13 +24,13 @@
       Medical
     </button>
     {% endif %}
-    {% if user|is_patient_role %}
+    {% if user|is_patient_role and not user|is_walk_in_user %}
     <button type="button"
             @click="activeTab = 'academic'"
             :class="activeTab === 'academic' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
             class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
       <i class="fas fa-graduation-cap text-xs"></i>
-      Academic
+      {% if profile.is_employee %}Department{% else %}Academic{% endif %}
     </button>
     {% elif user.role == 'staff' or user.role == 'doctor' %}
     <button type="button"

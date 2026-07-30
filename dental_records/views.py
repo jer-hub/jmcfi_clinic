@@ -458,6 +458,7 @@ def dental_record_create(request):
             # Pre-fill patient data if available
             if hasattr(preselected_patient, 'patient_profile') and preselected_patient.patient_profile:
                 profile = preselected_patient.patient_profile
+                is_employee = bool(getattr(profile, 'is_employee', False))
                 initial_data.update({
                     'middle_name': profile.middle_name or '',
                     'age': profile.age,
@@ -469,7 +470,7 @@ def dental_record_create(request):
                     'email': preselected_patient.email,
                     'contact_number': profile.phone or '',
                     'telephone_number': profile.telephone_number or '',
-                    'designation': 'student',
+                    'designation': 'employee' if is_employee else 'student',
                     'department_college_office': profile.department or '',
                     'guardian_name': profile.emergency_contact or '',
                     'guardian_contact': profile.emergency_phone or '',
@@ -999,6 +1000,7 @@ def student_dental_intake(request, appointment_id):
         try:
             if hasattr(request.user, 'patient_profile') and request.user.patient_profile:
                 profile = request.user.patient_profile
+                is_employee = bool(getattr(profile, 'is_employee', False))
                 from datetime import date
                 initial_data.update({
                     'middle_name': profile.middle_name or '',
@@ -1010,8 +1012,11 @@ def student_dental_intake(request, appointment_id):
                     'place_of_birth': profile.place_of_birth or '',
                     'contact_number': profile.phone or '',
                     'telephone_number': getattr(profile, 'telephone_number', '') or '',
+                    'designation': 'employee' if is_employee else 'student',
                     'department_college_office': (
-                        f"{profile.course or ''} - {profile.department or ''}".strip(' -')
+                        (profile.department or '')
+                        if is_employee
+                        else f"{profile.course or ''} - {profile.department or ''}".strip(' -')
                     ),
                     'guardian_name': profile.emergency_contact or '',
                     'guardian_contact': profile.emergency_phone or '',
@@ -1334,6 +1339,7 @@ def get_patient_profile(request, patient_id):
     try:
         if hasattr(patient, 'patient_profile'):
             profile = patient.patient_profile
+            is_employee = bool(getattr(profile, 'is_employee', False))
             data.update({
                 'student_id': profile.patient_id or '',
                 'middle_name': profile.middle_name or '',
@@ -1345,8 +1351,12 @@ def get_patient_profile(request, patient_id):
                 'address': profile.address or '',
                 'contact_number': profile.phone or '',
                 'telephone_number': profile.telephone_number or '',
-                'designation': 'student',
-                'department_college_office': f"{profile.course or ''} - {profile.department or ''}".strip(' -'),
+                'designation': 'employee' if is_employee else 'student',
+                'department_college_office': (
+                    (profile.department or '')
+                    if is_employee
+                    else f"{profile.course or ''} - {profile.department or ''}".strip(' -')
+                ),
                 'guardian_name': profile.emergency_contact or '',
                 'guardian_contact': profile.emergency_phone or '',
             })

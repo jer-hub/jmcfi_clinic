@@ -147,24 +147,6 @@ def apply_profile_required_fields_to_form(form, role: str | None) -> None:
     sync_widget_required_attrs(form)
 
 
-def apply_patient_category_required_fields(form, category: str | None) -> None:
-    """Adjust patient form required flags for student/employee/walk_in."""
-    from .patient_category import required_profile_fields_for_category
-
-    base = {name for name, field in form.fields.items() if field.required}
-    base.add('patient_category')
-    required = required_profile_fields_for_category(base, category)
-    required.add('patient_category')
-    for field_name in list(form.fields.keys()):
-        if field_name in ('blood_type', 'middle_name', 'telephone_number', 'profile_image'):
-            continue
-        if field_name == 'patient_category':
-            form.fields[field_name].required = True
-            continue
-        form.fields[field_name].required = field_name in required
-    sync_widget_required_attrs(form)
-
-
 def sync_widget_required_attrs(form) -> None:
     """Align HTML5 required/pattern attrs with Django field.required flags."""
     phone_fields = PHONE_PROFILE_FIELDS

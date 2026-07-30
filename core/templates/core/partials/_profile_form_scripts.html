@@ -56,12 +56,16 @@ function profileImagePreview() {
 }
 
 {% if include_academic_catalog %}
-function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel) {
+function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel, initialIsEmployee) {
     const catalog = window.__jmcfiAcademicCatalog || {};
     return {
         department: initialDepartment || '',
         course: initialCourse || '',
         yearLevel: initialYearLevel || '',
+        isEmployee: !!initialIsEmployee,
+        departmentQuery: initialDepartment || '',
+        departmentOpen: false,
+        departmentHighlight: 0,
         collegeOptions: catalog.colleges || [],
         courseOptionsByCollege: catalog.coursesByCollege || {},
         yearLevelOptionsByCollege: catalog.yearLevelsByCollege || {},
@@ -69,6 +73,113 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
 
         init() {
             this.syncSelections();
+            this.$nextTick(() => {
+                this.refreshDependentSelects();
+            });
+        },
+
+        get filteredCollegeOptions() {
+            const q = (this.departmentQuery || '').trim().toLowerCase();
+            if (!q) return this.collegeOptions;
+            return this.collegeOptions.filter((name) => String(name).toLowerCase().includes(q));
+        },
+
+        get departmentInitial() {
+            return this.collegeInitial(this.department);
+        },
+
+        collegeInitial(name) {
+            const text = String(name || '').trim();
+            if (!text) return '?';
+            const words = text.split(/\s+/).filter(Boolean);
+            if (words.length >= 2) {
+                return (words[0][0] + words[1][0]).toUpperCase();
+            }
+            return text.slice(0, 2).toUpperCase();
+        },
+
+        openDepartmentDropdown() {
+            this.departmentOpen = true;
+            const options = this.filteredCollegeOptions;
+            const selectedIdx = this.department ? options.indexOf(this.department) : -1;
+            this.departmentHighlight = selectedIdx >= 0 ? selectedIdx : 0;
+            this.$nextTick(() => this.scrollHighlightedDepartmentIntoView());
+        },
+
+        startDepartmentSearch() {
+            this.departmentQuery = '';
+            this.openDepartmentDropdown();
+            this.$nextTick(() => {
+                if (this.$refs.departmentSearch) this.$refs.departmentSearch.focus();
+            });
+        },
+
+        onDepartmentQueryInput() {
+            this.departmentOpen = true;
+            this.departmentHighlight = 0;
+            this.$nextTick(() => this.scrollHighlightedDepartmentIntoView());
+        },
+
+        closeDepartmentDropdown() {
+            this.departmentOpen = false;
+            this.departmentQuery = this.department || '';
+        },
+
+        selectDepartment(option) {
+            this.department = option || '';
+            this.departmentQuery = this.department;
+            this.departmentOpen = false;
+            this.onDepartmentChange();
+        },
+
+        clearDepartment() {
+            this.department = '';
+            this.departmentQuery = '';
+            this.departmentOpen = true;
+            this.departmentHighlight = 0;
+            this.onDepartmentChange();
+            this.$nextTick(() => {
+                if (this.$refs.departmentSearch) this.$refs.departmentSearch.focus();
+            });
+        },
+
+        scrollHighlightedDepartmentIntoView() {
+            const list = this.$refs.departmentList;
+            if (!list) return;
+            const el = list.querySelector(`[data-dept-idx="${this.departmentHighlight}"]`);
+            if (el && typeof el.scrollIntoView === 'function') {
+                el.scrollIntoView({ block: 'nearest' });
+            }
+        },
+
+        highlightNextDepartment() {
+            const len = this.filteredCollegeOptions.length;
+            if (!len) return;
+            if (!this.departmentOpen) this.openDepartmentDropdown();
+            this.departmentHighlight = (this.departmentHighlight + 1) % len;
+            this.$nextTick(() => this.scrollHighlightedDepartmentIntoView());
+        },
+
+        highlightPrevDepartment() {
+            const len = this.filteredCollegeOptions.length;
+            if (!len) return;
+            if (!this.departmentOpen) this.openDepartmentDropdown();
+            this.departmentHighlight = (this.departmentHighlight - 1 + len) % len;
+            this.$nextTick(() => this.scrollHighlightedDepartmentIntoView());
+        },
+
+        selectHighlightedDepartment() {
+            const options = this.filteredCollegeOptions;
+            if (!options.length) return;
+            const idx = Math.min(Math.max(this.departmentHighlight, 0), options.length - 1);
+            this.selectDepartment(options[idx]);
+        },
+
+        onEmployeeChange() {
+            if (this.isEmployee) {
+                this.course = '';
+                this.yearLevel = '';
+            }
             this.$nextTick(() => {
                 this.refreshDependentSelects();
             });
@@ -104,6 +215,9 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
         },
 
         refreshDependentSelects() {
+            if (this.isEmployee) {
+                return;
+            }
             this.populateSelect(
                 this.$refs.courseSelect,
                 'Select course/program',

@@ -7,13 +7,19 @@ import uuid
 from django.contrib.auth import get_user_model, login
 
 from .models import PatientProfile
-from .patient_category import PATIENT_CATEGORY_WALK_IN
 from .roles import ROLE_PATIENT
 
 User = get_user_model()
 
 WALK_IN_EMAIL_DOMAIN = 'walkin.local'
 WALK_IN_AUTH_BACKEND = 'django.contrib.auth.backends.ModelBackend'
+WALK_IN_INSTITUTIONAL_FIELDS = frozenset({'department', 'course', 'year_level'})
+
+
+def is_walk_in_user(user) -> bool:
+    """True when the user signed in via Continue as Guest (@walkin.local)."""
+    email = getattr(user, 'email', None) or ''
+    return email.lower().endswith(f'@{WALK_IN_EMAIL_DOMAIN}')
 
 
 def _unique_walk_in_patient_id() -> str:
@@ -27,10 +33,9 @@ def _unique_walk_in_patient_id() -> str:
 
 def create_walk_in_user() -> User:
     """
-    Create a new patient User + PatientProfile with category walk_in.
+    Create a new patient User + PatientProfile for a walk-in guest session.
 
     Each call yields a fresh identity (synthetic email, unusable password).
-    User post_save may create a TEMP PatientProfile; we upgrade it to walk_in.
     """
     token = uuid.uuid4().hex
     email = f'walkin-{token}@{WALK_IN_EMAIL_DOMAIN}'
@@ -50,9 +55,7 @@ def create_walk_in_user() -> User:
     )
     if not profile.patient_id or profile.patient_id.startswith('TEMP_'):
         profile.patient_id = _unique_walk_in_patient_id()
-    profile.patient_category = PATIENT_CATEGORY_WALK_IN
-    profile.save(update_fields=['patient_id', 'patient_category'])
-    # User.save() may have cached a TEMP profile with category=student; keep in sync.
+        profile.save(update_fields=['patient_id'])
     user.patient_profile = profile
     return user
 

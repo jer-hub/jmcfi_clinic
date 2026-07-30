@@ -14,15 +14,8 @@ from .models import (
 )
 from .profile_policy import apply_profile_required_fields_to_form, sync_widget_required_attrs
 from .academic_catalog import is_course_optional_for_department
-from .patient_category import (
-    PATIENT_CATEGORY_EMPLOYEE,
-    PATIENT_CATEGORY_STUDENT,
-    PATIENT_CATEGORY_WALK_IN,
-    SELECTABLE_PATIENT_CATEGORY_CHOICES,
-    is_walk_in_category,
-    normalize_patient_category,
-)
 from .utils import normalize_person_name, age_from_date_of_birth
+from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
@@ -102,13 +95,13 @@ class StudentProfileForm(forms.ModelForm):
     class Meta:
         model = StudentProfile
         fields = [
-            'patient_id', 'profile_image', 'patient_category',
+            'patient_id', 'profile_image',
             # Demographics
             'middle_name', 'gender', 'civil_status', 'religion', 'citizenship', 'date_of_birth', 'place_of_birth', 'age',
             # Contact Information
             'address', 'zip_code', 'phone', 'telephone_number', 'emergency_contact', 'emergency_phone',
             # Institutional Information
-            'course', 'year_level', 'department',
+            'is_employee', 'course', 'year_level', 'department',
             # Medical Information
             'blood_type', 'allergies', 'medical_conditions'
         ]
@@ -118,16 +111,15 @@ class StudentProfileForm(forms.ModelForm):
                 'placeholder': 'Enter your patient ID',
                 'required': True
             }),
-            'patient_category': forms.Select(attrs={
-                'class': SELECT_CLASS,
-                'required': True,
-            }),
             'profile_image': forms.FileInput(attrs={
                 'class': 'hidden',
                 'accept': 'image/*',
                 'id': 'profile-image-input',
                 'x-ref': 'profileImageInput',
                 '@change': 'handleFileChange($event)',
+            }),
+            'is_employee': forms.CheckboxInput(attrs={
+                'class': CHECKBOX_CLASS,
             }),
             'middle_name': forms.TextInput(attrs={
                 'class': INPUT_CLASS,
@@ -232,36 +224,39 @@ class StudentProfileForm(forms.ModelForm):
             role = getattr(self.instance.user, 'role', None) or 'patient'
         apply_profile_required_fields_to_form(self, role)
 
-        if 'patient_category' in self.fields:
-            existing_category = normalize_patient_category(
-                getattr(self.instance, 'patient_category', None)
-                if self.instance and self.instance.pk
-                else None
-            )
-            self._existing_patient_category = existing_category
-            if is_walk_in_category(existing_category):
-                # Walk-in accounts keep a fixed category (set only by guest login).
-                self.fields['patient_category'].choices = [
-                    (PATIENT_CATEGORY_WALK_IN, 'Walk-in'),
-                ]
-                self.fields['patient_category'].widget.attrs['disabled'] = True
-                self.initial['patient_category'] = PATIENT_CATEGORY_WALK_IN
-            else:
-                self.fields['patient_category'].choices = SELECTABLE_PATIENT_CATEGORY_CHOICES
-            self.fields['patient_category'].required = True
-            self.fields['patient_category'].label = 'Patient Category'
-            category = normalize_patient_category(
-                self.data.get('patient_category')
-                if self.is_bound and not is_walk_in_category(existing_category)
-                else (
-                    self.initial.get('patient_category')
-                    or getattr(self.instance, 'patient_category', None)
+        subject = self.user
+        if subject is None and self.instance and self.instance.pk:
+            subject = getattr(self.instance, 'user', None)
+        if subject is not None and is_walk_in_user(subject):
+            for field_name in (*WALK_IN_INSTITUTIONAL_FIELDS, 'is_employee'):
+                if field_name not in self.fields:
+                    continue
+                self.fields[field_name].required = False
+                self.fields[field_name].widget.attrs.pop('required', None)
+                self.fields[field_name].widget.attrs.pop('aria-required', None)
+            if 'patient_id' in self.fields:
+                # Walk-in IDs are system-assigned (WI-…); keep editable look via [readonly] CSS.
+                self.fields['patient_id'].widget.attrs['readonly'] = True
+                self.fields['patient_id'].widget.attrs['title'] = (
+                    'Walk-in patient ID cannot be changed'
                 )
-            )
-            if is_walk_in_category(existing_category):
-                category = PATIENT_CATEGORY_WALK_IN
-            from .profile_policy import apply_patient_category_required_fields
-            apply_patient_category_required_fields(self, category)
+            sync_widget_required_attrs(self)
+        else:
+            is_employee = False
+            if self.is_bound and 'is_employee' in self.fields:
+                is_employee = self.data.get(self.add_prefix('is_employee')) in (
+                    'on', 'true', 'True', '1', True,
+                )
+            elif self.instance and self.instance.pk:
+                is_employee = bool(getattr(self.instance, 'is_employee', False))
+            if is_employee:
+                for field_name in ('course', 'year_level'):
+                    if field_name not in self.fields:
+                        continue
+                    self.fields[field_name].required = False
+                    self.fields[field_name].widget.attrs.pop('required', None)
+                    self.fields[field_name].widget.attrs.pop('aria-required', None)
+                sync_widget_required_attrs(self)
 
         # Always optional (label + product policy), even if role settings still list them.
         for optional_field in ('blood_type', 'middle_name'):
@@ -294,44 +289,33 @@ class StudentProfileForm(forms.ModelForm):
         if dob and 'age' in self.fields:
             cleaned_data['age'] = age_from_date_of_birth(dob)
 
-        existing = getattr(self, '_existing_patient_category', None)
-        if is_walk_in_category(existing):
-            # Disabled select is not submitted; force walk_in and skip institutional fields.
-            category = PATIENT_CATEGORY_WALK_IN
-        else:
-            category = normalize_patient_category(cleaned_data.get('patient_category'))
-            if category == PATIENT_CATEGORY_WALK_IN:
-                # Google / admin profiles cannot self-select walk_in.
-                category = PATIENT_CATEGORY_STUDENT
-                self.add_error(
-                    'patient_category',
-                    'Walk-in is only available via Continue as Guest on the login page.',
-                )
-        cleaned_data['patient_category'] = category
+        subject = self.user
+        if subject is None and self.instance and self.instance.pk:
+            subject = getattr(self.instance, 'user', None)
+        if subject is not None and is_walk_in_user(subject):
+            cleaned_data['department'] = ''
+            cleaned_data['course'] = ''
+            cleaned_data['year_level'] = ''
+            cleaned_data['is_employee'] = False
+            return cleaned_data
+
+        is_employee = bool(cleaned_data.get('is_employee'))
         department = (cleaned_data.get('department') or '').strip()
         course = (cleaned_data.get('course') or '').strip()
         year_level = (cleaned_data.get('year_level') or '').strip()
 
-        if category == PATIENT_CATEGORY_WALK_IN:
-            cleaned_data['department'] = ''
-            cleaned_data['course'] = ''
-            cleaned_data['year_level'] = ''
-            return cleaned_data
-
-        if category == PATIENT_CATEGORY_EMPLOYEE:
+        if is_employee:
             cleaned_data['course'] = ''
             cleaned_data['year_level'] = ''
             if not department:
-                self.add_error('department', 'Department is required for employees.')
+                if self.fields.get('department') and self.fields['department'].required:
+                    self.add_error('department', 'Department is required for employees.')
                 return cleaned_data
             if not CollegeDepartment.objects.filter(is_active=True, name=department).exists():
                 self.add_error('department', 'Select a valid College/Department.')
             return cleaned_data
 
-        # Student
         if not department:
-            if self.fields.get('department') and self.fields['department'].required:
-                self.add_error('department', 'Department is required for students.')
             return cleaned_data
 
         if not CollegeDepartment.objects.filter(is_active=True, name=department).exists():
@@ -371,6 +355,19 @@ class StudentProfileForm(forms.ModelForm):
         )
 
     def clean_patient_id(self):
+        subject = self.user
+        if subject is None and self.instance and self.instance.pk:
+            subject = getattr(self.instance, 'user', None)
+        # Walk-ins cannot change their system-assigned WI-… ID (ignore POST tampering).
+        if (
+            subject is not None
+            and is_walk_in_user(subject)
+            and self.instance
+            and self.instance.pk
+            and self.instance.patient_id
+        ):
+            return self.instance.patient_id
+
         patient_id = (self.cleaned_data.get('patient_id') or '').strip()
         if not self.fields['patient_id'].required:
             return patient_id

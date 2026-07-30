@@ -18,7 +18,6 @@ class DentalRecord(models.Model):
     DESIGNATION_CHOICES = [
         ('student', 'Student'),
         ('employee', 'Employee'),
-        ('walk_in', 'Walk-in'),
     ]
 
     STATUS_CHOICES = [

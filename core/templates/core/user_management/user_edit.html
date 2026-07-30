@@ -27,7 +27,6 @@
 
         <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8">
           {% include "core/partials/_profile_form_section.html" with title="Account" icon="fa-user-gear" icon_theme="indigo" description="Login credentials and account status." grid_class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6" %}
-            {% include "components/forms/field.html" with field=user_form.username %}
             {% include "components/forms/field.html" with field=user_form.email icon="fa-envelope" %}
             {% include "components/forms/field.html" with field=user_form.first_name %}
             {% include "components/forms/field.html" with field=user_form.last_name %}

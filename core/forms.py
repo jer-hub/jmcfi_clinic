@@ -816,12 +816,8 @@ class UserEditForm(forms.ModelForm):
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'is_active']
+        fields = ['email', 'first_name', 'last_name', 'is_active']
         widgets = {
-            'username': forms.TextInput(attrs={
-                'class': INPUT_CLASS,
-                'placeholder': 'Enter username'
-            }),
             'email': forms.EmailInput(attrs={
                 'class': INPUT_CLASS,
                 'placeholder': 'Enter email address'
@@ -843,7 +839,6 @@ class UserEditForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         for field_name in ['email', 'first_name', 'last_name']:
             self.fields[field_name].required = True
-        self.fields['username'].required = False
 
     def clean_email(self):
         email = (self.cleaned_data.get('email') or '').strip().lower()
@@ -851,15 +846,6 @@ class UserEditForm(forms.ModelForm):
         if User.objects.filter(email__iexact=email).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError("A user with this email already exists")
         return email
-
-    def clean_username(self):
-        username = (self.cleaned_data.get('username') or '').strip()
-        if not username:
-            return None
-
-        if User.objects.filter(username__iexact=username).exclude(pk=self.instance.pk).exists():
-            raise forms.ValidationError("A user with this username already exists")
-        return username
 
     def clean_first_name(self):
         return normalize_person_name(self.cleaned_data.get('first_name', ''))

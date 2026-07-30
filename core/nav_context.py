@@ -49,6 +49,13 @@ def nav_bar_context(request: HttpRequest) -> dict[str, Any]:
 
     Anonymous users get an empty dict (navbar is not rendered for them).
     """
+    from .doctor_access import (
+        HEALTH_FORM_MODULE_KEYS,
+        GATED_ROLES,
+        granted_modules,
+        service_module_keys_for_role,
+    )
+
     user = getattr(request, "user", None)
     if not user or not user.is_authenticated:
         return {}
@@ -65,7 +72,7 @@ def nav_bar_context(request: HttpRequest) -> dict[str, Any]:
 
     nav_active = {
         "dashboard": view_full == "core:dashboard",
-        "services": ns in SERVICES_NAMESPACES,
+        "services": ns in SERVICES_NAMESPACES or ns == "pharmacy",
         "health_forms": ns == "health_forms_services",
         "health_tips": ns == "health_tips",
         "analytics": ns == "analytics" and url_name == "dashboard",
@@ -83,4 +90,25 @@ def nav_bar_context(request: HttpRequest) -> dict[str, Any]:
         "profile_preferences": view_full == "core:profile_preferences",
     }
 
-    return {"nav_active": nav_active}
+    role = getattr(user, "role", None)
+    if role in GATED_ROLES:
+        granted = granted_modules(user)
+        service_keys = service_module_keys_for_role(role)
+        clinical_nav = {
+            "show_services": bool(granted & service_keys),
+            "show_health_forms": bool(granted & HEALTH_FORM_MODULE_KEYS),
+            "modules": granted,
+        }
+    else:
+        clinical_nav = {
+            "show_services": True,
+            "show_health_forms": True,
+            "modules": set(),
+        }
+
+    # doctor_nav alias kept for existing templates
+    return {
+        "nav_active": nav_active,
+        "clinical_nav": clinical_nav,
+        "doctor_nav": clinical_nav,
+    }

@@ -3,32 +3,65 @@
   Clinical notes + prescription medications (Alpine).
   Requires: patient, prescription_form, form_state, medication_entries_json, patient_age
 {% endcomment %}
-<div
-  x-data="{
-    medications: JSON.parse('{{ medication_entries_json|escapejs }}'),
-    physicianName: '{{ prescription_form.physician_name.value|default:''|escapejs }}',
-    physicianLicense: '{{ prescription_form.license_no.value|default:''|escapejs }}',
-    physicianPtr: '{{ prescription_form.ptr_no.value|default:''|escapejs }}',
+<script>
+window.medicalRecordPrescriptionForm = function medicalRecordPrescriptionForm(config) {
+  const blankMed = () => ({
+    _key: 'med-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+    name: '',
+    dosage: '',
+    frequency: '',
+    duration: '',
+    quantity: '',
+    instructions: '',
+  });
+
+  const initial = Array.isArray(config.medications) && config.medications.length
+    ? config.medications.map((med, i) => ({
+        _key: med._key || ('med-init-' + i),
+        name: med.name || '',
+        dosage: med.dosage || '',
+        frequency: med.frequency || '',
+        duration: med.duration || '',
+        quantity: med.quantity || '',
+        instructions: med.instructions || '',
+      }))
+    : [blankMed()];
+
+  return {
+    medications: initial,
+    physicianName: config.physicianName || '',
+    physicianLicense: config.physicianLicense || '',
+    physicianPtr: config.physicianPtr || '',
+
     get medicationsText() {
       return this.medications
-        .filter(med => med.name.trim() !== '')
-        .map(med => {
-          const parts = [med.name.trim()];
-          if (med.dosage.trim()) parts.push(med.dosage.trim());
-          if (med.frequency.trim()) parts.push(med.frequency.trim());
-          if (med.duration.trim()) parts.push(med.duration.trim());
-          if (med.quantity.trim()) parts.push(med.quantity.trim());
-          if (med.instructions.trim()) parts.push('(' + med.instructions.trim() + ')');
+        .filter((med) => String(med.name || '').trim() !== '')
+        .map((med) => {
+          const parts = [String(med.name || '').trim()];
+          const dosage = String(med.dosage || '').trim();
+          const frequency = String(med.frequency || '').trim();
+          const duration = String(med.duration || '').trim();
+          const quantity = String(med.quantity || '').trim();
+          const instructions = String(med.instructions || '').trim();
+          if (dosage) parts.push(dosage);
+          if (frequency) parts.push(frequency);
+          if (duration) parts.push(duration);
+          if (quantity) parts.push(quantity);
+          if (instructions) parts.push('(' + instructions + ')');
           return parts.join(' ');
         })
         .join('\n');
     },
+
     addMedication() {
-      this.medications.push({ name: '', dosage: '', frequency: '', duration: '', quantity: '', instructions: '' });
+      this.medications = [blankMed(), ...this.medications];
     },
+
     removeMedication(index) {
-      if (this.medications.length > 1) this.medications.splice(index, 1);
+      if (this.medications.length <= 1) return;
+      this.medications = this.medications.filter((_, i) => i !== index);
     },
+
     syncPhysician() {
       const selected = this.$refs.physicianSelect?.selectedOptions?.[0];
       if (selected?.value) {
@@ -41,8 +74,20 @@
       this.physicianLicense = '';
       this.physicianPtr = '';
     },
-    init() { this.syncPhysician(); }
-  }"
+
+    init() {
+      this.syncPhysician();
+    },
+  };
+};
+</script>
+<div
+  x-data='medicalRecordPrescriptionForm({
+    medications: {{ medication_entries_json|safe }},
+    physicianName: "{{ prescription_form.physician_name.value|default_if_none:''|escapejs }}",
+    physicianLicense: "{{ prescription_form.license_no.value|default_if_none:''|escapejs }}",
+    physicianPtr: "{{ prescription_form.ptr_no.value|default_if_none:''|escapejs }}"
+  })'
   x-init="init()"
   class="rounded-xl border border-primary-200 bg-gradient-to-br from-primary-50/80 to-white overflow-hidden">
   <div class="p-5 sm:p-6 space-y-6">
@@ -110,7 +155,7 @@
       </div>
 
       <div class="space-y-3">
-        <template x-for="(med, index) in medications" :key="index">
+        <template x-for="(med, index) in medications" :key="med._key">
           <div class="bg-white rounded-lg border border-primary-200 shadow-sm">
             <div class="flex items-center justify-between px-4 py-2.5 bg-primary-50/80 border-b border-primary-100 rounded-t-lg">
               <span class="text-xs font-semibold text-primary-800 uppercase tracking-wider">
@@ -152,7 +197,7 @@
         </template>
       </div>
 
-      <input type="hidden" x-model="medicationsText" name="medications" id="id_medications_combined">
+      <input type="hidden" :value="medicationsText" name="medications" id="id_medications_combined">
     </div>
 
     <div class="hidden" aria-hidden="true">

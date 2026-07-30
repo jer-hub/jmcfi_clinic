@@ -1,12 +1,15 @@
-"""Tests for walk-in guest login (no patient classification)."""
+"""Tests for staff-created walk-in guests (no public guest login)."""
 
+import json
 from datetime import date
 
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from core.doctor_access import MODULE_MEDICAL_RECORDS
 from core.forms import StudentProfileForm
 from core.models import PatientProfile, User
+from core.tests import _complete_staff_like_profile
 from core.utils import get_missing_profile_fields, is_profile_complete
 from core.walk_in_auth import create_walk_in_user, is_walk_in_user
 
@@ -23,17 +26,13 @@ class WalkInAuthTests(TestCase):
 		field_names = {f.name for f in PatientProfile._meta.fields}
 		self.assertNotIn('patient_category', field_names)
 
-	def test_guest_login_creates_session_and_redirects(self):
-		client = Client()
-		response = client.get(reverse('core:guest_login'))
-		self.assertEqual(response.status_code, 302)
-		self.assertEqual(response.url, reverse('core:profile_required'))
-		response2 = client.get(reverse('core:profile_required'))
-		self.assertEqual(response2.status_code, 200)
-		self.assertTrue(response2.wsgi_request.user.is_authenticated)
-		self.assertTrue(is_walk_in_user(response2.wsgi_request.user))
+	def test_create_walk_in_user_custom_names(self):
+		user = create_walk_in_user(first_name='Ana', last_name='Reyes', phone='+639171234567')
+		self.assertEqual(user.first_name, 'Ana')
+		self.assertEqual(user.last_name, 'Reyes')
+		self.assertEqual(user.patient_profile.phone, '+639171234567')
 
-	def test_each_guest_login_is_new_identity(self):
+	def test_each_registration_is_new_identity(self):
 		u1 = create_walk_in_user()
 		u2 = create_walk_in_user()
 		self.assertNotEqual(u1.pk, u2.pk)
@@ -151,3 +150,70 @@ class WalkInAuthTests(TestCase):
 		self.assertNotContains(response, 'Academic Information')
 		self.assertNotContains(response, 'I am an employee')
 		self.assertNotContains(response, 'studentAcademicEditForm')
+
+	def test_guest_login_route_removed(self):
+		client = Client()
+		response = client.get('/auth/guest-login/')
+		self.assertEqual(response.status_code, 404)
+
+
+class RegisterWalkInPatientApiTests(TestCase):
+	def setUp(self):
+		self.staff = User.objects.create_user(
+			email='staff-walkin@test.com',
+			password='pass',
+			role='staff',
+		)
+		_complete_staff_like_profile(self.staff, 'STAFF-WI-01')
+		self.client = Client()
+		self.client.force_login(self.staff)
+		self.url = reverse('core:register_walk_in_patient')
+
+	def test_denied_without_module_grant(self):
+		response = self.client.post(
+			self.url,
+			data=json.dumps({
+				'clinical_module': MODULE_MEDICAL_RECORDS,
+				'first_name': 'Walk',
+				'last_name': 'In',
+			}),
+			content_type='application/json',
+		)
+		self.assertEqual(response.status_code, 403)
+
+	def test_creates_patient_with_module_grant(self):
+		profile = self.staff.staff_profile
+		profile.allowed_clinical_modules = [MODULE_MEDICAL_RECORDS]
+		profile.save(update_fields=['allowed_clinical_modules'])
+
+		response = self.client.post(
+			self.url,
+			data=json.dumps({
+				'clinical_module': MODULE_MEDICAL_RECORDS,
+				'first_name': 'Maria',
+				'last_name': 'Santos',
+			}),
+			content_type='application/json',
+		)
+		self.assertEqual(response.status_code, 201)
+		data = response.json()
+		self.assertTrue(str(data['patient_id']).startswith('WI-'))
+		self.assertEqual(data['name'], 'Maria Santos')
+		created = User.objects.get(pk=data['id'])
+		self.assertTrue(is_walk_in_user(created))
+
+	def test_requires_names(self):
+		profile = self.staff.staff_profile
+		profile.allowed_clinical_modules = [MODULE_MEDICAL_RECORDS]
+		profile.save(update_fields=['allowed_clinical_modules'])
+
+		response = self.client.post(
+			self.url,
+			data=json.dumps({
+				'clinical_module': MODULE_MEDICAL_RECORDS,
+				'first_name': '',
+				'last_name': 'Only',
+			}),
+			content_type='application/json',
+		)
+		self.assertEqual(response.status_code, 400)

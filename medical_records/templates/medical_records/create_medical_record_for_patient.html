@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}New Medical Record - JMCFI Clinic{% endblock %}
 
@@ -29,6 +30,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'js/clinic-walk-in-register.js' %}?v=1"></script>
 <script>
 function medicalRecordPatientPicker() {
   return {
@@ -74,6 +76,18 @@ function medicalRecordPatientPicker() {
 
     selectPatient(row) {
       window.location.href = `${this.createUrl}?patient=${encodeURIComponent(row.id)}`;
+    },
+
+    onWalkInCreated(patient) {
+      if (!patient?.id) {
+        return;
+      }
+      this.selectPatient({
+        id: patient.id,
+        name: patient.name,
+        email: patient.email,
+        patientId: patient.patient_id,
+      });
     },
   };
 }

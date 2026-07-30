@@ -40,6 +40,10 @@
               {% include 'core/partials/staff_profile_fields.html' %}
             {% endif %}
           {% endwith %}
+
+          {% if viewed_user.role == 'doctor' or viewed_user.role == 'staff' %}
+            {% include 'core/partials/_clinical_access_fields.html' %}
+          {% endif %}
         </div>
 
         <div class="px-4 sm:px-6 lg:px-8 py-4 border-t border-gray-100 bg-gray-50/40">
@@ -57,4 +61,4 @@
 {% include "core/partials/_profile_form_scripts.html" %}
 </script>
 {% endblock content %}
-
+

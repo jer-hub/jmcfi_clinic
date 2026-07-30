@@ -1,7 +1,9 @@
 {% comment %}
-  Health Forms dropdown (lg+). include_document_request_link: show link to document requests (doctor desktop).
+  Health Forms dropdown (lg+). include_document_request_link: show link to document requests.
 {% endcomment %}
+{% load role_tags %}
 {% if not hide_removed_app_links %}
+{% if request.user.role == 'patient' or clinical_nav.show_health_forms or doctor_nav.show_health_forms %}
 <div class="relative site-nav-dropdown-host" x-data="{ open: false, routeActive: {% if nav_active.health_forms %}true{% else %}false{% endif %} }" @click.outside="open = false" @keydown.escape.window="open && (open = false)">
   <button type="button"
     id="nav-trigger-health-forms-desktop"
@@ -26,14 +28,25 @@
     role="region"
     aria-labelledby="nav-trigger-health-forms-desktop"
     class="absolute left-0 top-full z-50 mt-2 w-72 origin-top-left rounded-xl border border-gray-200 bg-white shadow-lg p-2">
+    {% if user|has_clinical_module:'health_profile_forms' %}
     <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
+    {% endif %}
+    {% if user|has_clinical_module:'dental_health_forms' %}
     <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
+    {% endif %}
+    {% if user|has_clinical_module:'patient_charts' %}
     <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
+    {% endif %}
+    {% if user|has_clinical_module:'dental_services' %}
     <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item">Dental Services</a>
+    {% endif %}
+    {% if user|has_clinical_module:'prescriptions' %}
     <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
-    {% if include_document_request_link %}
+    {% endif %}
+    {% if include_document_request_link and user|has_clinical_module:'document_request' %}
     <a href="{% url 'document_request:document_requests' %}" class="dropdown-item">Document Requests</a>
     {% endif %}
   </div>
 </div>
+{% endif %}
 {% endif %}

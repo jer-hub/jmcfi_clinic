@@ -13,7 +13,7 @@ from django.core.cache import cache
 from django.conf import settings
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from urllib.parse import urlencode
 import re
 import json
@@ -59,7 +59,7 @@ from .utils import (
     get_missing_profile_fields, get_client_ip,
     resolve_notification_url, student_display_name, patient_search_q,
     user_visible_notifications, normalize_person_name, person_display_name,
-    age_from_date_of_birth,
+    age_from_date_of_birth, patient_search_result_for_picker,
 )
 from .profile_forms import (
     get_or_create_profile,
@@ -171,23 +171,6 @@ def health_ready(request):
             status=503,
         )
     return JsonResponse({"status": "ok", "database": "connected"})
-
-
-@require_http_methods(["GET", "POST"])
-def guest_login(request):
-    """Create a fresh walk-in patient session (no Google OAuth)."""
-    if request.user.is_authenticated:
-        from .utils import role_home_url_name
-        return redirect(role_home_url_name(request.user))
-
-    from .walk_in_auth import login_as_walk_in
-
-    login_as_walk_in(request)
-    messages.info(
-        request,
-        'You are signed in as a walk-in guest. Complete your profile to use clinic services.',
-    )
-    return redirect('core:profile_required')
 
 
 @require_http_methods(["GET", "POST"])
@@ -1402,6 +1385,16 @@ def user_change_role(request, user_id):
                 user.role = new_role
                 user.save(update_fields=['role'])
                 swap_profile_for_role_change(user, old_role)
+                # Clinical module grants: clear when entering/leaving doctor or staff.
+                user.__dict__.pop('staff_profile', None)
+                if new_role in ('doctor', 'staff') or old_role in ('doctor', 'staff'):
+                    try:
+                        staff_profile = user.staff_profile
+                    except Exception:
+                        staff_profile = None
+                    if staff_profile is not None and staff_profile.allowed_clinical_modules:
+                        staff_profile.allowed_clinical_modules = []
+                        staff_profile.save(update_fields=['allowed_clinical_modules'])
                 _log_provisioning_action(
                     request,
                     request.user,
@@ -1657,6 +1650,55 @@ def user_reset_password(request, user_id):
 # =====================
 # Search Views
 # =====================
+
+
+@login_required
+@require_POST
+@role_required('staff', 'doctor', 'admin')
+def register_walk_in_patient(request):
+    """Staff/doctor: create a clinic-managed walk-in guest patient for clinical workflows."""
+    from .doctor_access import ALL_MODULE_KEYS, has_clinical_module
+    from .walk_in_auth import create_walk_in_user
+
+    content_type = request.content_type or ''
+    if 'application/json' in content_type:
+        try:
+            data = json.loads(request.body.decode() or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    else:
+        data = request.POST
+
+    module = (data.get('clinical_module') or '').strip()
+    if module not in ALL_MODULE_KEYS:
+        return JsonResponse({'error': 'Invalid clinical module'}, status=400)
+    if not has_clinical_module(request.user, module):
+        return JsonResponse({'error': 'Module not enabled for your account'}, status=403)
+
+    first_name = (data.get('first_name') or '').strip()
+    last_name = (data.get('last_name') or '').strip()
+    if not first_name or not last_name:
+        return JsonResponse({'error': 'First and last name are required'}, status=400)
+
+    phone = (data.get('phone') or '').strip() or None
+    gender = (data.get('gender') or '').strip() or None
+    dob_raw = (data.get('date_of_birth') or '').strip()
+    date_of_birth = None
+    if dob_raw:
+        try:
+            from datetime import datetime
+            date_of_birth = datetime.strptime(dob_raw, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'error': 'Invalid date of birth'}, status=400)
+
+    user = create_walk_in_user(
+        first_name=first_name,
+        last_name=last_name,
+        phone=phone,
+        gender=gender,
+        date_of_birth=date_of_birth,
+    )
+    return JsonResponse(patient_search_result_for_picker(user), status=201)
 
 
 @login_required

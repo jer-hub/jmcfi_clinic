@@ -159,7 +159,6 @@ class MaintenanceModeMiddleware:
             '/accounts/',
             '/admin/',
             '/auth/admin-login/',
-            '/auth/guest-login/',
             '/access/restricted/',
         )
 
@@ -201,7 +200,6 @@ class RoleFeatureAccessMiddleware:
         '/accounts/',
         '/admin/',
         '/auth/admin-login/',
-        '/auth/guest-login/',
         '/access/restricted/',
     )
 
@@ -219,10 +217,15 @@ class RoleFeatureAccessMiddleware:
             return None
         denied_flag = get_denied_feature_for_request(request)
         if denied_flag:
+            reason = (
+                AccessReason.DOCTOR_MODULE_DENIED
+                if denied_flag == 'doctor_clinical_module'
+                else AccessReason.FEATURE_DISABLED
+            )
             return access_denied_response(
                 request,
                 status_code=403,
-                reason=AccessReason.FEATURE_DISABLED,
+                reason=reason,
             )
         return None
 

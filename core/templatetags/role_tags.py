@@ -22,12 +22,27 @@ def is_patient_role(user):
 
 @register.filter
 def is_walk_in_user(user):
-    """True when the user is a walk-in/guest (@walkin.local)."""
+    """True for clinic-managed walk-in guests (@walkin.local)."""
     if not user:
         return False
     from core.walk_in_auth import is_walk_in_user as check_walk_in
 
     return check_walk_in(user)
+
+
+@register.filter
+def has_clinical_module(user, module_key):
+    """True if the user may access the clinical module (doctor/staff need an explicit grant)."""
+    from core.doctor_access import has_clinical_module as check
+
+    return check(user, module_key)
+
+
+@register.filter
+def clinical_module_label(module_key):
+    from core.doctor_access import MODULE_LABELS
+
+    return MODULE_LABELS.get(module_key, module_key)
 
 
 @register.filter

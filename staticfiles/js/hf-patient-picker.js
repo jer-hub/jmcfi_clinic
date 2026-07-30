@@ -28,6 +28,14 @@
       return;
     }
 
+    if (
+      input.tagName === 'SELECT' &&
+      stringValue &&
+      !Array.from(input.options || []).some((opt) => String(opt.value) === stringValue)
+    ) {
+      input.dataset.prefillValue = stringValue;
+    }
+
     input.value = stringValue;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -129,6 +137,18 @@
         if (this.selectedPatient?.id) {
           this.prefillFromProfile(this.selectedPatient.id);
         }
+      },
+
+      onWalkInCreated(patient) {
+        if (!patient || !patient.id) {
+          return;
+        }
+        this.selectPatient({
+          id: patient.id,
+          name: patient.name,
+          email: patient.email,
+          patient_id: patient.patient_id,
+        });
       },
     };
   }

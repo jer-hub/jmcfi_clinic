@@ -1,0 +1,44 @@
+{% comment %}
+  Staff walk-in guest registration (requires clinical_module in context).
+  Parent Alpine scope should handle @clinic-walk-in-created.window
+{% endcomment %}
+{% if clinical_module %}
+<div class="mt-4 pt-4 border-t border-dashed border-gray-200"
+     x-data="clinicWalkInGuestPanel({
+       registerUrl: '{% url 'core:register_walk_in_patient' %}',
+       clinicalModule: '{{ clinical_module|escapejs }}'
+     })">
+  <button type="button"
+          @click="toggleWalkInPanel()"
+          class="text-sm font-medium text-primary-700 hover:text-primary-900 inline-flex items-center gap-2">
+    <i class="fas fa-user-plus text-xs" aria-hidden="true"></i>
+    <span x-text="walkInOpen ? 'Cancel walk-in registration' : 'Patient not listed? Register walk-in guest'"></span>
+  </button>
+
+  <div x-show="walkInOpen" x-cloak class="mt-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4 space-y-3">
+    <p class="text-xs text-gray-600">Creates a clinic-managed patient (no Google login). You can complete demographics on the clinical form.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1">First name <span class="text-red-600">*</span></label>
+        <input type="text" x-model="walkInFirstName" class="form-input text-sm" autocomplete="off">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-gray-700 mb-1">Last name <span class="text-red-600">*</span></label>
+        <input type="text" x-model="walkInLastName" class="form-input text-sm" autocomplete="off">
+      </div>
+    </div>
+    <div>
+      <label class="block text-xs font-semibold text-gray-700 mb-1">Mobile (optional)</label>
+      <input type="text" x-model="walkInPhone" class="form-input text-sm" placeholder="+63…" autocomplete="off">
+    </div>
+    <p x-show="walkInError" x-text="walkInError" class="text-xs text-red-600" x-cloak></p>
+    <button type="button"
+            @click="submitWalkInGuest()"
+            :disabled="walkInSubmitting"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-60">
+      <i class="fas fa-spinner fa-spin text-xs" x-show="walkInSubmitting" x-cloak></i>
+      <span>Register and select</span>
+    </button>
+  </div>
+</div>
+{% endif %}

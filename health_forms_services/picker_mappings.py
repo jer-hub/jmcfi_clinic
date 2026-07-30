@@ -2,6 +2,22 @@
 
 import json
 
+from core.doctor_access import (
+    MODULE_DENTAL_HEALTH_FORMS,
+    MODULE_DENTAL_SERVICES,
+    MODULE_HEALTH_PROFILE_FORMS,
+    MODULE_PATIENT_CHARTS,
+    MODULE_PRESCRIPTIONS,
+)
+
+FORM_KEY_CLINICAL_MODULE = {
+    'health_profile': MODULE_HEALTH_PROFILE_FORMS,
+    'patient_chart': MODULE_PATIENT_CHARTS,
+    'dental_form': MODULE_DENTAL_HEALTH_FORMS,
+    'dental_services': MODULE_DENTAL_SERVICES,
+    'prescription': MODULE_PRESCRIPTIONS,
+}
+
 PICKER_FIELD_MAPPINGS = {
     'health_profile': {
         'last_name': 'last_name',
@@ -95,3 +111,8 @@ def picker_mappings_json(form_key: str) -> str:
 def picker_field_mappings(form_key: str) -> dict:
     """Return fieldMappings dict for the patient picker Alpine component."""
     return PICKER_FIELD_MAPPINGS[form_key]
+
+
+def clinical_module_for_form_key(form_key: str) -> str:
+    """Map health-forms create flow key to doctor_access module id."""
+    return FORM_KEY_CLINICAL_MODULE.get(form_key, MODULE_HEALTH_PROFILE_FORMS)

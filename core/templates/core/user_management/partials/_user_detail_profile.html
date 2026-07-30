@@ -89,6 +89,33 @@
   </details>
   {% endif %}
 
+  {% if viewed_user.role == 'doctor' or viewed_user.role == 'staff' %}
+  <details class="group rounded-lg border border-gray-100 overflow-hidden" open>
+    <summary class="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none hover:bg-gray-50/80 list-none [&::-webkit-details-marker]:hidden">
+      <span class="w-7 h-7 rounded-md bg-amber-50 border border-amber-100 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+        <i class="fas fa-key text-amber-600 text-xs"></i>
+      </span>
+      <span class="text-sm font-semibold text-gray-900 flex-1">Services & Health Forms access</span>
+      <i class="fas fa-chevron-down text-gray-400 text-xs transition-transform group-open:rotate-180"></i>
+    </summary>
+    <div class="px-4 py-3 border-t border-gray-100">
+      {% with modules=profile.allowed_clinical_modules %}
+      {% if modules %}
+      <div class="flex flex-wrap gap-2">
+        {% for key in modules %}
+        <span class="inline-flex items-center rounded-full bg-primary-50 text-primary-800 border border-primary-100 px-2.5 py-1 text-xs font-medium">
+          {{ key|clinical_module_label }}
+        </span>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-sm text-gray-500">None granted — this user cannot open Services or Health Forms modules until access is assigned on Edit User.</p>
+      {% endif %}
+      {% endwith %}
+    </div>
+  </details>
+  {% endif %}
+
   {% if viewed_user.role != 'doctor' and viewed_user.role != 'admin' %}
   <details class="group rounded-lg border border-gray-100 overflow-hidden">
     <summary class="flex items-center gap-2.5 px-4 py-3 cursor-pointer select-none hover:bg-gray-50/80 list-none [&::-webkit-details-marker]:hidden">

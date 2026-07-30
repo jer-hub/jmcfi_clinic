@@ -487,6 +487,28 @@ def student_display_name(student):
     return person_display_name(student, getattr(student, 'patient_profile', None))
 
 
+def patient_search_result_for_picker(patient):
+    """JSON shape for clinical patient pickers and walk-in registration responses."""
+    profile = getattr(patient, 'patient_profile', None)
+    name = student_display_name(patient)
+    patient_id = getattr(profile, 'patient_id', '') if profile else ''
+    course = getattr(profile, 'course', '') if profile else ''
+    year_level = getattr(profile, 'year_level', '') if profile else ''
+    detail_bits = [bit for bit in (course, year_level) if bit]
+    detail = ' · '.join(detail_bits) if detail_bits else 'Walk-in guest'
+    return {
+        'id': patient.id,
+        'name': name,
+        'text': name,
+        'email': patient.email or '',
+        'patient_id': patient_id,
+        'course': course,
+        'year_level': year_level,
+        'detail': detail,
+        'display': f'{name} ({patient_id or patient.email})',
+    }
+
+
 def user_wants_in_app_notifications(user) -> bool:
     """Whether the user accepts in-app notification records."""
     if not getattr(user, 'is_authenticated', False):

@@ -88,6 +88,17 @@
 
 {% block scripts %}
 {{ block.super }}
+{% if college_options_json and course_options_by_college_json and year_level_options_by_college_json and course_optional_by_college_json %}
+<script>
+window.__jmcfiAcademicCatalog = {
+  colleges: {{ college_options_json|safe }},
+  coursesByCollege: {{ course_options_by_college_json|safe }},
+  yearLevelsByCollege: {{ year_level_options_by_college_json|safe }},
+  courseOptionalByCollege: {{ course_optional_by_college_json|safe }},
+};
+</script>
+{% endif %}
 <script src="{% static 'js/student-list-field.js' %}?v=2"></script>
-<script src="{% static 'js/hf-patient-picker.js' %}?v=2"></script>
+<script src="{% static 'js/hf-patient-picker.js' %}?v=3"></script>
+<script src="{% static 'js/clinic-walk-in-register.js' %}?v=1"></script>
 {% endblock %}

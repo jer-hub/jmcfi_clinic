@@ -225,6 +225,7 @@ class BaseFormEditView(View):
     personal_readonly = False
 
     def get_edit_context(self, obj, *, active_section, form_instances):
+        from core.academic_catalog import patient_catalog_context
         return {
             'form_obj': obj,
             'forms': form_instances,
@@ -235,6 +236,7 @@ class BaseFormEditView(View):
             'detail_url': reverse(self.detail_url_name, kwargs={'pk': obj.pk}) if self.detail_url_name else None,
             'personal_readonly': getattr(self, 'personal_readonly', False),
             'edit_form_type': getattr(self, 'edit_form_type', ''),
+            **patient_catalog_context(),
         }
 
     @method_decorator(login_required)

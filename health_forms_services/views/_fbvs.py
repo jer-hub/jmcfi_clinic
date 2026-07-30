@@ -19,6 +19,8 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 
 from core.decorators import role_required
 from core.roles import PATIENT_ROLE_VALUES
+from core.walk_in_auth import is_walk_in_user
+from core.academic_catalog import patient_catalog_context
 
 from ..exports import (
     doc_to_response,
@@ -47,7 +49,7 @@ from ..forms import (
     PrescriptionPatientForm,
     PrescriptionReviewForm,
 )
-from ..picker_mappings import picker_field_mappings
+from ..picker_mappings import clinical_module_for_form_key, picker_field_mappings
 from ..models import (
     DentalFormTooth,
     DentalFormToothSurface,
@@ -109,7 +111,11 @@ def _patient_profile_prefill_payload(patient):
     profile = getattr(patient, 'patient_profile', None)
     staff_profile = getattr(patient, 'staff_profile', None)
     is_employee = bool(getattr(profile, 'is_employee', False)) if profile else False
-    if staff_profile and not profile:
+    is_guest = is_walk_in_user(patient)
+    if is_guest:
+        default_designation = 'guest'
+        is_employee = False
+    elif staff_profile and not profile:
         default_designation = 'employee'
         is_employee = True
     elif is_employee:
@@ -118,12 +124,14 @@ def _patient_profile_prefill_payload(patient):
         default_designation = 'student'
 
     department = getattr(profile, 'department', '') or ''
-    course = '' if is_employee else (getattr(profile, 'course', '') or '')
-    year_level = '' if is_employee else (getattr(profile, 'year_level', '') or '')
-    if is_employee:
+    course = '' if (is_employee or is_guest) else (getattr(profile, 'course', '') or '')
+    year_level = '' if (is_employee or is_guest) else (getattr(profile, 'year_level', '') or '')
+    if is_guest:
+        department_college_office = ''
+    elif is_employee:
         department_college_office = department
     else:
-        department_college_office = ' - '.join(filter(None, [course, department])) if profile else ''
+        department_college_office = department
 
     return {
         'id': patient.id,
@@ -184,6 +192,8 @@ def _patient_picker_config(request, form_key, selected_patient=None):
         ),
         'initialSelected': initial_selected,
         'fieldMappings': picker_field_mappings(form_key),
+        'registerWalkInUrl': reverse('core:register_walk_in_patient'),
+        'clinicalModule': clinical_module_for_form_key(form_key),
     }
 
 
@@ -195,6 +205,8 @@ def _patient_picker_create_context(request, form_key, selected_patient=None):
             _patient_search_result_payload(selected_patient) if selected_patient else None
         ),
         'hf_picker_config': _patient_picker_config(request, form_key, selected_patient),
+        'clinical_module': clinical_module_for_form_key(form_key),
+        **patient_catalog_context(),
     }
 
 
@@ -337,6 +349,13 @@ def export_form_json(request, pk):
     else:
         health_form = get_object_or_404(HealthProfileForm, pk=pk, user=user)
 
+    designation_value = (health_form.designation or '').strip().lower()
+    department_value = (
+        ''
+        if designation_value == 'guest'
+        else health_form.department_college_office
+    )
+
     data = {
         'personal_info': {
             'name': health_form.get_full_name(),
@@ -356,7 +375,7 @@ def export_form_json(request, pk):
             'mobile': health_form.mobile_number,
             'telephone': health_form.telephone_number,
             'designation': health_form.designation,
-            'department': health_form.department_college_office,
+            'department': department_value,
             'emergency_contact': {
                 'name': health_form.guardian_name,
                 'contact': health_form.guardian_contact,

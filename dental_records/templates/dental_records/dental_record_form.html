@@ -6,7 +6,8 @@
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0"
      x-data="dentalRecordForm()"
-     x-init="init()">
+     x-init="init()"
+     @clinic-walk-in-created.window="onWalkInCreated($event.detail)">
     {% include 'dental_records/_subnav.html' %}
 
     {% include "components/page_header.html" with title=title subtitle="Complete the form below to create a dental record" icon="fa-tooth" %}
@@ -399,6 +400,17 @@ function dentalRecordForm() {
       this.$nextTick(() => this.$el.querySelector('input[type="text"]:not([readonly])').focus());
     },
 
+    onWalkInCreated(patient) {
+      if (!patient?.id) return;
+      this.selectPatient({
+        id: patient.id,
+        text: patient.name,
+        name: patient.name,
+        email: patient.email,
+        role: 'Patient',
+      });
+    },
+
     focusFirstError() {
       const el = this.$el.querySelector('.text-danger-600, .text-red-600');
       if (el) {
@@ -412,5 +424,6 @@ function dentalRecordForm() {
   };
 }
 </script>
+<script src="{% static 'js/clinic-walk-in-register.js' %}?v=1"></script>
 <script src="{% static 'js/phone-input.js' %}"></script>
 {% endblock %}

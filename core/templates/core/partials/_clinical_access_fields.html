@@ -1,0 +1,71 @@
+{% comment %}
+  Admin-only clinical module grants for doctors and staff.
+  Expects: form (StaffProfileForm with allowed_clinical_modules).
+{% endcomment %}
+{% if form.allowed_clinical_modules %}
+{% with selected=form.allowed_clinical_modules.value %}
+<div class="border-b border-gray-100 pb-8"
+     x-data="{
+       setAll(on) {
+         this.$root.querySelectorAll('input[name=allowed_clinical_modules]').forEach((el) => { el.checked = on; });
+       }
+     }">
+  {% include "core/partials/_profile_form_section.html" with title="Services & Health Forms access" icon="fa-key" icon_theme="amber" description="No access until modules are granted. Denied modules are hidden in navigation and blocked by URL." grid_class="space-y-6" %}
+
+    <div class="flex flex-wrap gap-2">
+      <button type="button" class="text-xs font-medium text-primary-700 hover:text-primary-900" @click="setAll(true)">
+        Select all
+      </button>
+      <span class="text-gray-300" aria-hidden="true">|</span>
+      <button type="button" class="text-xs font-medium text-gray-500 hover:text-gray-700" @click="setAll(false)">
+        Clear all
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <fieldset>
+        <legend class="text-sm font-semibold text-gray-800 mb-3">Services</legend>
+        <ul class="space-y-2">
+          {% for value, label in form.service_module_choices %}
+          <li>
+            <label class="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5 cursor-pointer hover:bg-gray-50 has-[:checked]:border-primary-300 has-[:checked]:bg-primary-50/60">
+              <input type="checkbox"
+                     name="allowed_clinical_modules"
+                     value="{{ value }}"
+                     class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                     {% if selected and value in selected %}checked{% endif %}>
+              <span class="text-sm text-gray-800">{{ label }}</span>
+            </label>
+          </li>
+          {% endfor %}
+        </ul>
+      </fieldset>
+      <fieldset>
+        <legend class="text-sm font-semibold text-gray-800 mb-3">Health Forms</legend>
+        <ul class="space-y-2">
+          {% for value, label in form.health_form_module_choices %}
+          <li>
+            <label class="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5 cursor-pointer hover:bg-gray-50 has-[:checked]:border-primary-300 has-[:checked]:bg-primary-50/60">
+              <input type="checkbox"
+                     name="allowed_clinical_modules"
+                     value="{{ value }}"
+                     class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                     {% if selected and value in selected %}checked{% endif %}>
+              <span class="text-sm text-gray-800">{{ label }}</span>
+            </label>
+          </li>
+          {% endfor %}
+        </ul>
+      </fieldset>
+    </div>
+
+    {% if form.allowed_clinical_modules.errors %}
+      {% for error in form.allowed_clinical_modules.errors %}
+        <p class="text-sm text-red-600">{{ error }}</p>
+      {% endfor %}
+    {% endif %}
+
+  {% include "core/partials/_profile_form_section_end.html" %}
+</div>
+{% endwith %}
+{% endif %}

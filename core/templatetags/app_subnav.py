@@ -79,14 +79,16 @@ def appointments_subnav(context):
         ),
     ]
     if role in ('doctor', 'staff'):
-        items.append(
-            nav_item(
-                'Schedule for Patient',
-                'appointments:schedule_for_patient',
-                icon='fa-plus',
-                active=vn == 'appointments:schedule_for_patient',
+        from core.doctor_access import MODULE_APPOINTMENTS, has_clinical_module
+        if has_clinical_module(request.user, MODULE_APPOINTMENTS):
+            items.append(
+                nav_item(
+                    'Schedule for Patient',
+                    'appointments:schedule_for_patient',
+                    icon='fa-plus',
+                    active=vn == 'appointments:schedule_for_patient',
+                )
             )
-        )
     _append_patient_new_appointment(items, request)
     return enrich_subnav(items, always_show_nav=True)
 
@@ -354,68 +356,95 @@ def health_tips_subnav(context):
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
 def health_forms_services_subnav(context):
-    vn = view_name(context['request'])
-    items = [
-        nav_item(
-            'Health Forms',
-            'health_forms_services:forms_list',
-            icon='fa-heart-pulse',
-            active=is_active(
-                vn,
+    from core.doctor_access import (
+        MODULE_DENTAL_HEALTH_FORMS,
+        MODULE_DENTAL_SERVICES,
+        MODULE_HEALTH_PROFILE_FORMS,
+        MODULE_PATIENT_CHARTS,
+        MODULE_PRESCRIPTIONS,
+        has_clinical_module,
+    )
+
+    request = context['request']
+    user = request.user
+    vn = view_name(request)
+    candidates = [
+        (
+            MODULE_HEALTH_PROFILE_FORMS,
+            nav_item(
+                'Health Forms',
                 'health_forms_services:forms_list',
-                'health_forms_services:form_detail',
-                'health_forms_services:edit_form',
+                icon='fa-heart-pulse',
+                active=is_active(
+                    vn,
+                    'health_forms_services:forms_list',
+                    'health_forms_services:form_detail',
+                    'health_forms_services:edit_form',
+                ),
             ),
         ),
-        nav_item(
-            'Dental Health Forms',
-            'health_forms_services:dental_forms_list',
-            icon='fa-tooth',
-            active=is_active(
-                vn,
+        (
+            MODULE_DENTAL_HEALTH_FORMS,
+            nav_item(
+                'Dental Health Forms',
                 'health_forms_services:dental_forms_list',
-                'health_forms_services:dental_form_detail',
-                'health_forms_services:create_dental_form',
-                'health_forms_services:edit_dental_form',
+                icon='fa-tooth',
+                active=is_active(
+                    vn,
+                    'health_forms_services:dental_forms_list',
+                    'health_forms_services:dental_form_detail',
+                    'health_forms_services:create_dental_form',
+                    'health_forms_services:edit_dental_form',
+                ),
             ),
         ),
-        nav_item(
-            'Patient Charts',
-            'health_forms_services:patient_chart_list',
-            icon='fa-clipboard-user',
-            active=is_active(
-                vn,
+        (
+            MODULE_PATIENT_CHARTS,
+            nav_item(
+                'Patient Charts',
                 'health_forms_services:patient_chart_list',
-                'health_forms_services:patient_chart_detail',
-                'health_forms_services:create_patient_chart',
-                'health_forms_services:edit_patient_chart',
+                icon='fa-clipboard-user',
+                active=is_active(
+                    vn,
+                    'health_forms_services:patient_chart_list',
+                    'health_forms_services:patient_chart_detail',
+                    'health_forms_services:create_patient_chart',
+                    'health_forms_services:edit_patient_chart',
+                ),
             ),
         ),
-        nav_item(
-            'Dental Services',
-            'health_forms_services:dental_services_list',
-            icon='fa-teeth',
-            active=is_active(
-                vn,
+        (
+            MODULE_DENTAL_SERVICES,
+            nav_item(
+                'Dental Services',
                 'health_forms_services:dental_services_list',
-                'health_forms_services:dental_services_detail',
-                'health_forms_services:create_dental_services',
-                'health_forms_services:edit_dental_services',
+                icon='fa-teeth',
+                active=is_active(
+                    vn,
+                    'health_forms_services:dental_services_list',
+                    'health_forms_services:dental_services_detail',
+                    'health_forms_services:create_dental_services',
+                    'health_forms_services:edit_dental_services',
+                ),
             ),
         ),
-        nav_item(
-            'Prescriptions',
-            'health_forms_services:prescription_list',
-            icon='fa-prescription-bottle',
-            active=is_active(
-                vn,
+        (
+            MODULE_PRESCRIPTIONS,
+            nav_item(
+                'Prescriptions',
                 'health_forms_services:prescription_list',
-                'health_forms_services:prescription_detail',
-                'health_forms_services:create_prescription',
-                'health_forms_services:edit_prescription',
+                icon='fa-prescription-bottle',
+                active=is_active(
+                    vn,
+                    'health_forms_services:prescription_list',
+                    'health_forms_services:prescription_detail',
+                    'health_forms_services:create_prescription',
+                    'health_forms_services:edit_prescription',
+                ),
             ),
         ),
     ]
+    items = [item for key, item in candidates if has_clinical_module(user, key)]
     return enrich_subnav(items, always_show_nav=True)
 
 

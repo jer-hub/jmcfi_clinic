@@ -49,4 +49,6 @@
   </div>
 
   <input type="hidden" name="selected_user_id" :value="selectedPatient?.id || ''">
+
+  {% include "core/partials/_register_walk_in_guest.html" with clinical_module=clinical_module %}
 </section>

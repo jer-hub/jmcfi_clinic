@@ -1,4 +1,5 @@
 {{ hf_picker_config|json_script:"hf-picker-config" }}
 <div x-data="hfPatientPicker(JSON.parse(document.getElementById('hf-picker-config').textContent))"
      x-init="init()"
+     @clinic-walk-in-created.window="onWalkInCreated($event.detail)"
      class="space-y-4">

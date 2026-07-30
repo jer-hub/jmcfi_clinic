@@ -17,6 +17,7 @@ class HealthProfileForm(models.Model):
         STAFF = 'staff', 'Staff'
         DOCTOR = 'doctor', 'Doctor'
         EMPLOYEE = 'employee', 'Employee'
+        GUEST = 'guest', 'Guest'
 
     class Gender(models.TextChoices):
         MALE = 'male', 'Male'
@@ -258,6 +259,7 @@ class DentalHealthForm(models.Model):
     class Designation(models.TextChoices):
         STUDENT = 'student', 'Student'
         EMPLOYEE = 'employee', 'Employee'
+        GUEST = 'guest', 'Guest'
 
     class Gender(models.TextChoices):
         MALE = 'male', 'Male'
@@ -705,6 +707,7 @@ class PatientChart(models.Model):
     class Designation(models.TextChoices):
         STUDENT = 'student', 'Student'
         EMPLOYEE = 'employee', 'Employee'
+        GUEST = 'guest', 'Guest'
 
     class Gender(models.TextChoices):
         MALE = 'male', 'Male'

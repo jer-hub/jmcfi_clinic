@@ -14,6 +14,12 @@ from .models import (
 )
 from .profile_policy import apply_profile_required_fields_to_form, sync_widget_required_attrs
 from .academic_catalog import is_course_optional_for_department
+from .doctor_access import (
+    HEALTH_FORM_MODULE_CHOICES,
+    clinical_module_choices_for_role,
+    normalize_module_list,
+    service_module_choices_for_role,
+)
 from .utils import normalize_person_name, age_from_date_of_birth
 from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
 
@@ -580,6 +586,58 @@ class StaffProfileForm(forms.ModelForm):
             ]:
                 if hidden_field in self.fields:
                     self.fields.pop(hidden_field)
+
+        # Clinical module grants — admin editing another doctor or staff only.
+        if role in ('doctor', 'staff') and can_edit_admin_managed_fields:
+            role_choices = clinical_module_choices_for_role(role)
+            allowed_keys = frozenset(key for key, _ in role_choices)
+            initial_modules = []
+            if self.instance and self.instance.pk:
+                initial_modules = normalize_module_list(
+                    getattr(self.instance, 'allowed_clinical_modules', None),
+                    allowed_keys=allowed_keys,
+                )
+            help_role = 'Doctors' if role == 'doctor' else 'Staff'
+            self.fields['allowed_clinical_modules'] = forms.MultipleChoiceField(
+                choices=role_choices,
+                required=False,
+                initial=initial_modules,
+                widget=forms.CheckboxSelectMultiple(attrs={
+                    'class': 'sr-only peer',
+                }),
+                label='Clinical module access',
+                help_text=f'{help_role} have no access until modules are granted.',
+            )
+            self.service_module_choices = service_module_choices_for_role(role)
+            self.health_form_module_choices = HEALTH_FORM_MODULE_CHOICES
+            self._clinical_module_allowed_keys = allowed_keys
+        else:
+            self.service_module_choices = []
+            self.health_form_module_choices = []
+            self._clinical_module_allowed_keys = frozenset()
+
+    def clean_allowed_clinical_modules(self):
+        allowed_keys = getattr(self, '_clinical_module_allowed_keys', None) or None
+        if 'allowed_clinical_modules' not in self.fields:
+            return normalize_module_list(
+                getattr(self.instance, 'allowed_clinical_modules', None),
+                allowed_keys=allowed_keys,
+            )
+        return normalize_module_list(
+            self.cleaned_data.get('allowed_clinical_modules'),
+            allowed_keys=allowed_keys,
+        )
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if 'allowed_clinical_modules' in self.cleaned_data:
+            instance.allowed_clinical_modules = list(
+                self.cleaned_data.get('allowed_clinical_modules') or []
+            )
+        if commit:
+            instance.save()
+            self.save_m2m()
+        return instance
 
     def clean_phone(self):
         return clean_strict_ph_number(

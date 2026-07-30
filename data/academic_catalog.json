@@ -2,22 +2,27 @@
   "version": 1,
   "colleges": [
     {
-      "name": "College of Allied Health Sciences",
+      "name": "College of Allied Health Sciences Education",
       "course_optional": false,
       "is_active": true
     },
     {
-      "name": "College of Arts and Sciences",
+      "name": "College of Arts and Sciences Education",
       "course_optional": false,
       "is_active": true
     },
     {
-      "name": "College of Education",
+      "name": "College of Business Education",
       "course_optional": false,
       "is_active": true
     },
     {
-      "name": "College of Information Technology",
+      "name": "College of Criminal Justice Education",
+      "course_optional": false,
+      "is_active": true
+    },
+    {
+      "name": "College of Engineering Education",
       "course_optional": false,
       "is_active": true
     },
@@ -27,17 +32,27 @@
       "is_active": true
     },
     {
+      "name": "College of Law",
+      "course_optional": false,
+      "is_active": true
+    },
+    {
+      "name": "College of Medicine",
+      "course_optional": false,
+      "is_active": true
+    },
+    {
       "name": "College of Nursing",
       "course_optional": false,
       "is_active": true
     },
     {
-      "name": "IBED - Junior High School",
-      "course_optional": true,
+      "name": "College of Teacher Education",
+      "course_optional": false,
       "is_active": true
     },
     {
-      "name": "IBED - Primary",
+      "name": "IBED",
       "course_optional": true,
       "is_active": true
     },
@@ -45,38 +60,78 @@
       "name": "IBED - Senior High School",
       "course_optional": false,
       "is_active": true
+    },
+    {
+      "name": "TESDA",
+      "course_optional": false,
+      "is_active": true
     }
   ],
   "courses": [
     {
-      "college": "College of Allied Health Sciences",
-      "name": "BS Medical Technology",
+      "college": "College of Allied Health Sciences Education",
+      "name": "BS in Medical Technology",
       "is_active": true
     },
     {
-      "college": "College of Allied Health Sciences",
-      "name": "BS Physical Therapy",
+      "college": "College of Allied Health Sciences Education",
+      "name": "BS in Pharmacy",
       "is_active": true
     },
     {
-      "college": "College of Arts and Sciences",
-      "name": "BS Psychology",
+      "college": "College of Allied Health Sciences Education",
+      "name": "BS in Radiologic Technology",
       "is_active": true
     },
     {
-      "college": "College of Education",
-      "name": "BS Education",
+      "college": "College of Arts and Sciences Education",
+      "name": "BS in Agriculture",
       "is_active": true
     },
     {
-      "college": "College of Information Technology",
-      "name": "BS Entertainment Multimedia and Computing",
-      "is_active": false
+      "college": "College of Arts and Sciences Education",
+      "name": "BS in Psychology",
+      "is_active": true
     },
     {
-      "college": "College of Information Technology",
-      "name": "BS Information Technology",
-      "is_active": false
+      "college": "College of Arts and Sciences Education",
+      "name": "BS in Social Work",
+      "is_active": true
+    },
+    {
+      "college": "College of Business Education",
+      "name": "BS in Accountancy",
+      "is_active": true
+    },
+    {
+      "college": "College of Business Education",
+      "name": "BS in Business Administration",
+      "is_active": true
+    },
+    {
+      "college": "College of Business Education",
+      "name": "BS in Entreprenuership",
+      "is_active": true
+    },
+    {
+      "college": "College of Business Education",
+      "name": "BS in Management Accounting",
+      "is_active": true
+    },
+    {
+      "college": "College of Business Education",
+      "name": "BS in Tourism Management",
+      "is_active": true
+    },
+    {
+      "college": "College of Criminal Justice Education",
+      "name": "BS in Criminology",
+      "is_active": true
+    },
+    {
+      "college": "College of Engineering Education",
+      "name": "BS in Civil Engineering",
+      "is_active": true
     },
     {
       "college": "College of Information Technology Education",
@@ -89,169 +144,303 @@
       "is_active": true
     },
     {
-      "college": "College of Nursing",
-      "name": "BS Midwifery",
+      "college": "College of Law",
+      "name": "4 Year Program",
+      "is_active": true
+    },
+    {
+      "college": "College of Law",
+      "name": "5 Year Program",
+      "is_active": true
+    },
+    {
+      "college": "College of Medicine",
+      "name": "BS in Biology",
+      "is_active": true
+    },
+    {
+      "college": "College of Medicine",
+      "name": "Doctor of Medicine",
       "is_active": true
     },
     {
       "college": "College of Nursing",
-      "name": "BS Nursing",
+      "name": "BS in Nursing",
+      "is_active": true
+    },
+    {
+      "college": "College of Teacher Education",
+      "name": "Bachelor of Early Childhood Education",
+      "is_active": true
+    },
+    {
+      "college": "College of Teacher Education",
+      "name": "Bachelor of Elementary Education",
+      "is_active": true
+    },
+    {
+      "college": "College of Teacher Education",
+      "name": "Bachelor of Secondary Education",
+      "is_active": true
+    },
+    {
+      "college": "College of Teacher Education",
+      "name": "Bachelor of Technical-Vocational Teacher Education",
+      "is_active": true
+    },
+    {
+      "college": "College of Teacher Education",
+      "name": "BS Education",
+      "is_active": true
+    },
+    {
+      "college": "IBED",
+      "name": "Enhancement Programs",
+      "is_active": true
+    },
+    {
+      "college": "IBED",
+      "name": "Grade School",
+      "is_active": true
+    },
+    {
+      "college": "IBED",
+      "name": "Preschool",
       "is_active": true
     },
     {
       "college": "IBED - Senior High School",
-      "name": "K-12 ABM",
+      "name": "Accountancy, Business, and Management",
       "is_active": true
     },
     {
       "college": "IBED - Senior High School",
-      "name": "K-12 Arts and Design",
+      "name": "Humanities and Social Sciences",
       "is_active": true
     },
     {
       "college": "IBED - Senior High School",
-      "name": "K-12 GAS",
+      "name": "Science, Technology, Engineering, and Mathematics",
       "is_active": true
     },
     {
       "college": "IBED - Senior High School",
-      "name": "K-12 HUMSS",
+      "name": "Technical-Vocational and Livelihood Track",
       "is_active": true
     },
     {
-      "college": "IBED - Senior High School",
-      "name": "K-12 STEM",
+      "college": "TESDA",
+      "name": "Agricultural Crops",
       "is_active": true
     },
     {
-      "college": "IBED - Senior High School",
-      "name": "K-12 Sports",
-      "is_active": true
-    },
-    {
-      "college": "IBED - Senior High School",
-      "name": "K-12 TVL",
+      "college": "TESDA",
+      "name": "Production NC II",
       "is_active": true
     }
   ],
   "year_levels": [
     {
-      "college": "College of Allied Health Sciences",
-      "name": "1st Year",
-      "sort_order": 1,
-      "is_active": false
-    },
-    {
-      "college": "College of Allied Health Sciences",
-      "name": "2nd Year",
-      "sort_order": 2,
-      "is_active": false
-    },
-    {
-      "college": "College of Allied Health Sciences",
-      "name": "3rd Year",
-      "sort_order": 3,
-      "is_active": false
-    },
-    {
-      "college": "College of Allied Health Sciences",
-      "name": "4th Year",
-      "sort_order": 4,
-      "is_active": false
-    },
-    {
-      "college": "College of Arts and Sciences",
+      "college": "College of Allied Health Sciences Education",
       "name": "1st Year",
       "sort_order": 1,
       "is_active": true
     },
     {
-      "college": "College of Arts and Sciences",
+      "college": "College of Allied Health Sciences Education",
       "name": "2nd Year",
       "sort_order": 2,
       "is_active": true
     },
     {
-      "college": "College of Arts and Sciences",
+      "college": "College of Allied Health Sciences Education",
       "name": "3rd Year",
       "sort_order": 3,
       "is_active": true
     },
     {
-      "college": "College of Arts and Sciences",
+      "college": "College of Allied Health Sciences Education",
       "name": "4th Year",
       "sort_order": 4,
       "is_active": true
     },
     {
-      "college": "College of Education",
+      "college": "College of Arts and Sciences Education",
       "name": "1st Year",
       "sort_order": 1,
       "is_active": true
     },
     {
-      "college": "College of Education",
+      "college": "College of Arts and Sciences Education",
       "name": "2nd Year",
       "sort_order": 2,
       "is_active": true
     },
     {
-      "college": "College of Education",
+      "college": "College of Arts and Sciences Education",
       "name": "3rd Year",
       "sort_order": 3,
       "is_active": true
     },
     {
-      "college": "College of Education",
+      "college": "College of Arts and Sciences Education",
       "name": "4th Year",
       "sort_order": 4,
       "is_active": true
     },
     {
-      "college": "College of Information Technology",
+      "college": "College of Business Education",
+      "name": "1st year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Business Education",
+      "name": "2nd year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Business Education",
+      "name": "3rd year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Business Education",
+      "name": "4th year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Criminal Justice Education",
       "name": "1st Year",
-      "sort_order": 1,
-      "is_active": false
+      "sort_order": 0,
+      "is_active": true
     },
     {
-      "college": "College of Information Technology",
+      "college": "College of Criminal Justice Education",
       "name": "2nd Year",
-      "sort_order": 2,
-      "is_active": false
+      "sort_order": 0,
+      "is_active": true
     },
     {
-      "college": "College of Information Technology",
+      "college": "College of Criminal Justice Education",
       "name": "3rd Year",
-      "sort_order": 3,
-      "is_active": false
+      "sort_order": 0,
+      "is_active": true
     },
     {
-      "college": "College of Information Technology",
+      "college": "College of Criminal Justice Education",
       "name": "4th Year",
-      "sort_order": 4,
-      "is_active": false
+      "sort_order": 0,
+      "is_active": true
     },
     {
-      "college": "College of Information Technology Education",
-      "name": "1",
+      "college": "College of Engineering Education",
+      "name": "1st Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Engineering Education",
+      "name": "2nd Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Engineering Education",
+      "name": "3rd Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Engineering Education",
+      "name": "4th Year",
       "sort_order": 0,
       "is_active": true
     },
     {
       "college": "College of Information Technology Education",
-      "name": "2",
+      "name": "1st Year",
       "sort_order": 0,
       "is_active": true
     },
     {
       "college": "College of Information Technology Education",
-      "name": "3",
+      "name": "2nd Year",
       "sort_order": 0,
       "is_active": true
     },
     {
       "college": "College of Information Technology Education",
-      "name": "4",
+      "name": "3rd Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Information Technology Education",
+      "name": "4th Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Law",
+      "name": "1st Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Law",
+      "name": "2nd Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Law",
+      "name": "3rd Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Law",
+      "name": "4th Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Law",
+      "name": "5th Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Medicine",
+      "name": "1st Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Medicine",
+      "name": "2nd Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Medicine",
+      "name": "3rd Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Medicine",
+      "name": "4th Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "College of Medicine",
+      "name": "5th Year",
       "sort_order": 0,
       "is_active": true
     },
@@ -280,63 +469,99 @@
       "is_active": true
     },
     {
-      "college": "IBED - Junior High School",
-      "name": "Grade 7",
+      "college": "College of Teacher Education",
+      "name": "1st Year",
       "sort_order": 1,
-      "is_active": false
+      "is_active": true
     },
     {
-      "college": "IBED - Junior High School",
+      "college": "College of Teacher Education",
+      "name": "2nd Year",
+      "sort_order": 2,
+      "is_active": true
+    },
+    {
+      "college": "College of Teacher Education",
+      "name": "3rd Year",
+      "sort_order": 3,
+      "is_active": true
+    },
+    {
+      "college": "College of Teacher Education",
+      "name": "4th Year",
+      "sort_order": 4,
+      "is_active": true
+    },
+    {
+      "college": "IBED",
       "name": "Grade 8",
-      "sort_order": 2,
-      "is_active": false
+      "sort_order": 0,
+      "is_active": true
     },
     {
-      "college": "IBED - Junior High School",
-      "name": "Grade 9",
-      "sort_order": 3,
-      "is_active": false
+      "college": "IBED",
+      "name": "Kinder 1",
+      "sort_order": 0,
+      "is_active": true
     },
     {
-      "college": "IBED - Junior High School",
-      "name": "Grade 10",
-      "sort_order": 4,
-      "is_active": false
+      "college": "IBED",
+      "name": "Kinder 2",
+      "sort_order": 0,
+      "is_active": true
     },
     {
-      "college": "IBED - Primary",
+      "college": "IBED",
       "name": "Grade 1",
       "sort_order": 1,
       "is_active": true
     },
     {
-      "college": "IBED - Primary",
+      "college": "IBED",
       "name": "Grade 2",
       "sort_order": 2,
       "is_active": true
     },
     {
-      "college": "IBED - Primary",
+      "college": "IBED",
       "name": "Grade 3",
       "sort_order": 3,
       "is_active": true
     },
     {
-      "college": "IBED - Primary",
+      "college": "IBED",
       "name": "Grade 4",
       "sort_order": 4,
       "is_active": true
     },
     {
-      "college": "IBED - Primary",
+      "college": "IBED",
       "name": "Grade 5",
       "sort_order": 5,
       "is_active": true
     },
     {
-      "college": "IBED - Primary",
+      "college": "IBED",
       "name": "Grade 6",
       "sort_order": 6,
+      "is_active": true
+    },
+    {
+      "college": "IBED",
+      "name": "Grade 7",
+      "sort_order": 7,
+      "is_active": true
+    },
+    {
+      "college": "IBED",
+      "name": "Grade 9",
+      "sort_order": 9,
+      "is_active": true
+    },
+    {
+      "college": "IBED",
+      "name": "Grade 10",
+      "sort_order": 10,
       "is_active": true
     },
     {
@@ -349,6 +574,30 @@
       "college": "IBED - Senior High School",
       "name": "Grade 12",
       "sort_order": 2,
+      "is_active": true
+    },
+    {
+      "college": "TESDA",
+      "name": "1st Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "TESDA",
+      "name": "2nd Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "TESDA",
+      "name": "3rd Year",
+      "sort_order": 0,
+      "is_active": true
+    },
+    {
+      "college": "TESDA",
+      "name": "4th Year",
+      "sort_order": 0,
       "is_active": true
     }
   ]

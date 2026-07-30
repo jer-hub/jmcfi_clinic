@@ -107,6 +107,10 @@
           </div>
         </div>
       </div>
+
+      <div x-show="!patientLocked" x-cloak>
+        {% include "core/partials/_register_walk_in_guest.html" with clinical_module="dental_records" %}
+      </div>
     </div>
 
     {# Selected patient (adjustable mode) #}

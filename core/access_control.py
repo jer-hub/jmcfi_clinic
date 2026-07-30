@@ -25,6 +25,7 @@ class AccessReason(str, Enum):
     CSRF = 'csrf'
     FEATURE_DISABLED = 'feature_disabled'
     CLINICAL_ADMIN_BLOCKED = 'clinical_admin_blocked'
+    DOCTOR_MODULE_DENIED = 'doctor_module_denied'
 
 
 RESTRICTED_ACCESS_URL_NAME = 'core:restricted_access'
@@ -182,6 +183,13 @@ def restricted_access_context(request) -> dict[str, Any]:
             'body': 'Administrator accounts cannot use clinical workflow pages. Use the admin dashboard or assign a clinical role.',
             'icon': 'fa-user-doctor',
             'icon_bg': 'bg-info-100 text-info-700',
+        },
+        AccessReason.DOCTOR_MODULE_DENIED.value: {
+            'title': 'Module unavailable',
+            'headline': 'Not enabled for your account',
+            'body': 'This module is not enabled for your account. Ask an administrator to grant access in User Management.',
+            'icon': 'fa-lock',
+            'icon_bg': 'bg-muted-100 text-muted-600',
         },
     }
 

@@ -315,7 +315,12 @@ class StaffProfile(models.Model):
     specialization = models.CharField(max_length=100, blank=True)
     license_number = models.CharField(max_length=50, blank=True)
     ptr_no = models.CharField(max_length=100, blank=True, help_text='Professional Tax Receipt or PTR number')
-    
+    allowed_clinical_modules = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Doctor/staff: granted service/health-form module keys. Empty = none.',
+    )
+
     # Medical Information
     blood_type = models.CharField(max_length=5, choices=[
         ('A+', 'A+'), ('A-', 'A-'), ('B+', 'B+'), ('B-', 'B-'),

@@ -1,6 +1,8 @@
 {% comment %}
-  Services accordion (mobile). Expects: svc_role — patient | doctor | staff; nav_active dict.
+  Services accordion (mobile). Expects: svc_role — patient | doctor | staff; nav_active / clinical_nav.
 {% endcomment %}
+{% load role_tags %}
+{% if svc_role == 'patient' or clinical_nav.show_services or doctor_nav.show_services %}
 <button type="button"
   id="nav-mobile-services-trigger"
   class="mobile-link w-full text-left flex items-center justify-between {% if nav_active.services %}active{% endif %}"
@@ -23,16 +25,23 @@
   role="region"
   aria-labelledby="nav-mobile-services-trigger"
   class="overflow-hidden px-2 pb-2">
+  {% if user|has_clinical_module:'appointments' %}
   <a href="{% url 'appointments:appointment_list' %}" class="mobile-link text-sm">Appointments</a>
-  {% if svc_role == 'staff' %}
+  {% endif %}
+  {% if svc_role == 'staff' and user|has_clinical_module:'appointments' %}
     <a href="{% url 'appointments:schedule_for_patient' %}" class="mobile-link text-sm">Schedule for Patient</a>
   {% endif %}
+  {% if user|has_clinical_module:'medical_records' %}
   <a href="{% url 'medical_records:medical_records' %}" class="mobile-link text-sm">Medical Records</a>
+  {% endif %}
+  {% if user|has_clinical_module:'dental_records' %}
   <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>
-  {% if svc_role == 'staff' %}
+  {% endif %}
+  {% if svc_role == 'staff' and user|has_clinical_module:'pharmacy' %}
     <a href="{% url 'pharmacy:dashboard' %}" class="mobile-link text-sm {% if nav_active.pharmacy %}font-semibold text-primary-700{% endif %}">Pharmacy</a>
   {% endif %}
-  {% if svc_role != 'staff' %}
+  {% if svc_role != 'staff' and user|has_clinical_module:'document_request' %}
     <a href="{% url 'document_request:document_requests' %}" class="mobile-link text-sm">Document Requests</a>
   {% endif %}
 </div>
+{% endif %}

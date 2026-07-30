@@ -2,7 +2,7 @@
   Patient search picker for dispensing — posts hidden name="patient".
   Parent form must include selected_patient and patient_search_url in context.
 {% endcomment %}
-<div class="relative" x-data="dispensingPatientPicker()" x-init="initFromContext()">
+<div class="relative" x-data="dispensingPatientPicker()" x-init="initFromContext()" @clinic-walk-in-created.window="onWalkInCreated($event.detail)">
   <div x-show="!selectedPatient">
     <label for="dispensing-patient-search" class="block text-sm font-medium text-gray-700 mb-2">
       <i class="fas fa-magnifying-glass mr-1 text-gray-400"></i>
@@ -79,6 +79,8 @@
   </div>
 
   <input type="hidden" name="patient" id="id_patient" :value="selectedPatient?.id || ''">
+
+  {% include "core/partials/_register_walk_in_guest.html" with clinical_module="pharmacy" %}
   {% if form.patient.errors %}
   {% for error in form.patient.errors %}
   <p class="mt-1 text-xs text-red-600">{{ error }}</p>

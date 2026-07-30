@@ -1,4 +1,5 @@
 {% extends 'core/base.html' %}
+{% load static %}
 
 {% block title %}Schedule for Patient - JMCFI Clinic{% endblock title %}
 
@@ -12,7 +13,8 @@
 {% endif %}
 <script type="application/json" id="schedule-form-prefill">{{ form_data_json|safe }}</script>
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0"
-     x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }}, staffPicksDoctor: {{ staff_picks_doctor|yesno:'true,false' }} })">
+     x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }}, staffPicksDoctor: {{ staff_picks_doctor|yesno:'true,false' }} })"
+     @clinic-walk-in-created.window="onWalkInCreated($event.detail)">
     {% include 'appointments/_subnav.html' %}
 
     {% if patient_locked and prefill_patient %}
@@ -162,6 +164,8 @@
                         </div>
                     </div>
                     <p x-show="errors.patient" x-text="errors.patient" x-cloak class="mt-1.5 text-sm text-danger-600"></p>
+
+                    {% include "core/partials/_register_walk_in_guest.html" with clinical_module="appointments" %}
                 </div>
 
                 {# Selected patient card #}
@@ -563,7 +567,19 @@ function scheduleForPatient(opts = {}) {
             this.selectedPatientCourse = '';
             this.selectedPatientYear = '';
         },
+
+        onWalkInCreated(patient) {
+            if (!patient?.id) return;
+            this.selectPatient({
+                id: patient.id,
+                name: patient.name,
+                text: patient.name,
+                email: patient.email,
+                patient_id: patient.patient_id,
+            });
+        },
     };
 }
 </script>
+<script src="{% static 'js/clinic-walk-in-register.js' %}?v=1"></script>
 {% endblock content %}

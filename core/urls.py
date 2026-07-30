@@ -14,7 +14,6 @@ urlpatterns = [
     
     # Authentication
     path('auth/admin-login/', views.admin_login, name='admin_login'),
-    path('auth/guest-login/', views.guest_login, name='guest_login'),
     path('access/restricted/', views.restricted_access, name='restricted_access'),
     path('auth/invite/accept/<str:token>/', views.accept_invite, name='accept_invite'),
     path('logout/', views.logout_view, name='logout'),
@@ -60,6 +59,7 @@ urlpatterns = [
     
     # Search
     path('search/patients/', views.search_patients, name='search_patients'),
+    path('api/clinical/register-walk-in/', views.register_walk_in_patient, name='register_walk_in_patient'),
 
     # System settings (admin)
     path('settings/', settings_views.settings_hub, name='settings_hub'),

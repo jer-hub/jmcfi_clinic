@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .doctor_access import clinical_module_denied_for_request
 from .settings_service import get_role_features
 from .utils import role_home_url_name
 
@@ -24,6 +25,7 @@ FEATURE_DENIED_MESSAGES: dict[str, str] = {
     'can_use_messaging': 'Messaging is not enabled for your role.',
     'show_health_tips_nav': 'Health tips are not enabled for your role.',
     'can_book_appointments': 'Appointment booking is not enabled for your role.',
+    'doctor_clinical_module': 'This module is not enabled for your account.',
 }
 
 
@@ -36,6 +38,10 @@ def get_denied_feature_for_request(request) -> str | None:
     match = getattr(request, 'resolver_match', None)
     if not match:
         return None
+
+    # Per-doctor/staff clinical module grants (opt-in; empty = deny)
+    if clinical_module_denied_for_request(request):
+        return 'doctor_clinical_module'
 
     namespace = getattr(match, 'namespace', '') or ''
     url_name = getattr(match, 'url_name', '') or ''

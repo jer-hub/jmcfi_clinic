@@ -1,6 +1,9 @@
 {% comment %}
-  Services dropdown (lg+). Expects: svc_role — patient | doctor | staff; nav_active dict.
+  Services dropdown (lg+). Expects: svc_role — patient | doctor | staff; nav_active / clinical_nav.
+  Doctor and staff only see granted modules.
 {% endcomment %}
+{% load role_tags %}
+{% if svc_role == 'patient' or clinical_nav.show_services or doctor_nav.show_services %}
 <div class="relative site-nav-dropdown-host" x-data="{ open: false, routeActive: {% if nav_active.services %}true{% else %}false{% endif %} }" @click.outside="open = false" @keydown.escape.window="open && (open = false)">
   <button type="button"
     id="nav-trigger-services-desktop"
@@ -25,17 +28,24 @@
     role="region"
     aria-labelledby="nav-trigger-services-desktop"
     class="absolute left-0 top-full z-50 mt-2 w-72 origin-top-left rounded-xl border border-gray-200 bg-white shadow-lg p-2">
+    {% if user|has_clinical_module:'appointments' %}
     <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">Appointments</a>
-    {% if svc_role == 'staff' %}
+    {% endif %}
+    {% if svc_role == 'staff' and user|has_clinical_module:'appointments' %}
       <a href="{% url 'appointments:schedule_for_patient' %}" class="dropdown-item">Schedule for Patient</a>
     {% endif %}
+    {% if user|has_clinical_module:'medical_records' %}
     <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
+    {% endif %}
+    {% if user|has_clinical_module:'dental_records' %}
     <a href="{% url 'dental_records:dental_record_list' %}" class="dropdown-item">Dental Records</a>
-    {% if svc_role == 'staff' %}
+    {% endif %}
+    {% if svc_role == 'staff' and user|has_clinical_module:'pharmacy' %}
       <a href="{% url 'pharmacy:dashboard' %}" class="dropdown-item {% if nav_active.pharmacy %}font-semibold text-primary-700{% endif %}">Pharmacy</a>
     {% endif %}
-    {% if svc_role != 'staff' %}
+    {% if svc_role != 'staff' and user|has_clinical_module:'document_request' %}
       <a href="{% url 'document_request:document_requests' %}" class="dropdown-item">Document Requests</a>
     {% endif %}
   </div>
 </div>
+{% endif %}

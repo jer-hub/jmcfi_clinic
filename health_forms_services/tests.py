@@ -1313,41 +1313,9 @@ class DentalServicesProcessFlowTests(TestCase):
 			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]) + '?section=dentist_other',
 		)
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, 'Assign clinician')
+		self.assertNotContains(response, 'Assign clinician')
 		self.assertContains(response, 'Dental Doctor')
-
-	def test_dentist_user_selection_maps_to_name_license_and_date(self):
-		other_doctor = User.objects.create_user(
-			email='doctor-other@test.com',
-			password='DoctorPass123!',
-			role='doctor',
-			is_staff=True,
-			is_active=True,
-			first_name='Maria',
-			last_name='Santos',
-		)
-		other_profile = _complete_staff_like_profile(other_doctor, 'DOC-DS-002')
-		other_profile.license_number = 'PRC-XYZ-002'
-		other_profile.save(update_fields=['license_number'])
-
-		response = self.client.post(
-			reverse('health_forms_services:edit_dental_form', args=[self.request.pk]),
-			{
-				'section': 'dentist_other',
-				'dentist_user': str(other_doctor.pk),
-				'currently_undergoing_treatment': '',
-				'currently_undergoing_treatment_detail': '',
-				'dentist_name': '',
-				'dentist_date': '',
-				'dentist_license_no': '',
-			},
-			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
-		)
-		self.assertEqual(response.status_code, 200, response.content)
-		self.request.refresh_from_db()
-		self.assertEqual(self.request.dentist_name, 'Maria Santos')
-		self.assertEqual(self.request.dentist_license_no, 'PRC-XYZ-002')
-		self.assertIsNotNone(self.request.dentist_date)
+		self.assertContains(response, 'PRC-DS-001')
 
 	def test_create_redirects_to_perio_tab(self):
 		response = self.client.post(

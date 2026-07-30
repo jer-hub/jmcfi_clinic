@@ -39,9 +39,6 @@
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 rounded-lg border border-gray-200 bg-gray-50/30 p-4">
       <div class="md:col-span-2">
-        {% include 'health_forms_services/partials/_field.html' with field=form.dentist_user %}
-      </div>
-      <div class="md:col-span-2">
         {% include 'health_forms_services/partials/_field.html' with field=form.dentist_name %}
       </div>
       {% include 'health_forms_services/partials/_field.html' with field=form.dentist_date %}
@@ -49,40 +46,3 @@
     </div>
   </section>
 </div>
-
-<script>
-(function attachDentistAssignSync() {
-  const select = document.getElementById('id_dentist_user');
-  const dentistName = document.getElementById('id_dentist_name');
-  const dentistLicense = document.getElementById('id_dentist_license_no');
-  const dentistDate = document.getElementById('id_dentist_date');
-  if (!select || !dentistName || !dentistLicense || !dentistDate) return;
-  if (select.dataset.syncBound === '1') return;
-  select.dataset.syncBound = '1';
-
-  const clinicianMap = {
-    {% for doctor in doctors %}
-    "{{ doctor.id }}": {
-      name: "{{ doctor.get_full_name|default:doctor.email|escapejs }}",
-      license: "{% if doctor.staff_profile %}{{ doctor.staff_profile.license_number|default:doctor.staff_profile.ptr_no|default:doctor.staff_profile.staff_id|escapejs }}{% endif %}",
-    },
-    {% endfor %}
-  };
-
-  select.addEventListener('change', function onClinicianChange() {
-    const selectedId = select.value;
-    const selected = clinicianMap[selectedId];
-    if (!selected) return;
-
-    if (selected.name) dentistName.value = selected.name;
-    if (selected.license) dentistLicense.value = selected.license;
-    if (!dentistDate.value) {
-      const now = new Date();
-      const yyyy = now.getFullYear();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      dentistDate.value = `${yyyy}-${mm}-${dd}`;
-    }
-  });
-})();
-</script>

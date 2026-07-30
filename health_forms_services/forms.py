@@ -1875,14 +1875,6 @@ class DentalServicesDentistOtherForm(DentalServicesCheckboxDetailMixin, forms.Mo
     """Treatment status and dentist signature tab."""
 
     checkbox_detail_pairs = (('currently_undergoing_treatment', 'currently_undergoing_treatment_detail'),)
-    dentist_user = forms.ModelChoiceField(
-        queryset=User.objects.none(),
-        required=False,
-        label='Assign clinician',
-        empty_label='Select doctor/staff',
-        widget=ClinicianSelectWidget(attrs={'class': 'form-select'}),
-        help_text='Selecting a clinician auto-fills dentist name and license.',
-    )
 
     def __init__(self, *args, user=None, **kwargs):
         self.user = user
@@ -1891,16 +1883,6 @@ class DentalServicesDentistOtherForm(DentalServicesCheckboxDetailMixin, forms.Mo
         self.fields['dentist_name'].label = 'Dentist name'
         self.fields['dentist_date'].label = 'Dentist date'
         self.fields['dentist_license_no'].label = 'Dentist license no'
-        self.fields['dentist_user'].queryset = (
-            User.objects.filter(role__in=['doctor', 'staff'], is_active=True)
-            .order_by('first_name', 'last_name', 'email')
-        )
-        self.fields['dentist_user'].label_from_instance = (
-            lambda u: (u.get_full_name() or '').strip() or u.email
-        )
-        self.fields['dentist_user'].widget.attrs.update({
-            'x-ref': 'dentistUser',
-        })
         self.fields['dentist_name'].widget.attrs.update({'x-ref': 'dentistName'})
         self.fields['dentist_license_no'].widget.attrs.update({'x-ref': 'dentistLicense'})
         self.fields['dentist_date'].widget.attrs.update({'x-ref': 'dentistDate'})
@@ -1925,39 +1907,12 @@ class DentalServicesDentistOtherForm(DentalServicesCheckboxDetailMixin, forms.Mo
             if not (self.instance and self.instance.dentist_name) and not self.initial.get('dentist_name'):
                 self.initial['dentist_name'] = default_name
                 self.instance.dentist_name = default_name
-                if user_fresh.role in {'doctor', 'staff'}:
-                    self.initial.setdefault('dentist_user', user_fresh.pk)
             if not (self.instance and self.instance.dentist_license_no) and not self.initial.get('dentist_license_no'):
                 self.initial['dentist_license_no'] = default_license
                 self.instance.dentist_license_no = default_license
             if not (self.instance and self.instance.dentist_date) and not self.initial.get('dentist_date'):
                 self.initial['dentist_date'] = default_date
                 self.instance.dentist_date = default_date
-
-    def clean(self):
-        cleaned = super().clean()
-        selected = cleaned.get('dentist_user')
-        if not selected:
-            return cleaned
-
-        selected_fresh = (
-            User.objects.select_related('staff_profile')
-            .filter(pk=selected.pk)
-            .first()
-        ) or selected
-
-        cleaned['dentist_name'] = (selected_fresh.get_full_name() or '').strip() or selected_fresh.email
-        profile = getattr(selected_fresh, 'staff_profile', None)
-        selected_license = (
-            (getattr(profile, 'license_number', '') or '')
-            or (getattr(profile, 'ptr_no', '') or '')
-            or (getattr(profile, 'staff_id', '') or '')
-        ).strip() if profile else ''
-        if selected_license:
-            cleaned['dentist_license_no'] = selected_license
-        if not cleaned.get('dentist_date'):
-            cleaned['dentist_date'] = timezone.localdate()
-        return cleaned
 
     class Meta:
         model = DentalServicesRequest

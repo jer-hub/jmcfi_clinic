@@ -317,11 +317,6 @@
                                                         : (option === department ? 'border-primary-100 bg-primary-50/60' : 'border-transparent hover:bg-gray-50')"
                                                     @mouseenter="departmentHighlight = idx"
                                                     @click="selectDepartment(option)">
-                                                <span class="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                                                      :class="idx === departmentHighlight || option === department
-                                                          ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white'
-                                                          : 'bg-gray-100 text-gray-600'"
-                                                      x-text="collegeInitial(option)"></span>
                                                 <span class="min-w-0 flex-1">
                                                     <span class="block truncate text-sm font-medium"
                                                           :class="idx === departmentHighlight || option === department ? 'text-primary-900' : 'text-gray-800'"

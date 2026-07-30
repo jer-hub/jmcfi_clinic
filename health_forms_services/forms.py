@@ -6,16 +6,6 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from .models import HealthProfileForm, DentalHealthForm, DentalServicesRequest, PatientChart, PatientChartEntry, Prescription, PrescriptionItem
-from core.patient_category import (
-    PATIENT_CATEGORY_EMPLOYEE,
-    PATIENT_CATEGORY_WALK_IN,
-    PATIENT_CATEGORY_STUDENT,
-    designation_to_category,
-    health_form_sections_for_category,
-    institutional_fields_for_category,
-    normalize_patient_category,
-    section_id_from_spec,
-)
 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
@@ -441,17 +431,9 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                 self.fields[name].help_text = help_text
         if 'designation' in self.fields:
             self.fields['designation'].empty_label = 'Select designation'
-            # Patient categories + clinical staff designations
-            allowed = {
-                PATIENT_CATEGORY_STUDENT,
-                PATIENT_CATEGORY_EMPLOYEE,
-                PATIENT_CATEGORY_WALK_IN,
-                'staff',
-                'doctor',
-            }
             self.fields['designation'].choices = [
                 choice for choice in self.fields['designation'].choices
-                if choice[0] in allowed
+                if choice[0] != 'employee'
             ]
 
         if readonly:
@@ -471,40 +453,28 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
         if not designation and self.instance and getattr(self.instance, 'designation', None):
             designation = (self.instance.designation or '').strip().lower()
 
-        category = designation_to_category(designation)
-        if designation in {'staff', 'doctor'}:
-            # Clinical staff/doctor keep their own institutional extras
-            category_for_sections = PATIENT_CATEGORY_EMPLOYEE
-        else:
-            category_for_sections = category
+        if designation == 'patient':
+            designation = 'student'
 
-        allowed_sections = health_form_sections_for_category(category_for_sections)
-        institutional_fields = list(institutional_fields_for_category(category_for_sections))
-        if designation == 'doctor':
-            institutional_fields = [
-                'designation', 'institution_id', 'department_college_office',
-                'position', 'specialization', 'license_number', 'ptr_no',
-            ]
-        elif designation == 'staff':
-            institutional_fields = [
-                'designation', 'institution_id', 'department_college_office', 'position',
-            ]
+        institutional_base = ['designation', 'institution_id', 'department_college_office']
+        designation_specific = {
+            'student': ['course', 'year_level'],
+            'staff': ['position'],
+            'employee': ['position'],
+            'doctor': ['position', 'specialization', 'license_number', 'ptr_no'],
+        }
 
         sections = []
         for section in PERSONAL_INFO_SECTIONS:
-            section_id = section_id_from_spec(section)
-            if section_id and section_id not in allowed_sections:
-                continue
-
             section_fields = list(section['fields'])
             section_desc = section.get('description')
 
             if section.get('key') == 'institutional_details':
-                section_fields = institutional_fields
+                section_fields = institutional_base + designation_specific.get(designation, ['course', 'year_level'])
                 if designation == 'doctor':
                     section_desc = 'Clinical workplace affiliation and professional credentials.'
-                elif designation in {'staff', 'employee'} or category_for_sections == PATIENT_CATEGORY_EMPLOYEE:
-                    section_desc = 'Workplace affiliation and department.'
+                elif designation in {'staff', 'employee'}:
+                    section_desc = 'Workplace affiliation and position details.'
                 else:
                     section_desc = 'School affiliation and student details.'
 
@@ -513,8 +483,6 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                 for name in section_fields
                 if name in self.fields
             ]
-            if not fields:
-                continue
             sections.append({**section, 'description': section_desc, 'fields': fields})
         return sections
 
@@ -920,42 +888,13 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
                 self.fields[name].required = True
 
     def dental_personal_sections(self):
-        designation = ''
-        if self.is_bound:
-            designation = (self.data.get(self.add_prefix('designation')) or self.data.get('designation') or '').strip().lower()
-        if not designation:
-            designation = (self.initial.get('designation') or '').strip().lower()
-        if not designation and self.instance and getattr(self.instance, 'designation', None):
-            designation = (self.instance.designation or '').strip().lower()
-
-        category = designation_to_category(designation)
-        allowed_sections = set(health_form_sections_for_category(category))
-        # Examination date always shown on dental forms
-        allowed_sections.add('examination_date')
-
         sections = []
         for section in DENTAL_PERSONAL_INFO_SECTIONS:
-            label = section.get('label')
-            if label == 'Examination Date':
-                section_id = 'examination_date'
-            else:
-                section_id = section_id_from_spec(section)
-            if section_id and section_id not in allowed_sections:
-                continue
-
-            section_fields = list(section['fields'])
-            if section_id == 'institutional_details' or label == 'Institution':
-                section_fields = [f for f in section_fields if f in institutional_fields_for_category(category) or f == 'designation' or f == 'department_college_office']
-                if category == PATIENT_CATEGORY_WALK_IN:
-                    continue
-
             fields = [
                 {'name': name, 'field': self[name]}
-                for name in section_fields
+                for name in section['fields']
                 if name in self.fields
             ]
-            if not fields:
-                continue
             sections.append({**section, 'fields': fields})
         return sections
 
@@ -1367,48 +1306,11 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
             )
 
     def personal_info_sections(self):
-        designation = ''
-        if self.is_bound:
-            designation = (self.data.get(self.add_prefix('designation')) or self.data.get('designation') or '').strip().lower()
-        if not designation:
-            designation = (self.initial.get('designation') or '').strip().lower()
-        if not designation and self.instance and getattr(self.instance, 'designation', None):
-            designation = (self.instance.designation or '').strip().lower()
-
-        category = designation_to_category(designation)
-        allowed_sections = health_form_sections_for_category(category)
-
         sections = []
         for section in PATIENT_CHART_PERSONAL_SECTIONS:
-            section_id = section_id_from_spec(section)
-            if section_id and section_id not in allowed_sections:
-                # Guests: keep birth fields from address_birth without requiring address section key
-                if category == PATIENT_CATEGORY_WALK_IN and section.get('key') == 'address_birth':
-                    fields = [
-                        {'name': name, 'field': self[name]}
-                        for name in ('date_of_birth', 'place_of_birth')
-                        if name in self.fields
-                    ]
-                    if fields:
-                        sections.append({
-                            **section,
-                            'label': 'Birth Information',
-                            'fields': fields,
-                            'description': 'Date and place of birth.',
-                        })
-                    continue
-                continue
-
-            section_fields = list(section['fields'])
-            if section_id == 'institutional_details' or section.get('label') == 'Designation':
-                if category == PATIENT_CATEGORY_WALK_IN:
-                    continue
-                if category == PATIENT_CATEGORY_EMPLOYEE:
-                    section_fields = ['designation', 'department_college_office']
-
             fields = [
                 {'name': name, 'field': self[name]}
-                for name in section_fields
+                for name in section['fields']
                 if name in self.fields
             ]
             if fields:

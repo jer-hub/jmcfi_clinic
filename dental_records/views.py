@@ -457,10 +457,7 @@ def dental_record_create(request):
             initial_data['patient'] = preselected_patient
             # Pre-fill patient data if available
             if hasattr(preselected_patient, 'patient_profile') and preselected_patient.patient_profile:
-                from core.patient_category import category_from_profile, category_to_designation, PATIENT_CATEGORY_WALK_IN
                 profile = preselected_patient.patient_profile
-                category = category_from_profile(profile)
-                department = '' if category == PATIENT_CATEGORY_WALK_IN else (profile.department or '')
                 initial_data.update({
                     'middle_name': profile.middle_name or '',
                     'age': profile.age,
@@ -472,8 +469,8 @@ def dental_record_create(request):
                     'email': preselected_patient.email,
                     'contact_number': profile.phone or '',
                     'telephone_number': profile.telephone_number or '',
-                    'designation': category_to_designation(category),
-                    'department_college_office': department,
+                    'designation': 'student',
+                    'department_college_office': profile.department or '',
                     'guardian_name': profile.emergency_contact or '',
                     'guardian_contact': profile.emergency_phone or '',
                 })
@@ -994,20 +991,14 @@ def student_dental_intake(request, appointment_id):
         else:
             messages.error(request, 'Please correct the errors highlighted below.')
     else:
-        # Pre-fill from the student's profile
+        # Pre-fill from the student\'s profile
         initial_data = {
             'email': request.user.email,
             'designation': 'student',
         }
         try:
             if hasattr(request.user, 'patient_profile') and request.user.patient_profile:
-                from core.patient_category import (
-                    PATIENT_CATEGORY_WALK_IN,
-                    category_from_profile,
-                    category_to_designation,
-                )
                 profile = request.user.patient_profile
-                category = category_from_profile(profile)
                 from datetime import date
                 initial_data.update({
                     'middle_name': profile.middle_name or '',
@@ -1019,9 +1010,8 @@ def student_dental_intake(request, appointment_id):
                     'place_of_birth': profile.place_of_birth or '',
                     'contact_number': profile.phone or '',
                     'telephone_number': getattr(profile, 'telephone_number', '') or '',
-                    'designation': category_to_designation(category),
                     'department_college_office': (
-                        '' if category == PATIENT_CATEGORY_WALK_IN else (profile.department or '')
+                        f"{profile.course or ''} - {profile.department or ''}".strip(' -')
                     ),
                     'guardian_name': profile.emergency_contact or '',
                     'guardian_contact': profile.emergency_phone or '',
@@ -1343,20 +1333,7 @@ def get_patient_profile(request, patient_id):
     # Get profile data based on user role
     try:
         if hasattr(patient, 'patient_profile'):
-            from core.patient_category import (
-                PATIENT_CATEGORY_WALK_IN,
-                PATIENT_CATEGORY_STUDENT,
-                category_from_profile,
-                category_to_designation,
-            )
             profile = patient.patient_profile
-            category = category_from_profile(profile)
-            if category == PATIENT_CATEGORY_WALK_IN:
-                department_college_office = ''
-            elif category == PATIENT_CATEGORY_STUDENT:
-                department_college_office = profile.department or ''
-            else:
-                department_college_office = profile.department or ''
             data.update({
                 'student_id': profile.patient_id or '',
                 'middle_name': profile.middle_name or '',
@@ -1368,8 +1345,8 @@ def get_patient_profile(request, patient_id):
                 'address': profile.address or '',
                 'contact_number': profile.phone or '',
                 'telephone_number': profile.telephone_number or '',
-                'designation': category_to_designation(category),
-                'department_college_office': department_college_office,
+                'designation': 'student',
+                'department_college_office': f"{profile.course or ''} - {profile.department or ''}".strip(' -'),
                 'guardian_name': profile.emergency_contact or '',
                 'guardian_contact': profile.emergency_phone or '',
             })

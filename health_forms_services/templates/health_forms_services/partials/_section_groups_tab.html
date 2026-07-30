@@ -167,9 +167,7 @@
 
       staff: ['position'],
 
-      employee: [],
-
-      walk_in: [],
+      employee: ['position'],
 
       doctor: ['position', 'specialization', 'license_number', 'ptr_no'],
 
@@ -180,12 +178,6 @@
     function applyInstitutionalVisibility() {
 
       const designation = (designationSelect.value || '').toLowerCase();
-
-      if (designation === 'walk_in') {
-        institutionalSection.style.display = 'none';
-        return;
-      }
-      institutionalSection.style.display = '';
 
       const visible = new Set([
 
@@ -215,7 +207,7 @@
 
       } else if (designation === 'staff' || designation === 'employee') {
 
-        descNode.textContent = 'Workplace affiliation and department.';
+        descNode.textContent = 'Workplace affiliation and position details.';
 
       } else {
 

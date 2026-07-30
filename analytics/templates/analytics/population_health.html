@@ -43,37 +43,16 @@
       </form>
     </div>
 
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
       {% include "components/stat_card.html" with label="Patients" value=total_patients icon="fa-user-graduate" variant="primary" hint="Registered profiles" %}
-      {% include "components/stat_card.html" with label="Walk-ins" value=walk_in_patients icon="fa-walking" variant="info" hint="Guest login accounts" %}
       {% include "components/stat_card.html" with label="Med records" value=records_in_period icon="fa-file-medical" variant="warning" hint="In period" %}
       {% include "components/stat_card.html" with label="Appointments" value=appt_in_period icon="fa-calendar-days" variant="info" hint=period_hint %}
     </div>
 
-    {% if patients_by_category %}
-    <section class="mb-6 bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="category-heading">
-      <h2 id="category-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-        <i class="fas fa-users text-primary-500"></i>Patients by category
-      </h2>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {% for item in patients_by_category %}
-        <div class="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
-          <p class="text-xs font-medium text-gray-500">{{ item.label }}</p>
-          <p class="mt-1 text-2xl font-semibold text-gray-900 tabular-nums">{{ item.count }}</p>
-        </div>
-        {% endfor %}
-      </div>
-      <p class="mt-3 text-xs text-gray-500">
-        Period walk-in activity: {{ walk_in_appointments }} appointments · {{ walk_in_records }} medical records.
-        Course/year charts below include students only.
-      </p>
-    </section>
-    {% endif %}
-
     <section class="mb-6" aria-labelledby="patient-profile-heading">
       <h2 id="patient-profile-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
         <i class="fas fa-id-card text-primary-500"></i>Patient profile snapshot
-        <span class="text-xs font-normal text-gray-400">(students / employees; walk-ins excluded from course &amp; year)</span>
+        <span class="text-xs font-normal text-gray-400">(all enrolled patients)</span>
       </h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
         <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5">

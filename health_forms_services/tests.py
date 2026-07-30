@@ -1755,12 +1755,10 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 		institutional = next(s for s in sections if s.get('key') == 'institutional_details')
 		return [item['name'] for item in institutional['fields']]
 
-	def test_designation_field_includes_patient_categories(self):
+	def test_designation_field_excludes_employee_option(self):
 		form = HealthProfilePersonalInfoForm()
 		choice_values = [value for value, _ in form.fields['designation'].choices]
-		self.assertIn('student', choice_values)
-		self.assertIn('employee', choice_values)
-		self.assertIn('walk_in', choice_values)
+		self.assertNotIn('employee', choice_values)
 
 	def test_institutional_fields_for_student_designation(self):
 		form = HealthProfilePersonalInfoForm(initial={'designation': 'student'})
@@ -1769,28 +1767,6 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 			field_names,
 			['designation', 'institution_id', 'department_college_office', 'course', 'year_level'],
 		)
-
-	def test_institutional_fields_for_employee_designation(self):
-		form = HealthProfilePersonalInfoForm(initial={'designation': 'employee'})
-		field_names = self._institutional_field_names(form)
-		self.assertEqual(
-			field_names,
-			['designation', 'institution_id', 'department_college_office'],
-		)
-
-	def test_walk_in_excludes_address_institutional_and_emergency(self):
-		form = HealthProfilePersonalInfoForm(initial={'designation': 'walk_in'})
-		sections = form.personal_info_sections()
-		keys_or_labels = {
-			(s.get('key') or s.get('label')) for s in sections
-		}
-		self.assertIn('Full Name', keys_or_labels)
-		self.assertIn('Birth & Demographics', keys_or_labels)
-		self.assertIn('Contact Information', keys_or_labels)
-		self.assertIn('medical_background', keys_or_labels)
-		self.assertNotIn('Address', keys_or_labels)
-		self.assertNotIn('institutional_details', keys_or_labels)
-		self.assertNotIn('Emergency Contact', keys_or_labels)
 
 	def test_institutional_fields_for_doctor_designation(self):
 		form = HealthProfilePersonalInfoForm(initial={'designation': 'doctor'})

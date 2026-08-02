@@ -7,26 +7,26 @@
 {% endcomment %}
 {% if crumbs %}
 {% if embedded %}
-<ol class="flex items-center flex-wrap gap-1.5 text-[13px] min-w-max" role="list">
+<ol class="flex items-center flex-nowrap gap-1.5 text-[13px] min-w-0 w-full max-w-full overflow-hidden" role="list">
 {% else %}
-<nav aria-label="Breadcrumb" class="mb-4">
-  <ol class="flex items-center flex-wrap gap-1.5 text-[13px]">
+<nav aria-label="Breadcrumb" class="mb-4 min-w-0 max-w-full overflow-hidden">
+  <ol class="flex items-center flex-nowrap gap-1.5 text-[13px] min-w-0 w-full max-w-full overflow-hidden">
 {% endif %}
     {% for crumb in crumbs %}
-      <li class="flex items-center gap-1.5 min-w-0">
+      <li class="flex items-center gap-1.5 min-w-0{% if forloop.last %} flex-1 overflow-hidden{% else %} shrink-0{% endif %}">
         {% if not forloop.first %}
           <i class="fas fa-chevron-right text-[0.5rem] text-gray-300 shrink-0" aria-hidden="true"></i>
         {% endif %}
         {% if forloop.last or not crumb.url %}
-          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 font-medium truncate max-w-[14rem]"
+          <span class="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary-50 text-primary-700 font-medium min-w-0 max-w-full overflow-hidden"
                 aria-current="page"
                 title="{{ crumb.label }}">
-            {% if crumb.icon %}<i class="fas {{ crumb.icon }} text-[10px] text-primary-500" aria-hidden="true"></i>{% endif %}
-            {{ crumb.label }}
+            {% if crumb.icon %}<i class="fas {{ crumb.icon }} text-[10px] text-primary-500 shrink-0" aria-hidden="true"></i>{% endif %}
+            <span class="truncate min-w-0">{{ crumb.label }}</span>
           </span>
         {% else %}
           <a href="{{ crumb.url }}"
-             class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-gray-600 hover:text-primary-600 hover:bg-gray-100 transition-colors truncate max-w-[14rem]"
+             class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-gray-600 hover:text-primary-600 hover:bg-gray-100 transition-colors shrink-0"
              title="{{ crumb.label }}">
             {% if forloop.first and not crumb.icon %}
               <i class="fas fa-home text-[10px] text-gray-400" aria-hidden="true"></i>

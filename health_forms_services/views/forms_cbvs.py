@@ -188,11 +188,11 @@ class HealthProfileEditView(BaseFormEditView):
         'clinical': HealthProfileClinicalSummaryForm,
     }
     tabs = [
-        {'key': 'personal', 'label': 'Personal Info', 'icon': 'fa-user'},
-        {'key': 'medical', 'label': 'Medical History', 'icon': 'fa-notes-medical'},
-        {'key': 'physical', 'label': 'Physical Exam', 'icon': 'fa-stethoscope'},
-        {'key': 'diagnostic', 'label': 'Diagnostic Tests', 'icon': 'fa-flask'},
-        {'key': 'clinical', 'label': 'Clinical Summary', 'icon': 'fa-file-lines'},
+        {'key': 'personal', 'label': 'Personal Info', 'short_label': 'Personal', 'icon': 'fa-user'},
+        {'key': 'medical', 'label': 'Medical History', 'short_label': 'History', 'icon': 'fa-notes-medical'},
+        {'key': 'physical', 'label': 'Physical Exam', 'short_label': 'Exam', 'icon': 'fa-stethoscope'},
+        {'key': 'diagnostic', 'label': 'Diagnostic Tests', 'short_label': 'Tests', 'icon': 'fa-flask'},
+        {'key': 'clinical', 'label': 'Clinical Summary', 'short_label': 'Summary', 'icon': 'fa-file-lines'},
     ]
 
     def post(self, request, *args, **kwargs):

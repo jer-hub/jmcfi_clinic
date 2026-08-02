@@ -208,7 +208,8 @@ class BaseFormEditView(View):
         model            – Django Model class
         template_name    – template path (extends _base_edit.html)
         form_class_map   – dict: {section_key: FormClass}
-        tabs             – list of dicts: {key, label, icon}
+        tabs             – list of dicts: {key, label, short_label?, icon}
+                           short_label is shown on small screens; label from sm up.
         detail_url_name  – URL name for back-to-detail link in template
         edit_url_name    – URL name to redirect after successful section save
         doctors_queryset – optional custom doctor queryset for assigning physician

@@ -19,24 +19,30 @@
 
     {% include "components/page_header.html" with title="Edit Form" icon="fa-pen-to-square" %}
 
-    <div class="bg-white rounded-card border border-gray-200 shadow-sm mb-6">
+    <div class="bg-white rounded-card border border-gray-200 shadow-sm mb-6 overflow-hidden">
       {% if tabs|length > 1 %}
-      <nav class="flex w-full border-b border-gray-200" id="form-tabs" role="tablist">
+      <nav class="{% if tabs|length > 5 %}grid grid-cols-4 sm:flex sm:w-full{% else %}flex w-full{% endif %} border-b border-gray-200"
+           id="form-tabs"
+           role="tablist"
+           aria-label="Form sections">
           {% for tab in tabs %}
           <button type="button"
                   data-tab="{{ tab.key }}"
                   role="tab"
                   aria-selected="{% if tab.key == active_section %}true{% else %}false{% endif %}"
                   title="{{ tab.label }}"
-                  class="tab-btn flex-1 min-w-0 px-1 sm:px-2 py-2.5 text-[10px] sm:text-xs font-medium text-center
+                  class="tab-btn flex-1 min-w-0 px-0.5 sm:px-2 py-2 sm:py-2.5 text-[10px] sm:text-xs font-medium text-center
                          {% if tab.key == active_section %}
                            text-primary-600 border-b-2 border-primary-600 bg-primary-50/50
                          {% else %}
                            text-gray-500 hover:text-gray-700 hover:bg-gray-50
                          {% endif %}">
-            <span class="inline-flex items-center justify-center gap-1 min-w-0 max-w-full mx-auto">
-              {% if tab.icon %}<i class="fas {{ tab.icon }} flex-shrink-0 text-[10px]" aria-hidden="true"></i>{% endif %}
-              <span class="truncate">{{ tab.short_label|default:tab.label }}</span>
+            <span class="inline-flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1 min-w-0 max-w-full mx-auto">
+              {% if tab.icon %}<i class="fas {{ tab.icon }} flex-shrink-0 text-[11px] sm:text-[10px]" aria-hidden="true"></i>{% endif %}
+              <span class="min-w-0 max-w-full leading-tight">
+                <span class="sm:hidden">{{ tab.short_label|default:tab.label }}</span>
+                <span class="hidden sm:inline">{{ tab.label }}</span>
+              </span>
             </span>
             <span data-tab-badge="{{ tab.key }}" class="hidden ml-1 inline-flex items-center" aria-hidden="true"></span>
           </button>

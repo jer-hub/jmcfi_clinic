@@ -10,12 +10,12 @@
                 Condition Legend
             </p>
             <div class="inline-flex rounded-lg border border-gray-200 p-0.5 bg-gray-50 flex-shrink-0">
-                <button type="button" @click="chartType = 'permanent'"
+                <button type="button" @click="setChartType('permanent')"
                         :class="chartType === 'permanent' ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-600 hover:bg-white'"
                         class="px-3 py-1.5 text-xs font-semibold rounded-md transition-all">
                     Permanent
                 </button>
-                <button type="button" @click="chartType = 'primary'"
+                <button type="button" @click="setChartType('primary')"
                         :class="chartType === 'primary' ? 'bg-primary-600 text-white shadow-sm' : 'text-gray-600 hover:bg-white'"
                         class="px-3 py-1.5 text-xs font-semibold rounded-md transition-all">
                     Primary
@@ -37,12 +37,12 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
             <div class="inline-flex rounded-lg border border-gray-300 p-1 bg-gray-50">
-                <button type="button" @click="chartType = 'permanent'"
+                <button type="button" @click="setChartType('permanent')"
                         :class="chartType === 'permanent' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-200'"
                         class="px-3 py-1.5 text-sm font-medium rounded-md transition-all">
                     Permanent
                 </button>
-                <button type="button" @click="chartType = 'primary'"
+                <button type="button" @click="setChartType('primary')"
                         :class="chartType === 'primary' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-200'"
                         class="px-3 py-1.5 text-sm font-medium rounded-md transition-all">
                     Primary
@@ -63,7 +63,8 @@
             <div class="text-center mb-3">
                 <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Upper Jaw (Maxilla)</span>
             </div>
-            <div class="flex justify-center">
+            <div class="chart-fit-viewport">
+              <div class="chart-fit-inner" data-chart-fit>
                 <div class="teeth-row">
                     <!-- Upper Right (Quadrant 1) -->
                     <div class="quadrant quadrant-upper-right">
@@ -107,12 +108,14 @@
                         </template>
                     </div>
                 </div>
+              </div>
             </div>
         </div>
 
         <!-- Lower Jaw -->
         <div class="jaw-section">
-            <div class="flex justify-center">
+            <div class="chart-fit-viewport">
+              <div class="chart-fit-inner" data-chart-fit>
                 <div class="teeth-row">
                     <!-- Lower Right (Quadrant 4) -->
                     <div class="quadrant quadrant-lower-right">
@@ -156,6 +159,7 @@
                         </template>
                     </div>
                 </div>
+              </div>
             </div>
             <div class="text-center mt-3">
                 <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Lower Jaw (Mandible)</span>
@@ -170,7 +174,8 @@
             <div class="text-center mb-3">
                 <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Upper Jaw (Primary Teeth)</span>
             </div>
-            <div class="flex justify-center">
+            <div class="chart-fit-viewport">
+              <div class="chart-fit-inner" data-chart-fit>
                 <div class="teeth-row">
                     <!-- Upper Right (Quadrant 5) -->
                     <div class="quadrant quadrant-upper-right">
@@ -214,12 +219,14 @@
                         </template>
                     </div>
                 </div>
+              </div>
             </div>
         </div>
 
         <!-- Lower Jaw -->
         <div class="jaw-section">
-            <div class="flex justify-center">
+            <div class="chart-fit-viewport">
+              <div class="chart-fit-inner" data-chart-fit>
                 <div class="teeth-row">
                     <!-- Lower Right (Quadrant 8) -->
                     <div class="quadrant quadrant-lower-right">
@@ -263,6 +270,7 @@
                         </template>
                     </div>
                 </div>
+              </div>
             </div>
             <div class="text-center mt-3">
                 <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Lower Jaw (Primary Teeth)</span>
@@ -279,10 +287,36 @@
 <style>
 /* Dental Chart Styles */
 .chart-wrapper {
-    padding: 20px;
+    padding: 12px;
     background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
     border-radius: 12px;
     border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+@media (min-width: 640px) {
+    .chart-wrapper {
+        padding: 20px;
+    }
+}
+
+.chart-fit-viewport {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    padding-top: 14px;
+    container-type: inline-size;
+    container-name: dental-arch;
+}
+
+.chart-fit-inner {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    transform-origin: top center;
+    width: max-content;
+    will-change: transform;
 }
 
 .chart-embedded .chart-wrapper-embedded {
@@ -345,6 +379,21 @@
     display: flex;
     align-items: flex-start;
     gap: 4px;
+}
+
+@container dental-arch (max-width: 560px) {
+    .teeth-row {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .teeth-row > .midline {
+        width: min(100%, 260px);
+        height: 2px;
+        margin: 0;
+        align-self: center;
+    }
 }
 
 .quadrant {
@@ -542,6 +591,52 @@ function dentalChartReadOnlyApp() {
         
         init() {
             this.loadTeeth();
+            this._onResize = () => this.fitCharts();
+            window.addEventListener('resize', this._onResize);
+            this.$nextTick(() => {
+                this.fitCharts();
+                if (typeof ResizeObserver !== 'undefined') {
+                    this._ro = new ResizeObserver(() => this.fitCharts());
+                    this.$el.querySelectorAll('.chart-fit-viewport').forEach((el) => this._ro.observe(el));
+                }
+            });
+            requestAnimationFrame(() => this.fitCharts());
+            setTimeout(() => this.fitCharts(), 50);
+        },
+
+        destroy() {
+            if (this._onResize) {
+                window.removeEventListener('resize', this._onResize);
+            }
+            if (this._ro) {
+                this._ro.disconnect();
+            }
+        },
+
+        setChartType(type) {
+            this.chartType = type;
+            this.$nextTick(() => {
+                requestAnimationFrame(() => this.fitCharts());
+            });
+        },
+
+        fitCharts() {
+            const root = this.$el;
+            if (!root) return;
+            root.querySelectorAll('[data-chart-fit]').forEach((inner) => {
+                const viewport = inner.parentElement;
+                if (!viewport) return;
+                const wrapper = viewport.closest('.chart-wrapper');
+                if (wrapper && getComputedStyle(wrapper).display === 'none') return;
+
+                inner.style.transform = 'translateX(-50%) scale(1)';
+                const naturalW = inner.offsetWidth;
+                const naturalH = inner.offsetHeight;
+                if (!naturalW || !naturalH) return;
+                const scale = Math.min(1, viewport.clientWidth / naturalW);
+                inner.style.transform = `translateX(-50%) scale(${scale})`;
+                viewport.style.height = `${14 + Math.ceil(naturalH * scale)}px`;
+            });
         },
         
         loadTeeth() {
@@ -554,6 +649,7 @@ function dentalChartReadOnlyApp() {
             this.teeth.forEach(tooth => {
                 this.teethData[tooth.tooth_number] = tooth;
             });
+            this.$nextTick(() => this.fitCharts());
         },
         
         getToothClass(toothNumber) {

@@ -358,10 +358,10 @@ class DentalEditView(BaseFormEditView):
         'conditions': DentalHealthConditionsForm,
     }
     tabs = [
-        {'key': 'personal', 'label': 'Personal Info', 'icon': 'fa-user'},
-        {'key': 'chart', 'label': 'Dental Chart', 'icon': 'fa-teeth'},
-        {'key': 'examination', 'label': 'Examination', 'icon': 'fa-stethoscope'},
-        {'key': 'conditions', 'label': 'Conditions', 'icon': 'fa-clipboard-check'},
+        {'key': 'personal', 'label': 'Personal Info', 'short_label': 'Personal', 'icon': 'fa-user'},
+        {'key': 'chart', 'label': 'Dental Chart', 'short_label': 'Chart', 'icon': 'fa-teeth'},
+        {'key': 'examination', 'label': 'Examination', 'short_label': 'Exam', 'icon': 'fa-stethoscope'},
+        {'key': 'conditions', 'label': 'Conditions', 'short_label': 'Conditions', 'icon': 'fa-clipboard-check'},
     ]
 
     def get_extra_edit_context(self, obj):
@@ -464,7 +464,7 @@ class PatientChartEditView(BaseFormEditView):
         'personal': PatientChartPersonalInfoForm,
     }
     tabs = [
-        {'key': 'personal', 'label': 'Personal Info', 'icon': 'fa-user'},
+        {'key': 'personal', 'label': 'Personal Info', 'short_label': 'Personal', 'icon': 'fa-user'},
     ]
 
 
@@ -517,7 +517,7 @@ class PrescriptionEditView(BaseFormEditView):
         'details': PrescriptionPatientForm,
     }
     tabs = [
-        {'key': 'details', 'label': 'Prescription Details', 'icon': 'fa-prescription'},
+        {'key': 'details', 'label': 'Prescription Details', 'short_label': 'Details', 'icon': 'fa-prescription'},
     ]
     field_groups = {
         'details': [
@@ -751,11 +751,11 @@ class DentalServicesEditView(BaseFormEditView):
     tabs = [
         {'key': 'personal', 'label': 'Personal Info', 'short_label': 'Personal', 'icon': 'fa-user'},
         {'key': 'perio', 'label': 'Periodontics', 'short_label': 'Perio', 'icon': 'fa-teeth'},
-        {'key': 'operative', 'label': 'Operative', 'icon': 'fa-tooth'},
-        {'key': 'surgery', 'label': 'Surgery', 'icon': 'fa-syringe'},
+        {'key': 'operative', 'label': 'Operative', 'short_label': 'Operative', 'icon': 'fa-tooth'},
+        {'key': 'surgery', 'label': 'Surgery', 'short_label': 'Surgery', 'icon': 'fa-syringe'},
         {'key': 'prostho', 'label': 'Prosthodontics', 'short_label': 'Prosth', 'icon': 'fa-crown'},
         {'key': 'endo', 'label': 'Endodontics', 'short_label': 'Endo', 'icon': 'fa-wave-square'},
-        {'key': 'pediatric', 'label': 'Pediatric', 'icon': 'fa-child'},
+        {'key': 'pediatric', 'label': 'Pediatric', 'short_label': 'Pediatric', 'icon': 'fa-child'},
         {'key': 'dentist_other', 'label': 'Dentist & Other', 'short_label': 'Dentist', 'icon': 'fa-user-doctor'},
     ]
     field_groups = {

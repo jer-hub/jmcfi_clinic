@@ -40,12 +40,12 @@
         <div class="flex flex-wrap items-center gap-2">
             <!-- Chart Type Toggle -->
             <div class="inline-flex rounded-lg border border-gray-300 p-1 bg-gray-50">
-                <button type="button" @click="chartType = 'permanent'" 
+                <button type="button" @click="setChartType('permanent')" 
                         :class="chartType === 'permanent' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-200'"
                         class="px-3 py-1.5 text-sm font-medium rounded-md transition-all">
                     Permanent
                 </button>
-                <button type="button" @click="chartType = 'primary'" 
+                <button type="button" @click="setChartType('primary')" 
                         :class="chartType === 'primary' ? 'bg-primary-600 text-white' : 'text-gray-600 hover:bg-gray-200'"
                         class="px-3 py-1.5 text-sm font-medium rounded-md transition-all">
                     Primary
@@ -88,7 +88,8 @@
             <div class="text-center mb-3">
                 <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Upper Jaw (Maxilla)</span>
             </div>
-            <div class="flex justify-center">
+            <div class="chart-fit-viewport">
+              <div class="chart-fit-inner" data-chart-fit>
                 <div class="teeth-row">
                     <!-- Upper Right (Quadrant 1) -->
                     <div class="quadrant quadrant-upper-right">
@@ -140,12 +141,14 @@
                         </template>
                     </div>
                 </div>
+              </div>
             </div>
         </div>
 
         <!-- Lower Jaw -->
         <div class="jaw-section">
-            <div class="flex justify-center">
+            <div class="chart-fit-viewport">
+              <div class="chart-fit-inner" data-chart-fit>
                 <div class="teeth-row">
                     <!-- Lower Right (Quadrant 4) -->
                     <div class="quadrant quadrant-lower-right">
@@ -197,6 +200,7 @@
                         </template>
                     </div>
                 </div>
+              </div>
             </div>
             <div class="text-center mt-3">
                 <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Lower Jaw (Mandible)</span>
@@ -211,7 +215,8 @@
             <div class="text-center mb-3">
                 <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Upper Jaw (Primary Teeth)</span>
             </div>
-            <div class="flex justify-center">
+            <div class="chart-fit-viewport">
+              <div class="chart-fit-inner" data-chart-fit>
                 <div class="teeth-row">
                     <!-- Upper Right (Quadrant 5) -->
                     <div class="quadrant quadrant-upper-right">
@@ -263,12 +268,14 @@
                         </template>
                     </div>
                 </div>
+              </div>
             </div>
         </div>
 
         <!-- Lower Jaw -->
         <div class="jaw-section">
-            <div class="flex justify-center">
+            <div class="chart-fit-viewport">
+              <div class="chart-fit-inner" data-chart-fit>
                 <div class="teeth-row">
                     <!-- Lower Right (Quadrant 8) -->
                     <div class="quadrant quadrant-lower-right">
@@ -320,6 +327,7 @@
                         </template>
                     </div>
                 </div>
+              </div>
             </div>
             <div class="text-center mt-3">
                 <span class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Lower Jaw (Primary Teeth)</span>
@@ -331,7 +339,7 @@
 
     <!-- Single Tooth Edit Modal -->
     <div x-show="toothModal.open" 
-         class="fixed inset-0 bg-gray-900/50 z-50 flex items-center justify-center p-4"
+         class="tooth-modal-overlay z-50 flex items-center justify-center p-2 sm:p-4"
          x-transition:enter="transition ease-out duration-200"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100"
@@ -343,38 +351,39 @@
          aria-modal="true"
          :aria-labelledby="'toothModalTitle'"
          x-cloak>
-        <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col"
-             @click.outside="toothModal.open = false">
-            <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 rounded-t-2xl flex-shrink-0">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i class="fas fa-tooth text-primary-600"></i>
-                        <h3 id="toothModalTitle" class="text-lg font-bold text-gray-900">
+        <div class="tooth-modal-backdrop" @click="toothModal.open = false" aria-hidden="true"></div>
+        <div class="tooth-modal-panel relative bg-white rounded-xl sm:rounded-2xl shadow-2xl flex flex-col"
+             @click.stop>
+            <div class="px-3 py-2.5 sm:px-6 sm:py-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-primary-100 flex-shrink-0">
+                <div class="flex items-center justify-between gap-2 min-w-0">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <i class="fas fa-tooth text-primary-600 shrink-0" aria-hidden="true"></i>
+                        <h3 id="toothModalTitle" class="text-base sm:text-lg font-bold text-gray-900 truncate">
                             <span x-text="toothModal.isNew ? 'Add Tooth #' + toothModal.toothNumber : 'Edit Tooth #' + toothModal.toothNumber"></span>
                         </h3>
                     </div>
                     <button type="button" @click="toothModal.open = false"
-                            class="flex items-center justify-center w-10 h-10 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            class="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 shrink-0 text-gray-400 hover:text-gray-600 hover:bg-white/50 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
                             aria-label="Close modal">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                     </button>
                 </div>
             </div>
-            <div class="p-6 overflow-y-auto flex-1" aria-live="polite">
-                <form @submit.prevent="saveTooth()">
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Tooth Number (FDI)</label>
+
+            <form @submit.prevent="saveTooth()" class="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div class="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain p-3 sm:p-6" aria-live="polite">
+                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 mb-3 sm:mb-4">
+                        <div class="min-w-0">
+                            <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Tooth Number (FDI)</label>
                             <input type="text" :value="toothModal.toothNumber" readonly
-                                   class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
+                                   class="w-full min-w-0 px-3 py-2 text-sm bg-gray-100 border border-gray-300 rounded-lg text-gray-700">
                         </div>
-                        
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Condition</label>
+                        <div class="min-w-0">
+                            <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Condition</label>
                             <select x-model="toothModal.condition"
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
+                                    class="w-full min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500">
                                 <option value="healthy">Healthy</option>
                                 <option value="decayed">Decayed/Caries</option>
                                 <option value="filled">Filled</option>
@@ -398,22 +407,27 @@
                             </select>
                         </div>
                     </div>
-                    
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+
+                    <div class="mb-3 sm:mb-4">
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Notes</label>
                         <textarea x-model="toothModal.notes" rows="2"
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                                  class="w-full min-w-0 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                                   placeholder="Add notes about this tooth..."></textarea>
                     </div>
 
-                    <!-- Surface-Level Marking Section -->
-                    <div class="mb-4 p-3 bg-gray-50 rounded-lg">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Surface Conditions</label>
-                        <div class="grid grid-cols-3 gap-3">
+                    <!-- Surface-Level Marking Section — compact rows for ~360px -->
+                    <div class="p-2.5 sm:p-4 bg-gray-50 rounded-lg border border-gray-100">
+                        <label class="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Surface Conditions</label>
+                        <div class="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-2 md:grid-cols-3 sm:gap-3">
                             <template x-for="surface in ['mesial', 'distal', 'buccal', 'lingual', 'occlusal']" :key="surface">
-                                <div class="surface-input">
-                                    <label class="text-xs text-gray-500 block mb-1" x-text="getSurfaceLabel(surface)"></label>
-                                    <select x-model="toothModal.surfaces[surface]" class="w-full text-sm px-2 py-1.5 border rounded">
+                                <div class="surface-input flex items-center gap-2 min-w-0 sm:block sm:space-y-0">
+                                    <label class="w-9 shrink-0 text-xs font-semibold text-gray-600 tabular-nums sm:w-auto sm:block sm:mb-1 sm:font-medium sm:text-gray-500"
+                                           :title="getSurfaceLabel(surface)">
+                                        <span class="sm:hidden" x-text="getSurfaceAbbrev(surface)"></span>
+                                        <span class="hidden sm:inline" x-text="getSurfaceLabel(surface)"></span>
+                                    </label>
+                                    <select x-model="toothModal.surfaces[surface]"
+                                            class="flex-1 min-w-0 w-full text-sm px-2.5 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                                         <option value="">Not set</option>
                                         <option value="healthy">Healthy</option>
                                         <option value="decayed">Decayed</option>
@@ -426,31 +440,35 @@
                             </template>
                         </div>
                     </div>
-                    
-                    <div class="flex gap-3 justify-end items-center pt-3 border-t">
+                </div>
+
+                <div class="flex-shrink-0 border-t border-gray-200 bg-white px-2.5 py-2.5 sm:px-6 sm:py-4">
+                    <div class="flex items-stretch gap-1.5 sm:gap-3 sm:justify-end">
                         <template x-if="toothModal.loading">
-                            <div class="flex items-center text-gray-500">
-                                <i class="fas fa-spinner fa-spin text-primary-600 mr-2"></i>
+                            <div class="hidden sm:flex items-center text-gray-500 mr-auto">
+                                <i class="fas fa-spinner fa-spin text-primary-600 mr-2" aria-hidden="true"></i>
                                 <span class="text-sm">Saving...</span>
                             </div>
                         </template>
                         <button type="button" @click="toothModal.open = false" 
-                                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm">
+                                class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1 px-2 sm:px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm min-h-10 sm:min-h-11 whitespace-nowrap">
                             Cancel
                         </button>
                         <template x-if="!toothModal.isNew">
                             <button type="button" @click="deleteToothFromModal()"
-                                    class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">
-                                <i class="fas fa-trash mr-1"></i> Delete
+                                    class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1 px-2 sm:px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 min-h-10 sm:min-h-11 whitespace-nowrap">
+                                <i class="fas fa-trash text-xs shrink-0" aria-hidden="true"></i>
+                                <span>Delete</span>
                             </button>
                         </template>
                         <button type="submit" :disabled="toothModal.loading"
-                                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
-                            <i class="fas fa-save mr-1"></i> Save
+                                class="inline-flex flex-1 sm:flex-none items-center justify-center gap-1 px-2 sm:px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 min-h-10 sm:min-h-11 whitespace-nowrap">
+                            <i class="fas fa-save text-xs shrink-0" aria-hidden="true"></i>
+                            <span x-text="toothModal.loading ? '…' : 'Save'"></span>
                         </button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -516,20 +534,21 @@
                                   placeholder="Add notes for all selected teeth..."></textarea>
                     </div>
                     
-                    <div class="flex gap-3 justify-end items-center">
+                    <div class="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
                         <template x-if="bulkModal.loading">
-                            <div class="flex items-center text-gray-500">
-                                <i class="fas fa-spinner fa-spin text-primary-600 mr-2"></i>
+                            <div class="flex items-center justify-center sm:justify-start text-gray-500 order-last sm:order-first sm:mr-auto">
+                                <i class="fas fa-spinner fa-spin text-primary-600 mr-2" aria-hidden="true"></i>
                                 <span class="text-sm">Saving...</span>
                             </div>
                         </template>
                         <button type="button" @click="bulkModal.open = false" 
-                                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm">
+                                class="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm min-h-11 whitespace-nowrap">
                             Cancel
                         </button>
                         <button type="submit" :disabled="bulkModal.loading"
-                                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium">
-                            <i class="fas fa-save mr-1"></i> Apply to All
+                                class="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium min-h-11 whitespace-nowrap">
+                            <i class="fas fa-save text-xs shrink-0" aria-hidden="true"></i>
+                            <span>Apply to All</span>
                         </button>
                     </div>
                 </form>
@@ -572,17 +591,18 @@
                 <p class="text-gray-700 mb-6">
                     Are you sure you want to delete tooth #<span class="font-bold" x-text="deleteModal.toothNumber"></span>? This action cannot be undone.
                 </p>
-                <div class="flex gap-3 justify-end">
+                <div class="flex w-full flex-col gap-2 sm:flex-row sm:justify-end sm:gap-3">
                     <button type="button" @click="deleteModal.open = false" 
-                            class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm">
+                            class="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium text-sm min-h-11 whitespace-nowrap">
                         Cancel
                     </button>
                     <button type="button" @click="confirmDelete()" :disabled="deleteModal.loading"
-                            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
+                            class="inline-flex w-full sm:w-auto items-center justify-center gap-1.5 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 min-h-11 whitespace-nowrap">
                         <template x-if="deleteModal.loading">
-                            <i class="fas fa-spinner fa-spin mr-1"></i>
+                            <i class="fas fa-spinner fa-spin text-xs shrink-0" aria-hidden="true"></i>
                         </template>
-                        <i x-show="!deleteModal.loading" class="fas fa-trash mr-1"></i> Delete
+                        <i x-show="!deleteModal.loading" class="fas fa-trash text-xs shrink-0" aria-hidden="true"></i>
+                        <span>Delete</span>
                     </button>
                 </div>
             </div>
@@ -593,16 +613,60 @@
 <style>
 /* Dental Chart Styles */
 .chart-wrapper {
-    padding: 20px;
+    padding: 12px;
     background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ed 100%);
     border-radius: 12px;
     border: 1px solid #e2e8f0;
+    overflow: hidden;
+}
+
+@media (min-width: 640px) {
+    .chart-wrapper {
+        padding: 20px;
+    }
+}
+
+/* Scale entire arch to container width — no horizontal scroll */
+.chart-fit-viewport {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    /* Room for absolutely positioned quadrant labels above the teeth */
+    padding-top: 14px;
+    container-type: inline-size;
+    container-name: dental-arch;
+}
+
+.chart-fit-inner {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    transform-origin: top center;
+    width: max-content;
+    will-change: transform;
 }
 
 .teeth-row {
     display: flex;
     align-items: flex-start;
     gap: 4px;
+}
+
+/* Narrow: stack left/right quadrants so teeth stay tappable */
+@container dental-arch (max-width: 560px) {
+    .teeth-row {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .teeth-row > .midline {
+        width: min(100%, 260px);
+        height: 2px;
+        margin: 0;
+        align-self: center;
+    }
 }
 
 .quadrant {
@@ -764,6 +828,39 @@
     border: 1px solid rgba(0,0,0,0.1);
 }
 
+/* Tooth edit modal — explicit CSS (Tailwind overflow-x-hidden may be purged) */
+.tooth-modal-overlay {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: contain;
+    box-sizing: border-box;
+}
+.tooth-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgb(17 24 39 / 0.5);
+}
+.tooth-modal-panel {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: min(48rem, calc(100% - 1rem));
+    max-height: min(92dvh, 85vh);
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+html.tooth-modal-open,
+html.tooth-modal-open body {
+    overflow: hidden !important;
+    overscroll-behavior: none;
+}
+
 /* Alpine x-cloak */
 [x-cloak] { display: none !important; }
 </style>
@@ -845,6 +942,66 @@ function dentalChartApp() {
         
         init() {
             this.loadTeeth();
+            this._onResize = () => this.fitCharts();
+            window.addEventListener('resize', this._onResize);
+            this._syncBodyScroll = () => {
+                const open = this.toothModal.open || this.bulkModal.open || this.deleteModal.open;
+                document.documentElement.classList.toggle('overflow-hidden', open);
+                document.body.classList.toggle('overflow-hidden', open);
+                document.documentElement.classList.toggle('tooth-modal-open', open);
+            };
+            this.$watch('toothModal.open', () => this._syncBodyScroll());
+            this.$watch('bulkModal.open', () => this._syncBodyScroll());
+            this.$watch('deleteModal.open', () => this._syncBodyScroll());
+            this.$nextTick(() => {
+                this.fitCharts();
+                if (typeof ResizeObserver !== 'undefined') {
+                    this._ro = new ResizeObserver(() => this.fitCharts());
+                    this.$el.querySelectorAll('.chart-fit-viewport').forEach((el) => this._ro.observe(el));
+                }
+            });
+            requestAnimationFrame(() => this.fitCharts());
+            setTimeout(() => this.fitCharts(), 50);
+        },
+
+        destroy() {
+            if (this._onResize) {
+                window.removeEventListener('resize', this._onResize);
+            }
+            if (this._ro) {
+                this._ro.disconnect();
+            }
+            document.documentElement.classList.remove('overflow-hidden', 'tooth-modal-open');
+            document.body.classList.remove('overflow-hidden');
+        },
+
+        setChartType(type) {
+            this.chartType = type;
+            this.$nextTick(() => {
+                requestAnimationFrame(() => this.fitCharts());
+            });
+        },
+
+        fitCharts() {
+            const root = this.$el;
+            if (!root) return;
+            root.querySelectorAll('[data-chart-fit]').forEach((inner) => {
+                const viewport = inner.parentElement;
+                if (!viewport) return;
+                const wrapper = viewport.closest('.chart-wrapper');
+                if (wrapper && getComputedStyle(wrapper).display === 'none') return;
+
+                // Measure at natural size (absolute children don't expand scrollWidth)
+                inner.style.transform = 'translateX(-50%) scale(1)';
+                const naturalW = inner.offsetWidth;
+                const naturalH = inner.offsetHeight;
+                if (!naturalW || !naturalH) return;
+                const available = viewport.clientWidth;
+                const scale = Math.min(1, available / naturalW);
+                inner.style.transform = `translateX(-50%) scale(${scale})`;
+                // padding-top (14) + scaled arch height
+                viewport.style.height = `${14 + Math.ceil(naturalH * scale)}px`;
+            });
         },
         
         async loadTeeth() {
@@ -858,6 +1015,7 @@ function dentalChartApp() {
                     this.teeth.forEach(tooth => {
                         this.teethData[tooth.tooth_number] = tooth;
                     });
+                    this.$nextTick(() => this.fitCharts());
                 }
             } catch (error) {
                 console.error('Error loading teeth:', error);
@@ -1076,6 +1234,17 @@ function dentalChartApp() {
                 occlusal: 'Occlusal/Incisal (O/I)'
             };
             return labels[surface] || surface;
+        },
+
+        getSurfaceAbbrev(surface) {
+            const abbrev = {
+                mesial: 'M',
+                distal: 'D',
+                buccal: 'B',
+                lingual: 'L',
+                occlusal: 'O/I'
+            };
+            return abbrev[surface] || surface;
         },
         
         getConditionLabel(condition) {

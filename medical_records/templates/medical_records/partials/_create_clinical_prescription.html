@@ -146,11 +146,11 @@ window.medicalRecordPrescriptionForm = function medicalRecordPrescriptionForm(co
     {% endif %}
 
     <div class="border-t border-primary-100 pt-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-sm font-semibold text-gray-700">Medications / prescription items</h3>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+        <h3 class="text-sm font-semibold text-gray-700 min-w-0">Medications / prescription items</h3>
         <button type="button" @click="addMedication()"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-100 rounded-lg hover:bg-primary-200 transition-colors">
-          <i class="fas fa-plus"></i> Add medication
+                class="inline-flex items-center gap-1.5 self-start shrink-0 whitespace-nowrap px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-100 rounded-lg hover:bg-primary-200 transition-colors">
+          <i class="fas fa-plus" aria-hidden="true"></i> Add medication
         </button>
       </div>
 

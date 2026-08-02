@@ -179,7 +179,7 @@ class FeedbackSubnavTemplateTests(SimpleTestCase):
         html = render_to_string('components/sub_nav.html', ctx)
         self.assertIn('aria-label="Feedback sections"', html)
         self.assertIn('role="tablist"', html)
-        self.assertIn('class="nav-link whitespace-nowrap shrink-0 active"', html)
+        self.assertIn('class="nav-link sub-nav-tab flex-1 min-w-0 basis-0 active"', html)
 
 
 class MedicalRecordsSubnavTemplateTests(SimpleTestCase):

@@ -40,6 +40,7 @@ def nav_item(
     url_args=None,
     url_kwargs=None,
     badge=None,
+    short_label: str | None = None,
 ) -> dict:
     """Build one sub-nav item dict for ``components/sub_nav.html``."""
     if url_args is not None:
@@ -57,6 +58,8 @@ def nav_item(
     }
     if badge is not None:
         item['badge'] = badge
+    if short_label:
+        item['short_label'] = short_label
     return item
 
 

@@ -1,7 +1,160 @@
 {% load role_tags %}
 {% load clinical_permissions %}
+{% load status_tags %}
 {% if records %}
-  <div class="overflow-x-auto">
+  {# Mobile: stacked cards (no horizontal scroll) #}
+  <div class="md:hidden divide-y divide-gray-100">
+    {% for row in records %}
+      {% if row.row_type == 'record' %}
+        {% with record=row.record %}
+          <article class="p-4 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-semibold text-gray-900">{{ record.created_at|date:"M d, Y" }}</div>
+                <div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                  <i class="far fa-clock" aria-hidden="true"></i>{{ record.created_at|time:"g:i A" }}
+                </div>
+                <div class="text-xs text-primary-700 font-medium mt-1">
+                  <i class="fas fa-file-medical mr-1" aria-hidden="true"></i>Medical Record
+                </div>
+              </div>
+              <div class="shrink-0">
+                {% include "medical_records/_mr_list_record_status_cell.html" with record=record missed_slot=row.missed_slot %}
+              </div>
+            </div>
+
+            {% if not user|is_patient_role or user.role == 'admin' %}
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                {% if not user|is_patient_role %}
+                  <div class="min-w-0{% if user.role != 'admin' %} col-span-2{% endif %}">
+                    <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Patient</p>
+                    <div class="flex items-center gap-2 min-w-0 mt-0.5">
+                      {% include "components/avatar.html" with user=record.patient size="sm" %}
+                      <div class="min-w-0">
+                        <p class="text-gray-900 font-medium truncate">{{ record.patient.get_full_name }}</p>
+                        {% if record.patient.patient_profile %}
+                          <p class="text-xs text-gray-500 truncate">{{ record.patient.patient_profile.patient_id }}</p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+                {% if user.role == 'admin' %}
+                  <div class="min-w-0">
+                    <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Doctor</p>
+                    <p class="text-gray-900 mt-0.5 truncate">Dr. {{ record.doctor.first_name }} {{ record.doctor.last_name }}</p>
+                  </div>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Diagnosis</p>
+                <p class="text-gray-700 mt-0.5 line-clamp-2">{{ record.diagnosis }}</p>
+              </div>
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Treatment</p>
+                <p class="text-gray-700 mt-0.5 line-clamp-2">{{ record.treatment }}</p>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-gray-100">
+              <div class="grid grid-cols-2 gap-1.5">
+                {% url 'medical_records:medical_record_detail_page' record.id as detail_url %}
+                {% include "components/table_icon_link.html" with href=detail_url icon="fa-eye" title="View record" label="View" tone="view" layout="grid" %}
+                {% if record.appointment %}
+                  {% url 'appointments:appointment_detail' record.appointment.id as appt_url %}
+                  {% include "components/table_icon_link.html" with href=appt_url icon="fa-calendar" title="View appointment" label="Appt" layout="grid" %}
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        {% endwith %}
+      {% else %}
+        {% with appointment=row.appointment %}
+          <article class="p-4 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-semibold text-gray-900">{{ appointment.date|date:"M d, Y" }}</div>
+                <div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                  <i class="far fa-clock" aria-hidden="true"></i>{{ appointment.time|time:"g:i A" }}
+                </div>
+                <div class="text-xs text-warning-700 font-medium mt-1">
+                  <i class="fas fa-calendar mr-1" aria-hidden="true"></i>Appointment
+                </div>
+              </div>
+              <div class="shrink-0">
+                {% if row.missed_slot %}
+                  {% include "components/status_badge.html" with label="Missed" variant="danger" icon="fa-calendar-xmark" size="sm" %}
+                {% else %}
+                  {% appointment_status_badge appointment=appointment size="sm" %}
+                {% endif %}
+              </div>
+            </div>
+
+            {% if not user|is_patient_role or user.role == 'admin' %}
+              <div class="grid grid-cols-2 gap-3 text-sm">
+                {% if not user|is_patient_role %}
+                  <div class="min-w-0{% if user.role != 'admin' %} col-span-2{% endif %}">
+                    <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Patient</p>
+                    <div class="flex items-center gap-2 min-w-0 mt-0.5">
+                      {% include "components/avatar.html" with user=appointment.patient size="sm" %}
+                      <div class="min-w-0">
+                        <p class="text-gray-900 font-medium truncate">{{ appointment.patient.get_full_name }}</p>
+                        {% if appointment.patient.patient_profile %}
+                          <p class="text-xs text-gray-500 truncate">{{ appointment.patient.patient_profile.patient_id }}</p>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                {% endif %}
+                {% if user.role == 'admin' %}
+                  <div class="min-w-0">
+                    <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Doctor</p>
+                    <p class="text-gray-900 mt-0.5 truncate">Dr. {{ appointment.doctor.first_name }} {{ appointment.doctor.last_name }}</p>
+                  </div>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Type</p>
+                <p class="text-gray-700 mt-0.5 line-clamp-2">{{ appointment.get_appointment_type_display }}</p>
+              </div>
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Reason</p>
+                <p class="text-gray-700 mt-0.5 line-clamp-2">{{ appointment.reason }}</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-gray-100">
+              {% if user|can_write_appointments:appointment %}
+                {% if appointment.status == 'pending' %}
+                  {% include "appointments/partials/_confirm_appointment_action.html" with use_htmx_list=False next_url=request.get_full_path confirm_variant="grid" %}
+                {% endif %}
+                {% if appointment.status == 'pending' or appointment.status == 'confirmed' %}
+                  {% include "appointments/partials/_cancel_appointment_action.html" with appointment=appointment cancel_variant="grid" next_url=request.get_full_path %}
+                {% endif %}
+              {% endif %}
+              {% if user|can_write_medical_records %}
+                {% if appointment.status == 'confirmed' or appointment.status == 'completed' or appointment.status == 'pending' and appointment.appointment_type != 'consultation' %}
+                  {% url 'medical_records:create_medical_record' appointment.id as create_mr_url %}
+                  {% include "components/table_icon_link.html" with href=create_mr_url icon="fa-plus" title="Create medical record" label="Create" tone="info" layout="grid" %}
+                {% endif %}
+              {% endif %}
+              {% url 'appointments:appointment_detail' appointment.id as appt_url %}
+              {% include "components/table_icon_link.html" with href=appt_url icon="fa-calendar" title="View appointment" label="Appt" layout="grid" %}
+            </div>
+          </article>
+        {% endwith %}
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {# Desktop: table #}
+  <div class="hidden md:block overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>
@@ -81,7 +234,6 @@
                   {% if row.missed_slot %}
                     {% include "components/status_badge.html" with label="Missed" variant="danger" icon="fa-calendar-xmark" size="sm" %}
                   {% else %}
-                    {% load status_tags %}
                     {% appointment_status_badge appointment=appointment size="sm" %}
                   {% endif %}
                 </td>

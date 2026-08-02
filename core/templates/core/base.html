@@ -740,6 +740,8 @@
 
         function getFieldScrollTarget(field) {
           if (!field) return null;
+          const phoneWrapper = field.closest('[data-phone-wrapper]');
+          if (phoneWrapper && phoneWrapper.contains(field)) return phoneWrapper;
           const wrapper = field.closest('.space-y-1, .form-group');
           if (wrapper && wrapper.contains(field)) return wrapper;
           const labelled = field.closest('div');
@@ -831,6 +833,10 @@
             if (!field) return;
 
             field.classList.add('form-field-error');
+            const phoneWrapper = field.closest('[data-phone-wrapper]');
+            if (phoneWrapper) {
+              phoneWrapper.classList.add('has-phone-error');
+            }
             formHasErrors = true;
           });
 

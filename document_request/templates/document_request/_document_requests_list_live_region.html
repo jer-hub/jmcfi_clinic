@@ -5,6 +5,15 @@
 </div>
 
 <div class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden mb-4">
+  <div class="px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-3">
+    <h3 class="text-sm font-semibold text-gray-900 flex items-center gap-2 min-w-0">
+      <i class="fas fa-filter text-primary-500"></i>Filter
+    </h3>
+    <a href="{% url 'document_request:document_requests' %}"
+       class="inline-flex shrink-0 items-center gap-2 px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors whitespace-nowrap">
+      <i class="fas fa-rotate-right" aria-hidden="true"></i>Clear
+    </a>
+  </div>
   <form method="GET"
         id="jmcfi-doc-list-filter-form"
         class="px-4 py-3 border-b border-gray-100 bg-gray-50/40"

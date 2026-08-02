@@ -8,7 +8,7 @@ Usage: {% include 'partials/field_errors.html' with errors=form.field_name.error
         <i class="fas fa-exclamation-circle text-red-600 text-sm mt-0.5 flex-shrink-0"></i>
         <div class="flex-1">
             {% for error in errors %}
-                <p class="text-sm text-red-700 font-medium">{{ error }}</p>
+                <p class="text-sm text-red-600 font-medium">{{ error }}</p>
             {% endfor %}
         </div>
     </div>

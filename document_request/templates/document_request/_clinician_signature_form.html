@@ -1,5 +1,9 @@
 {% comment %}Shared signature upload form (used on dedicated My Signature page).{% endcomment %}
-<form method="post" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+<form method="post"
+      enctype="multipart/form-data"
+      class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start"
+      x-data="{ saving: false }"
+      @submit="saving = true">
   {% csrf_token %}
   <div class="space-y-4">
     <div>
@@ -19,8 +23,13 @@
     <p class="text-sm text-red-600">{{ signature_form.is_active.errors.0 }}</p>
     {% endif %}
     <div>
-      <button type="submit" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors">
-        Save Signature
+      <button type="submit"
+              class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-70 disabled:cursor-wait"
+              :disabled="saving"
+              :aria-busy="saving.toString()">
+        <i class="fas fa-spinner fa-spin" x-show="saving" x-cloak aria-hidden="true"></i>
+        <i class="fas fa-floppy-disk" x-show="!saving" aria-hidden="true"></i>
+        <span x-text="saving ? 'Saving…' : 'Save Signature'"></span>
       </button>
     </div>
   </div>

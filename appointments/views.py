@@ -511,16 +511,12 @@ def _get_schedule_context(form_data=None, *, doctors_only=False):
     for doctor in doctors:
         name = doctor.get_full_name() or doctor.email or ''
         spec = ''
-        dept = ''
-        if getattr(doctor, 'staff_profile', None):
-            if doctor.staff_profile.specialization:
-                spec = f' - {doctor.staff_profile.specialization}'
-            if doctor.staff_profile.department:
-                dept = f' ({doctor.staff_profile.department})'
+        if getattr(doctor, 'staff_profile', None) and doctor.staff_profile.specialization:
+            spec = f' - {doctor.staff_profile.specialization}'
         doctors_payload.append(
             {
                 'id': str(doctor.id),
-                'name': f'Dr. {name}{spec}{dept}',
+                'name': f'Dr. {name}{spec}',
             }
         )
 

@@ -1,7 +1,165 @@
 {% load role_tags %}
 {% load clinical_permissions %}
 {% if page_obj.object_list %}
-  <div class="overflow-x-auto">
+  {# Mobile: stacked cards (no horizontal scroll) #}
+  <div class="md:hidden divide-y divide-gray-100">
+    {% for row in page_obj %}
+      {% if row.row_type == 'record' %}
+        {% with record=row.record %}
+          <article class="p-4 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-semibold text-gray-900">{{ record.created_at|date:"M d, Y" }}</div>
+                <div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                  <i class="far fa-clock" aria-hidden="true"></i>{{ record.created_at|time:"g:i A" }}
+                </div>
+                {% if record.appointment %}
+                  <div class="text-xs text-gray-500 mt-1">Appt: {{ record.appointment.date|date:"M d, Y" }}</div>
+                {% endif %}
+              </div>
+              <div class="shrink-0 flex flex-col items-end gap-1">
+                {% if row.missed_slot %}
+                  {% include "components/status_badge.html" with label="Missed" variant="danger" icon="fa-calendar-xmark" size="sm" %}
+                {% elif record.status == 'completed' %}
+                  {% include "components/status_badge.html" with label="Done" variant="success" icon="fa-check-double" size="sm" %}
+                {% else %}
+                  {% include "components/status_badge.html" with label="Pending" variant="warning" icon="fa-clock" size="sm" %}
+                {% endif %}
+                {% if record.consent_signed %}
+                  {% include "components/status_badge.html" with label="Signed" variant="success" icon="fa-circle-check" size="sm" %}
+                {% else %}
+                  {% include "components/status_badge.html" with label="Consent pending" variant="warning" icon="fa-clock" size="sm" %}
+                {% endif %}
+              </div>
+            </div>
+
+            {% if not user|is_patient_role %}
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Patient</p>
+                <div class="flex items-center gap-2 min-w-0 mt-0.5">
+                  {% include "components/avatar.html" with user=record.patient size="sm" %}
+                  <div class="min-w-0">
+                    <p class="text-gray-900 font-medium truncate">{{ record.patient.last_name }}, {{ record.patient.first_name }}</p>
+                    {% if record.middle_name %}<p class="text-xs text-gray-500 truncate">{{ record.middle_name }}</p>{% endif %}
+                  </div>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Department</p>
+                <p class="text-gray-700 mt-0.5 line-clamp-2" title="{{ record.department_college_office }}">{{ record.department_college_office }}</p>
+              </div>
+              {% if user.role != 'doctor' %}
+                <div class="min-w-0">
+                  <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Examined by</p>
+                  {% if record.examined_by %}
+                    <p class="text-gray-900 mt-0.5 truncate">Dr. {{ record.examined_by.get_full_name }}</p>
+                  {% else %}
+                    <p class="text-gray-400 italic mt-0.5">Not assigned</p>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-gray-100">
+              {% if user|is_patient_role and record.status != 'completed' %}
+                <span class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-gray-400 w-full min-h-[2rem] cursor-not-allowed col-span-2"
+                      title="Still being processed">
+                  <i class="fas fa-lock text-[10px] shrink-0" aria-hidden="true"></i>
+                  <span class="whitespace-nowrap">Locked</span>
+                </span>
+              {% else %}
+                {% url 'dental_records:dental_record_detail' record.id as detail_url %}
+                {% include "components/table_icon_link.html" with href=detail_url icon="fa-eye" title="View record" label="View" tone="view" layout="grid" %}
+                {% if user|can_write_dental_records %}
+                  {% url 'dental_records:dental_record_edit' record.id as edit_url %}
+                  {% include "components/table_icon_link.html" with href=edit_url icon="fa-pen-to-square" title="Edit record" label="Edit" tone="info" layout="grid" %}
+                {% endif %}
+                {% if user|can_write_dental_records and record.status == 'pending' %}
+                  <button type="button"
+                          data-record-id="{{ record.id }}"
+                          data-subtitle="{{ record.patient.get_full_name|escape }}"
+                          onclick="window.__jmcfiDentalStatusModal(this); return false;"
+                          class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-success-800 transition-all w-full min-h-[2rem] hover:bg-white hover:border-success-200 hover:shadow-sm"
+                          title="Mark record completed">
+                    <i class="fas fa-circle-check text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
+                    <span class="whitespace-nowrap">Done</span>
+                  </button>
+                {% endif %}
+                {% if user|has_role:"admin" %}
+                  <button type="button"
+                          @click="$dispatch('open-modal', {type:'danger', title:'Delete Dental Record', subtitle:'{{ record.patient.get_full_name|escapejs }}', actionLabel:'Delete Permanently', size:'sm', formAction:'/dental-records/{{ record.id }}/delete/', hasForm:true})"
+                          class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-danger-800 transition-all w-full min-h-[2rem] hover:bg-white hover:border-danger-200 hover:shadow-sm"
+                          title="Delete record">
+                    <i class="fas fa-trash-can text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
+                    <span class="whitespace-nowrap">Delete</span>
+                  </button>
+                {% endif %}
+              {% endif %}
+            </div>
+          </article>
+        {% endwith %}
+      {% else %}
+        {% with appointment=row.appointment %}
+          <article class="p-4 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="font-semibold text-gray-900">{{ appointment.date|date:"M d, Y" }}</div>
+                <div class="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                  <i class="far fa-clock" aria-hidden="true"></i>{{ appointment.time|time:"g:i A" }}
+                </div>
+                <div class="text-xs text-warning-700 font-medium mt-1">
+                  <i class="fas fa-calendar mr-1" aria-hidden="true"></i>Appointment
+                </div>
+              </div>
+              <div class="shrink-0">
+                {% if appointment.status == 'cancelled' %}
+                  {% include "components/status_badge.html" with label=appointment.get_status_display variant="danger" size="sm" %}
+                {% elif row.missed_slot %}
+                  {% include "components/status_badge.html" with label="Missed" variant="danger" icon="fa-calendar-xmark" size="sm" %}
+                {% else %}
+                  {% include "components/status_badge.html" with label=appointment.get_status_display variant="warning" size="sm" %}
+                {% endif %}
+              </div>
+            </div>
+
+            {% if not user|is_patient_role %}
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Patient</p>
+                <div class="flex items-center gap-2 min-w-0 mt-0.5">
+                  {% include "components/avatar.html" with user=appointment.patient size="sm" %}
+                  <p class="text-gray-900 font-medium truncate">{{ appointment.patient.last_name }}, {{ appointment.patient.first_name }}</p>
+                </div>
+              </div>
+            {% endif %}
+
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Type</p>
+                <p class="text-gray-700 mt-0.5">Dental Appointment Request</p>
+              </div>
+              {% if user.role != 'doctor' %}
+                <div class="min-w-0">
+                  <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Doctor</p>
+                  <p class="text-gray-900 mt-0.5 truncate">Dr. {{ appointment.doctor.get_full_name }}</p>
+                </div>
+              {% endif %}
+            </div>
+
+            <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-gray-100">
+              {% url 'appointments:appointment_detail' appointment.id as appt_url %}
+              {% include "components/table_icon_link.html" with href=appt_url icon="fa-calendar" title="View appointment" label="Appt" layout="grid" %}
+            </div>
+          </article>
+        {% endwith %}
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  {# Desktop: table #}
+  <div class="hidden md:block overflow-x-auto">
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-gray-50">
         <tr>

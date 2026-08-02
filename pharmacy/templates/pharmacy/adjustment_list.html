@@ -24,7 +24,44 @@
         </div>
       </div>
 
-      <div class="overflow-x-auto">
+      {# Mobile cards #}
+      <div class="md:hidden divide-y divide-gray-100">
+        {% for adj in adjustments %}
+          <article class="p-4 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="font-semibold text-gray-900 truncate">{{ adj.batch.medicine.name }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">Batch {{ adj.batch.batch_number }}</p>
+              </div>
+              <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold
+                {% if adj.quantity_change > 0 %}bg-emerald-100 text-emerald-800{% else %}bg-red-100 text-red-800{% endif %}">
+                {% if adj.quantity_change > 0 %}+{% endif %}{{ adj.quantity_change }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Reason</p>
+                <p class="text-gray-700 mt-0.5">{{ adj.get_reason_display }}</p>
+              </div>
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-wider text-gray-400 font-medium">Adjusted by</p>
+                <p class="text-gray-700 mt-0.5 truncate">{{ adj.adjusted_by.first_name }} {{ adj.adjusted_by.last_name }}</p>
+              </div>
+            </div>
+            {% if adj.notes %}
+              <p class="text-sm text-gray-600 line-clamp-2">{{ adj.notes }}</p>
+            {% endif %}
+            <p class="text-xs text-gray-500">{{ adj.created_at|date:"M d, Y H:i" }}</p>
+          </article>
+        {% empty %}
+          <div class="px-6 py-12 text-center">
+            <p class="text-gray-500 font-medium">No adjustments recorded</p>
+          </div>
+        {% endfor %}
+      </div>
+
+      {# Desktop table #}
+      <div class="hidden md:block overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
             <tr>

@@ -13,9 +13,9 @@
 {% endcomment %}
 
 {% if show_breadcrumbs %}
-<nav class="{{ nav_mb|default:'mb-4' }} w-fit max-w-full overflow-x-auto rounded-xl border border-gray-100 bg-white shadow-sm"
+<nav class="{{ nav_mb|default:'mb-4' }} w-full min-w-0 rounded-xl border border-gray-100 bg-white shadow-sm"
      aria-label="Breadcrumb">
-  <div class="px-3 py-2.5 min-w-max">
+  <div class="px-3 py-2.5 min-w-0">
     {% include "components/breadcrumbs.html" with crumbs=bc_crumbs embedded=True %}
   </div>
 </nav>
@@ -40,12 +40,16 @@
   </div>
 </nav>
 {% elif items or dropdowns %}
-<nav class="{{ nav_mb|default:'mb-6' }} w-full max-w-full{% if nav_layout != 'wrapped' and not dropdowns %} overflow-x-auto{% endif %}"
+<nav class="{{ nav_mb|default:'mb-6' }} w-full max-w-full{% if dropdowns %} overflow-visible{% endif %}"
      aria-label="{{ nav_aria_label|default:'Section navigation' }}">
   <div role="tablist"
-       class="{% if nav_layout == 'wrapped' %}flex flex-wrap items-center gap-1.5 w-full{% else %}inline-flex min-w-max items-center gap-1{% endif %}{% if dropdowns %} overflow-visible{% endif %} rounded-xl border border-gray-100 bg-white p-2 shadow-sm">
+       class="{% if nav_layout == 'wrapped' %}flex flex-wrap items-center gap-1.5 w-full rounded-xl border border-gray-100 bg-white p-2 shadow-sm{% elif dropdowns %}inline-flex flex-wrap items-center gap-1 w-full rounded-xl border border-gray-100 bg-white p-2 shadow-sm overflow-visible{% else %}flex w-full flex-nowrap items-stretch gap-0.5 rounded-xl border border-gray-200 bg-gray-100 p-1 shadow-sm{% endif %}">
     {% for item in items %}
-      {% include "components/_sub_nav_link.html" with item=item %}
+      {% if nav_layout == 'wrapped' or dropdowns %}
+        {% include "components/_sub_nav_link.html" with item=item %}
+      {% else %}
+        {% include "components/_sub_nav_link.html" with item=item equal_tabs=True %}
+      {% endif %}
     {% endfor %}
     {% for dropdown in dropdowns %}
       {% include "components/_sub_nav_dropdown.html" with dropdown=dropdown menu_id=forloop.counter %}

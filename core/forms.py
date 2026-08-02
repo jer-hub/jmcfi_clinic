@@ -20,7 +20,12 @@ from .doctor_access import (
     normalize_module_list,
     service_module_choices_for_role,
 )
-from .utils import normalize_person_name, age_from_date_of_birth
+from .utils import (
+    age_from_date_of_birth,
+    clean_philippine_phone,
+    format_ph_mobile_badge_display,
+    normalize_person_name,
+)
 from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
 
 User = get_user_model()
@@ -43,6 +48,18 @@ PHONE_WIDGET_ATTRS = {
     'minlength': '13',
 }
 
+PHONE_BADGE_WIDGET_ATTRS = {
+    'class': 'flex-1 min-w-0 px-3 pr-8 py-2.5 border-0 focus:outline-none focus:ring-0 bg-transparent',
+    'type': 'tel',
+    'placeholder': '917 123 4567',
+    'inputmode': 'tel',
+    'autocomplete': 'tel',
+    'data-phone-input': 'true',
+    'data-phone-badge': 'true',
+    'maxlength': '16',
+    'title': 'Enter the 10-digit mobile number (e.g., 917 123 4567).',
+}
+
 
 def clean_strict_ph_number(value, required=False):
     value = (value or '').strip()
@@ -53,6 +70,29 @@ def clean_strict_ph_number(value, required=False):
     if not PH_STRICT_E164_RE.fullmatch(value):
         raise forms.ValidationError('Enter a valid Philippine number in +63XXXXXXXXXX format.')
     return value
+
+
+def clean_badge_ph_number(value, required=False):
+    value = (value or '').strip()
+    if not value:
+        if required:
+            raise forms.ValidationError('This field is required.')
+        return ''
+    return clean_philippine_phone(value)
+
+
+def _apply_badge_phone_initials(form, field_names=('phone', 'emergency_phone')):
+    """Show 10-digit local core in +63 badge inputs when editing existing values."""
+    if form.data:
+        return
+    for field_name in field_names:
+        if field_name not in form.fields:
+            continue
+        raw = form.initial.get(field_name)
+        if not raw and form.instance and getattr(form.instance, 'pk', None):
+            raw = getattr(form.instance, field_name, '') or ''
+        if raw:
+            form.initial[field_name] = format_ph_mobile_badge_display(raw)
 
 
 class AdminLoginForm(forms.Form):
@@ -90,12 +130,12 @@ class StudentProfileForm(forms.ModelForm):
     # Override phone fields with enhanced widget (validation handled in clean methods)
     phone = forms.CharField(
         max_length=20,
-        widget=forms.TextInput(attrs={**PHONE_WIDGET_ATTRS, 'required': True}),
+        widget=forms.TextInput(attrs={**PHONE_BADGE_WIDGET_ATTRS, 'required': True}),
     )
     
     emergency_phone = forms.CharField(
         max_length=20,
-        widget=forms.TextInput(attrs={**PHONE_WIDGET_ATTRS, 'required': True}),
+        widget=forms.TextInput(attrs={**PHONE_BADGE_WIDGET_ATTRS, 'required': True}),
     )
     
     class Meta:
@@ -272,19 +312,10 @@ class StudentProfileForm(forms.ModelForm):
             self.fields[optional_field].widget.attrs.pop('required', None)
             self.fields[optional_field].widget.attrs.pop('aria-required', None)
 
-        for contact_field in ['phone', 'emergency_phone']:
-            if contact_field not in self.fields:
-                continue
-            if not self.fields[contact_field].required:
-                continue
-            current_value = self.initial.get(contact_field)
-            if not current_value and self.instance and self.instance.pk:
-                current_value = getattr(self.instance, contact_field, '')
-            if not current_value:
-                self.initial[contact_field] = '+63'
+        _apply_badge_phone_initials(self)
 
     def clean_phone(self):
-        return clean_strict_ph_number(
+        return clean_badge_ph_number(
             self.cleaned_data.get('phone'),
             required=self.fields['phone'].required,
         )
@@ -355,7 +386,7 @@ class StudentProfileForm(forms.ModelForm):
         return normalize_person_name(self.cleaned_data.get('middle_name', ''))
 
     def clean_emergency_phone(self):
-        return clean_strict_ph_number(
+        return clean_badge_ph_number(
             self.cleaned_data.get('emergency_phone'),
             required=self.fields['emergency_phone'].required,
         )
@@ -388,13 +419,13 @@ class StaffProfileForm(forms.ModelForm):
     # Override phone fields with enhanced widget (validation handled in clean methods)
     phone = forms.CharField(
         max_length=20,
-        widget=forms.TextInput(attrs={**PHONE_WIDGET_ATTRS, 'required': True}),
+        widget=forms.TextInput(attrs={**PHONE_BADGE_WIDGET_ATTRS, 'required': True}),
     )
     
     emergency_phone = forms.CharField(
         max_length=20,
         required=False,
-        widget=forms.TextInput(attrs=PHONE_WIDGET_ATTRS),
+        widget=forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
     )
     
     class Meta:
@@ -541,22 +572,7 @@ class StaffProfileForm(forms.ModelForm):
             self.fields['middle_name'].widget.attrs.pop('required', None)
             self.fields['middle_name'].widget.attrs.pop('aria-required', None)
 
-        # Prefill +63 only for required phone fields (avoid HTML5 pattern blocking optional phones).
-        current_phone = self.initial.get('phone')
-        if not current_phone and self.instance and self.instance.pk:
-            current_phone = getattr(self.instance, 'phone', '')
-        if self.fields['phone'].required and not current_phone:
-            self.initial['phone'] = '+63'
-
-        current_emergency_phone = self.initial.get('emergency_phone')
-        if not current_emergency_phone and self.instance and self.instance.pk:
-            current_emergency_phone = getattr(self.instance, 'emergency_phone', '')
-        if (
-            'emergency_phone' in self.fields
-            and self.fields['emergency_phone'].required
-            and not current_emergency_phone
-        ):
-            self.initial['emergency_phone'] = '+63'
+        _apply_badge_phone_initials(self)
 
         can_edit_admin_managed_fields = (
             self.editor is not None
@@ -640,7 +656,7 @@ class StaffProfileForm(forms.ModelForm):
         return instance
 
     def clean_phone(self):
-        return clean_strict_ph_number(
+        return clean_badge_ph_number(
             self.cleaned_data.get('phone'),
             required=self.fields['phone'].required,
         )
@@ -664,7 +680,7 @@ class StaffProfileForm(forms.ModelForm):
             if 'emergency_phone' in self.fields
             else False
         )
-        return clean_strict_ph_number(self.cleaned_data.get('emergency_phone'), required=required)
+        return clean_badge_ph_number(self.cleaned_data.get('emergency_phone'), required=required)
 
     def clean_staff_id(self):
         staff_id = (self.cleaned_data.get('staff_id') or '').strip()

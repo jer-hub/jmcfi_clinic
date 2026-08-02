@@ -14,13 +14,43 @@
 
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
     <div class="border-b border-gray-200">
-      <nav class="flex overflow-x-auto -mb-px px-3" aria-label="Tabs" style="scrollbar-width: thin;">
-        {% with t="inline-flex items-center gap-1.5 whitespace-nowrap py-3.5 px-3 lg:px-4 border-b-2 text-sm font-medium transition-colors flex-shrink-0 focus:outline-none" %}
-        <button type="button" @click="tab='patient'" :class="tab==='patient' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-user text-xs"></i> Patient</button>
-        <button type="button" @click="tab='vitals'" :class="tab==='vitals' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-heartbeat text-xs"></i> Vitals</button>
-        <button type="button" @click="tab='clinical'" :class="tab==='clinical' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-notes-medical text-xs"></i> Clinical</button>
-        <button type="button" @click="tab='prescriptions'" :class="tab==='prescriptions' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-prescription text-xs"></i> Prescriptions{% if record.prescription_record and record.prescription_record.items.all %}<span class="ml-1 inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-primary-100 text-primary-700 text-[10px] font-semibold">{{ record.prescription_record.items.all|length }}</span>{% endif %}</button>
-        <button type="button" @click="tab='meta'" :class="tab==='meta' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'" class="{{ t }}"><i class="fas fa-info-circle text-xs"></i> Details</button>
+      <nav class="flex w-full -mb-px px-1 sm:px-3" aria-label="Tabs">
+        {% with t="flex flex-1 min-w-0 flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 py-2.5 sm:py-3.5 px-1 sm:px-2 border-b-2 text-[11px] sm:text-sm font-medium transition-colors focus:outline-none" %}
+        <button type="button" @click="tab='patient'" title="Patient"
+                :class="tab==='patient' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ t }}">
+          <i class="fas fa-user text-xs shrink-0" aria-hidden="true"></i>
+          <span class="truncate max-w-full">Patient</span>
+        </button>
+        <button type="button" @click="tab='vitals'" title="Vitals"
+                :class="tab==='vitals' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ t }}">
+          <i class="fas fa-heartbeat text-xs shrink-0" aria-hidden="true"></i>
+          <span class="truncate max-w-full">Vitals</span>
+        </button>
+        <button type="button" @click="tab='clinical'" title="Clinical"
+                :class="tab==='clinical' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ t }}">
+          <i class="fas fa-notes-medical text-xs shrink-0" aria-hidden="true"></i>
+          <span class="truncate max-w-full"><span class="sm:hidden">Clin</span><span class="hidden sm:inline">Clinical</span></span>
+        </button>
+        <button type="button" @click="tab='prescriptions'" title="Prescriptions"
+                :class="tab==='prescriptions' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ t }}">
+          <i class="fas fa-prescription text-xs shrink-0" aria-hidden="true"></i>
+          <span class="inline-flex items-center justify-center gap-0.5 min-w-0 max-w-full">
+            <span class="truncate"><span class="sm:hidden">Rx</span><span class="hidden sm:inline">Prescriptions</span></span>
+            {% if record.prescription_record and record.prescription_record.items.all %}
+              <span class="shrink-0 inline-flex items-center justify-center min-w-[1.125rem] h-4 px-1 rounded-full bg-primary-100 text-primary-700 text-[10px] font-semibold">{{ record.prescription_record.items.all|length }}</span>
+            {% endif %}
+          </span>
+        </button>
+        <button type="button" @click="tab='meta'" title="Details"
+                :class="tab==='meta' ? 'border-primary-600 text-primary-700' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                class="{{ t }}">
+          <i class="fas fa-info-circle text-xs shrink-0" aria-hidden="true"></i>
+          <span class="truncate max-w-full">Details</span>
+        </button>
         {% endwith %}
       </nav>
     </div>

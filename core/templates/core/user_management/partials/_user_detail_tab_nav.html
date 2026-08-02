@@ -1,25 +1,32 @@
-<nav class="overflow-x-auto" aria-label="User detail sections">
-  <div class="inline-flex min-w-full sm:min-w-0 p-1 bg-white border border-gray-200 shadow-sm rounded-lg gap-0.5">
+<nav class="w-full" aria-label="User detail sections">
+  <div role="tablist"
+       class="flex w-full p-1 bg-gray-100 border border-gray-200 rounded-lg gap-0.5">
     <button type="button"
+            role="tab"
+            :aria-selected="(activeTab === 'overview').toString()"
             @click="activeTab = 'overview'"
-            :class="activeTab === 'overview' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
-            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
-      <i class="fas fa-gauge-high text-xs"></i>
-      Overview
+            :class="activeTab === 'overview' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'"
+            class="flex-1 min-w-0 inline-flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-3 py-2 text-[11px] leading-tight sm:text-sm font-medium rounded-md transition-colors">
+      <i class="fas fa-gauge-high text-[11px] sm:text-xs shrink-0" aria-hidden="true"></i>
+      <span class="truncate max-w-full">Overview</span>
     </button>
     <button type="button"
+            role="tab"
+            :aria-selected="(activeTab === 'profile').toString()"
             @click="activeTab = 'profile'"
-            :class="activeTab === 'profile' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
-            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
-      <i class="fas fa-id-card text-xs"></i>
-      Profile
+            :class="activeTab === 'profile' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'"
+            class="flex-1 min-w-0 inline-flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-3 py-2 text-[11px] leading-tight sm:text-sm font-medium rounded-md transition-colors">
+      <i class="fas fa-id-card text-[11px] sm:text-xs shrink-0" aria-hidden="true"></i>
+      <span class="truncate max-w-full">Profile</span>
     </button>
     <button type="button"
+            role="tab"
+            :aria-selected="(activeTab === 'activity').toString()"
             @click="activeTab = 'activity'"
-            :class="activeTab === 'activity' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
-            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-colors">
-      <i class="fas fa-clock-rotate-left text-xs"></i>
-      Activity
+            :class="activeTab === 'activity' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-white/60'"
+            class="flex-1 min-w-0 inline-flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-1.5 px-1.5 sm:px-3 py-2 text-[11px] leading-tight sm:text-sm font-medium rounded-md transition-colors">
+      <i class="fas fa-clock-rotate-left text-[11px] sm:text-xs shrink-0" aria-hidden="true"></i>
+      <span class="truncate max-w-full">Activity</span>
     </button>
   </div>
 </nav>

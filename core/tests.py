@@ -253,6 +253,80 @@ class StudentProfileFormBloodTypeTests(TestCase):
 			self.assertNotIn('required', form.fields['middle_name'].widget.attrs)
 
 
+class ProfilePhoneBadgeFormTests(TestCase):
+	def test_empty_required_phone_does_not_prefill_plus_63(self):
+		from core.forms import StudentProfileForm
+
+		form = StudentProfileForm(user=type('U', (), {'role': 'patient'})())
+		self.assertNotEqual(form.initial.get('phone'), '+63')
+		self.assertNotEqual(form.initial.get('emergency_phone'), '+63')
+		self.assertEqual(form.fields['phone'].widget.attrs.get('data-phone-badge'), 'true')
+		self.assertEqual(form.fields['emergency_phone'].widget.attrs.get('data-phone-badge'), 'true')
+		self.assertNotIn('pattern', form.fields['phone'].widget.attrs)
+
+	def test_existing_e164_phone_displays_local_core(self):
+		from core.forms import StudentProfileForm
+
+		patient = User.objects.create_user(
+			email='badge-phone@test.com',
+			password='PatientPass123!',
+			role='patient',
+			is_active=True,
+		)
+		profile, _ = StudentProfile.objects.get_or_create(user=patient)
+		profile.phone = '+639171234567'
+		profile.emergency_phone = '+639181112233'
+		profile.save(update_fields=['phone', 'emergency_phone'])
+
+		form = StudentProfileForm(instance=profile, user=patient)
+		self.assertEqual(form.initial.get('phone'), '917 123 4567')
+		self.assertEqual(form.initial.get('emergency_phone'), '918 111 2233')
+
+	def test_local_digits_normalize_to_e164_on_clean(self):
+		from core.forms import StudentProfileForm
+
+		form = StudentProfileForm(user=type('U', (), {'role': 'patient'})())
+		form.cleaned_data = {'phone': '917 123 4567'}
+		self.assertEqual(form.clean_phone(), '+639171234567')
+		form.cleaned_data = {'emergency_phone': '9181112233'}
+		self.assertEqual(form.clean_emergency_phone(), '+639181112233')
+
+	def test_staff_form_accepts_local_digits_in_full_submit(self):
+		from core.forms import StaffProfileForm
+
+		admin = User.objects.create_user(
+			email='badge-staff@test.com',
+			password='AdminPass123!',
+			role='admin',
+			is_staff=True,
+			is_active=True,
+			first_name='Clinic',
+			last_name='Admin',
+		)
+		profile, _ = StaffProfile.objects.get_or_create(user=admin)
+		data = {
+			'staff_id': 'ADM-BADGE-001',
+			'middle_name': 'M',
+			'gender': 'male',
+			'civil_status': 'single',
+			'religion': 'Roman Catholic',
+			'citizenship': 'Filipino',
+			'date_of_birth': '1990-01-15',
+			'place_of_birth': 'Davao City',
+			'age': '34',
+			'address': '123 Admin Street, Davao',
+			'zip_code': '8000',
+			'phone': '917 123 4567',
+			'emergency_contact': 'Emergency Person',
+			'emergency_phone': '918 111 2233',
+			'department': 'Clinic Administration',
+		}
+		form = StaffProfileForm(data=data, instance=profile, user=admin)
+		self.assertTrue(form.is_valid(), form.errors)
+		self.assertEqual(form.cleaned_data['phone'], '+639171234567')
+		self.assertEqual(form.cleaned_data['emergency_phone'], '+639181112233')
+
+
 class AdminLoginViewTests(TestCase):
 	def setUp(self):
 		cache.clear()

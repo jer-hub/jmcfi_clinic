@@ -25,20 +25,26 @@
       </div>
 
       <div class="bg-gray-50/50 px-6 py-4 border-b border-gray-200">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <p class="text-sm font-semibold text-gray-800">Filter</p>
+          <a href="{% url 'pharmacy:medicine_list' %}" class="inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg bg-white whitespace-nowrap">
+            <i class="fas fa-rotate-right" aria-hidden="true"></i>Clear
+          </a>
+        </div>
         <form method="get"
               id="jmcfi-pharm-medicine-filter-form"
-              class="flex flex-col sm:flex-row gap-3"
+              class="grid grid-cols-2 gap-3"
               hx-get="{% url 'pharmacy:medicine_list' %}"
               hx-target="body"
               hx-swap="none"
               hx-push-url="true"
               hx-trigger="change from:select, keyup changed delay:300ms from:input[type=text]"
               @submit.prevent>
-          <div class="flex-1">
+          <div class="col-span-2">
             <input type="text" name="q" value="{{ search_query }}" placeholder="Search by name, generic, or brand..."
                    class="w-full border border-gray-300 rounded-lg shadow-sm px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
           </div>
-          <div class="w-full sm:w-44">
+          <div>
             <select name="category" class="w-full border border-gray-300 rounded-lg shadow-sm px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
               <option value="">All Categories</option>
               {% for cat in categories %}
@@ -46,16 +52,13 @@
               {% endfor %}
             </select>
           </div>
-          <div class="w-full sm:w-40">
+          <div>
             <select name="stock" class="w-full border border-gray-300 rounded-lg shadow-sm px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
               <option value="">All Stock</option>
               <option value="low" {% if selected_stock == 'low' %}selected{% endif %}>Low Stock</option>
               <option value="over" {% if selected_stock == 'over' %}selected{% endif %}>Overstocked</option>
             </select>
           </div>
-          <a href="{% url 'pharmacy:medicine_list' %}" class="inline-flex items-center px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg bg-white">
-            <i class="fas fa-rotate-right mr-1"></i>Clear
-          </a>
         </form>
       </div>
 

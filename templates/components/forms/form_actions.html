@@ -5,11 +5,11 @@
   cancel_icon, variant, extra).
 {% endcomment %}
 {% with v=variant|default:'primary' %}
-<div class="flex flex-wrap items-center justify-end gap-3">
+<div class="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end sm:gap-3">
   {{ extra }}
   {% if cancel_url %}
-    {% include "components/button.html" with label=cancel_label|default:"Cancel" icon=cancel_icon|default:"fa-xmark" variant="secondary" as="a" href=cancel_url %}
+    {% include "components/button.html" with label=cancel_label|default:"Cancel" icon=cancel_icon|default:"fa-xmark" variant="secondary" as="a" href=cancel_url extra="w-full sm:w-auto" %}
   {% endif %}
-  {% include "components/button.html" with label=submit_label|default:"Save" icon=submit_icon|default:"fa-check" variant=v type="submit" %}
+  {% include "components/button.html" with label=submit_label|default:"Save" icon=submit_icon|default:"fa-check" variant=v type="submit" extra="w-full sm:w-auto" %}
 </div>
 {% endwith %}

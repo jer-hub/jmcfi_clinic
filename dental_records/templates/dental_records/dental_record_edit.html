@@ -130,7 +130,7 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
               <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.date_of_examination.label }}</label>{{ demographics_form.date_of_examination }}{% include 'partials/field_errors.html' with errors=demographics_form.date_of_examination.errors %}</div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.examined_by.label }}</label>{{ demographics_form.examined_by }}<p class="mt-1 text-xs text-gray-400">The doctor or staff who conducted this examination.</p>{% include 'partials/field_errors.html' with errors=demographics_form.examined_by.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.examined_by.label }}</label>{{ demographics_form.examined_by }}<p class="mt-1 text-xs text-gray-400">The dentist who conducted this examination.</p>{% include 'partials/field_errors.html' with errors=demographics_form.examined_by.errors %}</div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
               <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.consent_date.label }}</label>{{ demographics_form.consent_date }}{% include 'partials/field_errors.html' with errors=demographics_form.consent_date.errors %}</div>

@@ -1,9 +1,8 @@
 {% load static role_tags %}
 <nav class="site-nav-root bg-white border-b border-gray-200 sticky top-0 z-40"
-  x-data="{ mobileOpen: false, mobilePanel: '', moreOpen: false, profileOpen: false }"
+  x-data="{ mobileOpen: false, mobilePanel: '', profileOpen: false }"
   @keydown.escape.window="
     if (mobileOpen) { mobileOpen = false; mobilePanel = '' }
-    if (moreOpen) { moreOpen = false }
     if (profileOpen) { profileOpen = false }
   ">
   <div class="site-nav-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,7 +72,7 @@
 
         {% if role_features.can_submit_feedback %}
           <a href="{% url 'feedback:feedback_list' %}" title="Feedback"
-            class="site-nav-hide-sm relative hidden sm:inline-flex p-2 rounded-full {% if nav_active.feedback %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
+            class="relative p-2 rounded-full {% if nav_active.feedback %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
             <span class="sr-only">Feedback</span>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
               <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
@@ -95,7 +94,7 @@
         {% endif %}
 
         <a href="{% url 'core:notifications' %}" title="Notifications"
-          class="site-nav-hide-sm relative hidden sm:inline-flex p-2 rounded-full {% if nav_active.notifications %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
+          class="relative p-2 rounded-full {% if nav_active.notifications %}text-primary-600 bg-primary-50{% else %}text-gray-400 hover:text-gray-600 hover:bg-gray-100{% endif %}">
           <span class="sr-only">View notifications</span>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 sm:w-6 sm:h-6">
             <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
@@ -106,54 +105,6 @@
           </span>
           {% endif %}
         </a>
-
-        <div class="site-nav-more-wrap relative sm:hidden">
-          <button type="button"
-            id="nav-trigger-more"
-            class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100"
-            @click="moreOpen = !moreOpen"
-            :aria-expanded="moreOpen.toString()"
-            aria-haspopup="true"
-            aria-controls="nav-more-flyout">
-            <span class="sr-only">More</span>
-            <i class="fas fa-ellipsis-h text-lg leading-none w-5 h-5 flex items-center justify-center" aria-hidden="true"></i>
-          </button>
-          <div id="nav-more-flyout"
-            x-show="moreOpen"
-            x-cloak
-            x-transition:enter="transition ease-out duration-200"
-            x-transition:enter-start="opacity-0 translate-y-1"
-            x-transition:enter-end="opacity-100 translate-y-0"
-            x-transition:leave="transition ease-in duration-150"
-            x-transition:leave-start="opacity-100 translate-y-0"
-            x-transition:leave-end="opacity-0 translate-y-1"
-            @click.outside="moreOpen = false"
-            role="region"
-            aria-labelledby="nav-trigger-more"
-            class="absolute right-0 z-50 mt-2 w-52 origin-top-right rounded-xl border border-gray-200 bg-white shadow-lg py-1">
-            {% if role_features.can_submit_feedback %}
-              <a href="{% url 'feedback:feedback_list' %}"
-                @click="moreOpen = false"
-                class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 {% if nav_active.feedback %}text-primary-700 font-medium{% endif %}">
-                <i class="fas fa-comment-dots w-4 text-center text-gray-400" aria-hidden="true"></i>
-                Feedback
-              </a>
-            {% endif %}
-            <a href="{% url 'core:notifications' %}"
-              @click="moreOpen = false"
-              class="flex items-center justify-between gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 {% if nav_active.notifications %}text-primary-700 font-medium{% endif %}">
-              <span class="flex items-center gap-2">
-                <i class="fas fa-bell w-4 text-center text-gray-400" aria-hidden="true"></i>
-                Notifications
-              </span>
-              {% if unread_notifications_count > 0 %}
-                <span class="text-[10px] font-bold text-white bg-red-500 rounded-full min-w-[1.25rem] px-1.5 py-0.5 text-center">
-                  {% if unread_notifications_count > 9 %}9+{% else %}{{ unread_notifications_count }}{% endif %}
-                </span>
-              {% endif %}
-            </a>
-          </div>
-        </div>
 
         {% include "core/partials/_navbar_profile_menu.html" %}
 
@@ -181,23 +132,16 @@
       x-transition:leave-end="opacity-0 -translate-y-1"
       @click.outside="mobileOpen = false; mobilePanel = ''">
       <div class="px-1 space-y-1">
-        <div class="flex items-center gap-3 px-2 py-2.5 bg-gray-50 rounded-lg mb-2">
+        {# Identity only below sm — profile pill is hidden sm:block in the top bar #}
+        <div class="sm:hidden flex items-center gap-3 px-2 py-2.5 bg-gray-50 rounded-lg mb-2">
           {% include "components/avatar.html" with user=user size="sm" class="ring-2 ring-white shadow-sm" loading="eager" %}
           <div class="flex-1 min-w-0">
             <p class="text-sm font-medium text-gray-900 truncate">{{ user.get_full_name }}</p>
             <p class="text-xs text-gray-500">{{ user.get_role_display }}</p>
           </div>
         </div>
-        <a href="{% url 'core:profile' %}" class="mobile-link {% if nav_active.profile %}active{% endif %}">Profile</a>
-        <a href="{% url 'core:edit_profile' %}" class="mobile-link {% if nav_active.edit_profile %}active{% endif %}">Edit profile</a>
-        <a href="{% url 'core:profile_preferences' %}" class="mobile-link {% if nav_active.profile_preferences %}active{% endif %}">Preferences</a>
-        <form method="post" action="{% url 'account_logout' %}" class="px-2 pt-1">
-          {% csrf_token %}
-          <button type="submit" class="mobile-link w-full text-left text-gray-700 hover:text-gray-900">
-            Sign out
-          </button>
-        </form>
 
+        {# 1. Primary destinations (Messages / User Mgmt stay as top-bar icons — not duplicated) #}
         {% if user.role != 'admin' %}
         <a href="{% url 'core:dashboard' %}" class="mobile-link {% if nav_active.dashboard %}active{% endif %}">Dashboard</a>
         {% endif %}
@@ -210,9 +154,6 @@
           {% if role_features.can_access_analytics %}
           <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
           {% endif %}
-          {% if role_features.can_use_messaging %}
-          <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if nav_active.messaging %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
-          {% endif %}
         {% elif user.role == 'doctor' %}
           {% include 'core/partials/_navbar_services_mobile.html' with svc_role=user.role %}
           {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}
@@ -222,23 +163,20 @@
           {% if role_features.can_access_analytics %}
           <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
           {% endif %}
-          {% if role_features.can_use_messaging %}
-          <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if nav_active.messaging %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
-          {% endif %}
         {% elif user.role == 'staff' %}
           {% include 'core/partials/_navbar_services_mobile.html' with svc_role=user.role %}
           {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}
           {% if role_features.can_access_analytics %}
           <a href="{% url 'analytics:dashboard' %}" class="mobile-link {% if nav_active.analytics %}active{% endif %}">Analytics</a>
           {% endif %}
-          {% if role_features.can_use_messaging %}
-          <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if nav_active.messaging %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
-          {% endif %}
         {% elif user.role == 'admin' %}
           {% include 'core/partials/_navbar_admin_settings_mobile.html' %}
-          <a href="{% url 'messaging:inbox' %}" class="mobile-link {% if nav_active.messaging %}active{% endif %}">Messages{% if unread_messages_count > 0 %} ({{ unread_messages_count }}){% endif %}</a>
-          <a href="{% url 'core:user_management' %}" class="mobile-link {% if nav_active.user_management %}active{% endif %}">User Management</a>
         {% endif %}
+
+        {# 2. Account section last — hidden from md+ (profile menu covers this) #}
+        <div class="border-t border-gray-100 mt-2 pt-2 space-y-1 md:hidden">
+          {% include 'core/partials/_navbar_account_mobile.html' %}
+        </div>
       </div>
     </div>
   </div>

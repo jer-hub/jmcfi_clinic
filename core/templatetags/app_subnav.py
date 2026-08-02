@@ -83,7 +83,7 @@ def appointments_subnav(context):
         if has_clinical_module(request.user, MODULE_APPOINTMENTS):
             items.append(
                 nav_item(
-                    'Schedule for Patient',
+                    'Schedule for patient',
                     'appointments:schedule_for_patient',
                     icon='fa-plus',
                     active=vn == 'appointments:schedule_for_patient',

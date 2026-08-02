@@ -90,6 +90,7 @@ html {
 
 form .space-y-1,
 form .form-group,
+form [data-phone-wrapper],
 form input,
 form select,
 form textarea,
@@ -103,6 +104,25 @@ form select.form-field-error,
 form textarea.form-field-error {
     border-color: #ef4444 !important;
     box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.08);
+}
+
+/* Badge phone inputs are borderless — highlight the wrapper shell instead */
+form [data-phone-wrapper].has-phone-error > .relative,
+form [data-phone-wrapper]:has(input.form-field-error) > .relative {
+    border-color: #fca5a5 !important; /* red-300 */
+    box-shadow: none;
+}
+
+form [data-phone-wrapper].has-phone-error > .relative:focus-within,
+form [data-phone-wrapper]:has(input.form-field-error) > .relative:focus-within {
+    border-color: #fca5a5 !important; /* keep red-300 on focus */
+    box-shadow: none !important;
+}
+
+form [data-phone-wrapper] input.form-field-error,
+form [data-phone-wrapper] input.form-field-error:focus {
+    border-color: transparent !important;
+    box-shadow: none !important;
 }
 
 form input.form-field-error:focus,

@@ -80,6 +80,17 @@ class DentalRecordForm(forms.ModelForm):
             self.fields['informed_consent_signed'].required = True
             self.fields['consent_signed'].widget.attrs['required'] = 'required'
             self.fields['informed_consent_signed'].widget.attrs['required'] = 'required'
+        # Dentist assignment: only active doctors (keep current value if inactive/legacy)
+        doctors = User.objects.filter(role='doctor', is_active=True).order_by('first_name', 'last_name')
+        if self.instance.pk and self.instance.examined_by_id:
+            doctors = (
+                User.objects.filter(pk=self.instance.examined_by_id)
+                | doctors
+            ).distinct().order_by('first_name', 'last_name')
+        self.fields['examined_by'].queryset = doctors
+        self.fields['examined_by'].label_from_instance = (
+            lambda u: u.get_full_name() or u.email or str(u.pk)
+        )
         _apply_badge_phone_initials(self)
 
     def clean(self):

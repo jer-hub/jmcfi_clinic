@@ -3,13 +3,14 @@
 
   Context:
     item – dict with label, url, icon (optional), active (bool), badge (optional)
+    equal_tabs – when truthy, stretch equally across the tab strip (compact layout)
 {% endcomment %}
 <a href="{{ item.url }}"
    role="tab"
    aria-selected="{% if item.active %}true{% else %}false{% endif %}"
    {% if item.active %}aria-current="page"{% endif %}
    title="{{ item.label }}"
-   class="nav-link whitespace-nowrap shrink-0{% if item.active %} active{% endif %}">
+   class="nav-link{% if equal_tabs %} sub-nav-tab flex-1 min-w-0 basis-0{% else %} whitespace-nowrap shrink-0{% endif %}{% if item.active %} active{% endif %}">
   {% if item.icon %}<i class="fas {{ item.icon }} nav-link-icon" aria-hidden="true"></i>{% endif %}
   <span>{{ item.label }}</span>
   {% if item.badge or item.badge == 0 %}

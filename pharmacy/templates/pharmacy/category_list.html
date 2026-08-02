@@ -25,7 +25,43 @@
         </div>
       </div>
 
-      <div class="overflow-x-auto">
+      {# Mobile cards #}
+      <div class="md:hidden divide-y divide-gray-100">
+        {% for cat in categories %}
+          <article class="p-4 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <p class="font-semibold text-gray-900">{{ cat.name }}</p>
+                <p class="text-sm text-gray-600 mt-0.5 line-clamp-2">{{ cat.description|truncatewords:15|default:"—" }}</p>
+              </div>
+              <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">{{ cat.medicine_count }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 pt-2 border-t border-gray-100">
+              <a href="{% url 'pharmacy:category_edit' category_id=cat.pk %}" class="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-primary-200 bg-primary-50 text-[11px] font-medium text-primary-700 min-h-[2rem]">
+                <i class="fas fa-edit text-[10px]"></i>Edit
+              </a>
+              {% if request.user.role == 'admin' or request.user.role == 'staff' %}
+              <form method="post" action="{% url 'pharmacy:category_delete' category_id=cat.pk %}" class="contents" onsubmit="return confirm('Delete category \"{{ cat.name|escapejs }}\"? Medicines in this category will become uncategorized.');">
+                {% csrf_token %}
+                <button type="submit" class="inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-red-200 bg-red-50 text-[11px] font-medium text-red-700 min-h-[2rem] w-full">
+                  <i class="fas fa-trash text-[10px]"></i>Delete
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </article>
+        {% empty %}
+          <div class="px-6 py-12 text-center">
+            <p class="text-gray-500 font-medium">No categories yet</p>
+            <a href="{% url 'pharmacy:category_create' %}" class="mt-4 inline-flex items-center px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700">
+              <i class="fas fa-plus mr-2"></i>Add Category
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+
+      {# Desktop table #}
+      <div class="hidden md:block overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
             <tr>

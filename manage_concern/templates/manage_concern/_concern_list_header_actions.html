@@ -1,0 +1,3 @@
+{% comment %}Header actions for concern list.{% endcomment %}
+{% url 'manage_concern:concern_create' as concern_create_url %}
+{% include "components/button.html" with label="New Concern" icon="fa-plus" variant="primary" as="a" href=concern_create_url extra="shadow-sm" %}

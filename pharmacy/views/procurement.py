@@ -112,7 +112,7 @@ def supplier_list(request):
   return render(
     request,
     'pharmacy/supplier_list.html',
-    {'suppliers': paginate_queryset(qs, request, per_page=15), 'search_query': q},
+    {'suppliers': paginate_queryset(qs, request, per_page=10), 'search_query': q},
   )
 
 
@@ -180,7 +180,7 @@ def _build_purchase_order_list_context(request):
       | Q(supplier__name__icontains=q)
     )
   return {
-    'orders': paginate_queryset(qs, request, per_page=15),
+    'orders': paginate_queryset(qs, request, per_page=10),
     'selected_status': status,
     'search_query': q,
     'list_querystring': list_querystring(request.GET),

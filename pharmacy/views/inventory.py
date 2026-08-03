@@ -37,7 +37,7 @@ def _build_medicine_list_context(request):
     elif stock == 'over':
         qs = qs.filter(cached_non_expired_stock__gt=F('max_stock_level'))
 
-    medicines = paginate_queryset(qs.order_by('name'), request, per_page=15)
+    medicines = paginate_queryset(qs.order_by('name'), request, per_page=10)
     for med in medicines:
         med.cached_stock = med.cached_non_expired_stock
         med.cached_is_low = med.cached_non_expired_stock <= med.reorder_level
@@ -191,7 +191,7 @@ def _build_batch_list_context(request):
         qs = qs.filter(expiry_date__gt=today + timezone.timedelta(days=90))
 
     return {
-        'batches': paginate_queryset(qs, request, per_page=15),
+        'batches': paginate_queryset(qs, request, per_page=10),
         'search_query': q,
         'selected_status': status,
         'list_querystring': list_querystring(request.GET),

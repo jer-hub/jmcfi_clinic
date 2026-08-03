@@ -13,6 +13,7 @@ SERVICES_NAMESPACES = frozenset(
         "medical_records",
         "dental_records",
         "document_request",
+        "manage_concern",
     }
 )
 

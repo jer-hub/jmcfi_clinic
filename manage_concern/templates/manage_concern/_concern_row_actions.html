@@ -1,0 +1,38 @@
+{% comment %}Edit / delete / view actions for a concern row. Pass compact=True for icon-only desktop cells.{% endcomment %}
+{% if compact %}
+<div class="inline-flex items-center justify-end gap-0.5">
+  {% url 'manage_concern:concern_detail' record.pk as detail_url %}
+  {% url 'manage_concern:concern_edit' record.pk as edit_url %}
+  {% include "components/table_icon_link.html" with href=detail_url icon="fa-eye" title="View" tone="view" %}
+  {% include "components/table_icon_link.html" with href=edit_url icon="fa-pen" title="Edit" tone="info" %}
+  <button type="button"
+          class="p-1.5 rounded text-danger-700 hover:bg-danger-50 transition-colors"
+          title="Delete"
+          @click="$dispatch('open-modal', {type:'danger', title:'Delete Concern Record', subtitle:'{{ record.display_name|escapejs }}', actionLabel:'Delete Permanently', size:'sm', formAction:'{% url 'manage_concern:concern_delete' record.pk %}', hasForm:true})">
+    <i class="fas fa-trash" aria-hidden="true"></i>
+    <span class="sr-only">Delete</span>
+  </button>
+</div>
+{% else %}
+<div class="inline-flex {% if full_width %}w-full flex-wrap{% endif %} items-center {% if full_width %}justify-stretch{% else %}justify-end{% endif %} gap-1.5">
+  <a href="{% url 'manage_concern:concern_detail' record.pk %}"
+     class="{% if full_width %}flex-1 justify-center{% endif %} inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-primary-200 text-primary-700 bg-white hover:bg-primary-50 transition-colors"
+     title="View">
+    <i class="fas fa-eye text-[10px]" aria-hidden="true"></i>
+    View
+  </a>
+  <a href="{% url 'manage_concern:concern_edit' record.pk %}"
+     class="{% if full_width %}flex-1 justify-center{% endif %} inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+     title="Edit">
+    <i class="fas fa-pen text-[10px]" aria-hidden="true"></i>
+    Edit
+  </a>
+  <button type="button"
+          class="{% if full_width %}flex-1 justify-center{% endif %} inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-red-200 text-red-700 bg-white hover:bg-red-50 transition-colors"
+          title="Delete"
+          @click="$dispatch('open-modal', {type:'danger', title:'Delete Concern Record', subtitle:'{{ record.display_name|escapejs }}', actionLabel:'Delete Permanently', size:'sm', formAction:'{% url 'manage_concern:concern_delete' record.pk %}', hasForm:true})">
+    <i class="fas fa-trash text-[10px]" aria-hidden="true"></i>
+    Delete
+  </button>
+</div>
+{% endif %}

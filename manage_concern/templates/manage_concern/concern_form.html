@@ -1,0 +1,777 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ title }} - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
+  {% include 'manage_concern/_subnav.html' %}
+  {{ catalog_colleges|json_script:"mc-colleges" }}
+  {{ catalog_courses|json_script:"mc-courses-by-college" }}
+  {{ catalog_year_levels|json_script:"mc-year-levels-by-college" }}
+  {{ catalog_course_optional|json_script:"mc-course-optional-by-college" }}
+
+  {% url 'manage_concern:concern_list' as concern_list_url %}
+  {% include "components/page_header.html" with title=title subtitle=subtitle icon="fa-clipboard-list" header_mb="mb-4" %}
+
+  {% include 'partials/messages.html' %}
+
+  <form method="post"
+        class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden"
+        x-data="manageConcernForm({
+          searchUrl: '{{ patient_search_url }}',
+          prefillUrlTemplate: '{{ patient_prefill_template }}',
+          selectedUser: {% if selected_user %}{ id: '{{ selected_user.id }}', name: '{{ selected_user.name|escapejs }}', email: '{{ selected_user.email|escapejs }}' }{% else %}null{% endif %},
+          colleges: JSON.parse(document.getElementById('mc-colleges').textContent || '[]'),
+          coursesByCollege: JSON.parse(document.getElementById('mc-courses-by-college').textContent || '{}'),
+          yearLevelsByCollege: JSON.parse(document.getElementById('mc-year-levels-by-college').textContent || '{}'),
+          courseOptionalByCollege: JSON.parse(document.getElementById('mc-course-optional-by-college').textContent || '{}'),
+          initialCollegeId: '{{ form.college_department.value|default_if_none:"" }}',
+          initialProgramId: '{{ form.course_program.value|default_if_none:"" }}',
+          initialYearId: '{{ form.year_level.value|default_if_none:"" }}',
+          initialAffiliationType: '{{ initial_affiliation_type|default:"catalog"|escapejs }}',
+          initialDepartmentOther: '{{ initial_department_other|default:""|escapejs }}'
+        })"
+        x-init="init()">
+    {% csrf_token %}
+    <div class="p-4 sm:p-6 space-y-6">
+      {% include 'partials/form_errors.html' with form=form %}
+
+      <section class="space-y-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Visit</h2>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {% include "components/forms/field.html" with field=form.date icon="fa-calendar-day" %}
+          {% include "components/forms/field.html" with field=form.time icon="fa-clock" %}
+        </div>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Patient</h2>
+        {{ form.patient_user }}
+        <div class="rounded-xl border border-gray-200 bg-gray-50/60 p-3 sm:p-4 space-y-3">
+          <div class="inline-flex rounded-lg border border-gray-200 bg-white p-1">
+            <button type="button"
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+                    :class="!manualEntry ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:text-gray-800'"
+                    @click="manualEntry = false">
+              Search existing user
+            </button>
+            <button type="button"
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+                    :class="manualEntry ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:text-gray-800'"
+                    @click="switchToManual()">
+              Enter new patient
+            </button>
+          </div>
+          <div x-show="!manualEntry" class="space-y-2" x-cloak>
+            <div class="relative">
+              <input type="text"
+                     x-model="query"
+                     @input.debounce.250ms="searchUsers"
+                     @focus="showResults = true"
+                     @click.outside="showResults = false"
+                     class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm bg-white"
+                     :class="loading ? 'pr-[6.75rem]' : ''"
+                     placeholder="Search by name or email">
+              <div x-show="loading"
+                   x-cloak
+                   class="pointer-events-none absolute inset-y-0 right-3 flex items-center">
+                <span class="inline-flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
+                  <i class="fas fa-spinner fa-spin text-[0.65rem] text-primary-500" aria-hidden="true"></i>
+                  Searching...
+                </span>
+              </div>
+            </div>
+            <div x-show="showResults && results.length" class="border border-gray-200 rounded-lg bg-white shadow-sm max-h-52 overflow-auto divide-y divide-gray-100">
+              <template x-for="item in results" :key="item.id">
+                <button type="button" class="w-full text-left px-3 py-2 hover:bg-gray-50" @click="selectUser(item)">
+                  <p class="text-sm font-medium text-gray-900" x-text="item.name"></p>
+                  <p class="text-xs text-gray-500" x-text="item.email"></p>
+                </button>
+              </template>
+            </div>
+            <template x-if="selectedUser">
+              <div class="rounded-lg border border-primary-200 bg-primary-50/60 px-3 py-2.5 flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="text-sm font-medium text-primary-900 truncate" x-text="selectedUser.name"></p>
+                  <p class="text-xs text-primary-700 truncate" x-text="selectedUser.email"></p>
+                </div>
+                <button type="button" class="text-xs font-medium text-primary-700 hover:text-primary-900" @click="switchToManual()">Clear</button>
+              </div>
+            </template>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {% include "components/forms/field.html" with field=form.last_name %}
+          {% include "components/forms/field.html" with field=form.first_name %}
+          {% include "components/forms/field.html" with field=form.middle_name %}
+        </div>
+
+        {# Academic fields — Employee checkbox; Others specify sits under Department/College #}
+        <div class="space-y-4">
+          {{ form.affiliation_type }}
+          {{ form.college_department }}
+
+          <div>
+            <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+              <input type="checkbox"
+                     class="form-checkbox"
+                     x-model="isEmployee"
+                     @change="onEmployeeChange()">
+              <span>Employee</span>
+            </label>
+            <p class="mt-1 text-xs text-gray-500">Employees only select Department / College (no program or year). If the department is not listed, check Others below.</p>
+          </div>
+          {% if form.affiliation_type.errors %}
+            {% for err in form.affiliation_type.errors %}
+              <p class="text-xs text-danger-600 flex items-center gap-1">
+                <i class="fas fa-circle-exclamation"></i>
+                <span>{{ err }}</span>
+              </p>
+            {% endfor %}
+          {% endif %}
+
+          <div class="space-y-1">
+            <label for="department-search" class="block text-sm font-medium text-gray-700">
+              {{ form.college_department.label }}
+              <span class="text-danger-500" x-show="!isOthers" x-cloak>*</span>
+              <span class="text-gray-400 text-xs font-normal" x-show="isOthers" x-cloak>(Optional when Others is checked)</span>
+            </label>
+            <div class="relative" @click.outside="closeDepartmentDropdown()">
+              <div x-show="collegeName && !departmentOpen"
+                   x-cloak
+                   class="flex w-full items-center gap-3 rounded-xl border border-primary-200 bg-gradient-to-r from-primary-50 to-white px-3.5 py-3 shadow-sm ring-1 ring-primary-100">
+                <button type="button"
+                        @click="startDepartmentSearch()"
+                        class="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none">
+                  <span class="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-sm font-semibold text-white shadow-sm"
+                        x-text="departmentInitial"></span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-semibold text-gray-900" x-text="collegeName"></span>
+                    <span class="mt-0.5 block text-xs text-primary-700">Tap to search or change</span>
+                  </span>
+                  <i class="fas fa-chevron-down text-xs text-primary-500" aria-hidden="true"></i>
+                </button>
+                <button type="button"
+                        @click="clearDepartment()"
+                        class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                        aria-label="Clear department">
+                  <i class="fas fa-circle-xmark text-sm" aria-hidden="true"></i>
+                </button>
+              </div>
+
+              <div x-show="!collegeName || departmentOpen" x-cloak class="form-input-icon">
+                <i class="fas fa-magnifying-glass form-input-icon__icon text-sm" aria-hidden="true"></i>
+                <input type="text"
+                       id="department-search"
+                       x-ref="departmentSearch"
+                       x-model="departmentQuery"
+                       @focus="openDepartmentDropdown()"
+                       @input="onDepartmentQueryInput()"
+                       @keydown.arrow-down.prevent="highlightNextDepartment()"
+                       @keydown.arrow-up.prevent="highlightPrevDepartment()"
+                       @keydown.enter.prevent="selectHighlightedDepartment()"
+                       @keydown.escape.prevent="closeDepartmentDropdown()"
+                       autocomplete="off"
+                       role="combobox"
+                       :placeholder="isEmployee
+                         ? 'Search workplace college/department…'
+                         : 'Type to find college/department…'"
+                       class="block w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-10 text-sm shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                       :class="departmentOpen ? 'border-primary-400 ring-2 ring-primary-500/20' : ''"
+                       aria-autocomplete="list"
+                       aria-controls="department-options"
+                       :aria-expanded="departmentOpen.toString()">
+                <button type="button"
+                        x-show="departmentQuery"
+                        x-cloak
+                        @click="departmentQuery = ''; openDepartmentDropdown(); departmentHighlight = 0"
+                        class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                        aria-label="Clear search">
+                  <i class="fas fa-circle-xmark text-sm" aria-hidden="true"></i>
+                </button>
+              </div>
+
+              <div x-show="departmentOpen"
+                   x-cloak
+                   x-transition:enter="transition ease-out duration-150"
+                   x-transition:enter-start="opacity-0 -translate-y-1"
+                   x-transition:enter-end="opacity-100 translate-y-0"
+                   x-transition:leave="transition ease-in duration-100"
+                   x-transition:leave-start="opacity-100 translate-y-0"
+                   x-transition:leave-end="opacity-0 -translate-y-1"
+                   id="department-options"
+                   class="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl ring-1 ring-black/5">
+                <div class="sticky top-0 flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50 px-3 py-2">
+                  <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                    <span x-text="filteredCollegeOptions.length"></span>
+                    <span x-text="filteredCollegeOptions.length === 1 ? ' match' : ' matches'"></span>
+                  </p>
+                  <p class="hidden text-[10px] text-gray-400 sm:block">
+                    <kbd class="rounded border border-gray-200 bg-white px-1 py-0.5 font-sans">↑↓</kbd>
+                    move
+                    <kbd class="ml-1 rounded border border-gray-200 bg-white px-1 py-0.5 font-sans">Enter</kbd>
+                    select
+                  </p>
+                </div>
+                <div x-ref="departmentList" class="max-h-56 overflow-y-auto p-1.5">
+                  <template x-if="filteredCollegeOptions.length">
+                    <ul role="listbox" aria-label="College and department options">
+                      <template x-for="(option, idx) in filteredCollegeOptions" :key="option.id">
+                        <li role="option" :aria-selected="(idx === departmentHighlight).toString()">
+                          <button type="button"
+                                  :data-dept-idx="idx"
+                                  class="flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors"
+                                  :class="idx === departmentHighlight
+                                    ? 'border-primary-200 bg-primary-50'
+                                    : (option.id == collegeId ? 'border-primary-100 bg-primary-50/60' : 'border-transparent hover:bg-gray-50')"
+                                  @mouseenter="departmentHighlight = idx"
+                                  @click="selectDepartment(option)">
+                            <span class="min-w-0 flex-1">
+                              <span class="block truncate text-sm font-medium"
+                                    :class="idx === departmentHighlight || option.id == collegeId ? 'text-primary-900' : 'text-gray-800'"
+                                    x-text="option.name"></span>
+                            </span>
+                            <i class="fas fa-check text-xs text-primary-600"
+                               x-show="option.id == collegeId"
+                               x-cloak
+                               aria-hidden="true"></i>
+                          </button>
+                        </li>
+                      </template>
+                    </ul>
+                  </template>
+                  <div x-show="!filteredCollegeOptions.length" class="px-3 py-8 text-center">
+                    <i class="fas fa-building-columns mb-2 text-2xl text-gray-300" aria-hidden="true"></i>
+                    <p class="text-sm font-medium text-gray-600">No matches</p>
+                    <p class="mt-1 text-xs text-gray-400">Check Others below to specify the department</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500"
+               x-show="!collegeName && !isOthers"
+               x-cloak
+               x-text="isEmployee
+                 ? 'Required — search and pick workplace college/department, or check Others'
+                 : 'Required — pick a college/department from the list, or check Others'"></p>
+            {% if form.college_department.errors %}
+              {% for err in form.college_department.errors %}
+                <p class="text-xs text-danger-600 flex items-center gap-1">
+                  <i class="fas fa-circle-exclamation"></i>
+                  <span>{{ err }}</span>
+                </p>
+              {% endfor %}
+            {% endif %}
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                <input type="checkbox"
+                       class="form-checkbox"
+                       x-model="isOthers"
+                       @change="onOthersChange()">
+                <span>Others</span>
+              </label>
+              <p class="mt-1 text-xs text-gray-500">Check if the department / college is not in the list above.</p>
+            </div>
+
+            <div class="space-y-1" x-show="isOthers" x-cloak>
+              <label for="{{ form.department_other.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                {{ form.department_other.label }} <span class="text-danger-500">*</span>
+              </label>
+              {{ form.department_other }}
+              <p class="text-xs text-gray-500">Enter the department or college when it is not in the list</p>
+              {% if form.department_other.errors %}
+                {% for err in form.department_other.errors %}
+                  <p class="text-xs text-danger-600 flex items-center gap-1">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span>{{ err }}</span>
+                  </p>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2" x-show="!isEmployee && !isOthers" x-cloak>
+            <div class="space-y-1">
+              <label for="{{ form.course_program.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                {{ form.course_program.label }}
+                <span class="text-gray-400 text-xs font-normal">(Optional)</span>
+              </label>
+              {{ form.course_program }}
+              <p class="text-xs text-gray-500"
+                 x-text="collegeName
+                   ? (isCourseOptional
+                      ? 'Optional — filtered by selected college/department'
+                      : 'Filtered by selected college/department')
+                   : 'Select a college/department first'"></p>
+              {% if form.course_program.errors %}
+                {% for err in form.course_program.errors %}
+                  <p class="text-xs text-danger-600 flex items-center gap-1">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span>{{ err }}</span>
+                  </p>
+                {% endfor %}
+              {% endif %}
+            </div>
+            <div class="space-y-1">
+              <label for="{{ form.year_level.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                {{ form.year_level.label }}
+                <span class="text-gray-400 text-xs font-normal">(Optional)</span>
+              </label>
+              {{ form.year_level }}
+              <p class="text-xs text-gray-500"
+                 x-text="collegeName
+                   ? 'Filtered by selected college/department'
+                   : 'Select a college/department first'"></p>
+              {% if form.year_level.errors %}
+                {% for err in form.year_level.errors %}
+                  <p class="text-xs text-danger-600 flex items-center gap-1">
+                    <i class="fas fa-circle-exclamation"></i>
+                    <span>{{ err }}</span>
+                  </p>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-4">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Clinical notes</h2>
+        {% include "components/forms/field.html" with field=form.concerns %}
+        {% include "components/forms/field.html" with field=form.management_treatment %}
+        {% include "components/forms/field.html" with field=form.disposition %}
+      </section>
+    </div>
+
+    <div class="px-4 sm:px-6 py-4 border-t border-gray-100 bg-gray-50/60">
+      {% include "components/forms/form_actions.html" with submit_label=submit_label cancel_url=concern_list_url %}
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function manageConcernForm(cfg) {
+  const normalize = (v) => (v || '').toString().trim().toLowerCase();
+
+  return {
+    query: '',
+    loading: false,
+    showResults: false,
+    results: [],
+    selectedUser: cfg.selectedUser || null,
+    manualEntry: !cfg.selectedUser,
+    colleges: (cfg.colleges || []).map((c) => ({ ...c, kind: c.kind || 'catalog' })),
+    coursesByCollege: cfg.coursesByCollege || {},
+    yearLevelsByCollege: cfg.yearLevelsByCollege || {},
+    courseOptionalByCollege: cfg.courseOptionalByCollege || {},
+    collegeId: '',
+    collegeName: '',
+    isEmployee: (cfg.initialAffiliationType || 'catalog') === 'employee',
+    isOthers: (
+      (cfg.initialAffiliationType || 'catalog') === 'others'
+      || !!((cfg.initialDepartmentOther || '').trim())
+    ),
+    departmentOther: cfg.initialDepartmentOther || '',
+    departmentQuery: '',
+    departmentOpen: false,
+    departmentHighlight: 0,
+    isEmployeePatient: false,
+
+    get affiliationType() {
+      if (this.isEmployee) return 'employee';
+      if (this.isOthers) return 'others';
+      return 'catalog';
+    },
+
+    get filteredCollegeOptions() {
+      const q = (this.departmentQuery || '').trim().toLowerCase();
+      if (!q) return this.colleges;
+      return this.colleges.filter((c) => String(c.name || '').toLowerCase().includes(q));
+    },
+
+    get departmentInitial() {
+      const text = String(this.collegeName || '').trim();
+      if (!text) return '?';
+      const words = text.split(/\s+/).filter(Boolean);
+      if (words.length >= 2) {
+        return (words[0][0] + words[1][0]).toUpperCase();
+      }
+      return text.slice(0, 2).toUpperCase();
+    },
+
+    get isCourseOptional() {
+      const key = this.resolveCollegeKey(this.collegeName);
+      if (!key) return false;
+      return !!this.courseOptionalByCollege[key];
+    },
+
+    init() {
+      if (this.selectedUser) {
+        const hidden = document.getElementById('id_patient_user');
+        if (hidden) hidden.value = this.selectedUser.id;
+      }
+      const affiliation = cfg.initialAffiliationType || 'catalog';
+      this.isEmployee = affiliation === 'employee';
+      this.isOthers = affiliation === 'others' || !!(cfg.initialDepartmentOther || '').trim();
+      this.departmentOther = cfg.initialDepartmentOther || '';
+      this.syncAffiliationHidden();
+      this.syncDepartmentOther();
+      if (this.isOthers && !cfg.initialCollegeId) {
+        this.collegeId = '';
+        this.collegeName = '';
+        this.syncCollegeHidden();
+      } else {
+        this.applyCollegeById(cfg.initialCollegeId || '', { refresh: false });
+      }
+      this.syncAffiliationHidden();
+      this.syncCollegeHidden();
+      this.refreshAcademicOptions({
+        preserve: true,
+        programId: cfg.initialProgramId || '',
+        yearId: cfg.initialYearId || '',
+      });
+    },
+
+    syncCollegeHidden() {
+      const el = document.getElementById('id_college_department');
+      if (!el) return;
+      // Catalog pick is ignored when Others is used for a custom department.
+      el.value = this.isOthers ? '' : (this.collegeId || '');
+    },
+
+    syncAffiliationHidden() {
+      const el = document.getElementById('id_affiliation_type');
+      if (el) el.value = this.affiliationType;
+    },
+
+    syncDepartmentOther() {
+      const el = document.getElementById('id_department_other');
+      if (el) el.value = this.isOthers ? (this.departmentOther || '') : '';
+    },
+
+    onEmployeeChange() {
+      this.syncAffiliationHidden();
+      this.syncCollegeHidden();
+      this.refreshAcademicOptions({ preserve: false });
+    },
+
+    onOthersChange() {
+      if (this.isOthers) {
+        this.collegeId = '';
+        this.collegeName = '';
+        this.departmentQuery = '';
+        this.departmentOpen = false;
+        this.syncCollegeHidden();
+        this.syncAffiliationHidden();
+        this.syncDepartmentOther();
+        this.refreshAcademicOptions({ preserve: false });
+        this.$nextTick(() => {
+          const other = document.getElementById('id_department_other');
+          if (other) other.focus();
+        });
+        return;
+      }
+      this.departmentOther = '';
+      this.syncDepartmentOther();
+      this.syncAffiliationHidden();
+      this.syncCollegeHidden();
+      this.refreshAcademicOptions({ preserve: false });
+    },
+
+    applyCollegeById(id, { refresh = true } = {}) {
+      const wanted = String(id || '');
+      const match = this.colleges.find((c) => String(c.id) === wanted);
+      if (match) {
+        this.selectDepartment(match, { refresh });
+        return;
+      }
+      this.collegeId = '';
+      this.collegeName = '';
+      this.departmentQuery = '';
+      this.departmentOpen = false;
+      this.syncCollegeHidden();
+      if (refresh) this.refreshAcademicOptions({ preserve: false });
+    },
+
+    applyCollegeByName(name, { asEmployee = false } = {}) {
+      if (asEmployee) this.isEmployee = true;
+      const wanted = normalize(name);
+      if (!wanted) {
+        this.clearDepartment({ focus: false });
+        this.syncAffiliationHidden();
+        return;
+      }
+      const match = this.colleges.find((c) => normalize(c.name) === wanted);
+      if (match) {
+        this.isOthers = false;
+        this.departmentOther = '';
+        this.selectDepartment(match);
+        return;
+      }
+      this.isOthers = true;
+      this.collegeId = '';
+      this.collegeName = '';
+      this.departmentQuery = '';
+      this.departmentOther = String(name || '').trim();
+      this.syncCollegeHidden();
+      this.syncAffiliationHidden();
+      this.syncDepartmentOther();
+      this.refreshAcademicOptions({ preserve: false });
+    },
+
+    openDepartmentDropdown() {
+      this.departmentOpen = true;
+      const options = this.filteredCollegeOptions;
+      const selectedIdx = this.collegeId
+        ? options.findIndex((c) => String(c.id) === String(this.collegeId))
+        : -1;
+      this.departmentHighlight = selectedIdx >= 0 ? selectedIdx : 0;
+      this.$nextTick(() => this.scrollHighlightedDepartmentIntoView());
+    },
+
+    startDepartmentSearch() {
+      this.departmentQuery = '';
+      this.openDepartmentDropdown();
+      this.$nextTick(() => {
+        if (this.$refs.departmentSearch) this.$refs.departmentSearch.focus();
+      });
+    },
+
+    onDepartmentQueryInput() {
+      this.departmentOpen = true;
+      this.departmentHighlight = 0;
+      this.$nextTick(() => this.scrollHighlightedDepartmentIntoView());
+    },
+
+    closeDepartmentDropdown() {
+      this.departmentOpen = false;
+      this.departmentQuery = this.collegeName || '';
+    },
+
+    selectDepartment(option, { refresh = true } = {}) {
+      if (!option) return;
+      this.collegeId = String(option.id);
+      this.collegeName = option.name || '';
+      this.departmentQuery = this.collegeName;
+      this.departmentOpen = false;
+      // Picking from the catalog means Others is no longer needed.
+      this.isOthers = false;
+      this.departmentOther = '';
+      this.syncCollegeHidden();
+      this.syncAffiliationHidden();
+      this.syncDepartmentOther();
+      if (refresh) this.refreshAcademicOptions({ preserve: false });
+    },
+
+    clearDepartment({ focus = true } = {}) {
+      this.collegeId = '';
+      this.collegeName = '';
+      this.departmentQuery = '';
+      this.departmentOpen = !!focus;
+      this.departmentHighlight = 0;
+      this.syncCollegeHidden();
+      this.refreshAcademicOptions({ preserve: false });
+      if (focus) {
+        this.$nextTick(() => {
+          if (this.$refs.departmentSearch) this.$refs.departmentSearch.focus();
+        });
+      }
+    },
+
+    scrollHighlightedDepartmentIntoView() {
+      const list = this.$refs.departmentList;
+      if (!list) return;
+      const el = list.querySelector(`[data-dept-idx="${this.departmentHighlight}"]`);
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ block: 'nearest' });
+      }
+    },
+
+    highlightNextDepartment() {
+      const len = this.filteredCollegeOptions.length;
+      if (!len) return;
+      if (!this.departmentOpen) this.openDepartmentDropdown();
+      this.departmentHighlight = (this.departmentHighlight + 1) % len;
+      this.$nextTick(() => this.scrollHighlightedDepartmentIntoView());
+    },
+
+    highlightPrevDepartment() {
+      const len = this.filteredCollegeOptions.length;
+      if (!len) return;
+      if (!this.departmentOpen) this.openDepartmentDropdown();
+      this.departmentHighlight = (this.departmentHighlight - 1 + len) % len;
+      this.$nextTick(() => this.scrollHighlightedDepartmentIntoView());
+    },
+
+    selectHighlightedDepartment() {
+      const options = this.filteredCollegeOptions;
+      if (!options.length) return;
+      const idx = Math.min(Math.max(this.departmentHighlight, 0), options.length - 1);
+      this.selectDepartment(options[idx]);
+    },
+
+    async searchUsers() {
+      const q = (this.query || '').trim();
+      if (q.length < 2) {
+        this.results = [];
+        return;
+      }
+      this.loading = true;
+      try {
+        const res = await fetch(`${cfg.searchUrl}?q=${encodeURIComponent(q)}`, {
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
+        });
+        this.results = res.ok ? await res.json() : [];
+      } catch (_) {
+        this.results = [];
+      } finally {
+        this.loading = false;
+        this.showResults = true;
+      }
+    },
+
+    async selectUser(item) {
+      this.selectedUser = item;
+      this.manualEntry = false;
+      this.query = '';
+      this.results = [];
+      this.showResults = false;
+      const hidden = document.getElementById('id_patient_user');
+      if (hidden) hidden.value = item.id;
+      await this.prefillUser(item.id);
+    },
+
+    switchToManual() {
+      this.manualEntry = true;
+      this.selectedUser = null;
+      this.isEmployeePatient = false;
+      this.query = '';
+      this.results = [];
+      const hidden = document.getElementById('id_patient_user');
+      if (hidden) hidden.value = '';
+    },
+
+    async prefillUser(userId) {
+      const url = cfg.prefillUrlTemplate.replace('/0/', `/${userId}/`);
+      try {
+        const res = await fetch(url, {
+          credentials: 'same-origin',
+          headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        this.isEmployeePatient = !!data.is_employee;
+        this.setValue('first_name', data.first_name || '');
+        this.setValue('last_name', data.last_name || '');
+        this.setValue('middle_name', data.middle_name || '');
+        this.applyCollegeByName(data.department || '', { asEmployee: !!data.is_employee });
+        if (!data.is_employee && this.affiliationType === 'catalog') {
+          this.setSelectByText('course_program', data.course || '');
+          this.setSelectByText('year_level', data.year_level || '');
+        }
+      } catch (_) {}
+    },
+
+    setValue(field, value) {
+      const el = document.getElementById(`id_${field}`);
+      if (!el) return;
+      el.value = value;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+
+    setSelectByText(field, text) {
+      const el = document.getElementById(`id_${field}`);
+      if (!el) return;
+      const wanted = normalize(text);
+      if (!wanted) {
+        el.value = '';
+        return;
+      }
+      const opt = Array.from(el.options).find((o) => normalize(o.text) === wanted);
+      if (opt) {
+        el.value = opt.value;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        el.value = '';
+      }
+    },
+
+    resolveCollegeKey(collegeName) {
+      const wanted = normalize(collegeName);
+      if (!wanted) return '';
+      const keys = new Set([
+        ...Object.keys(this.coursesByCollege || {}),
+        ...Object.keys(this.yearLevelsByCollege || {}),
+        ...Object.keys(this.courseOptionalByCollege || {}),
+      ]);
+      for (const key of keys) {
+        if (normalize(key) === wanted) return key;
+      }
+      return collegeName;
+    },
+
+    refreshAcademicOptions({ preserve = true, programId = '', yearId = '' } = {}) {
+      const courseEl = document.getElementById('id_course_program');
+      const yearEl = document.getElementById('id_year_level');
+      if (!courseEl || !yearEl) return;
+
+      if (this.affiliationType !== 'catalog') {
+        courseEl.value = '';
+        yearEl.value = '';
+        courseEl.disabled = true;
+        yearEl.disabled = true;
+        return;
+      }
+      courseEl.disabled = false;
+      yearEl.disabled = false;
+
+      const collegeKey = this.resolveCollegeKey(this.collegeName);
+      const programs = collegeKey ? (this.coursesByCollege[collegeKey] || []) : [];
+      const years = collegeKey ? (this.yearLevelsByCollege[collegeKey] || []) : [];
+
+      this.populateSelectFromCatalog(
+        courseEl,
+        programs,
+        'Select program',
+        preserve ? (programId || courseEl.value) : '',
+      );
+      this.populateSelectFromCatalog(
+        yearEl,
+        years,
+        'Select year level',
+        preserve ? (yearId || yearEl.value) : '',
+      );
+    },
+
+    populateSelectFromCatalog(selectEl, items, placeholder, keepValue) {
+      const keep = String(keepValue || '');
+      selectEl.innerHTML = '';
+      const ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = placeholder;
+      selectEl.appendChild(ph);
+
+      (items || []).forEach((item) => {
+        const opt = document.createElement('option');
+        opt.value = String(item.id);
+        opt.textContent = item.name;
+        selectEl.appendChild(opt);
+      });
+
+      if (keep && Array.from(selectEl.options).some((o) => o.value === keep)) {
+        selectEl.value = keep;
+      } else {
+        selectEl.value = '';
+      }
+    },
+  };
+}
+</script>
+{% endblock %}

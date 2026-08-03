@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     "analytics",
     "pharmacy",
     "messaging",
+    "manage_concern",
 ]
 
 MIDDLEWARE = [

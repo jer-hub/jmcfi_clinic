@@ -83,7 +83,7 @@ def dispensing_list(request):
     return render(
         request,
         'pharmacy/dispensing_list.html',
-        {'dispensings': paginate_queryset(qs, request, per_page=15), 'search_query': q},
+        {'dispensings': paginate_queryset(qs, request, per_page=10), 'search_query': q},
     )
 
 
@@ -114,7 +114,7 @@ def stock_adjustment_list(request):
     return render(
         request,
         'pharmacy/adjustment_list.html',
-        {'adjustments': paginate_queryset(qs, request, per_page=15)},
+        {'adjustments': paginate_queryset(qs, request, per_page=10)},
     )
 
 
@@ -161,7 +161,7 @@ def audit_log_list(request):
         request,
         'pharmacy/audit_log_list.html',
         {
-            'logs': paginate_queryset(qs, request, per_page=20),
+            'logs': paginate_queryset(qs, request, per_page=10),
             'selected_action': action,
             'action_choices': AuditLog.ACTION_CHOICES,
             'date_from': date_from or '',

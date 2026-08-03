@@ -1,0 +1,125 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ record.display_name }} - Concern - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
+  {% include 'manage_concern/_subnav.html' %}
+
+  <div class="mb-4">
+    <a href="{% url 'manage_concern:concern_list' %}"
+       class="inline-flex items-center gap-2 px-3.5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i>
+      Back to list
+    </a>
+  </div>
+
+  {% include "components/page_header.html" with title=record.display_name subtitle="Concern record details" icon="fa-clipboard-list" actions_include="manage_concern/_concern_detail_header_actions.html" header_mb="mb-4" %}
+
+  {% include 'partials/messages.html' %}
+
+  <div class="space-y-4">
+    <section class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/60">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Visit</h2>
+      </div>
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 sm:p-5">
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Date</dt>
+          <dd class="mt-1 text-sm font-medium text-gray-900">{{ record.date|date:"M d, Y" }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Time</dt>
+          <dd class="mt-1 text-sm font-medium text-gray-900">{{ record.time|time:"g:i A" }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/60">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Patient</h2>
+      </div>
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 sm:p-5">
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Name</dt>
+          <dd class="mt-1 text-sm font-medium text-gray-900">{{ record.display_name }}</dd>
+        </div>
+        {% if record.patient_user %}
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Linked account</dt>
+          <dd class="mt-1 text-sm text-gray-700">{{ record.patient_user.email }}</dd>
+        </div>
+        {% endif %}
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Affiliation</dt>
+          <dd class="mt-1 text-sm text-gray-900">
+            {% if record.affiliation_type == 'employee' %}
+              Employee{% if record.department_other %} · Others{% endif %}
+            {% elif record.affiliation_type == 'others' %}
+              Others
+            {% else %}
+              Student / catalog
+            {% endif %}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Department / College</dt>
+          <dd class="mt-1 text-sm text-gray-900">{{ record.department_display|default:"—" }}</dd>
+        </div>
+        {% if record.affiliation_type == 'catalog' %}
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Program</dt>
+          <dd class="mt-1 text-sm text-gray-900">{% if record.course_program %}{{ record.course_program.name }}{% else %}—{% endif %}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Year level</dt>
+          <dd class="mt-1 text-sm text-gray-900">{% if record.year_level %}{{ record.year_level.name }}{% else %}—{% endif %}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    </section>
+
+    <section class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/60">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Clinical notes</h2>
+      </div>
+      <div class="p-4 sm:p-5 space-y-5">
+        <div>
+          <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500">Concerns</h3>
+          <p class="mt-1.5 text-sm text-gray-900 whitespace-pre-wrap">{{ record.concerns }}</p>
+        </div>
+        <div>
+          <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500">Management / treatment</h3>
+          <p class="mt-1.5 text-sm text-gray-900 whitespace-pre-wrap">{{ record.management_treatment }}</p>
+        </div>
+        <div>
+          <h3 class="text-xs font-medium uppercase tracking-wide text-gray-500">Disposition</h3>
+          <p class="mt-1.5 text-sm text-gray-900 whitespace-pre-wrap">{{ record.disposition }}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-100 bg-gray-50/60">
+        <h2 class="text-sm font-semibold uppercase tracking-wide text-gray-600">Record info</h2>
+      </div>
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 sm:p-5">
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Logged by</dt>
+          <dd class="mt-1 text-sm text-gray-900">
+            {% if record.created_by %}{{ record.created_by.get_full_name|default:record.created_by.email }}{% else %}—{% endif %}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Created</dt>
+          <dd class="mt-1 text-sm text-gray-900">{{ record.created_at|date:"M d, Y g:i A" }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium uppercase tracking-wide text-gray-500">Last updated</dt>
+          <dd class="mt-1 text-sm text-gray-900">{{ record.updated_at|date:"M d, Y g:i A" }}</dd>
+        </div>
+      </dl>
+    </section>
+  </div>
+</div>
+{% endblock %}

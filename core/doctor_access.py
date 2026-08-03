@@ -15,6 +15,7 @@ MODULE_DENTAL_HEALTH_FORMS = 'dental_health_forms'
 MODULE_PATIENT_CHARTS = 'patient_charts'
 MODULE_DENTAL_SERVICES = 'dental_services'
 MODULE_PRESCRIPTIONS = 'prescriptions'
+MODULE_MANAGE_CONCERN = 'manage_concern'
 
 GATED_ROLES = frozenset({'doctor', 'staff'})
 
@@ -24,6 +25,7 @@ DOCTOR_SERVICE_MODULE_CHOICES: list[tuple[str, str]] = [
     (MODULE_MEDICAL_RECORDS, 'Medical Records'),
     (MODULE_DENTAL_RECORDS, 'Dental Records'),
     (MODULE_DOCUMENT_REQUEST, 'Document Requests'),
+    (MODULE_MANAGE_CONCERN, 'Manage Concern'),
 ]
 
 # Staff service catalog (pharmacy instead of document requests)
@@ -32,6 +34,7 @@ STAFF_SERVICE_MODULE_CHOICES: list[tuple[str, str]] = [
     (MODULE_MEDICAL_RECORDS, 'Medical Records'),
     (MODULE_DENTAL_RECORDS, 'Dental Records'),
     (MODULE_PHARMACY, 'Pharmacy'),
+    (MODULE_MANAGE_CONCERN, 'Manage Concern'),
 ]
 
 HEALTH_FORM_MODULE_CHOICES: list[tuple[str, str]] = [
@@ -80,6 +83,7 @@ NAMESPACE_TO_MODULE: dict[str, str] = {
     'dental_records': MODULE_DENTAL_RECORDS,
     'document_request': MODULE_DOCUMENT_REQUEST,
     'pharmacy': MODULE_PHARMACY,
+    'manage_concern': MODULE_MANAGE_CONCERN,
 }
 
 _HEALTH_FORM_URL_NAME_PREFIXES: tuple[tuple[str, str], ...] = (

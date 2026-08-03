@@ -1,0 +1,20 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Manage Concern - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
+  {% include 'manage_concern/_subnav.html' %}
+
+  {% include "components/page_header.html" with title="Manage Concern" subtitle="Clinic concern logs and management rendered" icon="fa-clipboard-list" actions_include="manage_concern/_concern_list_header_actions.html" header_mb="mb-4" %}
+
+  {% include 'partials/messages.html' %}
+
+  <div class="bg-white rounded-card shadow-sm border border-gray-200 overflow-hidden">
+    {% include "manage_concern/_concern_list_filters.html" %}
+    <div id="jmcfi-mc-list-table-fragment">
+      {% include "manage_concern/_concern_list_table.html" %}
+    </div>
+  </div>
+</div>
+{% endblock %}

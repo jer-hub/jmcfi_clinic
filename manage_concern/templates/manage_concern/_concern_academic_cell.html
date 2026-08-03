@@ -1,0 +1,26 @@
+{% comment %}Stacked academic summary for list rows/cards. Expects: record{% endcomment %}
+<div class="min-w-0" title="{{ record.academic_label }}">
+  {% if record.department_display %}
+  <p class="text-xs font-medium text-gray-900 leading-snug break-words line-clamp-2">
+    {{ record.department_display }}
+  </p>
+  {% else %}
+  <p class="text-xs text-gray-400 italic">—</p>
+  {% endif %}
+
+  {% if record.affiliation_type == 'catalog' %}
+    {% if record.course_program or record.year_level %}
+    <p class="mt-0.5 text-[11px] text-gray-500 leading-snug break-words line-clamp-2">
+      {% if record.course_program %}{{ record.course_program.name }}{% endif %}{% if record.course_program and record.year_level %} · {% endif %}{% if record.year_level %}{{ record.year_level.name }}{% endif %}
+    </p>
+    {% endif %}
+  {% elif record.affiliation_type == 'employee' %}
+  <span class="mt-1 inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">
+    Employee
+  </span>
+  {% elif record.affiliation_type == 'others' %}
+  <span class="mt-1 inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+    Others
+  </span>
+  {% endif %}
+</div>

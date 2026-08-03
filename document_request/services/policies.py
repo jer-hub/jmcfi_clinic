@@ -8,7 +8,7 @@ CLINICAL_INITIATOR_ROLES = ('doctor', 'staff', 'admin')
 PROCESSOR_ROLES = ('doctor', 'staff', 'admin')
 SIGNATURE_REQUIRED_ROLES = ('doctor', 'staff', 'admin')
 ALLOWED_DOCUMENT_TYPES = [('medical_certificate', 'Medical Certificate')]
-LIST_PAGE_SIZE = 15
+LIST_PAGE_SIZE = 10
 
 
 def user_can_process_documents(user) -> bool:

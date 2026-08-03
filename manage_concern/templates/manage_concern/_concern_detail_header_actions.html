@@ -1,0 +1,12 @@
+{% comment %}Header actions for concern detail page.{% endcomment %}
+<a href="{% url 'manage_concern:concern_edit' record.pk %}"
+   class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors">
+  <i class="fas fa-pen text-xs" aria-hidden="true"></i>
+  Edit
+</a>
+<button type="button"
+        class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg border border-red-200 text-red-700 bg-white hover:bg-red-50 transition-colors"
+        @click="$dispatch('open-modal', {type:'danger', title:'Delete Concern Record', subtitle:'{{ record.display_name|escapejs }}', actionLabel:'Delete Permanently', size:'sm', formAction:'{% url 'manage_concern:concern_delete' record.pk %}', hasForm:true})">
+  <i class="fas fa-trash text-xs" aria-hidden="true"></i>
+  Delete
+</button>

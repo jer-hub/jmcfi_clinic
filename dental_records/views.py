@@ -96,7 +96,7 @@ def _dental_list_request_for_params(original_request, get_params: QueryDict):
 
 
 _DENTAL_LIST_STATUS_KEYS = ('pending', 'missed', 'completed', 'cancelled')
-_DENTAL_LIST_PAGE_SIZE = 20
+_DENTAL_LIST_PAGE_SIZE = 10
 
 
 def _dental_patient_search_q(field_prefix: str, search_query: str) -> models.Q:

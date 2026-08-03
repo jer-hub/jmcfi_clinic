@@ -36,6 +36,7 @@ urlpatterns = [
     path('health-forms/', include('health_forms_services.urls')),
     path('analytics/', include('analytics.urls')),
     path('pharmacy/', include('pharmacy.urls')),
+    path('manage-concern/', include('manage_concern.urls')),
     # Core (dashboard, profiles, notifications, user management)
     path('', include('core.urls')),
 ]

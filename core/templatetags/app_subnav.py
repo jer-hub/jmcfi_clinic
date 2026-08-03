@@ -325,6 +325,31 @@ def feedback_subnav(context):
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
+def manage_concern_subnav(context):
+    vn = view_name(context['request'])
+    items = [
+        nav_item(
+            'Concerns',
+            'manage_concern:concern_list',
+            icon='fa-clipboard-list',
+            active=is_active(
+                vn,
+                'manage_concern:concern_list',
+                'manage_concern:concern_detail',
+                'manage_concern:concern_edit',
+            ),
+        ),
+        nav_item(
+            'New Concern',
+            'manage_concern:concern_create',
+            icon='fa-plus',
+            active=vn == 'manage_concern:concern_create',
+        ),
+    ]
+    return enrich_subnav(items, always_show_nav=True, nav_aria_label='Manage Concern sections')
+
+
+@register.inclusion_tag('components/sub_nav.html', takes_context=True)
 def health_tips_subnav(context):
     vn = view_name(context['request'])
     role = context['request'].user.role

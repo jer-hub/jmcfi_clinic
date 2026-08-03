@@ -1,0 +1,108 @@
+{% if records %}
+{# Mobile / tablet cards #}
+<div class="lg:hidden divide-y divide-gray-100">
+  {% for record in records %}
+  <article class="p-4 space-y-3 {% cycle 'bg-white' 'bg-gray-50/40' %}">
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0">
+        <a href="{% url 'manage_concern:concern_detail' record.pk %}"
+           class="text-sm font-semibold text-primary-700 hover:text-primary-900 truncate block"
+           title="{{ record.display_name }}">{{ record.display_name }}</a>
+        <p class="text-xs text-gray-500 mt-0.5">
+          {{ record.date|date:"M d, Y" }} · {{ record.time|time:"g:i A" }}
+        </p>
+      </div>
+    </div>
+    {% if record.academic_label or record.department_display %}
+    <div class="text-xs text-gray-600">
+      <span class="font-medium text-gray-700">Academic:</span>
+      <div class="mt-1">
+        {% include "manage_concern/_concern_academic_cell.html" with record=record %}
+      </div>
+    </div>
+    {% endif %}
+    <p class="text-sm text-gray-700 line-clamp-2">{{ record.concerns|truncatechars:120 }}</p>
+    {% if record.management_treatment %}
+    <p class="text-xs text-gray-600">
+      <span class="font-medium text-gray-700">Management:</span>
+      {{ record.management_treatment|truncatechars:80 }}
+    </p>
+    {% endif %}
+    {% if record.disposition %}
+    <p class="text-xs text-gray-600">
+      <span class="font-medium text-gray-700">Disposition:</span>
+      {{ record.disposition|truncatechars:80 }}
+    </p>
+    {% endif %}
+    <div class="flex flex-wrap gap-2 pt-1">
+      {% include "manage_concern/_concern_row_actions.html" with record=record full_width=True %}
+    </div>
+  </article>
+  {% endfor %}
+</div>
+
+{# Desktop table — percentage columns + compact actions so one row fits #}
+<div class="hidden lg:block">
+  <table class="w-full table-fixed divide-y divide-gray-200">
+    <colgroup>
+      <col class="w-[9%]">
+      <col class="w-[13%]">
+      <col class="w-[17%]">
+      <col class="w-[15%]">
+      <col class="w-[15%]">
+      <col class="w-[15%]">
+      <col class="w-[16%]">
+    </colgroup>
+    <thead class="bg-gray-50">
+      <tr>
+        <th scope="col" class="px-2 py-2.5 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Date</th>
+        <th scope="col" class="px-2 py-2.5 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Name</th>
+        <th scope="col" class="px-2 py-2.5 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Academic</th>
+        <th scope="col" class="px-2 py-2.5 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Concerns</th>
+        <th scope="col" class="px-2 py-2.5 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Management</th>
+        <th scope="col" class="px-2 py-2.5 text-left text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Disposition</th>
+        <th scope="col" class="px-2 py-2.5 text-right text-[11px] font-semibold text-gray-700 uppercase tracking-wide">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-100">
+      {% for record in records %}
+      <tr class="group hover:bg-primary-50/30 transition-colors {% cycle 'bg-white' 'bg-gray-50/30' %}">
+        <td class="px-2 py-2.5 align-middle">
+          <div class="text-xs font-medium text-gray-900 leading-snug">{{ record.date|date:"M d, Y" }}</div>
+          <div class="text-[11px] text-gray-500 leading-snug">{{ record.time|time:"g:i A" }}</div>
+        </td>
+        <td class="px-2 py-2.5 align-middle min-w-0">
+          <a href="{% url 'manage_concern:concern_detail' record.pk %}"
+             class="text-sm font-medium text-primary-700 hover:text-primary-900 truncate block"
+             title="{{ record.display_name }}">{{ record.display_name }}</a>
+        </td>
+        <td class="px-2 py-2.5 align-middle min-w-0">
+          {% include "manage_concern/_concern_academic_cell.html" with record=record %}
+        </td>
+        <td class="px-2 py-2.5 align-middle min-w-0">
+          <div class="text-xs text-gray-900 line-clamp-2 break-words" title="{{ record.concerns }}">{{ record.concerns|truncatechars:80 }}</div>
+        </td>
+        <td class="px-2 py-2.5 align-middle min-w-0">
+          <div class="text-xs text-gray-700 line-clamp-2 break-words" title="{{ record.management_treatment }}">{{ record.management_treatment|truncatechars:80 }}</div>
+        </td>
+        <td class="px-2 py-2.5 align-middle min-w-0">
+          <div class="text-xs text-gray-700 line-clamp-2 break-words" title="{{ record.disposition }}">{{ record.disposition|truncatechars:70 }}</div>
+        </td>
+        <td class="px-2 py-2.5 align-middle text-right whitespace-nowrap">
+          {% include "manage_concern/_concern_row_actions.html" with record=record compact=True %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% include "components/pagination.html" with page_obj=page_obj querystring=mc_list_querystring hx_target="body" hx_swap="none" %}
+{% else %}
+  {% url 'manage_concern:concern_create' as concern_create_url %}
+  {% if has_filters %}
+    {% include "components/empty_state.html" with icon="fa-magnifying-glass" title="No matching records" description="Try adjusting search or filters, or clear them to see all concerns." %}
+  {% else %}
+    {% include "components/empty_state.html" with icon="fa-clipboard-list" title="No concern records yet" description="Start by logging the first clinic concern." action_label="New Concern" action_url=concern_create_url %}
+  {% endif %}
+{% endif %}

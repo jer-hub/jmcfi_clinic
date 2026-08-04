@@ -16,14 +16,12 @@
 
     {% include "components/page_header.html" with title=form_type_label subtitle=list_subtitle_text|default:"" icon="fa-file-medical" %}
 
-    {% if request.user.role == 'staff' or request.user.role == 'doctor' or request.user.role == 'admin' %}
-      {% if create_url %}
+    {% if create_url %}
       <div class="flex justify-end mb-4">
         <a href="{{ create_url }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm">
-          <i class="fas fa-plus"></i><span>New {{ form_type_label }}</span>
+          <i class="fas fa-plus"></i><span>{% if create_label %}{{ create_label }}{% else %}New {{ form_type_label }}{% endif %}</span>
         </a>
       </div>
-      {% endif %}
     {% endif %}
 
     <div class="bg-white rounded-card shadow-sm border border-gray-200 p-3 sm:p-4 mb-6">
@@ -78,13 +76,13 @@
         <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
           <div class="flex items-center gap-2">
             {% if form_obj.status == 'pending' %}
-              {% include "components/status_badge.html" with label="Pending" variant="warning" size="sm" %}
+              {% include "components/status_badge.html" with label="Pending Review" variant="warning" size="sm" %}
             {% elif form_obj.status == 'completed' %}
               {% include "components/status_badge.html" with label="Completed" variant="success" size="sm" %}
             {% elif form_obj.status == 'rejected' %}
               {% include "components/status_badge.html" with label="Rejected" variant="danger" size="sm" %}
             {% elif form_obj.status == 'incomplete' %}
-              {% include "components/status_badge.html" with label="Incomplete" variant="warning" size="sm" %}
+              {% include "components/status_badge.html" with label="Draft" variant="muted" size="sm" %}
             {% else %}
               {% include "components/status_badge.html" with label=form_obj.get_status_display variant="muted" size="sm" %}
             {% endif %}
@@ -98,12 +96,14 @@
               <span class="whitespace-nowrap">View</span>
             </a>
             {% if edit_url_name %}
+              {% if not edit_when_statuses or form_obj.status in edit_when_statuses %}
             <a href="{% url edit_url_name form_obj.pk %}"
                class="group inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded-lg border border-gray-100 bg-gray-50 text-[11px] font-medium leading-none text-primary-800 transition-all w-full min-h-[2rem] hover:bg-white hover:border-primary-200 hover:shadow-sm"
                title="Edit form">
               <i class="fas fa-pen text-[10px] shrink-0 opacity-80 group-hover:opacity-100" aria-hidden="true"></i>
               <span class="whitespace-nowrap">Edit</span>
             </a>
+              {% endif %}
             {% endif %}
           </div>
         </div>
@@ -149,11 +149,13 @@
               </td>
               <td class="px-4 py-3">
                 {% if form_obj.status == 'pending' %}
-                  {% include "components/status_badge.html" with label="Pending" variant="warning" size="sm" %}
+                  {% include "components/status_badge.html" with label="Pending Review" variant="warning" size="sm" %}
                 {% elif form_obj.status == 'completed' %}
                   {% include "components/status_badge.html" with label="Completed" variant="success" size="sm" %}
                 {% elif form_obj.status == 'rejected' %}
                   {% include "components/status_badge.html" with label="Rejected" variant="danger" size="sm" %}
+                {% elif form_obj.status == 'incomplete' %}
+                  {% include "components/status_badge.html" with label="Draft" variant="muted" size="sm" %}
                 {% else %}
                   {% include "components/status_badge.html" with label=form_obj.get_status_display variant="muted" size="sm" %}
                 {% endif %}
@@ -166,8 +168,10 @@
                   {% url detail_url_name form_obj.pk as detail_href %}
                   {% include "components/table_icon_link.html" with href=detail_href icon="fa-eye" title="View" tone="view" layout="grid" %}
                   {% if edit_url_name %}
+                    {% if not edit_when_statuses or form_obj.status in edit_when_statuses %}
                     {% url edit_url_name form_obj.pk as edit_href %}
                     {% include "components/table_icon_link.html" with href=edit_href icon="fa-pen" title="Edit" layout="grid" %}
+                    {% endif %}
                   {% endif %}
                 </div>
               </td>
@@ -179,7 +183,18 @@
     </div>
     {% else %}
     {% block empty_state %}
-      {% include "components/empty_state.html" with icon="fa-folder-open" title="No forms found" description="" %}
+      {% if is_patient_list %}
+        {% include "components/empty_state.html" with icon="fa-file-medical" title="No health profile forms yet" description="Request a form to fill in your personal information and medical history for the clinic." %}
+        {% if create_url %}
+        <div class="text-center -mt-4 mb-6">
+          <a href="{{ create_url }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 text-sm font-medium">
+            <i class="fas fa-plus"></i>{% if create_label %}{{ create_label }}{% else %}Request Form{% endif %}
+          </a>
+        </div>
+        {% endif %}
+      {% else %}
+        {% include "components/empty_state.html" with icon="fa-folder-open" title="No forms found" description="" %}
+      {% endif %}
     {% endblock %}
     {% endif %}
 

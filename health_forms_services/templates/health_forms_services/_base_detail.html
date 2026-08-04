@@ -20,6 +20,10 @@
 
     {% include "components/page_header.html" with title=form_obj.get_full_name|default:form_obj.user.get_full_name|default:"Form" subtitle=form_type_label|default:"" icon="fa-file-medical" %}
 
+    {% if phase_label %}
+    <p class="text-sm text-gray-600 mb-4 -mt-2">{{ phase_label }}</p>
+    {% endif %}
+
     <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         {% if form_obj.status == 'completed' %}
@@ -27,7 +31,9 @@
         {% elif form_obj.status == 'rejected' %}
           {% include "components/status_badge.html" with label=form_obj.get_status_display variant="danger" icon="fa-ban" %}
         {% elif form_obj.status == 'incomplete' %}
-          {% include "components/status_badge.html" with label=form_obj.get_status_display variant="warning" icon="fa-clock" %}
+          {% include "components/status_badge.html" with label="Draft" variant="muted" icon="fa-pen" %}
+        {% elif form_obj.status == 'pending' %}
+          {% include "components/status_badge.html" with label="Pending Review" variant="warning" icon="fa-clock" %}
         {% else %}
           {% include "components/status_badge.html" with label=form_obj.get_status_display variant="warning" icon="fa-clock" %}
         {% endif %}
@@ -38,8 +44,16 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+        {% if can_submit_for_review and submit_url %}
+        <form method="post" action="{{ submit_url }}">
+          {% csrf_token %}
+          <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors">
+            <i class="fas fa-paper-plane"></i>Submit for review
+          </button>
+        </form>
+        {% endif %}
         {% if can_edit and edit_url %}
-        <a href="{{ edit_url }}" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors"><i class="fas fa-pen-to-square"></i>Edit</a>
+        <a href="{{ edit_url }}" class="inline-flex items-center gap-2 px-4 py-2 {% if can_submit_for_review %}border border-gray-300 text-gray-700 hover:bg-gray-50{% else %}bg-primary-600 text-white hover:bg-primary-700{% endif %} rounded-lg font-medium text-sm transition-colors"><i class="fas fa-pen-to-square"></i>Edit</a>
         {% endif %}
         {% if export_url %}
         <a href="{{ export_url }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors"><i class="fas fa-file-code"></i>Export JSON</a>

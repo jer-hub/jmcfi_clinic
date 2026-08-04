@@ -26,22 +26,22 @@
   role="region"
   aria-labelledby="nav-mobile-health-forms-trigger"
   class="overflow-hidden px-2 pb-2">
-  {% if user|has_clinical_module:'health_profile_forms' %}
+  {% if user|is_patient_role or user|has_clinical_module:'health_profile_forms' %}
   <a href="{% url 'health_forms_services:forms_list' %}" class="mobile-link text-sm">Health Profile Forms</a>
   {% endif %}
-  {% if user|has_clinical_module:'dental_health_forms' %}
+  {% if not user|is_patient_role and user|has_clinical_module:'dental_health_forms' %}
   <a href="{% url 'health_forms_services:dental_forms_list' %}" class="mobile-link text-sm">Dental Health Forms</a>
   {% endif %}
-  {% if user|has_clinical_module:'patient_charts' %}
+  {% if not user|is_patient_role and user|has_clinical_module:'patient_charts' %}
   <a href="{% url 'health_forms_services:patient_chart_list' %}" class="mobile-link text-sm">Patient Charts</a>
   {% endif %}
-  {% if user|has_clinical_module:'dental_services' %}
+  {% if not user|is_patient_role and user|has_clinical_module:'dental_services' %}
   <a href="{% url 'health_forms_services:dental_services_list' %}" class="mobile-link text-sm">Dental Services</a>
   {% endif %}
-  {% if user|has_clinical_module:'prescriptions' %}
+  {% if not user|is_patient_role and user|has_clinical_module:'prescriptions' %}
   <a href="{% url 'health_forms_services:prescription_list' %}" class="mobile-link text-sm">Prescriptions</a>
   {% endif %}
-  {% if include_document_request_link and user|has_clinical_module:'document_request' %}
+  {% if include_document_request_link and not user|is_patient_role and user|has_clinical_module:'document_request' %}
   <a href="{% url 'document_request:document_requests' %}" class="mobile-link text-sm">Document Requests</a>
   {% endif %}
 </div>

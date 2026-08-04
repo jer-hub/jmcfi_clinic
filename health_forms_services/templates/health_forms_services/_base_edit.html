@@ -19,6 +19,25 @@
 
     {% include "components/page_header.html" with title="Edit Form" icon="fa-pen-to-square" %}
 
+    {% block edit_phase_banner %}
+    {% if phase_label %}
+    <div class="mb-4 rounded-lg border border-primary-100 bg-primary-50 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <p class="text-sm text-primary-900 font-medium">
+        <i class="fas fa-circle-info mr-1.5 text-primary-600"></i>{{ phase_label }}
+      </p>
+      {% if can_submit_for_review and submit_url %}
+      <form method="post" action="{{ submit_url }}" class="shrink-0">
+        {% csrf_token %}
+        <button type="submit"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors">
+          <i class="fas fa-paper-plane"></i>Submit for review
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% endblock %}
+
     <div class="bg-white rounded-card border border-gray-200 shadow-sm mb-6 overflow-hidden">
       {% if tabs|length > 1 %}
       <nav class="{% if tabs|length > 5 %}grid grid-cols-4 sm:flex sm:w-full{% else %}flex w-full{% endif %} border-b border-gray-200"
@@ -83,8 +102,8 @@
       <form method="post"
             action=""
             data-section="{{ tab_key }}"
-            {% if tab_key != 'personal' or not personal_readonly %}data-section-save="ajax"{% endif %}
-            {% if tab_key == 'personal' and personal_readonly %}data-section-readonly="1"{% endif %}
+            {% if tab_key != 'personal' or not personal_readonly %}{% if not editable_sections or tab_key in editable_sections %}data-section-save="ajax"{% endif %}{% endif %}
+            {% if tab_key == 'personal' and personal_readonly or editable_sections and tab_key not in editable_sections %}data-section-readonly="1"{% endif %}
             class="space-y-6 flex flex-col min-h-[50vh]"
             novalidate
             {% if tab_key == 'medical' %}x-data="immunizationMedicalForm({{ form.immunization_flags_json }})"{% elif tab_key == 'diagnostic' %}x-data="diagnosticTestsForm({{ form.diagnostic_flags_json }})"{% elif tab_key == 'physical' %}x-data="anthropometricsForm()"{% elif tab_key == 'conditions' and 'examination' in forms %}x-data="dentalConditionsForm({{ form.cond_others_checked_json }})"{% endif %}>
@@ -188,7 +207,13 @@
         <div class="flex-1"></div>
 
         {# ── Sticky section save bar ── #}
-        {% if tab_key == 'personal' and personal_readonly %}
+        {% if editable_sections and tab_key not in editable_sections %}
+        <div class="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mt-6 bg-gray-50/95 backdrop-blur-sm border-t border-gray-200 flex items-center gap-2 z-10">
+          <span class="text-sm text-gray-600 font-medium flex items-center gap-2">
+            <i class="fas fa-lock text-gray-400"></i>This section is read-only
+          </span>
+        </div>
+        {% elif tab_key == 'personal' and personal_readonly %}
         <div class="sticky bottom-0 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 mt-6 bg-gray-50/95 backdrop-blur-sm border-t border-gray-200 flex items-center gap-2 z-10">
           <span class="text-sm text-gray-600 font-medium flex items-center gap-2">
             <i class="fas fa-lock text-gray-400"></i>Personal information is read-only

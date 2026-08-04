@@ -927,7 +927,7 @@ class HealthProfileDiagnosticTestsForm(forms.ModelForm):
 
 class HealthFormReviewForm(forms.ModelForm):
     """Form for staff/doctor to review and update form status"""
-    
+
     class Meta:
         model = HealthProfileForm
         fields = ['status', 'review_notes']
@@ -935,6 +935,14 @@ class HealthFormReviewForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-select'}),
             'review_notes': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 4}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['status'].choices = [
+            (HealthProfileForm.Status.COMPLETED, 'Completed'),
+            (HealthProfileForm.Status.REJECTED, 'Rejected — return for revision'),
+        ]
+        self.fields['status'].required = True
 
 
 # ========== HSS-Form0003 — Dental Services forms ==========

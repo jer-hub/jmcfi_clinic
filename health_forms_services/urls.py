@@ -23,9 +23,11 @@ urlpatterns = [
     # Health Profile Forms (class-based views)
     path('', HealthProfileListView.as_view(), name='forms_list'),
     path('new/', views.manual_entry, name='manual_entry'),
+    path('request/', views.request_health_profile, name='request_health_profile'),
     path('<int:pk>/', HealthProfileDetailView.as_view(), name='form_detail'),
     path('<int:pk>/edit/', HealthProfileEditView.as_view(), name='edit_form'),
     path('<int:pk>/edit/section/', views.load_form_section, name='load_form_section'),
+    path('<int:pk>/submit/', views.submit_for_review, name='submit_for_review'),
     path('<int:pk>/review/', views.review_form, name='review_form'),
     path('<int:pk>/delete/', views.delete_form, name='delete_form'),
     path('<int:pk>/export/', views.export_form_json, name='export_form'),

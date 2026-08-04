@@ -389,10 +389,35 @@ def health_forms_services_subnav(context):
         MODULE_PRESCRIPTIONS,
         has_clinical_module,
     )
+    from core.roles import is_patient_role
 
     request = context['request']
     user = request.user
     vn = view_name(request)
+
+    if is_patient_role(getattr(user, 'role', None)):
+        items = [
+            nav_item(
+                'My Forms',
+                'health_forms_services:forms_list',
+                icon='fa-heart-pulse',
+                active=is_active(
+                    vn,
+                    'health_forms_services:forms_list',
+                    'health_forms_services:form_detail',
+                    'health_forms_services:edit_form',
+                    'health_forms_services:request_health_profile',
+                ),
+            ),
+            nav_item(
+                'Request Form',
+                'health_forms_services:request_health_profile',
+                icon='fa-file-circle-plus',
+                active=is_active(vn, 'health_forms_services:request_health_profile'),
+            ),
+        ]
+        return enrich_subnav(items, always_show_nav=True)
+
     candidates = [
         (
             MODULE_HEALTH_PROFILE_FORMS,
@@ -405,6 +430,8 @@ def health_forms_services_subnav(context):
                     'health_forms_services:forms_list',
                     'health_forms_services:form_detail',
                     'health_forms_services:edit_form',
+                    'health_forms_services:manual_entry',
+                    'health_forms_services:request_health_profile',
                 ),
             ),
         ),

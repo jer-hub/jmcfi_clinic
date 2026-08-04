@@ -128,6 +128,8 @@ class HealthFormsAdminAccessTests(TestCase):
 )
 class HealthFormsPatientPickerTests(TestCase):
 	def setUp(self):
+		from core.doctor_access import ALL_MODULE_KEYS
+
 		self.doctor = User.objects.create_user(
 			email='doctor-picker@test.com',
 			password='DoctorPass123!',
@@ -138,6 +140,9 @@ class HealthFormsPatientPickerTests(TestCase):
 			last_name='Doctor',
 		)
 		_complete_staff_like_profile(self.doctor, 'DOC-HF-001')
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
 
 		self.patient = User.objects.create_user(
 			email='patient-picker@test.com',
@@ -2012,3 +2017,331 @@ class PrescriptionBodyFormatTests(TestCase):
 		self.assertContains(response, '500 mg')
 		self.assertContains(response, 'prescription-items-form.js')
 
+
+@override_settings(
+	MIDDLEWARE=[
+		middleware
+		for middleware in settings.MIDDLEWARE
+		if middleware != 'core.middleware.ProfileCompleteMiddleware'
+	]
+)
+class HealthProfilePatientWorkflowTests(TestCase):
+	def setUp(self):
+		from core.doctor_access import ALL_MODULE_KEYS
+
+		self.doctor = User.objects.create_user(
+			email='doctor-hp-workflow@test.com',
+			password='DoctorPass123!',
+			role='doctor',
+			is_staff=True,
+			is_active=True,
+			first_name='Workflow',
+			last_name='Doctor',
+		)
+		_complete_staff_like_profile(self.doctor, 'DOC-HP-WF-001')
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
+
+		self.patient = User.objects.create_user(
+			email='patient-hp-workflow@test.com',
+			password='PatientPass123!',
+			role='patient',
+			is_active=True,
+			first_name='Cara',
+			last_name='Patient',
+		)
+		profile, _ = PatientProfile.objects.get_or_create(user=self.patient)
+		profile.patient_id = 'P-HP-2001'
+		profile.gender = 'female'
+		profile.civil_status = 'single'
+		profile.address = '456 Clinic Rd'
+		profile.phone = '+639171111111'
+		profile.course = 'BSN'
+		profile.department = 'College of Nursing'
+		profile.date_of_birth = timezone.now().date().replace(year=2001, month=5, day=10)
+		profile.age = 24
+		profile.save()
+		self.patient.__dict__.pop('patient_profile', None)
+		self.patient._state.fields_cache.pop('patient_profile', None)
+		self.other_patient = User.objects.create_user(
+			email='other-hp-workflow@test.com',
+			password='PatientPass123!',
+			role='patient',
+			is_active=True,
+			first_name='Other',
+			last_name='Person',
+		)
+		other_profile, _ = PatientProfile.objects.get_or_create(user=self.other_patient)
+		other_profile.patient_id = 'P-HP-2002'
+		other_profile.save(update_fields=['patient_id'])
+
+	def _login_patient(self):
+		self.client.force_login(self.patient)
+
+	def _login_doctor(self):
+		self.client.force_login(self.doctor)
+
+	def _fill_required_personal(self, form_obj):
+		form_obj.last_name = 'Patient'
+		form_obj.first_name = 'Cara'
+		form_obj.date_of_birth = timezone.now().date().replace(year=2001, month=5, day=10)
+		form_obj.gender = 'female'
+		form_obj.designation = 'student'
+		form_obj.department_college_office = 'College of Nursing'
+		form_obj.mobile_number = '+639171111111'
+		form_obj.email_address = self.patient.email
+		form_obj.save()
+
+	def test_patient_can_open_health_profile_list_scoped_to_self(self):
+		own = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+			first_name='Cara',
+			last_name='Patient',
+		)
+		HealthProfileForm.objects.create(
+			user=self.other_patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+			first_name='Other',
+			last_name='Person',
+		)
+		self._login_patient()
+		response = self.client.get(reverse('health_forms_services:forms_list'))
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Request Health Profile Form')
+		forms = list(response.context['forms'])
+		self.assertEqual(len(forms), 1)
+		self.assertEqual(forms[0].pk, own.pk)
+
+	def test_patient_navbar_shows_health_profile_without_module_grant(self):
+		from django.template import Context, Template
+		from django.template.loader import render_to_string
+
+		self._login_patient()
+		html = render_to_string(
+			'core/partials/_nav_health_forms_desktop.html',
+			{
+				'user': self.patient,
+				'request': type('R', (), {'user': self.patient})(),
+				'hide_removed_app_links': False,
+				'clinical_nav': {'show_health_forms': False},
+				'doctor_nav': {'show_health_forms': False},
+				'nav_active': {'health_forms': False},
+				'include_document_request_link': False,
+			},
+		)
+		self.assertIn('Health Profile Forms', html)
+		self.assertNotIn('Dental Health Forms', html)
+		self.assertNotIn('Patient Charts', html)
+		self.assertNotIn('Prescriptions', html)
+
+	def test_patient_request_creates_incomplete_draft_with_prefill(self):
+		from health_forms_services.views._fbvs import _patient_profile_prefill_payload
+
+		self.assertEqual(self.patient.patient_profile.department, 'College of Nursing')
+		payload = _patient_profile_prefill_payload(self.patient)
+		self.assertEqual(payload.get('department_college_office'), 'College of Nursing')
+
+		self._login_patient()
+		response = self.client.get(reverse('health_forms_services:request_health_profile'))
+		self.assertEqual(response.status_code, 302)
+		created = HealthProfileForm.objects.get(user=self.patient)
+		self.assertEqual(created.status, HealthProfileForm.Status.INCOMPLETE)
+		self.assertEqual(created.first_name, 'Cara')
+		self.assertEqual(created.last_name, 'Patient')
+		self.assertEqual(created.department_college_office, 'College of Nursing')
+		self.assertEqual(created.course, 'BSN')
+		self.assertEqual(created.mobile_number, '+639171111111')
+
+	def test_patient_edit_history_only_and_cannot_post_clinical(self):
+		form_obj = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+		)
+		self._login_patient()
+		response = self.client.get(reverse('health_forms_services:edit_form', args=[form_obj.pk]))
+		self.assertEqual(response.status_code, 200)
+		tab_keys = [t['key'] for t in response.context['tabs']]
+		self.assertEqual(tab_keys, ['personal', 'medical'])
+		self.assertFalse(response.context['personal_readonly'])
+
+		blocked = self.client.post(
+			reverse('health_forms_services:edit_form', args=[form_obj.pk]),
+			{'section': 'physical', 'blood_pressure': '120/80'},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(blocked.status_code, 403)
+
+	def test_patient_submit_for_review_and_locked_after(self):
+		form_obj = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+		)
+		self._fill_required_personal(form_obj)
+		self._login_patient()
+
+		missing = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+			first_name='Incomplete',
+		)
+		bad = self.client.post(reverse('health_forms_services:submit_for_review', args=[missing.pk]))
+		self.assertEqual(bad.status_code, 302)
+		missing.refresh_from_db()
+		self.assertEqual(missing.status, HealthProfileForm.Status.INCOMPLETE)
+
+		ok = self.client.post(reverse('health_forms_services:submit_for_review', args=[form_obj.pk]))
+		self.assertEqual(ok.status_code, 302)
+		form_obj.refresh_from_db()
+		self.assertEqual(form_obj.status, HealthProfileForm.Status.PENDING)
+
+		edit = self.client.get(reverse('health_forms_services:edit_form', args=[form_obj.pk]))
+		self.assertEqual(edit.status_code, 302)
+		post_blocked = self.client.post(
+			reverse('health_forms_services:edit_form', args=[form_obj.pk]),
+			{'section': 'personal', 'first_name': 'Hacked'},
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(post_blocked.status_code, 403)
+
+	def test_doctor_edits_clinical_on_pending_and_completes_review(self):
+		form_obj = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.PENDING,
+			first_name='Cara',
+			last_name='Patient',
+		)
+		self._login_doctor()
+		response = self.client.get(reverse('health_forms_services:edit_form', args=[form_obj.pk]))
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue(response.context['personal_readonly'])
+		self.assertIn('physical', response.context['editable_sections'])
+		self.assertNotIn('personal', response.context['editable_sections'])
+
+		save = self.client.post(
+			reverse('health_forms_services:edit_form', args=[form_obj.pk]),
+			{'section': 'physical', 'blood_pressure': '110/70', 'heart_rate': '72'},
+			follow=True,
+		)
+		self.assertEqual(save.status_code, 200)
+		form_obj.refresh_from_db()
+		self.assertEqual(form_obj.blood_pressure, '110/70')
+
+		review = self.client.post(
+			reverse('health_forms_services:review_form', args=[form_obj.pk]),
+			{'status': 'completed', 'review_notes': 'Cleared'},
+		)
+		self.assertEqual(review.status_code, 302)
+		form_obj.refresh_from_db()
+		self.assertEqual(form_obj.status, HealthProfileForm.Status.COMPLETED)
+
+	def test_reject_returns_to_incomplete_for_patient_revision(self):
+		form_obj = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.PENDING,
+			first_name='Cara',
+			last_name='Patient',
+		)
+		self._login_doctor()
+		self.client.post(
+			reverse('health_forms_services:review_form', args=[form_obj.pk]),
+			{'status': 'rejected', 'review_notes': 'Please update history'},
+		)
+		form_obj.refresh_from_db()
+		self.assertEqual(form_obj.status, HealthProfileForm.Status.INCOMPLETE)
+		self.assertIn('Please update history', form_obj.review_notes)
+
+		self._login_patient()
+		edit = self.client.get(reverse('health_forms_services:edit_form', args=[form_obj.pk]))
+		self.assertEqual(edit.status_code, 200)
+		self.assertIn('personal', edit.context['editable_sections'])
+
+	def test_staff_manual_entry_starts_incomplete(self):
+		self._login_doctor()
+		response = self.client.post(
+			reverse('health_forms_services:manual_entry'),
+			{
+				'selected_user_id': str(self.patient.id),
+				'last_name': 'Patient',
+				'first_name': 'Cara',
+				'middle_name': '',
+				'permanent_address': '456 Clinic Rd',
+				'zip_code': '',
+				'current_address': '456 Clinic Rd',
+				'religion': '',
+				'civil_status': 'single',
+				'place_of_birth': 'Manila',
+				'date_of_birth': '2001-05-10',
+				'citizenship': 'Filipino',
+				'age': '24',
+				'gender': 'female',
+				'email_address': self.patient.email,
+				'mobile_number': '+639171111111',
+				'telephone_number': '',
+				'designation': 'student',
+				'institution_id': 'P-HP-2001',
+				'department_college_office': 'College of Nursing',
+				'course': 'BSN',
+				'year_level': '',
+				'position': '',
+				'specialization': '',
+				'license_number': '',
+				'ptr_no': '',
+				'blood_type': '',
+				'medical_conditions': '',
+				'guardian_name': '',
+				'guardian_contact': '',
+			},
+			follow=True,
+		)
+		self.assertEqual(response.status_code, 200)
+		created = HealthProfileForm.objects.filter(user=self.patient).latest('created_at')
+		self.assertEqual(created.status, HealthProfileForm.Status.INCOMPLETE)
+
+
+class HealthProfilePermissionHelperTests(TestCase):
+	def setUp(self):
+		self.patient = User.objects.create_user(
+			email='patient-hp-perms@test.com',
+			password='PatientPass123!',
+			role='patient',
+			is_active=True,
+		)
+		self.doctor = User.objects.create_user(
+			email='doctor-hp-perms@test.com',
+			password='DoctorPass123!',
+			role='doctor',
+			is_staff=True,
+			is_active=True,
+		)
+		_complete_staff_like_profile(self.doctor, 'DOC-HP-PERM-001')
+		self.form = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+		)
+
+	def test_editable_sections_matrix(self):
+		from health_forms_services.services import editable_sections
+
+		self.assertEqual(
+			editable_sections(self.patient, self.form),
+			frozenset({'personal', 'medical'}),
+		)
+		self.assertEqual(
+			editable_sections(self.doctor, self.form),
+			frozenset({'personal', 'medical', 'physical', 'diagnostic', 'clinical'}),
+		)
+
+		self.form.status = HealthProfileForm.Status.PENDING
+		self.form.save(update_fields=['status'])
+		self.assertEqual(editable_sections(self.patient, self.form), frozenset())
+		self.assertEqual(
+			editable_sections(self.doctor, self.form),
+			frozenset({'physical', 'diagnostic', 'clinical'}),
+		)
+
+		self.form.status = HealthProfileForm.Status.COMPLETED
+		self.form.save(update_fields=['status'])
+		self.assertEqual(editable_sections(self.patient, self.form), frozenset())
+		self.assertEqual(editable_sections(self.doctor, self.form), frozenset())

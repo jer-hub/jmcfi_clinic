@@ -255,9 +255,13 @@ def manual_entry(request):
             health_form = HealthProfileForm(user=selected_patient or request.user)
             for field in personal_form.cleaned_data:
                 setattr(health_form, field, personal_form.cleaned_data[field])
-            health_form.status = HealthProfileForm.Status.PENDING
+            # Start as draft so the patient can finish history online, or staff can submit in-clinic.
+            health_form.status = HealthProfileForm.Status.INCOMPLETE
             health_form.save()
-            messages.success(request, 'Health profile form created. You can now fill in clinical details.')
+            messages.success(
+                request,
+                'Health profile form created as a draft. Complete personal/history, then submit for review.',
+            )
             return redirect('health_forms_services:edit_form', pk=health_form.pk)
     else:
         preselected = _preselected_patient_from_request(request)
@@ -272,12 +276,74 @@ def manual_entry(request):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@role_required('patient')
+def request_health_profile(request):
+    """Patient creates (or resumes) an incomplete health profile draft with profile prefill."""
+    existing = (
+        HealthProfileForm.objects
+        .filter(user=request.user, status=HealthProfileForm.Status.INCOMPLETE)
+        .order_by('-updated_at')
+        .first()
+    )
+    if existing:
+        messages.info(request, 'You already have a draft form. Continue editing it.')
+        return redirect('health_forms_services:edit_form', pk=existing.pk)
+
+    from health_forms_services.services import apply_health_profile_prefill
+
+    health_form = HealthProfileForm(
+        user=request.user,
+        status=HealthProfileForm.Status.INCOMPLETE,
+    )
+    # Reload so OneToOne profile is available for prefill after signal-created rows.
+    patient = User.objects.select_related('patient_profile').get(pk=request.user.pk)
+    apply_health_profile_prefill(health_form, _patient_profile_prefill_payload(patient))
+    health_form.save()
+    messages.success(request, 'Health profile form started. Complete your information, then submit for review.')
+    return redirect('health_forms_services:edit_form', pk=health_form.pk)
+
+
+@login_required
+@require_POST
+def submit_for_review(request, pk):
+    """Submit an incomplete draft for clinic review (patient owner or assisting clinician)."""
+    from health_forms_services.services import (
+        can_submit_for_review,
+        validate_submit_for_review,
+    )
+
+    health_form = get_form_or_404(
+        HealthProfileForm, pk, request.user,
+        ['user', 'reviewed_by', 'examining_physician'],
+    )
+    if not can_submit_for_review(request.user, health_form):
+        messages.error(request, 'You cannot submit this form for review.')
+        return redirect('health_forms_services:form_detail', pk=pk)
+
+    errors = validate_submit_for_review(health_form)
+    if errors:
+        for err in errors:
+            messages.error(request, err)
+        return redirect('health_forms_services:edit_form', pk=pk)
+
+    health_form.status = HealthProfileForm.Status.PENDING
+    health_form.save(update_fields=['status', 'updated_at'])
+    messages.success(request, 'Form submitted for clinic review.')
+    return redirect('health_forms_services:form_detail', pk=pk)
+
+
+@login_required
+@role_required('staff', 'doctor', 'patient')
 def load_form_section(request, pk):
     """Return a section's serialized fields for lazy-loaded edit tabs."""
+    from health_forms_services.services import editable_sections
+
     section = request.GET.get('section', 'personal')
     health_form = get_form_or_404(HealthProfileForm, pk, request.user,
                                   ['user', 'reviewed_by', 'examining_physician'])
+
+    if section not in editable_sections(request.user, health_form):
+        return JsonResponse({'error': 'You cannot load this section for editing.'}, status=403)
 
     form_map = {
         'personal': HealthProfilePersonalInfoForm,
@@ -314,8 +380,17 @@ def review_form(request, pk):
         health_form = form.save(commit=False)
         health_form.reviewed_by = request.user
         health_form.reviewed_at = timezone.now()
-        health_form.save()
-        messages.success(request, f'Form status updated to {health_form.get_status_display()}.')
+        # Reject returns the form to incomplete so the patient can revise and resubmit.
+        if health_form.status == HealthProfileForm.Status.REJECTED:
+            health_form.status = HealthProfileForm.Status.INCOMPLETE
+            health_form.save()
+            messages.success(
+                request,
+                'Form rejected and returned to the patient for revision.',
+            )
+        else:
+            health_form.save()
+            messages.success(request, f'Form status updated to {health_form.get_status_display()}.')
     else:
         messages.error(request, 'Invalid form data.')
     return redirect('health_forms_services:form_detail', pk=pk)

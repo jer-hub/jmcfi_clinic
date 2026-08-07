@@ -1,0 +1,107 @@
+{# Breadcrumb + actions for browse #}
+<div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+  <nav class="flex flex-wrap items-center gap-1 text-sm text-gray-600 min-w-0" aria-label="Folder path">
+    <a href="{% url 'files:browse' %}"
+       class="hover:text-primary-600 font-medium shrink-0"
+       @click.prevent="openItem('{% url 'files:browse' %}', 'folder')">My Drive</a>
+    {% for crumb in breadcrumbs %}
+      <span class="text-gray-300 shrink-0">/</span>
+      {% if forloop.last %}
+        <span class="text-gray-900 font-medium truncate">{{ crumb.name }}</span>
+      {% else %}
+        <a href="{% url 'files:browse' %}?folder={{ crumb.pk }}"
+           class="hover:text-primary-600 truncate"
+           @click.prevent="openItem('{% url 'files:browse' %}?folder={{ crumb.pk }}', 'folder')">{{ crumb.name }}</a>
+      {% endif %}
+    {% endfor %}
+  </nav>
+
+  <div class="flex flex-wrap items-center gap-2 shrink-0">
+    {% if items %}
+    <label class="inline-flex items-center gap-2 text-sm text-gray-600 select-none mr-1">
+      <input type="checkbox"
+             class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+             :checked="allSelected"
+             @change="toggleSelectAll()"
+             :disabled="busy">
+      <span x-text="selectedCount ? (selectedCount + ' selected') : 'Select all'"></span>
+    </label>
+    <template x-if="selectedCount">
+      <button type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-danger-200 bg-white text-sm font-medium text-danger-700 hover:bg-danger-50 disabled:opacity-50"
+              :disabled="busy"
+              @click="confirmDriveBulkTrash()">
+        <i class="fas fa-trash text-xs" aria-hidden="true"></i>
+        Move to trash
+      </button>
+    </template>
+    {% endif %}
+
+    {% include 'files/partials/_view_toggle.html' %}
+
+    <div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape.window="open = false">
+      <button type="button"
+              @click="open = !open"
+              :disabled="busy"
+              :aria-expanded="open.toString()"
+              aria-haspopup="menu"
+              class="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed shadow-sm">
+        <i class="fas fa-plus text-xs" aria-hidden="true"></i>
+        <span>New</span>
+        <i class="fas fa-chevron-down text-[10px] opacity-80 transition-transform duration-150"
+           :class="open && 'rotate-180'"
+           aria-hidden="true"></i>
+      </button>
+      <div x-show="open"
+           x-cloak
+           x-transition:enter="transition ease-out duration-100"
+           x-transition:enter-start="opacity-0 -translate-y-1"
+           x-transition:enter-end="opacity-100 translate-y-0"
+           x-transition:leave="transition ease-in duration-75"
+           x-transition:leave-start="opacity-100 translate-y-0"
+           x-transition:leave-end="opacity-0 -translate-y-1"
+           role="menu"
+           aria-label="Create new"
+           class="absolute right-0 z-30 mt-1.5 w-56 origin-top-right rounded-xl border border-gray-200 bg-white py-1.5 shadow-lg">
+        <button type="button"
+                role="menuitem"
+                @click="open = false; $dispatch('open-modal', { type: 'success', title: 'New folder', subtitle: 'Create a folder in this location', size: 'sm', embedFrom: '#drive-new-folder-embed', hasForm: true, actionLabel: 'Create' })"
+                class="flex w-full items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none">
+          <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
+            <i class="fas fa-folder-plus" aria-hidden="true"></i>
+          </span>
+          <span class="min-w-0 text-left">
+            <span class="block font-medium text-gray-900 whitespace-nowrap">New folder</span>
+            <span class="block text-xs text-gray-500 whitespace-nowrap">Organize files</span>
+          </span>
+        </button>
+        <button type="button"
+                role="menuitem"
+                @click="open = false; document.getElementById('drive-upload-input').click()"
+                class="flex w-full items-center gap-3 px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none">
+          <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
+            <i class="fas fa-file-arrow-up" aria-hidden="true"></i>
+          </span>
+          <span class="min-w-0 text-left">
+            <span class="block font-medium text-gray-900 whitespace-nowrap">File upload</span>
+            <span class="block text-xs text-gray-500 whitespace-nowrap">Add files to this folder</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'files/partials/_drive_upload_form.html' %}
+
+<form method="get" action="{% url 'files:search' %}" class="mb-4 max-w-xl"
+      @submit="beginBusy('Searching…')">
+  <input type="hidden" name="view" value="{{ view_mode }}">
+  <div class="relative">
+    <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+    <input type="search" name="q" value="{{ search_query|default:'' }}"
+           placeholder="Search My Drive..."
+           class="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+           aria-label="Search My Drive">
+  </div>
+</form>

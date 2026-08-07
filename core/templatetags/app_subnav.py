@@ -350,6 +350,26 @@ def manage_concern_subnav(context):
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)
+def files_subnav(context):
+    vn = view_name(context['request'])
+    items = [
+        nav_item(
+            'My Drive',
+            'files:browse',
+            icon='fa-hard-drive',
+            active=is_active(vn, 'files:browse', 'files:search'),
+        ),
+        nav_item(
+            'Trash',
+            'files:trash',
+            icon='fa-trash',
+            active=vn == 'files:trash',
+        ),
+    ]
+    return enrich_subnav(items, always_show_nav=True, nav_aria_label='Clinic Files sections')
+
+
+@register.inclusion_tag('components/sub_nav.html', takes_context=True)
 def health_tips_subnav(context):
     vn = view_name(context['request'])
     role = context['request'].user.role

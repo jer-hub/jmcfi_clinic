@@ -1,0 +1,9 @@
+<div id="drive-new-folder-embed" class="hidden" aria-hidden="true">
+  <form method="post" action="{% url 'files:folder_create' %}" class="space-y-3 text-left">
+    {% csrf_token %}
+    {% if folder %}<input type="hidden" name="parent_id" value="{{ folder.pk }}">{% endif %}
+    <label class="block text-sm font-medium text-gray-700">Folder name</label>
+    <input type="text" name="name" required placeholder="Untitled folder"
+           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+  </form>
+</div>

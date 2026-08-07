@@ -1,0 +1,37 @@
+<div class="bg-white border rounded-lg p-4 shadow-sm hover:border-primary-200 transition-colors flex flex-col min-h-[8rem] select-none {% if is_search %}border-gray-200{% endif %}"
+     {% if item.kind == 'folder' %}
+     data-open-url="{% url 'files:browse' %}?folder={{ item.pk }}"
+     data-open-kind="folder"
+     {% else %}
+     data-open-url="{% url 'files:download' item.pk %}"
+     data-open-kind="file"
+     {% endif %}
+     {% if not is_search %}
+     :class="isSelected({{ item.pk }}) ? 'border-primary-300 bg-primary-50/30' : 'border-gray-200'"
+     {% endif %}
+     @dblclick="onRowOpen($event, $el)">
+  <div class="flex-1 min-w-0">
+    {% if not is_search %}
+    <div class="flex items-start justify-between gap-2 mb-2" data-drive-actions @dblclick.stop @click.stop>
+      <input type="checkbox"
+             class="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 shrink-0"
+             data-item-id="{{ item.pk }}"
+             :checked="isSelected({{ item.pk }})"
+             @change="toggleSelect({{ item.pk }})"
+             :disabled="busy"
+             aria-label="Select {{ item.name }}">
+    </div>
+    {% endif %}
+    {% if item.kind == 'folder' %}
+      <i class="fas fa-folder text-amber-500 text-3xl mb-2"></i>
+      <p class="text-sm font-medium text-gray-900 break-words">{{ item.name }}</p>
+    {% else %}
+      <i class="fas fa-file text-primary-600 text-3xl mb-2"></i>
+      <p class="text-sm font-medium text-gray-900 break-words">{{ item.name }}</p>
+      <p class="text-xs text-gray-400 mt-1">{{ item.size_bytes|filesizeformat }}</p>
+    {% endif %}
+  </div>
+  <div class="mt-3 pt-2 border-t border-gray-100" data-drive-actions @dblclick.stop>
+    {% include 'files/partials/_item_actions.html' with item=item %}
+  </div>
+</div>

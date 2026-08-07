@@ -1,0 +1,62 @@
+<div class="inline-flex flex-wrap justify-end gap-1">
+  {% if item.kind == 'file' %}
+  <button type="button"
+          @click="openItem('{% url 'files:download' item.pk %}', 'file')"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-100 bg-gray-50 text-gray-600 hover:bg-white hover:border-primary-200 disabled:opacity-50"
+          :disabled="busy"
+          title="Download"><i class="fas fa-download text-xs"></i></button>
+  {% endif %}
+  <button type="button"
+          @click="$dispatch('open-modal', { type: 'success', title: 'Rename', size: 'sm', embedFrom: '#drive-rename-embed-{{ item.pk }}', hasForm: true, actionLabel: 'Save' })"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-100 bg-gray-50 text-gray-600 hover:bg-white hover:border-primary-200 disabled:opacity-50"
+          :disabled="busy"
+          title="Rename"><i class="fas fa-pen text-xs"></i></button>
+  {% if not item.trashed_at %}
+  <button type="button"
+          @click="$dispatch('open-modal', { type: 'success', title: 'Move', size: 'sm', embedFrom: '#drive-move-embed-{{ item.pk }}', hasForm: true, actionLabel: 'Move' })"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-100 bg-gray-50 text-gray-600 hover:bg-white hover:border-primary-200 disabled:opacity-50"
+          :disabled="busy"
+          title="Move"><i class="fas fa-folder-tree text-xs"></i></button>
+  <button type="button"
+          @click="$dispatch('open-modal', { type: 'danger', title: 'Move to trash?', size: 'sm', embedFrom: '#drive-trash-embed-{{ item.pk }}', hasForm: true, actionLabel: 'Move to trash' })"
+          class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-100 bg-gray-50 text-danger-600 hover:bg-danger-50 disabled:opacity-50"
+          :disabled="busy"
+          title="Move to trash"><i class="fas fa-trash text-xs"></i></button>
+  {% endif %}
+</div>
+
+<div id="drive-rename-embed-{{ item.pk }}" class="hidden" aria-hidden="true">
+  <form method="post" action="{% url 'files:rename' item.pk %}" class="space-y-3 text-left">
+    {% csrf_token %}
+    <label class="block text-sm font-medium text-gray-700">Name</label>
+    <input type="text" name="name" value="{{ item.name }}" required
+           class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+  </form>
+</div>
+
+{% if not item.trashed_at %}
+<div id="drive-trash-embed-{{ item.pk }}" class="hidden" aria-hidden="true">
+  <form method="post" action="{% url 'files:item_trash' item.pk %}" class="text-left">
+    {% csrf_token %}
+    {% if is_search %}<input type="hidden" name="next" value="search">{% endif %}
+    <p class="text-sm text-gray-600">
+      <span class="font-medium text-gray-900">{{ item.name }}</span> will be moved to Trash.
+    </p>
+  </form>
+</div>
+
+<div id="drive-move-embed-{{ item.pk }}" class="hidden" aria-hidden="true">
+  <form method="post" action="{% url 'files:move' item.pk %}" class="space-y-3 text-left">
+    {% csrf_token %}
+    <label class="block text-sm font-medium text-gray-700">Destination</label>
+    <select name="parent_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm">
+      <option value="">My Drive (root)</option>
+      {% for folder_opt in folder_options %}
+        {% if folder_opt.pk != item.pk %}
+        <option value="{{ folder_opt.pk }}" {% if item.parent_id == folder_opt.pk %}selected{% endif %}>{{ folder_opt.name }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+  </form>
+</div>
+{% endif %}

@@ -1,0 +1,47 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Search - Clinic Files - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-8"
+     x-data="clinicDrive({ viewMode: '{{ view_mode }}' })"
+     :aria-busy="busy.toString()">
+  {% include 'files/_subnav.html' %}
+
+  {% include "components/page_header.html" with title="Search" subtitle="Find files and folders by name" icon="fa-magnifying-glass" %}
+
+  <div class="mb-4 flex flex-col sm:flex-row sm:items-center gap-3">
+    <form method="get" action="{% url 'files:search' %}" class="flex-1 min-w-0 max-w-xl"
+          @submit="beginBusy('Searching…')">
+      <input type="hidden" name="view" value="{{ view_mode }}">
+      <div class="relative">
+        <i class="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
+        <input type="search" name="q" value="{{ search_query }}"
+               placeholder="Search My Drive..."
+               class="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+               {% if not has_search_query %}autofocus{% endif %}
+               aria-label="Search My Drive">
+      </div>
+    </form>
+    <div class="shrink-0 sm:ml-auto">
+      {% include 'files/partials/_view_toggle.html' %}
+    </div>
+  </div>
+
+  {% if has_search_query %}
+  <p class="text-sm text-gray-500 mb-3">
+    Results for <span class="font-medium text-gray-800">“{{ search_query }}”</span>
+    {% if items %}· {{ items|length }} found{% endif %}
+  </p>
+  {% endif %}
+
+  <div id="drive-pane" :class="busy && 'pointer-events-none opacity-60'">
+    {% include 'files/partials/_drive_pane.html' %}
+  </div>
+
+  {% include 'files/partials/_drive_busy_overlay.html' %}
+</div>
+
+{% include 'files/partials/_drive_modals.html' %}
+{% include 'files/partials/_drive_scripts.html' %}
+{% endblock %}

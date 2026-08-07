@@ -1,0 +1,455 @@
+<script>
+function clinicDrive(config) {
+  return {
+    viewMode: (config && config.viewMode) || 'list',
+    allowUpload: !!(config && config.allowUpload),
+    isTrash: !!(config && config.isTrash),
+    allowSelect: !!(config && (config.allowSelect || config.isTrash)),
+    selectableItemIds: (config && (config.selectableItemIds || config.trashItemIds)) || [],
+    selected: {},
+    busy: false,
+    busyLabel: 'Working…',
+    dragging: false,
+    _dragDepth: 0,
+    uploading: false,
+    uploadPanelOpen: false,
+    uploadProgress: 0,
+    uploadLabel: 'Uploading…',
+    uploadDetail: '',
+    uploadError: '',
+    uploadDone: false,
+    _uploadHideTimer: null,
+    _uploadXhr: null,
+
+    init() {
+      this._onSubmit = (event) => {
+        const form = event.target;
+        if (!(form instanceof HTMLFormElement)) return;
+        if (form.dataset.driveBusyBound === '1') return;
+        const action = form.getAttribute('action') || '';
+        if (!action.includes('/files/')) return;
+        if (form.id === 'drive-upload-form') {
+          event.preventDefault();
+          return;
+        }
+        this.beginBusy(this.labelForAction(action));
+      };
+      document.addEventListener('submit', this._onSubmit, true);
+
+      if (this.allowUpload) {
+        this._onDocDragEnter = (e) => this.onPageDragEnter(e);
+        this._onDocDragLeave = (e) => this.onPageDragLeave(e);
+        this._onDocDragOver = (e) => this.onPageDragOver(e);
+        this._onDocDrop = (e) => this.onPageDrop(e);
+        document.addEventListener('dragenter', this._onDocDragEnter);
+        document.addEventListener('dragleave', this._onDocDragLeave);
+        document.addEventListener('dragover', this._onDocDragOver);
+        document.addEventListener('drop', this._onDocDrop);
+      }
+    },
+
+    destroy() {
+      if (this._onSubmit) document.removeEventListener('submit', this._onSubmit, true);
+      if (this.allowUpload) {
+        document.removeEventListener('dragenter', this._onDocDragEnter);
+        document.removeEventListener('dragleave', this._onDocDragLeave);
+        document.removeEventListener('dragover', this._onDocDragOver);
+        document.removeEventListener('drop', this._onDocDrop);
+      }
+      if (this._uploadHideTimer) window.clearTimeout(this._uploadHideTimer);
+    },
+
+    beginBusy(label) {
+      if (this.busy) return false;
+      this.busyLabel = label || 'Working…';
+      this.busy = true;
+      this.dragging = false;
+      this._dragDepth = 0;
+      return true;
+    },
+
+    labelForAction(action) {
+      if (action.includes('/upload/')) return 'Uploading…';
+      if (action.includes('/folder/create/')) return 'Creating folder…';
+      if (action.includes('/rename/')) return 'Renaming…';
+      if (action.includes('/move/')) return 'Moving…';
+      if (action.includes('/bulk-trash') || /\/\d+\/trash\/?/.test(action)) return 'Moving to trash…';
+      if (action.includes('/trash/empty')) return 'Emptying trash…';
+      if (action.includes('/bulk-restore') || action.includes('/restore/')) return 'Restoring…';
+      if (action.includes('/bulk-purge') || action.includes('/purge/')) return 'Deleting permanently…';
+      if (action.includes('/search')) return 'Searching…';
+      return 'Working…';
+    },
+
+    get selectedIds() {
+      return Object.keys(this.selected).filter((id) => this.selected[id]);
+    },
+
+    get selectedCount() {
+      return this.selectedIds.length;
+    },
+
+    get allSelected() {
+      const ids = this.selectableItemIds || [];
+      return ids.length > 0 && ids.every((id) => this.selected[String(id)]);
+    },
+
+    isSelected(id) {
+      return !!this.selected[String(id)];
+    },
+
+    toggleSelect(id) {
+      const key = String(id);
+      this.selected = { ...this.selected, [key]: !this.selected[key] };
+    },
+
+    toggleSelectAll() {
+      const ids = this.selectableItemIds || [];
+      if (this.allSelected) {
+        this.selected = {};
+        return;
+      }
+      const next = {};
+      ids.forEach((id) => {
+        next[String(id)] = true;
+      });
+      this.selected = next;
+    },
+
+    clearSelection() {
+      this.selected = {};
+    },
+
+    submitBulk(formId) {
+      if (!this.selectedCount) return;
+      const form = document.getElementById(formId);
+      if (!form) return;
+      form.querySelectorAll('input[name="item_ids"][data-bulk]').forEach((el) => el.remove());
+      this.selectedIds.forEach((id) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'item_ids';
+        input.value = id;
+        input.setAttribute('data-bulk', '1');
+        form.appendChild(input);
+      });
+      if (form.requestSubmit) form.requestSubmit();
+      else form.submit();
+    },
+
+    submitTrashBulk(formId) {
+      this.submitBulk(formId);
+    },
+
+    confirmTrashBulkPurge() {
+      if (!this.selectedCount) return;
+      const count = this.selectedCount;
+      const self = this;
+      this.$dispatch('open-modal', {
+        type: 'danger',
+        title: 'Delete permanently?',
+        message:
+          'Permanently delete ' +
+          count +
+          ' selected item' +
+          (count === 1 ? '' : 's') +
+          '. This cannot be undone.',
+        size: 'sm',
+        actionLabel: 'Delete permanently',
+        onConfirm: function () {
+          self.submitBulk('trash-bulk-purge-form');
+        },
+      });
+    },
+
+    confirmDriveBulkTrash() {
+      if (!this.selectedCount) return;
+      const count = this.selectedCount;
+      const self = this;
+      this.$dispatch('open-modal', {
+        type: 'danger',
+        title: 'Move to trash?',
+        message:
+          'Move ' +
+          count +
+          ' selected item' +
+          (count === 1 ? '' : 's') +
+          ' to Trash.',
+        size: 'sm',
+        actionLabel: 'Move to trash',
+        onConfirm: function () {
+          self.submitBulk('drive-bulk-trash-form');
+        },
+      });
+    },
+
+    openItem(url, kind, label) {
+      if (!url || this.busy) return;
+      const isDownload = String(url).includes('/download/');
+      let busyText = label;
+      if (!busyText) {
+        if (isDownload) busyText = 'Downloading…';
+        else if (kind === 'folder') busyText = 'Opening folder…';
+        else if (kind === 'view') busyText = 'Switching view…';
+        else busyText = 'Opening…';
+      }
+      if (!this.beginBusy(busyText)) {
+        return;
+      }
+      if (isDownload) {
+        window.location.assign(url);
+        window.setTimeout(() => {
+          this.busy = false;
+        }, 1200);
+        return;
+      }
+      window.location.assign(url);
+    },
+
+    onRowOpen(event, el) {
+      if (event.target.closest('[data-drive-actions]')) return;
+      const url = el && el.dataset ? el.dataset.openUrl : '';
+      const kind = el && el.dataset ? el.dataset.openKind : '';
+      this.openItem(url, kind);
+    },
+
+    _hasFiles(event) {
+      const types = event.dataTransfer && event.dataTransfer.types;
+      if (!types) return false;
+      if (typeof types.contains === 'function') return types.contains('Files');
+      return Array.from(types).includes('Files');
+    },
+
+    onPageDragEnter(event) {
+      if (!this.allowUpload || this.busy || this.uploading || !this._hasFiles(event)) return;
+      event.preventDefault();
+      this._dragDepth += 1;
+      this.dragging = true;
+    },
+
+    onPageDragLeave(event) {
+      if (!this.dragging) return;
+      this._dragDepth = Math.max(0, this._dragDepth - 1);
+      if (this._dragDepth === 0) this.dragging = false;
+    },
+
+    onPageDragOver(event) {
+      if (!this.allowUpload || this.busy || this.uploading || !this._hasFiles(event)) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    },
+
+    onPageDrop(event) {
+      if (!this.allowUpload) return;
+      event.preventDefault();
+      this._dragDepth = 0;
+      this.dragging = false;
+      if (this.busy || this.uploading) return;
+      this.startUploadFromDrop(event);
+    },
+
+    dismissUploadPanel() {
+      if (this.uploading) return;
+      this.uploadPanelOpen = false;
+      this.uploadError = '';
+      this.uploadDone = false;
+    },
+
+    _scheduleUploadHide(ms) {
+      if (this._uploadHideTimer) window.clearTimeout(this._uploadHideTimer);
+      this._uploadHideTimer = window.setTimeout(() => {
+        this.uploadPanelOpen = false;
+        this.uploadDone = false;
+        this.uploadError = '';
+      }, ms);
+    },
+
+    startUploadFromInput(input) {
+      if (!input || !input.files || !input.files.length) return;
+      if (!input.form) return;
+      if (this.uploading) {
+        this.uploadPanelOpen = true;
+        this.uploadError = 'Wait for the current upload to finish.';
+        this.uploadDone = false;
+        input.value = '';
+        return;
+      }
+      if (this.busy) {
+        input.value = '';
+        return;
+      }
+
+      const files = Array.from(input.files);
+      const form = input.form;
+      const formData = new FormData(form);
+      const totalBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
+      const label =
+        files.length === 1
+          ? `Uploading ${files[0].name}`
+          : `Uploading ${files.length} files`;
+
+      this.uploading = true;
+      this.uploadPanelOpen = true;
+      this.uploadProgress = 0;
+      this.uploadLabel = label;
+      this.uploadDetail = totalBytes ? this._formatBytes(totalBytes) : '';
+      this.uploadError = '';
+      this.uploadDone = false;
+      this.dragging = false;
+      this._dragDepth = 0;
+      if (this._uploadHideTimer) window.clearTimeout(this._uploadHideTimer);
+
+      const xhr = new XMLHttpRequest();
+      this._uploadXhr = xhr;
+      xhr.open('POST', form.action);
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      xhr.setRequestHeader('Accept', 'application/json');
+
+      xhr.upload.onprogress = (event) => {
+        if (!event.lengthComputable || !event.total) return;
+        const pct = Math.min(99, Math.round((event.loaded / event.total) * 100));
+        this.uploadProgress = pct;
+        this.uploadDetail = `${this._formatBytes(event.loaded)} / ${this._formatBytes(event.total)}`;
+      };
+
+      xhr.upload.onload = () => {
+        this.uploadProgress = 100;
+        this.uploadLabel = files.length === 1 ? 'Saving file…' : 'Saving files…';
+      };
+
+      xhr.onload = () => {
+        this._uploadXhr = null;
+        let data = null;
+        try {
+          data = JSON.parse(xhr.responseText || '{}');
+        } catch (e) {
+          data = null;
+        }
+
+        const okHttp = xhr.status >= 200 && xhr.status < 300;
+        const created = data && typeof data.created === 'number' ? data.created : 0;
+        const errors = data && Array.isArray(data.errors) ? data.errors : [];
+        const ok = okHttp && data && data.ok && created > 0;
+
+        this.uploading = false;
+        input.value = '';
+
+        if (ok) {
+          this.uploadDone = true;
+          this.uploadProgress = 100;
+          this.uploadLabel = data.message || `Uploaded ${created} file${created === 1 ? '' : 's'}.`;
+          this.uploadDetail = errors.length ? errors[0] : '';
+          this.uploadError = '';
+          this.refreshDrivePane(data.browse_url || form.getAttribute('data-browse-url') || window.location.href);
+          this._scheduleUploadHide(errors.length ? 4500 : 2200);
+          return;
+        }
+
+        this.uploadDone = false;
+        this.uploadProgress = 0;
+        this.uploadLabel = 'Upload failed';
+        this.uploadDetail = '';
+        this.uploadError =
+          (errors && errors[0]) ||
+          (data && data.message) ||
+          (okHttp ? 'Nothing was uploaded.' : 'Upload failed. Try again.');
+      };
+
+      xhr.onerror = () => {
+        this._uploadXhr = null;
+        this.uploading = false;
+        this.uploadDone = false;
+        this.uploadProgress = 0;
+        this.uploadLabel = 'Upload failed';
+        this.uploadDetail = '';
+        this.uploadError = 'Network error. Check your connection and try again.';
+        input.value = '';
+      };
+
+      xhr.send(formData);
+    },
+
+    startUploadFromDrop(event) {
+      event.preventDefault();
+      const input = document.getElementById('drive-upload-input');
+      if (!input || !input.form) return;
+      const files = event.dataTransfer && event.dataTransfer.files;
+      if (!files || !files.length) return;
+      const dt = new DataTransfer();
+      Array.from(files).forEach((f) => dt.items.add(f));
+      input.files = dt.files;
+      this.startUploadFromInput(input);
+    },
+
+    refreshDrivePane(browseUrl) {
+      const pane = document.getElementById('drive-pane');
+      if (!pane || !browseUrl) return;
+
+      let url = browseUrl;
+      try {
+        const parsed = new URL(browseUrl, window.location.origin);
+        parsed.searchParams.set('view', this.viewMode || 'list');
+        url = parsed.pathname + parsed.search;
+      } catch (e) {
+        /* keep browseUrl */
+      }
+
+      const reinit = () => {
+        this.clearSelection();
+        this.selectableItemIds = Array.from(pane.querySelectorAll('[data-item-id]'))
+          .map((el) => Number(el.getAttribute('data-item-id')))
+          .filter((id) => !Number.isNaN(id));
+        if (window.Alpine && typeof Alpine.initTree === 'function') {
+          Alpine.initTree(pane);
+        }
+      };
+
+      if (typeof htmx !== 'undefined' && typeof htmx.ajax === 'function') {
+        const req = htmx.ajax('GET', url, { target: '#drive-pane', swap: 'innerHTML' });
+        if (req && typeof req.then === 'function') {
+          req.then(reinit).catch(() => window.location.assign(url));
+        } else {
+          document.body.addEventListener('htmx:afterSwap', function onSwap(evt) {
+            if (evt.target !== pane) return;
+            document.body.removeEventListener('htmx:afterSwap', onSwap);
+            reinit();
+          });
+        }
+        return;
+      }
+
+      fetch(url, {
+        headers: {
+          'HX-Request': 'true',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+      })
+        .then((r) => r.text())
+        .then((html) => {
+          pane.innerHTML = html;
+          reinit();
+        })
+        .catch(() => {
+          window.location.assign(url);
+        });
+    },
+
+    _formatBytes(bytes) {
+      const n = Number(bytes) || 0;
+      if (n < 1024) return `${n} B`;
+      if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+      return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    },
+
+    confirmAndBusy(event, message, label) {
+      if (!window.confirm(message)) {
+        event.preventDefault();
+        return false;
+      }
+      this.beginBusy(label);
+      return true;
+    },
+  };
+}
+</script>

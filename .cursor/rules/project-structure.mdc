@@ -23,6 +23,8 @@ Django 5.2 · Channels 4.3 · django-allauth (Google OAuth) · HTMX 1.9 · Alpin
 | `health_forms_services/` | `/health-forms/` | Health forms, dental forms, prescriptions, patient charts |
 | `analytics/` | `/analytics/` | Cross-app analytics & reporting |
 | `pharmacy/` | `/pharmacy/` | Inventory, dispensing, purchase orders |
+| `manage_concern/` | `/manage-concern/` | Concern / services records |
+| `files/` | `/files/` | Clinic Files (staff/doctor Drive) |
 | `messaging/` | `/messages/` | Direct messages & announcements |
 
 ## Roles

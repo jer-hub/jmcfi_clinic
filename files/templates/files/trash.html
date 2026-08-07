@@ -1,0 +1,87 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Trash - Clinic Files - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-8"
+     x-data="clinicDrive({
+       viewMode: '{{ view_mode }}',
+       isTrash: true,
+       trashItemIds: [{% for item in items %}{{ item.pk }}{% if not forloop.last %},{% endif %}{% endfor %}],
+       selectableItemIds: [{% for item in items %}{{ item.pk }}{% if not forloop.last %},{% endif %}{% endfor %}]
+     })"
+     :aria-busy="busy.toString()">
+  {% include 'files/_subnav.html' %}
+
+  {% include "components/page_header.html" with title="Trash" subtitle="Restore items or delete them permanently" icon="fa-trash" %}
+
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+    <div class="flex flex-wrap items-center gap-2">
+      {% include 'files/partials/_view_toggle.html' %}
+      {% if items %}
+      <label class="inline-flex items-center gap-2 text-sm text-gray-600 select-none">
+        <input type="checkbox"
+               class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+               :checked="allSelected"
+               @change="toggleSelectAll()"
+               :disabled="busy">
+        <span x-text="selectedCount ? (selectedCount + ' selected') : 'Select all'"></span>
+      </label>
+      {% endif %}
+    </div>
+
+    <div class="flex flex-wrap items-center gap-2">
+      <template x-if="selectedCount">
+        <div class="inline-flex flex-wrap items-center gap-2">
+          <button type="button"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  :disabled="busy"
+                  @click="submitTrashBulk('trash-bulk-restore-form')">
+            <i class="fas fa-rotate-left text-xs text-primary-600" aria-hidden="true"></i>
+            Restore
+          </button>
+          <button type="button"
+                  class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-danger-200 bg-white text-sm font-medium text-danger-700 hover:bg-danger-50 disabled:opacity-50"
+                  :disabled="busy"
+                  @click="confirmTrashBulkPurge()">
+            <i class="fas fa-trash text-xs" aria-hidden="true"></i>
+            Delete
+          </button>
+        </div>
+      </template>
+      {% if items %}
+      <button type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-danger-200 bg-white text-sm font-medium text-danger-700 hover:bg-danger-50 disabled:opacity-50"
+              :disabled="busy"
+              @click="$dispatch('open-modal', { type: 'danger', title: 'Empty trash?', message: 'All items in Trash will be permanently deleted. This cannot be undone.', size: 'sm', embedFrom: '#trash-empty-embed', hasForm: true, actionLabel: 'Empty trash' })">
+        <i class="fas fa-trash-can text-xs" aria-hidden="true"></i>
+        Empty trash
+      </button>
+      {% endif %}
+    </div>
+  </div>
+
+  <div id="drive-pane" :class="busy && 'pointer-events-none opacity-60'">
+    {% include 'files/partials/_trash_pane.html' %}
+  </div>
+
+  {% include 'files/partials/_drive_busy_overlay.html' %}
+</div>
+
+<form id="trash-bulk-restore-form" method="post" action="{% url 'files:trash_bulk_restore' %}" class="hidden">
+  {% csrf_token %}
+</form>
+
+<form id="trash-bulk-purge-form" method="post" action="{% url 'files:trash_bulk_purge' %}" class="hidden">
+  {% csrf_token %}
+</form>
+
+<div id="trash-empty-embed" class="hidden" aria-hidden="true">
+  <form method="post" action="{% url 'files:trash_empty' %}" class="text-left">
+    {% csrf_token %}
+    <p class="text-sm text-gray-600">Everything in Trash will be removed forever.</p>
+  </form>
+</div>
+
+{% include 'files/partials/_drive_scripts.html' %}
+{% endblock %}

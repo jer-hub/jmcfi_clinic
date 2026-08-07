@@ -1,0 +1,109 @@
+{% if items %}
+  {% if view_mode == 'grid' %}
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+    {% for item in items %}
+    <div class="bg-white border rounded-lg p-4 shadow-sm transition-colors"
+         :class="isSelected({{ item.pk }}) ? 'border-primary-300 bg-primary-50/30' : 'border-gray-200'">
+      <div class="flex items-start gap-2 mb-3">
+        <input type="checkbox"
+               class="mt-1 rounded border-gray-300 text-primary-600 focus:ring-primary-500 shrink-0"
+               :checked="isSelected({{ item.pk }})"
+               @change="toggleSelect({{ item.pk }})"
+               :disabled="busy"
+               aria-label="Select {{ item.name }}">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-start gap-2">
+            {% if item.kind == 'folder' %}
+              <i class="fas fa-folder text-amber-500 text-xl shrink-0"></i>
+            {% else %}
+              <i class="fas fa-file text-primary-600 text-xl shrink-0"></i>
+            {% endif %}
+            <p class="text-sm font-medium text-gray-900 break-all">{{ item.name }}</p>
+          </div>
+          <p class="text-xs text-gray-500 mt-1">{{ item.trashed_at|date:"M d, Y H:i" }}</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-1" data-drive-actions>
+        <form method="post" action="{% url 'files:restore' item.pk %}"
+              @submit="beginBusy('Restoring…')">{% csrf_token %}
+          <button class="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-50" :disabled="busy">Restore</button>
+        </form>
+        <button type="button"
+                class="text-xs px-2 py-1 rounded border border-danger-200 text-danger-700 hover:bg-danger-50 disabled:opacity-50"
+                :disabled="busy"
+                @click="$dispatch('open-modal', { type: 'danger', title: 'Delete permanently?', message: '“{{ item.name|escapejs }}” will be permanently deleted. This cannot be undone.', size: 'sm', embedFrom: '#trash-purge-embed-{{ item.pk }}', hasForm: true, actionLabel: 'Delete permanently' })">
+          Delete
+        </button>
+      </div>
+      <div id="trash-purge-embed-{{ item.pk }}" class="hidden" aria-hidden="true">
+        <form method="post" action="{% url 'files:purge' item.pk %}" class="text-left">
+          {% csrf_token %}
+          <p class="text-sm text-gray-600">This cannot be undone.</p>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-3 w-10">
+            <span class="sr-only">Select</span>
+          </th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+          <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden sm:table-cell">Trashed</th>
+          <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        {% for item in items %}
+        <tr class="hover:bg-gray-50"
+            :class="isSelected({{ item.pk }}) && 'bg-primary-50/40'">
+          <td class="px-4 py-3">
+            <input type="checkbox"
+                   class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                   :checked="isSelected({{ item.pk }})"
+                   @change="toggleSelect({{ item.pk }})"
+                   :disabled="busy"
+                   aria-label="Select {{ item.name }}">
+          </td>
+          <td class="px-4 py-3 text-sm">
+            {% if item.kind == 'folder' %}
+              <i class="fas fa-folder text-amber-500 mr-2"></i>
+            {% else %}
+              <i class="fas fa-file text-primary-600 mr-2"></i>
+            {% endif %}
+            {{ item.name }}
+          </td>
+          <td class="px-4 py-3 text-sm text-gray-500 hidden sm:table-cell">{{ item.trashed_at|date:"M d, Y H:i" }}</td>
+          <td class="px-4 py-3 text-right" data-drive-actions>
+            <div class="inline-flex gap-1">
+              <form method="post" action="{% url 'files:restore' item.pk %}"
+                    @submit="beginBusy('Restoring…')">{% csrf_token %}
+                <button class="text-xs px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-50" :disabled="busy">Restore</button>
+              </form>
+              <button type="button"
+                      class="text-xs px-2 py-1 rounded border border-danger-200 text-danger-700 hover:bg-danger-50 disabled:opacity-50"
+                      :disabled="busy"
+                      @click="$dispatch('open-modal', { type: 'danger', title: 'Delete permanently?', message: '“{{ item.name|escapejs }}” will be permanently deleted. This cannot be undone.', size: 'sm', embedFrom: '#trash-purge-embed-list-{{ item.pk }}', hasForm: true, actionLabel: 'Delete permanently' })">
+                Delete
+              </button>
+            </div>
+            <div id="trash-purge-embed-list-{{ item.pk }}" class="hidden" aria-hidden="true">
+              <form method="post" action="{% url 'files:purge' item.pk %}" class="text-left">
+                {% csrf_token %}
+                <p class="text-sm text-gray-600">This cannot be undone.</p>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+{% else %}
+  {% include "components/empty_state.html" with icon="fa-trash" title="Trash is empty" description="Deleted items will appear here." %}
+{% endif %}

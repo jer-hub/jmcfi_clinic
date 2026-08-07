@@ -14,6 +14,7 @@ SERVICES_NAMESPACES = frozenset(
         "dental_records",
         "document_request",
         "manage_concern",
+        "files",
     }
 )
 

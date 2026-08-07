@@ -43,6 +43,9 @@
     {% if user|has_clinical_module:'manage_concern' %}
     <a href="{% url 'manage_concern:concern_list' %}" class="dropdown-item">Manage Concern</a>
     {% endif %}
+    {% if user|has_clinical_module:'files' %}
+    <a href="{% url 'files:browse' %}" class="dropdown-item">Clinic Files</a>
+    {% endif %}
     {% if svc_role == 'staff' and user|has_clinical_module:'pharmacy' %}
       <a href="{% url 'pharmacy:dashboard' %}" class="dropdown-item {% if nav_active.pharmacy %}font-semibold text-primary-700{% endif %}">Pharmacy</a>
     {% endif %}

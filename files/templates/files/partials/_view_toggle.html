@@ -1,0 +1,18 @@
+<div class="inline-flex rounded-lg border border-gray-200 overflow-hidden text-sm shrink-0" role="group" aria-label="View mode">
+  <a href="?{% if folder %}folder={{ folder.pk }}&{% endif %}{% if search_query %}q={{ search_query|urlencode }}&{% endif %}view=list"
+     class="inline-flex items-center justify-center px-3 py-1.5 {% if view_mode == 'list' %}bg-primary-50 text-primary-700{% else %}bg-white text-gray-600 hover:bg-gray-50{% endif %}"
+     title="List view"
+     aria-current="{% if view_mode == 'list' %}true{% else %}false{% endif %}"
+     @click.prevent="openItem('?{% if folder %}folder={{ folder.pk }}&{% endif %}{% if search_query %}q={{ search_query|urlencode }}&{% endif %}view=list', 'view', 'Switching to list view…')">
+    <i class="fas fa-list" aria-hidden="true"></i>
+    <span class="sr-only">List view</span>
+  </a>
+  <a href="?{% if folder %}folder={{ folder.pk }}&{% endif %}{% if search_query %}q={{ search_query|urlencode }}&{% endif %}view=grid"
+     class="inline-flex items-center justify-center px-3 py-1.5 border-l border-gray-200 {% if view_mode == 'grid' %}bg-primary-50 text-primary-700{% else %}bg-white text-gray-600 hover:bg-gray-50{% endif %}"
+     title="Grid view"
+     aria-current="{% if view_mode == 'grid' %}true{% else %}false{% endif %}"
+     @click.prevent="openItem('?{% if folder %}folder={{ folder.pk }}&{% endif %}{% if search_query %}q={{ search_query|urlencode }}&{% endif %}view=grid', 'view', 'Switching to grid view…')">
+    <i class="fas fa-border-all" aria-hidden="true"></i>
+    <span class="sr-only">Grid view</span>
+  </a>
+</div>

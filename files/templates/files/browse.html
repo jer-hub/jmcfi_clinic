@@ -1,0 +1,36 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{{ page_title }} - Clinic Files - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-0 pb-8"
+     x-data="clinicDrive({
+       viewMode: '{{ view_mode }}',
+       allowUpload: true,
+       allowSelect: true,
+       selectableItemIds: [{% for item in items %}{{ item.pk }}{% if not forloop.last %},{% endif %}{% endfor %}]
+     })"
+     :aria-busy="busy.toString()">
+  {% include 'files/_subnav.html' %}
+
+  {% include "components/page_header.html" with title=page_title subtitle="Shared clinic workspace for staff and doctors" icon="fa-hard-drive" %}
+
+  {% include 'files/partials/_drive_toolbar.html' %}
+
+  <div id="drive-pane" :class="busy && 'pointer-events-none opacity-60'">
+    {% include 'files/partials/_drive_pane.html' %}
+  </div>
+
+  {% include 'files/partials/_drive_drop_overlay.html' %}
+  {% include 'files/partials/_drive_upload_progress.html' %}
+  {% include 'files/partials/_drive_busy_overlay.html' %}
+</div>
+
+<form id="drive-bulk-trash-form" method="post" action="{% url 'files:bulk_trash' %}" class="hidden">
+  {% csrf_token %}
+  {% if folder %}<input type="hidden" name="parent_id" value="{{ folder.pk }}">{% endif %}
+</form>
+
+{% include 'files/partials/_drive_modals.html' %}
+{% include 'files/partials/_drive_scripts.html' %}
+{% endblock %}

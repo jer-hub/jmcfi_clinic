@@ -1,0 +1,42 @@
+<tr class="hover:bg-gray-50 cursor-default select-none"
+    {% if item.kind == 'folder' %}
+    data-open-url="{% url 'files:browse' %}?folder={{ item.pk }}"
+    data-open-kind="folder"
+    {% else %}
+    data-open-url="{% url 'files:download' item.pk %}"
+    data-open-kind="file"
+    {% endif %}
+    {% if not is_search %}
+    :class="isSelected({{ item.pk }}) && 'bg-primary-50/40'"
+    {% endif %}
+    @dblclick="onRowOpen($event, $el)">
+  {% if not is_search %}
+  <td class="px-4 py-3" data-drive-actions @dblclick.stop @click.stop>
+    <input type="checkbox"
+           class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+           data-item-id="{{ item.pk }}"
+           :checked="isSelected({{ item.pk }})"
+           @change="toggleSelect({{ item.pk }})"
+           :disabled="busy"
+           aria-label="Select {{ item.name }}">
+  </td>
+  {% endif %}
+  <td class="px-4 py-3">
+    <span class="inline-flex items-center gap-2 text-sm font-medium text-gray-900">
+      {% if item.kind == 'folder' %}
+        <i class="fas fa-folder text-amber-500"></i>
+      {% else %}
+        <i class="fas fa-file text-primary-600"></i>
+      {% endif %}
+      <span class="truncate max-w-[16rem]">{{ item.name }}</span>
+    </span>
+  </td>
+  <td class="px-4 py-3 text-sm text-gray-500 hidden sm:table-cell">{{ item.owner.get_full_name|default:item.owner.email }}</td>
+  <td class="px-4 py-3 text-sm text-gray-500 hidden md:table-cell whitespace-nowrap">{{ item.updated_at|date:"M d, Y" }}</td>
+  <td class="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">
+    {% if item.kind == 'file' %}{{ item.size_bytes|filesizeformat }}{% else %}—{% endif %}
+  </td>
+  <td class="px-4 py-3 text-right" data-drive-actions @dblclick.stop>
+    {% include 'files/partials/_item_actions.html' with item=item %}
+  </td>
+</tr>

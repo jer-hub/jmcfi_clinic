@@ -1,0 +1,7 @@
+<form id="drive-upload-form" method="post" action="{% url 'files:upload' %}" enctype="multipart/form-data" class="hidden"
+      data-browse-url="{% if folder %}{% url 'files:browse' %}?folder={{ folder.pk }}{% else %}{% url 'files:browse' %}{% endif %}">
+  {% csrf_token %}
+  {% if folder %}<input type="hidden" name="parent_id" value="{{ folder.pk }}">{% endif %}
+  <input id="drive-upload-input" type="file" name="files" multiple
+         @change="startUploadFromInput($el)">
+</form>

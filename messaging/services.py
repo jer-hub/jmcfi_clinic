@@ -151,7 +151,7 @@ def get_inbox_conversations(user):
     unread_map = {row["conversation_id"]: row["unread_count"] for row in unread_rows}
 
     for conversation in conversations:
-        conversation.unread_count = unread_map.get(conversation.id, 0)
+        conversation.unread_count = int(unread_map.get(conversation.id, 0) or 0)
         conversation.display_title = conversation.display_name_for(user)
         last_preview = (conversation.last_message_preview or "").strip().replace("\n", " ")
         conversation.last_message_excerpt = last_preview[:117] + "..." if len(last_preview) > 120 else last_preview
@@ -232,6 +232,7 @@ def mark_conversation_read(conversation, user):
     ).update(last_read_at=timezone.now())
     if updated:
         _publish_unread_count(user)
+        _publish_conversation_update(user, conversation)
 
 
 def send_conversation_message(conversation, sender, body):

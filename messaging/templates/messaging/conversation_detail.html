@@ -86,6 +86,13 @@
       return;
     }
 
+    // Clear unread badge for the open conversation (already marked read server-side).
+    document.querySelectorAll('[data-unread-badge="{{ conversation.id }}"]').forEach(function (badge) {
+      badge.textContent = '';
+      badge.classList.add('hidden');
+      badge.removeAttribute('aria-label');
+    });
+
     const currentUserId = Number(list.dataset.currentUser || 0);
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const socketUrl = protocol + '://' + window.location.host + '/ws/messages/{{ conversation.id }}/';

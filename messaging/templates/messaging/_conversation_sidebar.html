@@ -29,44 +29,7 @@
     </div>
 
     <div id="conversation-list" class="min-h-0 flex-1 overflow-y-auto">
-        {% if conversations %}
-            {% for item in conversations %}
-            <a
-                href="{% url 'messaging:conversation_detail' item.id %}"
-                data-conversation-item
-                data-conversation-id="{{ item.id }}"
-                data-search="{{ item.display_title|lower }} {{ item.last_message_excerpt|default:''|lower }}"
-                class="block border-b border-gray-100 px-3 py-2.5 transition hover:bg-gray-50 sm:px-4 {% if conversation and item.id == conversation.id %}bg-primary-50{% endif %}"
-            >
-                <div class="flex items-start gap-2.5">
-                    <div class="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-sm font-semibold text-primary-700">
-                        {{ item.display_title|first|upper }}
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <div class="flex items-center justify-between gap-2">
-                            <p class="truncate text-sm font-semibold text-gray-900">{{ item.display_title }}</p>
-                            <div class="flex shrink-0 items-center gap-1.5">
-                                <p class="text-xs text-gray-500">
-                                    {% if item.last_message_at %}
-                                    {{ item.last_message_at|date:'g:i A' }}
-                                    {% else %}
-                                    {{ item.created_at|date:'M d' }}
-                                    {% endif %}
-                                </p>
-                                <span
-                                    data-unread-badge="{{ item.id }}"
-                                    class="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary-600 px-1 text-[9px] font-bold leading-tight text-white {% if item.unread_count <= 0 %}hidden{% endif %}"
-                                >{% if item.unread_count > 9 %}9+{% elif item.unread_count > 0 %}{{ item.unread_count }}{% endif %}</span>
-                            </div>
-                        </div>
-                        <p class="mt-1 truncate text-xs text-gray-600">{{ item.last_message_excerpt|default:'No messages yet.' }}</p>
-                    </div>
-                </div>
-            </a>
-            {% endfor %}
-        {% else %}
-            <div class="px-6 py-10 text-center text-sm text-gray-500">No conversations yet.</div>
-        {% endif %}
+        {% include 'messaging/_conversation_list_items.html' %}
     </div>
 </aside>
 
@@ -187,38 +150,38 @@
 
     function updateConversationInSidebar(conversationData) {
       const conversationId = conversationData.conversation_id;
-      const unreadCount = conversationData.unread_count;
-      const link = document.querySelector('[data-conversation-item][href*="' + conversationId + '"]');
-      
-      if (!link) {
-        // Conversation not in list yet, could reload sidebar
-        return;
-      }
+      const unreadCount = Number(conversationData.unread_count) || 0;
+      const activeId = document.querySelector('[data-conversation-item].bg-primary-50')?.dataset?.conversationId;
+      const effectiveUnread = String(conversationId) === String(activeId) ? 0 : unreadCount;
+      const links = document.querySelectorAll('[data-conversation-item][data-conversation-id="' + conversationId + '"]');
 
-      // Update unread count badge
-      const badge = link.querySelector('[data-unread-badge="' + conversationId + '"]');
-      if (badge) {
-        if (unreadCount > 0) {
-          badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
-          badge.classList.remove('hidden');
-        } else {
-          badge.classList.add('hidden');
-          badge.textContent = '';
+      links.forEach(function (link) {
+        const badge = link.querySelector('[data-unread-badge="' + conversationId + '"]');
+        if (badge) {
+          if (effectiveUnread > 0) {
+            badge.textContent = effectiveUnread > 9 ? '9+' : String(effectiveUnread);
+            badge.className = 'inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded-full bg-primary-600 px-1.5 text-[10px] font-bold leading-none text-white tabular-nums';
+            badge.classList.remove('hidden');
+            badge.setAttribute('aria-label', effectiveUnread + ' unread');
+          } else {
+            badge.classList.add('hidden');
+            badge.textContent = '';
+            badge.removeAttribute('aria-label');
+          }
         }
-      }
 
-      // Update last message preview
-      const preview = link.querySelector('.text-xs.text-gray-600');
-      if (preview && conversationData.last_message_preview) {
-        preview.textContent = conversationData.last_message_preview;
-      }
+        const preview = link.querySelector('.text-xs.text-gray-600');
+        if (preview && conversationData.last_message_preview) {
+          preview.textContent = conversationData.last_message_preview;
+        }
+      });
 
-      // Move conversation to top of list
-      const list = document.getElementById('conversation-list');
-      if (list) {
-        // Move this link to the top of the list (before all other items)
-        list.insertBefore(link, list.firstChild);
-      }
+      links.forEach(function (link) {
+        const listEl = link.parentElement;
+        if (listEl) {
+          listEl.insertBefore(link, listEl.firstChild);
+        }
+      });
     }
 
     connectUnreadSocket();

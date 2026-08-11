@@ -29,7 +29,7 @@ class StartConversationForm(forms.Form):
         label="Message",
         widget=forms.Textarea(attrs={
             "rows": 5,
-            "class": "block w-full rounded-xl border border-gray-300 px-4 py-3 text-sm text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200",
+            "class": "block w-full max-w-full box-border rounded-xl border border-gray-300 px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-200 sm:px-4 sm:py-3",
         }),
         max_length=4000,
     )

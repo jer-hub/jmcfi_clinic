@@ -499,7 +499,7 @@ function manageConcernForm(cfg) {
     },
 
     applyCollegeByName(name, { asEmployee = false } = {}) {
-      if (asEmployee) this.isEmployee = true;
+      this.isEmployee = !!asEmployee;
       const wanted = normalize(name);
       if (!wanted) {
         this.clearDepartment({ focus: false });
@@ -667,14 +667,19 @@ function manageConcernForm(cfg) {
         if (!res.ok) return;
         const data = await res.json();
         this.isEmployeePatient = !!data.is_employee;
+        this.isEmployee = !!data.is_employee;
+        this.syncAffiliationHidden();
         this.setValue('first_name', data.first_name || '');
         this.setValue('last_name', data.last_name || '');
         this.setValue('middle_name', data.middle_name || '');
         this.applyCollegeByName(data.department || '', { asEmployee: !!data.is_employee });
-        if (!data.is_employee && this.affiliationType === 'catalog') {
+        const applyProgramYear = () => {
+          if (data.is_employee || this.affiliationType !== 'catalog') return;
           this.setSelectByText('course_program', data.course || '');
           this.setSelectByText('year_level', data.year_level || '');
-        }
+        };
+        applyProgramYear();
+        this.$nextTick(applyProgramYear);
       } catch (_) {}
     },
 

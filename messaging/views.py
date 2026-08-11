@@ -88,6 +88,10 @@ def conversation_detail(request, conversation_id):
     messages_qs = conversation.messages.select_related("sender").order_by("created_at")
     mark_conversation_read(conversation, request.user)
     conversations = get_inbox_conversations(request.user)
+    for item in conversations:
+        if item.id == conversation.id:
+            item.unread_count = 0
+            break
 
     context = {
         "conversation": conversation,

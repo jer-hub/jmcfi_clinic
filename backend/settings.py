@@ -335,6 +335,9 @@ STATIC_ROOT = BASE_DIR / "static"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Clinic Files folder upload sends files[] + relative_paths[] (2 fields per file).
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
 # Supabase Storage (S3-compatible) — server-side only; never expose keys to the browser
 USE_SUPABASE_STORAGE = config("USE_SUPABASE_STORAGE", default=False, cast=bool)
 SUPABASE_URL = config("SUPABASE_URL", default="").rstrip("/")

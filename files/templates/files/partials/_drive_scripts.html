@@ -280,13 +280,48 @@ function clinicDrive(config) {
       }
 
       const files = Array.from(input.files);
-      const form = input.form;
-      const formData = new FormData(form);
+      const entries = files.map((file) => ({
+        file,
+        relativePath: (file.webkitRelativePath || '').trim(),
+      }));
+      this._uploadFileEntries(entries, input.form, input);
+    },
+
+    _buildUploadFormData(form, entries) {
+      const formData = new FormData();
+      const csrf = form.querySelector('[name=csrfmiddlewaretoken]');
+      if (csrf && csrf.value) formData.append('csrfmiddlewaretoken', csrf.value);
+      const parent = form.querySelector('[name=parent_id]');
+      if (parent && parent.value) formData.append('parent_id', parent.value);
+
+      const allHavePaths = entries.length > 0 && entries.every((e) => e.relativePath);
+      entries.forEach((entry) => {
+        formData.append('files', entry.file, entry.file.name);
+        if (allHavePaths) {
+          formData.append('relative_paths', entry.relativePath);
+        }
+      });
+      return { formData, isFolderUpload: allHavePaths };
+    },
+
+    _uploadFileEntries(entries, form, inputToClear) {
+      if (!entries || !entries.length || !form) return;
+
+      const { formData, isFolderUpload } = this._buildUploadFormData(form, entries);
+      const files = entries.map((e) => e.file);
       const totalBytes = files.reduce((sum, f) => sum + (f.size || 0), 0);
-      const label =
-        files.length === 1
-          ? `Uploading ${files[0].name}`
-          : `Uploading ${files.length} files`;
+      let label;
+      if (isFolderUpload) {
+        label =
+          files.length === 1
+            ? `Uploading folder file ${files[0].name}`
+            : `Uploading folder (${files.length} files)`;
+      } else {
+        label =
+          files.length === 1
+            ? `Uploading ${files[0].name}`
+            : `Uploading ${files.length} files`;
+      }
 
       this.uploading = true;
       this.uploadPanelOpen = true;
@@ -314,7 +349,11 @@ function clinicDrive(config) {
 
       xhr.upload.onload = () => {
         this.uploadProgress = 100;
-        this.uploadLabel = files.length === 1 ? 'Saving file…' : 'Saving files…';
+        this.uploadLabel = isFolderUpload
+          ? 'Saving folder…'
+          : files.length === 1
+            ? 'Saving file…'
+            : 'Saving files…';
       };
 
       xhr.onload = () => {
@@ -332,7 +371,7 @@ function clinicDrive(config) {
         const ok = okHttp && data && data.ok && created > 0;
 
         this.uploading = false;
-        input.value = '';
+        if (inputToClear) inputToClear.value = '';
 
         if (ok) {
           this.uploadDone = true;
@@ -363,22 +402,106 @@ function clinicDrive(config) {
         this.uploadLabel = 'Upload failed';
         this.uploadDetail = '';
         this.uploadError = 'Network error. Check your connection and try again.';
-        input.value = '';
+        if (inputToClear) inputToClear.value = '';
       };
 
       xhr.send(formData);
     },
 
-    startUploadFromDrop(event) {
+    _readDirectoryEntries(dirReader) {
+      return new Promise((resolve, reject) => {
+        const all = [];
+        const readBatch = () => {
+          dirReader.readEntries(
+            (batch) => {
+              if (!batch.length) {
+                resolve(all);
+                return;
+              }
+              all.push(...batch);
+              readBatch();
+            },
+            reject,
+          );
+        };
+        readBatch();
+      });
+    },
+
+    _fileFromEntry(fileEntry) {
+      return new Promise((resolve, reject) => {
+        fileEntry.file(resolve, reject);
+      });
+    },
+
+    async _walkEntry(entry, pathPrefix, out) {
+      if (!entry) return;
+      if (entry.isFile) {
+        const file = await this._fileFromEntry(entry);
+        const relativePath = pathPrefix ? `${pathPrefix}/${file.name}` : file.name;
+        out.push({ file, relativePath });
+        return;
+      }
+      if (entry.isDirectory) {
+        const nextPrefix = pathPrefix ? `${pathPrefix}/${entry.name}` : entry.name;
+        const reader = entry.createReader();
+        const children = await this._readDirectoryEntries(reader);
+        for (const child of children) {
+          await this._walkEntry(child, nextPrefix, out);
+        }
+      }
+    },
+
+    async _collectDroppedEntries(dataTransfer) {
+      const out = [];
+      const items = dataTransfer && dataTransfer.items;
+      if (items && items.length) {
+        const entries = [];
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.kind !== 'file') continue;
+          const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+          if (entry) entries.push(entry);
+        }
+        if (entries.length) {
+          for (const entry of entries) {
+            await this._walkEntry(entry, '', out);
+          }
+          return out;
+        }
+      }
+      const files = dataTransfer && dataTransfer.files;
+      if (files && files.length) {
+        Array.from(files).forEach((file) => {
+          out.push({ file, relativePath: (file.webkitRelativePath || '').trim() });
+        });
+      }
+      return out;
+    },
+
+    async startUploadFromDrop(event) {
       event.preventDefault();
-      const input = document.getElementById('drive-upload-input');
-      if (!input || !input.form) return;
-      const files = event.dataTransfer && event.dataTransfer.files;
-      if (!files || !files.length) return;
-      const dt = new DataTransfer();
-      Array.from(files).forEach((f) => dt.items.add(f));
-      input.files = dt.files;
-      this.startUploadFromInput(input);
+      const form = document.getElementById('drive-upload-form');
+      if (!form) return;
+      if (this.uploading) {
+        this.uploadPanelOpen = true;
+        this.uploadError = 'Wait for the current upload to finish.';
+        this.uploadDone = false;
+        return;
+      }
+      if (this.busy) return;
+
+      let entries = [];
+      try {
+        entries = await this._collectDroppedEntries(event.dataTransfer);
+      } catch (err) {
+        this.uploadPanelOpen = true;
+        this.uploadError = 'Could not read dropped folder. Try Folder upload from the New menu.';
+        this.uploadDone = false;
+        return;
+      }
+      if (!entries.length) return;
+      this._uploadFileEntries(entries, form, null);
     },
 
     refreshDrivePane(browseUrl) {

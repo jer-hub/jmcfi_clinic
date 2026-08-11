@@ -198,9 +198,25 @@ def drive_upload(request):
         uploads = request.FILES.getlist('files')
         if not uploads:
             raise ValidationError('Select at least one file to upload.')
-        for uploaded in uploads:
+        relative_paths = request.POST.getlist('relative_paths')
+        use_paths = bool(relative_paths)
+        if use_paths and len(relative_paths) != len(uploads):
+            raise ValidationError('relative_paths must match the number of uploaded files.')
+        for index, uploaded in enumerate(uploads):
             try:
-                services.create_file(owner=request.user, parent=parent, uploaded_file=uploaded)
+                if use_paths:
+                    services.create_file_at_relative_path(
+                        owner=request.user,
+                        root_parent=parent,
+                        uploaded_file=uploaded,
+                        relative_path=relative_paths[index],
+                    )
+                else:
+                    services.create_file(
+                        owner=request.user,
+                        parent=parent,
+                        uploaded_file=uploaded,
+                    )
                 created += 1
             except ValidationError as exc:
                 errors.append(exc.messages[0] if hasattr(exc, 'messages') else str(exc))

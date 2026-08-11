@@ -259,3 +259,112 @@ class ClinicFilesTests(TestCase):
         bad = SimpleUploadedFile('virus.exe', b'MZ', content_type='application/octet-stream')
         with self.assertRaises(Exception):
             services.create_file(owner=self.staff, parent=None, uploaded_file=bad)
+
+    def test_folder_upload_creates_nested_path(self):
+        self._login_staff()
+        root = services.create_folder(owner=self.staff, parent=None, name='UploadRoot')
+        upload = SimpleUploadedFile('notes.txt', b'nested', content_type='text/plain')
+        response = self.client.post(
+            reverse('files:upload'),
+            {
+                'parent_id': str(root.pk),
+                'files': upload,
+                'relative_paths': 'Reports/Q1/notes.txt',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_ACCEPT='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['ok'])
+        self.assertEqual(data['created'], 1)
+
+        reports = DriveItem.objects.get(
+            parent=root, name='Reports', kind=DriveItem.Kind.FOLDER, trashed_at__isnull=True
+        )
+        q1 = DriveItem.objects.get(
+            parent=reports, name='Q1', kind=DriveItem.Kind.FOLDER, trashed_at__isnull=True
+        )
+        notes = DriveItem.objects.get(
+            parent=q1, name='notes.txt', kind=DriveItem.Kind.FILE, trashed_at__isnull=True
+        )
+        self.assertEqual(notes.owner_id, self.staff.id)
+
+    def test_folder_upload_rejects_path_traversal(self):
+        self._login_staff()
+        upload = SimpleUploadedFile('x.txt', b'x', content_type='text/plain')
+        response = self.client.post(
+            reverse('files:upload'),
+            {
+                'files': upload,
+                'relative_paths': '../x.txt',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_ACCEPT='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data['ok'])
+        self.assertEqual(data['created'], 0)
+        self.assertTrue(any('traversal' in (e or '').lower() for e in data['errors']))
+        self.assertFalse(DriveItem.objects.filter(name='x.txt').exists())
+
+    def test_folder_upload_file_blocks_folder_segment(self):
+        self._login_staff()
+        blocker = SimpleUploadedFile('Reports', b'not-a-folder', content_type='text/plain')
+        # Force a file named Reports (no extension) — allow .txt instead and name collision via create
+        file_item = services.create_file(
+            owner=self.staff,
+            parent=None,
+            uploaded_file=SimpleUploadedFile('Reports.txt', b'file', content_type='text/plain'),
+        )
+        # Rename to exact segment name "Reports"
+        file_item.name = 'Reports'
+        file_item.save(update_fields=['name', 'updated_at'])
+
+        upload = SimpleUploadedFile('notes.txt', b'nested', content_type='text/plain')
+        response = self.client.post(
+            reverse('files:upload'),
+            {
+                'files': upload,
+                'relative_paths': 'Reports/notes.txt',
+            },
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_ACCEPT='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data['ok'])
+        self.assertEqual(data['created'], 0)
+        self.assertTrue(any('file with that name' in (e or '').lower() for e in data['errors']))
+
+    def test_flat_upload_without_relative_paths_still_works(self):
+        self._login_staff()
+        upload = SimpleUploadedFile('flat.txt', b'flat', content_type='text/plain')
+        response = self.client.post(
+            reverse('files:upload'),
+            {'files': upload},
+            HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+            HTTP_ACCEPT='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data['ok'])
+        self.assertEqual(data['created'], 1)
+        self.assertTrue(
+            DriveItem.objects.filter(
+                name='flat.txt', parent=None, kind=DriveItem.Kind.FILE, trashed_at__isnull=True
+            ).exists()
+        )
+
+    def test_ensure_folder_path_reuses_existing_folders(self):
+        existing = services.create_folder(owner=self.staff, parent=None, name='Shared')
+        leaf = services.ensure_folder_path(
+            owner=self.staff, root_parent=None, parts=['Shared', 'Sub']
+        )
+        self.assertEqual(leaf.parent_id, existing.pk)
+        self.assertEqual(leaf.name, 'Sub')
+        self.assertEqual(
+            DriveItem.objects.filter(name='Shared', kind=DriveItem.Kind.FOLDER).count(),
+            1,
+        )

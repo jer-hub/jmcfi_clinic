@@ -4,4 +4,8 @@
   {% if folder %}<input type="hidden" name="parent_id" value="{{ folder.pk }}">{% endif %}
   <input id="drive-upload-input" type="file" name="files" multiple
          @change="startUploadFromInput($el)">
+  {# webkitdirectory: folder picker; no name= so FormData(form) does not double-append #}
+  <input id="drive-folder-upload-input" type="file" multiple
+         webkitdirectory directory
+         @change="startUploadFromInput($el)">
 </form>

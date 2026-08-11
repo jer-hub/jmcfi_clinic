@@ -38,7 +38,7 @@
       {% include "components/empty_state.html" with icon="fa-magnifying-glass" title="Search My Drive" description="Type a file or folder name above to find it." %}
     {% endif %}
   {% else %}
-    {% include "components/empty_state.html" with icon="fa-folder-open" title="This folder is empty" description="Create a folder or upload files to get started." %}
+    {% include "components/empty_state.html" with icon="fa-folder-open" title="This folder is empty" description="Create a folder or upload files and folders to get started." %}
   {% endif %}
 {% endif %}
 
@@ -47,7 +47,7 @@
      :class="dragging && 'border-primary-400 bg-primary-50/40'">
   <p class="text-sm text-gray-600">
     <i class="fas fa-cloud-arrow-up text-primary-600 mr-1"></i>
-    Drag files anywhere on this page or use <span class="font-medium">New → File upload</span>
+    Drag files or folders anywhere on this page or use <span class="font-medium">New → File upload</span> / <span class="font-medium">Folder upload</span>
   </p>
 </div>
 {% endif %}

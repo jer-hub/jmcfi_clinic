@@ -164,6 +164,67 @@ def create_file(*, owner, parent, uploaded_file) -> DriveItem:
     return item
 
 
+def parse_relative_upload_path(relative_path: str) -> tuple[list[str], str]:
+    """Split a browser relative path into folder segments and filename.
+
+    Rejects absolute paths and ``..`` traversal.
+    """
+    raw = (relative_path or '').replace('\\', '/').strip()
+    if not raw or raw.startswith('/'):
+        raise ValidationError('Invalid relative path.')
+    parts = [p for p in raw.split('/') if p and p != '.']
+    if not parts:
+        raise ValidationError('Invalid relative path.')
+    if any(p == '..' for p in parts):
+        raise ValidationError('Path traversal is not allowed.')
+    filename = parts[-1].strip()
+    folder_parts = [p.strip() for p in parts[:-1]]
+    if not filename or filename in ('.', '..'):
+        raise ValidationError('Invalid file name in path.')
+    if len(filename) > 255:
+        raise ValidationError('File name is too long.')
+    for seg in folder_parts:
+        if not seg or seg in ('.', '..'):
+            raise ValidationError('Invalid folder name in path.')
+        if len(seg) > 255:
+            raise ValidationError('Folder name is too long.')
+    return folder_parts, filename
+
+
+def ensure_folder_path(*, owner, root_parent, parts: list[str]) -> DriveItem | None:
+    """Ensure folder chain under root_parent; return leaf folder (or root_parent if empty)."""
+    if root_parent is not None and (root_parent.is_file or root_parent.is_trashed):
+        raise ValidationError('Invalid parent folder.')
+    current = root_parent
+    for name in parts:
+        cleaned = (name or '').strip()
+        if not cleaned:
+            raise ValidationError('Invalid folder name.')
+        existing = (
+            active_siblings_qs(current)
+            .filter(name__iexact=cleaned)
+            .first()
+        )
+        if existing:
+            if existing.is_file:
+                raise ValidationError(
+                    f'Cannot create folder "{cleaned}": a file with that name already exists.'
+                )
+            current = existing
+            continue
+        current = create_folder(owner=owner, parent=current, name=cleaned)
+    return current
+
+
+def create_file_at_relative_path(*, owner, root_parent, uploaded_file, relative_path: str) -> DriveItem:
+    """Create folders from relative_path under root_parent, then upload the leaf file."""
+    folder_parts, filename = parse_relative_upload_path(relative_path)
+    parent = ensure_folder_path(owner=owner, root_parent=root_parent, parts=folder_parts)
+    # Force display name from path (ignore any directory prefix on uploaded_file.name).
+    uploaded_file.name = filename
+    return create_file(owner=owner, parent=parent, uploaded_file=uploaded_file)
+
+
 def rename_item(item: DriveItem, new_name: str) -> DriveItem:
     cleaned = ensure_unique_name(item.parent, new_name, exclude_pk=item.pk)
     item.name = cleaned

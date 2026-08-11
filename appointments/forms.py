@@ -36,8 +36,9 @@ class AppointmentTypeDefaultForm(forms.ModelForm):
     def __init__(self, *args, doctors_qs=None, **kwargs):
         super().__init__(*args, **kwargs)
         if doctors_qs is None:
+            # Consultation booking should be limited to doctors only.
             doctors_qs = User.objects.filter(
-                role__in=['doctor', 'staff'],
+                role='doctor',
                 is_active=True,
             ).select_related('staff_profile').order_by('first_name', 'last_name')
 
@@ -45,8 +46,7 @@ class AppointmentTypeDefaultForm(forms.ModelForm):
 
         def doctor_label(obj):
             dept = obj.staff_profile.department if hasattr(obj, 'staff_profile') and obj.staff_profile else 'N/A'
-            prefix = 'Dr. ' if obj.role == 'doctor' else ''
-            return f"{prefix}{obj.get_full_name()} - {dept}"
+            return f"Dr. {obj.get_full_name()} - {dept}"
 
         self.fields['assigned_doctors'].label_from_instance = doctor_label
 

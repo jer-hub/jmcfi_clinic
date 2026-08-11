@@ -3,10 +3,40 @@
 {% url 'dental_records:dental_record_list' as dental_records_url %}
 {% url 'document_request:document_requests' as document_requests_url %}
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   {% include "components/stat_card.html" with label="Medical Records" value=total_records icon="fa-file-medical" variant="success" hint="View your medical history" href=medical_records_url %}
   {% include "components/stat_card.html" with label="Dental Records" value=total_dental_records icon="fa-tooth" variant="info" hint="View your dental records" href=dental_records_url %}
   {% include "components/stat_card.html" with label="Pending Certificates" value=pending_certificates icon="fa-file-circle-question" variant="warning" hint="View pending requests" href=document_requests_url|add:"?status=pending_review" %}
+  {% include "components/stat_card.html" with label="Forms to complete" value=pending_health_forms_count icon="fa-clipboard-list" variant="warning" hint="Finish demographics and history" href=pending_health_forms_url %}
 </div>
+
+{% if pending_health_forms %}
+<div class="bg-white rounded-card shadow-sm border border-warning-200 mb-6 overflow-hidden">
+  <div class="px-5 py-4 border-b border-warning-100 bg-warning-50/60">
+    <h2 class="text-base font-semibold text-gray-900 flex items-center gap-2">
+      <i class="fas fa-clipboard-list text-warning-600"></i>
+      Action needed
+    </h2>
+    <p class="text-xs text-gray-600 mt-0.5">Complete these health profile forms so the clinic can review them.</p>
+  </div>
+  <ul class="divide-y divide-gray-100">
+    {% for form in pending_health_forms %}
+    <li class="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4">
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold text-gray-900">Health profile form</p>
+        <p class="text-xs text-gray-500 mt-0.5">
+          Started {{ form.created_at|date:"M d, Y" }} · Last updated {{ form.updated_at|date:"M d, Y g:i A" }}
+        </p>
+      </div>
+      <a href="{% url 'health_forms_services:edit_form' form.pk %}"
+         class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700">
+        Continue
+        <i class="fas fa-arrow-right text-xs"></i>
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
 
 {% include "core/partials/_dashboard_calendar.html" %}

@@ -160,6 +160,7 @@ class MaintenanceModeMiddleware:
             '/admin/',
             '/auth/admin-login/',
             '/access/restricted/',
+            '/guest/',
         )
 
     def __call__(self, request):
@@ -201,6 +202,7 @@ class RoleFeatureAccessMiddleware:
         '/admin/',
         '/auth/admin-login/',
         '/access/restricted/',
+        '/guest/',
     )
 
     def __init__(self, get_response):
@@ -276,6 +278,7 @@ class ProfileCompleteMiddleware:
             '/static/',
             '/accounts/',
             '/admin/',
+            '/guest/',
         ]
 
     def __call__(self, request):

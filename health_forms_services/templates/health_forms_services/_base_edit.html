@@ -7,15 +7,8 @@
 {% block title %}Edit - {{ form_obj.get_full_name|default:form_obj.user.get_full_name }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="{}">
     {% include 'health_forms_services/_subnav.html' %}
-
-    <div class="mb-4">
-      <a href="{{ detail_url }}"
-         class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
-        <i class="fas fa-arrow-left"></i>Back to Details
-      </a>
-    </div>
 
     {% include "components/page_header.html" with title="Edit Form" icon="fa-pen-to-square" %}
 
@@ -25,16 +18,43 @@
       <p class="text-sm text-primary-900 font-medium">
         <i class="fas fa-circle-info mr-1.5 text-primary-600"></i>{{ phase_label }}
       </p>
-      {% if can_submit_for_review and submit_url %}
-      <form method="post" action="{{ submit_url }}" class="shrink-0">
-        {% csrf_token %}
-        <button type="submit"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors">
-          <i class="fas fa-paper-plane"></i>Submit for review
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        {% if can_delete and delete_url and form_obj.status in 'pending,rejected,incomplete' %}
+        <button type="button"
+                @click="$dispatch('open-modal', { type: 'danger', title: '{{ cancel_action_label|default:"Cancel draft"|escapejs }}', size: 'sm', embedFrom: '#hf-edit-delete-embed-{{ form_obj.pk }}', hasForm: true, actionLabel: 'Delete' })"
+                class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
+          {{ cancel_action_label|default:"Cancel draft" }}
         </button>
-      </form>
-      {% endif %}
+        {% endif %}
+        {% if can_resend_guest_link and resend_guest_link_url %}
+        <form method="post" action="{{ resend_guest_link_url }}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}{% if request.GET.section %}?section={{ request.GET.section }}{% endif %}">
+          <button type="submit"
+                  class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
+            <i class="fas fa-paper-plane mr-1.5"></i>Resend link
+          </button>
+        </form>
+        {% endif %}
+        {% if can_submit_for_review and submit_url %}
+        <form method="post" action="{{ submit_url }}">
+          {% csrf_token %}
+          <button type="submit"
+                  class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors">
+            Submit for review
+          </button>
+        </form>
+        {% endif %}
+      </div>
     </div>
+    {% if can_delete and delete_url and form_obj.status in 'pending,rejected,incomplete' %}
+    <div id="hf-edit-delete-embed-{{ form_obj.pk }}" class="hidden" aria-hidden="true">
+      <form method="post" action="{{ delete_url }}" class="space-y-4">
+        {% csrf_token %}
+        <p class="text-sm text-gray-600 text-center sm:text-left">This will permanently delete the form. You can request a new one later. This cannot be undone.</p>
+      </form>
+    </div>
+    {% endif %}
     {% endif %}
     {% endblock %}
 
@@ -225,8 +245,8 @@
             <i class="fas fa-check mr-1"></i>Saved
           </span>
           <button type="submit"
-                  class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
-            <i class="fas fa-floppy-disk"></i>Save {% for t in tabs %}{% if t.key == tab_key %}{{ t.label }}{% endif %}{% endfor %}
+                  class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
+            Save {% for t in tabs %}{% if t.key == tab_key %}{{ t.label }}{% endif %}{% endfor %}
           </button>
         </div>
         {% endif %}
@@ -338,7 +358,8 @@ window.__jmcfiAcademicCatalog = {
 </script>
 {% endif %}
 <script src="{% static 'js/student-list-field.js' %}"></script>
-<script src="{% static 'js/health-form-edit.js' %}"></script>
+<script src="{% static 'js/phone-input.js' %}"></script>
+<script src="{% static 'js/health-form-edit.js' %}?v=3"></script>
 <script>
 (function enforceReadOnlySections() {
   document.querySelectorAll('form[data-section-readonly="1"]').forEach((form) => {

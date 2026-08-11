@@ -5,11 +5,38 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from core.academic_catalog import active_colleges_queryset, courses_by_college, year_levels_by_college
+from core.academic_catalog import (
+    active_colleges_queryset,
+    courses_by_college,
+    soft_fill_academic_fields_from_patient_profile,
+    year_levels_by_college,
+)
+from core.forms import PHONE_BADGE_WIDGET_ATTRS, _apply_badge_phone_initials, clean_badge_ph_number
 from .models import HealthProfileForm, DentalHealthForm, DentalServicesRequest, PatientChart, PatientChartEntry, Prescription, PrescriptionItem
 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
+
+HF_BADGE_PHONE_FIELDS = (
+    'mobile_number',
+    'telephone_number',
+    'guardian_contact',
+    'contact_number',
+)
+
+
+def _configure_badge_phone_fields(form, field_names=HF_BADGE_PHONE_FIELDS):
+    """Switch contact fields to the shared +63 badge input and display format."""
+    present = tuple(name for name in field_names if name in form.fields)
+    for name in present:
+        required = form.fields[name].required
+        attrs = {**PHONE_BADGE_WIDGET_ATTRS}
+        if required:
+            attrs['required'] = True
+        form.fields[name].widget = forms.TextInput(attrs=attrs)
+        form.fields[name].help_text = ''
+    if present:
+        _apply_badge_phone_initials(form, field_names=present)
 
 BLOOD_TYPE_CHOICES: tuple[tuple[str, str], ...] = (
     ('A+', 'A+'),
@@ -141,7 +168,7 @@ PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
         'icon': 'fa-phone',
         'icon_bg': 'bg-emerald-50',
         'icon_color': 'text-emerald-600',
-        'description': 'Email and phone numbers in +63XXXXXXXXXX format.',
+        'description': 'Email and Philippine mobile numbers.',
         'fields': ('email_address', 'mobile_number', 'telephone_number'),
     },
     {
@@ -204,6 +231,7 @@ DENTAL_PERSONAL_INFO_SECTIONS: tuple[dict[str, object], ...] = (
         'icon': 'fa-phone',
         'icon_bg': 'bg-emerald-50',
         'icon_color': 'text-emerald-600',
+        'description': 'Email and Philippine mobile numbers.',
         'fields': ('email_address', 'contact_number', 'telephone_number'),
     },
     {
@@ -293,6 +321,34 @@ def _apply_academic_select_widgets(form: forms.Form, department_field: str, cour
         form.fields[year_field].widget = forms.Select(attrs={'class': 'form-select'})
         form.fields[year_field].choices = [('', 'Select year level'), *[(name, name) for name in year_options]]
 
+
+def _soft_fill_academic_fields_from_patient_profile(instance) -> None:
+    """Thin wrapper — shared implementation lives in core.academic_catalog."""
+    soft_fill_academic_fields_from_patient_profile(instance)
+
+
+def _apply_patient_profile_academic_initials(form: forms.ModelForm) -> None:
+    """Fallback if soft-fill did not run; keep unbound form.initial in sync."""
+    if form.is_bound:
+        return
+    instance = getattr(form, 'instance', None)
+    soft_fill_academic_fields_from_patient_profile(instance)
+    if instance is None:
+        return
+    for field_name in (
+        'department_college_office',
+        'department',
+        'institution_id',
+        'course',
+        'year_level',
+    ):
+        if field_name not in form.fields:
+            continue
+        value = str(getattr(instance, field_name, None) or '').strip()
+        if value:
+            form.initial[field_name] = value
+
+
 DENTAL_SOFT_TISSUE_FIELDS: tuple[tuple[str, str], ...] = (
     ('soft_tissue_lips', 'Lips'),
     ('soft_tissue_floor_of_mouth', 'Floor of Mouth'),
@@ -381,28 +437,8 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'email_address': forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'juan@example.com'}),
-            'mobile_number': forms.TextInput(attrs={
-                'class': 'form-input',
-                'type': 'tel',
-                'placeholder': '+639171234567',
-                'autocomplete': 'tel',
-                'inputmode': 'numeric',
-                'pattern': r'^\+63\d{10}$',
-                'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
-                'maxlength': '13',
-                'minlength': '13',
-            }),
-            'telephone_number': forms.TextInput(attrs={
-                'class': 'form-input',
-                'type': 'tel',
-                'placeholder': '+639171234567',
-                'autocomplete': 'tel',
-                'inputmode': 'numeric',
-                'pattern': r'^\+63\d{10}$',
-                'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
-                'maxlength': '13',
-                'minlength': '13',
-            }),
+            'mobile_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
+            'telephone_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
             'designation': forms.Select(attrs={'class': 'form-select'}),
             'institution_id': forms.TextInput(attrs={'class': 'form-input', 'placeholder': '2024-00001'}),
             'department_college_office': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'College of Nursing'}),
@@ -416,21 +452,16 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'allergies': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
             'medical_conditions': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2}),
             'guardian_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Parent/Guardian Full Name'}),
-            'guardian_contact': forms.TextInput(attrs={
-                'class': 'form-input',
-                'type': 'tel',
-                'placeholder': '+639171234567',
-                'autocomplete': 'tel',
-                'inputmode': 'numeric',
-                'pattern': r'^\+63\d{10}$',
-                'title': 'Use format +63 followed by 10 digits (e.g., +639171234567).',
-                'maxlength': '13',
-                'minlength': '13',
-            }),
+            'guardian_contact': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
         }
 
     def __init__(self, *args, **kwargs):
         readonly = kwargs.pop('readonly', False)
+        # Soft-fill blank academic fields from patient profile before ModelForm
+        # copies instance → initial (unbound GET / display only).
+        data = args[0] if args else kwargs.get('data')
+        if data is None:
+            _soft_fill_academic_fields_from_patient_profile(kwargs.get('instance'))
         super().__init__(*args, **kwargs)
 
         if 'blood_type' in self.fields:
@@ -451,13 +482,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             if name in self.fields:
                 self.fields[name].required = True
 
-        # Strict contact policy: +63 followed by 10 digits only.
-        if 'mobile_number' in self.fields:
-            self.fields['mobile_number'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
-        if 'telephone_number' in self.fields:
-            self.fields['telephone_number'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
-        if 'guardian_contact' in self.fields:
-            self.fields['guardian_contact'].help_text = 'Required format: +63XXXXXXXXXX (e.g., +639171234567).'
+        _configure_badge_phone_fields(self)
 
         institutional_labels = {
             'designation': 'Designation',
@@ -506,6 +531,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
         if designation_value == GUEST_DESIGNATION_VALUE and 'department_college_office' in self.fields:
             self.fields['department_college_office'].required = False
 
+        _apply_patient_profile_academic_initials(self)
         _apply_academic_select_widgets(
             self,
             department_field='department_college_office',
@@ -551,14 +577,26 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             section_desc = section.get('description')
 
             if section.get('key') == 'institutional_details':
+                if designation == GUEST_DESIGNATION_VALUE:
+                    # Guests skip institutional UI; keep designation as a hidden-only section.
+                    section_fields = ['designation']
+                    section_desc = None
+                    sections.append({
+                        **section,
+                        'description': section_desc,
+                        'fields': [
+                            {'name': name, 'field': self[name]}
+                            for name in section_fields
+                            if name in self.fields
+                        ],
+                        'guest_hidden': True,
+                    })
+                    continue
                 section_fields = institutional_base + designation_specific.get(designation, ['course', 'year_level'])
                 if designation == 'doctor':
                     section_desc = 'Clinical workplace affiliation and professional credentials.'
                 elif designation in {'staff', 'employee'}:
                     section_desc = 'Workplace affiliation and position details.'
-                elif designation == GUEST_DESIGNATION_VALUE:
-                    section_fields = ['designation']
-                    section_desc = 'Guest patients do not require institutional details.'
                 else:
                     section_desc = 'School affiliation and student details.'
 
@@ -578,22 +616,17 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                     cleaned[field_name] = ''
         return cleaned
 
-    def _clean_strict_ph(self, value):
-        value = (value or '').strip()
-        if not value:
-            return value
-        if not PH_STRICT_E164_RE.fullmatch(value):
-            raise ValidationError('Enter a valid Philippine number in +63XXXXXXXXXX format.')
-        return value
-
     def clean_mobile_number(self):
-        return self._clean_strict_ph(self.cleaned_data.get('mobile_number'))
+        return clean_badge_ph_number(
+            self.cleaned_data.get('mobile_number'),
+            required=self.fields['mobile_number'].required,
+        )
 
     def clean_telephone_number(self):
-        return self._clean_strict_ph(self.cleaned_data.get('telephone_number'))
+        return clean_badge_ph_number(self.cleaned_data.get('telephone_number'), required=False)
 
     def clean_guardian_contact(self):
-        return self._clean_strict_ph(self.cleaned_data.get('guardian_contact'))
+        return clean_badge_ph_number(self.cleaned_data.get('guardian_contact'), required=False)
 
 
 class HealthProfileMedicalHistoryForm(forms.ModelForm):
@@ -972,29 +1005,25 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
             'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date', 'placeholder': 'mm/dd/yyyy'}),
             'place_of_birth': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'City/Municipality, Province'}),
             'email_address': forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'juan@example.com'}),
-            'contact_number': forms.TextInput(attrs={
-                'class': 'form-input',
-                'data-phone-input': 'true',
-                'placeholder': '+639171234567 or 09171234567'
-            }),
-            'telephone_number': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Landline (optional)'}),
+            'contact_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
+            'telephone_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
             'designation': forms.Select(attrs={'class': 'form-select'}),
             'department_college_office': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Department / College / Office'}),
             'guardian_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Parent/Guardian full name'}),
-            'guardian_contact': forms.TextInput(attrs={
-                'class': 'form-input',
-                'data-phone-input': 'true',
-                'placeholder': '+639171234567 or 09171234567'
-            }),
+            'guardian_contact': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
             'date_of_examination': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
         }
 
     def __init__(self, *args, **kwargs):
+        data = args[0] if args else kwargs.get('data')
+        if data is None:
+            soft_fill_academic_fields_from_patient_profile(kwargs.get('instance'))
         super().__init__(*args, **kwargs)
         required_fields = ['last_name', 'first_name']
         for name in required_fields:
             if name in self.fields:
                 self.fields[name].required = True
+        _configure_badge_phone_fields(self)
         if 'designation' in self.fields:
             self.fields['designation'].choices = designation_choices_with_guest(
                 self.fields['designation'].choices
@@ -1003,6 +1032,7 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
                 choices=[('', 'Select designation'), *self.fields['designation'].choices],
                 attrs={'class': 'form-select'},
             )
+        _apply_patient_profile_academic_initials(self)
         _apply_academic_select_widgets(self, department_field='department_college_office')
 
     def _selected_designation(self):
@@ -1025,10 +1055,19 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
             section_desc = section.get('description')
             if section.get('key') == 'institutional_details':
                 if designation == GUEST_DESIGNATION_VALUE:
-                    section_fields = ['designation']
-                    section_desc = 'Guest patients do not require institutional details.'
-                else:
-                    section_fields = ['designation', 'department_college_office']
+                    fields = [
+                        {'name': name, 'field': self[name]}
+                        for name in ['designation']
+                        if name in self.fields
+                    ]
+                    sections.append({
+                        **section,
+                        'description': None,
+                        'fields': fields,
+                        'guest_hidden': True,
+                    })
+                    continue
+                section_fields = ['designation', 'department_college_office']
             fields = [
                 {'name': name, 'field': self[name]}
                 for name in section_fields
@@ -1042,6 +1081,15 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
         if (cleaned.get('designation') or '').strip().lower() == GUEST_DESIGNATION_VALUE:
             cleaned['department_college_office'] = ''
         return cleaned
+
+    def clean_contact_number(self):
+        return clean_badge_ph_number(self.cleaned_data.get('contact_number'), required=False)
+
+    def clean_telephone_number(self):
+        return clean_badge_ph_number(self.cleaned_data.get('telephone_number'), required=False)
+
+    def clean_guardian_contact(self):
+        return clean_badge_ph_number(self.cleaned_data.get('guardian_contact'), required=False)
 
 
 class DentalHealthExaminationForm(forms.ModelForm):
@@ -1328,7 +1376,7 @@ PATIENT_CHART_PERSONAL_SECTIONS: tuple[dict[str, object], ...] = (
         'icon': 'fa-phone',
         'icon_bg': 'bg-emerald-50',
         'icon_color': 'text-emerald-600',
-        'description': 'Email address and phone numbers.',
+        'description': 'Email and Philippine mobile numbers.',
         'fields': ('email_address', 'contact_number', 'telephone_number'),
     },
     {
@@ -1378,22 +1426,17 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
             'email_address': forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'juan@example.com'}),
-            'contact_number': forms.TextInput(attrs={
-                'class': 'form-input',
-                'data-phone-input': 'true',
-                'placeholder': '+639171234567 or 09171234567'
-            }),
-            'telephone_number': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Landline (optional)'}),
+            'contact_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
+            'telephone_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
             'department_college_office': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Department / College / Office'}),
             'guardian_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Parent/Guardian full name'}),
-            'guardian_contact': forms.TextInput(attrs={
-                'class': 'form-input',
-                'data-phone-input': 'true',
-                'placeholder': '+639171234567 or 09171234567'
-            }),
+            'guardian_contact': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
         }
 
     def __init__(self, *args, **kwargs):
+        data = args[0] if args else kwargs.get('data')
+        if data is None:
+            soft_fill_academic_fields_from_patient_profile(kwargs.get('instance'))
         super().__init__(*args, **kwargs)
         label_map = {
             'last_name': 'Last Name',
@@ -1416,7 +1459,7 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
         for name, label in label_map.items():
             if name in self.fields:
                 self.fields[name].label = label
-        _apply_academic_select_widgets(self, department_field='department')
+        _configure_badge_phone_fields(self)
         field_help = {
             'last_name': 'As it appears on official records or school ID.',
             'first_name': 'Given name as it appears on official records.',
@@ -1451,6 +1494,7 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
                 choices=[('', 'Select designation'), *choices],
                 attrs={'class': 'form-select'},
             )
+        _apply_patient_profile_academic_initials(self)
         _apply_academic_select_widgets(self, department_field='department_college_office')
 
     def _selected_designation(self):
@@ -1472,8 +1516,18 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
             section_fields = list(section['fields'])
             section_desc = section.get('description')
             if section.get('key') == 'institutional_details' and designation == GUEST_DESIGNATION_VALUE:
-                section_fields = ['designation']
-                section_desc = 'Guest patients do not require institutional details.'
+                fields = [
+                    {'name': name, 'field': self[name]}
+                    for name in ['designation']
+                    if name in self.fields
+                ]
+                sections.append({
+                    **section,
+                    'description': None,
+                    'fields': fields,
+                    'guest_hidden': True,
+                })
+                continue
             fields = [
                 {'name': name, 'field': self[name]}
                 for name in section_fields
@@ -1488,6 +1542,15 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
         if (cleaned.get('designation') or '').strip().lower() == GUEST_DESIGNATION_VALUE:
             cleaned['department_college_office'] = ''
         return cleaned
+
+    def clean_contact_number(self):
+        return clean_badge_ph_number(self.cleaned_data.get('contact_number'), required=False)
+
+    def clean_telephone_number(self):
+        return clean_badge_ph_number(self.cleaned_data.get('telephone_number'), required=False)
+
+    def clean_guardian_contact(self):
+        return clean_badge_ph_number(self.cleaned_data.get('guardian_contact'), required=False)
 
 
 class PatientChartEntryForm(forms.ModelForm):
@@ -1766,15 +1829,14 @@ class DentalServicesPersonalInfoForm(forms.ModelForm):
             'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date', 'placeholder': 'mm/dd/yyyy'}),
-            'contact_number': forms.TextInput(attrs={
-                'class': 'form-input',
-                'data-phone-input': 'true',
-                'placeholder': '+639171234567 or 09171234567'
-            }),
+            'contact_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
             'department': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Department / College / Office'}),
         }
 
     def __init__(self, *args, **kwargs):
+        data = args[0] if args else kwargs.get('data')
+        if data is None:
+            soft_fill_academic_fields_from_patient_profile(kwargs.get('instance'))
         super().__init__(*args, **kwargs)
         for name in ['last_name', 'first_name']:
             if name in self.fields:
@@ -1793,6 +1855,12 @@ class DentalServicesPersonalInfoForm(forms.ModelForm):
         for name, label in label_map.items():
             if name in self.fields:
                 self.fields[name].label = label
+        _configure_badge_phone_fields(self)
+        _apply_patient_profile_academic_initials(self)
+        _apply_academic_select_widgets(self, department_field='department')
+
+    def clean_contact_number(self):
+        return clean_badge_ph_number(self.cleaned_data.get('contact_number'), required=False)
 
 
 class DentalServicesPerioForm(DentalServicesCheckboxDetailMixin, forms.ModelForm):
@@ -2214,5 +2282,46 @@ class PrescriptionReviewForm(forms.ModelForm):
             'status': forms.Select(attrs={'class': 'form-select'}),
             'review_notes': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 4}),
         }
+
+
+class GuestHealthFormInviteForm(forms.Form):
+    """Minimal staff form to invite a guest to complete a health profile online."""
+
+    first_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Given name',
+            'autocomplete': 'given-name',
+        }),
+    )
+    last_name = forms.CharField(
+        max_length=100,
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Family name',
+            'autocomplete': 'family-name',
+        }),
+    )
+    contact_email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'guest@example.com',
+            'autocomplete': 'email',
+        }),
+        help_text='Magic-link email for the guest (not a clinic login).',
+    )
+    mobile_number = forms.CharField(
+        required=False,
+        max_length=20,
+        label='Mobile number',
+        widget=forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
+    )
+
+    def clean_contact_email(self):
+        return (self.cleaned_data.get('contact_email') or '').strip().lower()
+
+    def clean_mobile_number(self):
+        return clean_badge_ph_number(self.cleaned_data.get('mobile_number'), required=False)
 
 

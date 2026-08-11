@@ -253,7 +253,7 @@ class DentalRecordEditSaveTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'data-section-save="ajax"')
         self.assertContains(response, 'data-section="demographics"')
-        self.assertContains(response, 'Back to Details')
+        self.assertNotContains(response, 'Back to Details')
         self.assertContains(response, 'rounded-card')
         self.assertContains(response, 'aria-label="Dental record sections"')
         self.assertContains(response, 'Edit')
@@ -319,3 +319,191 @@ class DentalRecordEditSaveTests(TestCase):
         data = response.json()
         self.assertFalse(data['success'])
         self.assertIn('errors', data)
+
+
+@override_settings(
+    EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+    MIDDLEWARE=[
+        m for m in settings.MIDDLEWARE
+        if m != 'core.middleware.ProfileCompleteMiddleware'
+    ],
+    STORAGES={
+        'default': {
+            'BACKEND': 'django.core.files.storage.FileSystemStorage',
+        },
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    },
+)
+class GuestDentalIntakeSendTests(TestCase):
+    def setUp(self):
+        from core.models import ClinicSettings
+        from core.settings_service import invalidate_settings_cache
+        from core.guest_auth import create_guest_user
+        from core.doctor_access import ALL_MODULE_KEYS
+
+        ClinicSettings.load()
+        ClinicSettings.objects.filter(pk=ClinicSettings.SINGLETON_PK).update(
+            enable_email_notifications=True,
+        )
+        invalidate_settings_cache()
+
+        self.doctor = User.objects.create_user(
+            email='dr-guest-intake@example.com',
+            password='test-pass-123',
+            role='doctor',
+            first_name='Doctor',
+            last_name='Intake',
+            is_active=True,
+        )
+        _complete_staff_like_profile(self.doctor, 'DOC-INTAKE-1')
+        doc_profile = self.doctor.staff_profile
+        doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+        doc_profile.save(update_fields=['allowed_clinical_modules'])
+        self.guest = create_guest_user(
+            first_name='Walk',
+            last_name='In',
+            contact_email='walkin-dental@example.com',
+        )
+
+    def test_send_guest_intake_link_creates_draft_and_emails(self):
+        from django.core import mail
+        from core.models import GuestAccessToken
+        from core.guest_auth import is_guest_user
+
+        self.client.force_login(self.doctor)
+        response = self.client.post(
+            reverse('dental_records:send_guest_intake_link'),
+            {'patient': self.guest.pk},
+        )
+        self.assertEqual(response.status_code, 302)
+        record = DentalRecord.objects.latest('created_at')
+        self.assertTrue(is_guest_user(record.patient))
+        self.assertEqual(record.intake_status, 'awaiting_guest')
+        self.assertEqual(record.status, 'pending')
+        self.assertEqual(record.department_college_office, 'Guest')
+        self.assertTrue(hasattr(record, 'examination'))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ['walkin-dental@example.com'])
+        self.assertIn('/guest/dental-intake/', mail.outbox[0].body)
+        self.assertTrue(
+            GuestAccessToken.objects.filter(
+                purpose=GuestAccessToken.Purpose.DENTAL_INTAKE,
+                object_id=record.pk,
+                revoked_at__isnull=True,
+            ).exists()
+        )
+        self.assertIn(
+            reverse('dental_records:dental_record_detail', args=[record.pk]),
+            response.url,
+        )
+
+    def test_save_guest_intake_draft_without_email(self):
+        from django.core import mail
+        from core.models import GuestAccessToken
+
+        self.client.force_login(self.doctor)
+        response = self.client.post(
+            reverse('dental_records:send_guest_intake_link'),
+            {'patient': self.guest.pk, 'action': 'save_draft'},
+        )
+        self.assertEqual(response.status_code, 302)
+        record = DentalRecord.objects.latest('created_at')
+        self.assertEqual(record.intake_status, 'awaiting_guest')
+        self.assertEqual(record.status, 'pending')
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertFalse(
+            GuestAccessToken.objects.filter(
+                purpose=GuestAccessToken.Purpose.DENTAL_INTAKE,
+                object_id=record.pk,
+            ).exists()
+        )
+        self.assertIn(
+            reverse('dental_records:dental_record_detail', args=[record.pk]),
+            response.url,
+        )
+
+    def test_resend_guest_intake_link_only_while_awaiting(self):
+        from django.core import mail
+
+        record = DentalRecord.objects.create(
+            patient=self.guest,
+            examined_by=self.doctor,
+            status='pending',
+            intake_status='awaiting_guest',
+            designation='student',
+            department_college_office='Guest',
+            email='walkin-dental@example.com',
+            date_of_examination=date.today(),
+        )
+        self.client.force_login(self.doctor)
+        ok = self.client.post(
+            reverse('dental_records:resend_guest_intake_link', args=[record.pk]),
+        )
+        self.assertEqual(ok.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+
+        record.intake_status = 'guest_submitted'
+        record.save(update_fields=['intake_status'])
+        mail.outbox.clear()
+        blocked = self.client.post(
+            reverse('dental_records:resend_guest_intake_link', args=[record.pk]),
+        )
+        self.assertEqual(blocked.status_code, 302)
+        self.assertEqual(len(mail.outbox), 0)
+
+    def test_mark_completed_sets_intake_guest_submitted(self):
+        record = DentalRecord.objects.create(
+            patient=self.guest,
+            examined_by=self.doctor,
+            status='pending',
+            intake_status='awaiting_guest',
+            designation='student',
+            department_college_office='Guest',
+            email='walkin-dental@example.com',
+            date_of_examination=date.today(),
+            consent_signed=True,
+            informed_consent_signed=True,
+            consent_date=date.today(),
+            informed_consent_date=date.today(),
+        )
+        self.client.force_login(self.doctor)
+        response = self.client.post(
+            reverse('dental_records:mark_record_completed', args=[record.pk]),
+            {'status': 'completed'},
+        )
+        self.assertEqual(response.status_code, 302)
+        record.refresh_from_db()
+        self.assertEqual(record.status, 'completed')
+        self.assertEqual(record.intake_status, 'guest_submitted')
+
+    def test_mark_completed_blocked_without_consents(self):
+        record = DentalRecord.objects.create(
+            patient=self.guest,
+            examined_by=self.doctor,
+            status='pending',
+            intake_status='awaiting_guest',
+            designation='student',
+            department_college_office='Guest',
+            email='walkin-dental@example.com',
+            date_of_examination=date.today(),
+            consent_signed=False,
+            informed_consent_signed=False,
+        )
+        self.client.force_login(self.doctor)
+        response = self.client.post(
+            reverse('dental_records:mark_record_completed', args=[record.pk]),
+            {'status': 'completed'},
+        )
+        self.assertEqual(response.status_code, 302)
+        record.refresh_from_db()
+        self.assertEqual(record.status, 'pending')
+        self.assertEqual(record.intake_status, 'awaiting_guest')
+
+    def test_non_guest_create_path_still_available(self):
+        self.client.force_login(self.doctor)
+        response = self.client.get(reverse('dental_records:dental_record_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Create Dental Record')
+        self.assertContains(response, 'Send intake link')

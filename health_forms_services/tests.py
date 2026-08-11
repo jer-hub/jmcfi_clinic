@@ -6,10 +6,11 @@ from django.urls import reverse
 from django.utils import timezone
 
 from core.models import PatientProfile, StaffProfile, User
-from core.walk_in_auth import create_walk_in_user
+from core.guest_auth import create_guest_user
 from health_forms_services.forms import (
 	DIAGNOSTIC_TEST_TRIPLETS,
 	DentalHealthPersonalInfoForm,
+	DentalServicesPersonalInfoForm,
 	HealthProfileClinicalSummaryForm,
 	IMMUNIZATION_FLAG_DATE_PAIRS,
 	PatientChartPersonalInfoForm,
@@ -204,6 +205,19 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertIn('patient_id', first)
 		self.assertEqual(first['id'], self.patient.id)
 
+	def test_search_patients_excludes_guests(self):
+		from core.guest_auth import create_guest_user
+
+		guest = create_guest_user(first_name='Ana', last_name='Guest')
+		response = self.client.get(
+			reverse('health_forms_services:search_patients'),
+			{'q': 'Ana'},
+		)
+		self.assertEqual(response.status_code, 200)
+		ids = {row['id'] for row in response.json()['results']}
+		self.assertIn(self.patient.id, ids)
+		self.assertNotIn(guest.id, ids)
+
 	def test_patient_profile_prefill_endpoint_returns_expected_fields(self):
 		from core.doctor_access import ALL_MODULE_KEYS
 		profile = self.doctor.staff_profile
@@ -231,7 +245,7 @@ class HealthFormsPatientPickerTests(TestCase):
 		profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
 		profile.save(update_fields=['allowed_clinical_modules'])
 
-		walk_in_user = create_walk_in_user(first_name='Walk', last_name='Guest')
+		walk_in_user = create_guest_user(first_name='Walk', last_name='Guest')
 		PatientProfile.objects.filter(user=walk_in_user).update(
 			department='College of Nursing',
 			course='BSN',
@@ -254,6 +268,16 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertEqual(mappings.get('blood_type'), 'blood_type')
 		self.assertEqual(mappings.get('allergies'), 'allergies')
 		self.assertEqual(mappings.get('medical_conditions'), 'medical_conditions')
+
+	def test_dental_form_picker_maps_department_from_college_key(self):
+		from health_forms_services.picker_mappings import picker_field_mappings
+
+		mappings = picker_field_mappings('dental_form')
+		self.assertEqual(mappings.get('department'), 'department_college_office')
+		self.assertEqual(
+			picker_field_mappings('dental_services').get('department_college_office'),
+			'department_college_office',
+		)
 
 	def test_create_patient_chart_page_uses_grouped_sections(self):
 		response = self.client.get(reverse('health_forms_services:create_patient_chart'))
@@ -454,6 +478,53 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		created = HealthProfileForm.objects.latest('created_at')
 		self.assertEqual(created.user_id, self.patient.id)
+
+	def test_create_health_profile_walk_in_on_submit_from_profiling(self):
+		from core.guest_auth import is_guest_user
+
+		response = self.client.post(
+			reverse('health_forms_services:manual_entry'),
+			{
+				'register_guest': '1',
+				'last_name': 'Reyes',
+				'first_name': 'Ana',
+				'middle_name': '',
+				'permanent_address': '123 Main St',
+				'zip_code': '',
+				'current_address': '123 Main St',
+				'religion': '',
+				'civil_status': 'single',
+				'place_of_birth': 'Manila',
+				'date_of_birth': '2000-01-15',
+				'citizenship': 'Filipino',
+				'age': '21',
+				'gender': 'female',
+				'email_address': 'walkin-create@test.com',
+				'mobile_number': '+639171234567',
+				'telephone_number': '',
+				'designation': 'guest',
+				'institution_id': '',
+				'department_college_office': '',
+				'course': '',
+				'year_level': '',
+				'position': '',
+				'specialization': '',
+				'license_number': '',
+				'ptr_no': '',
+				'blood_type': '',
+				'medical_conditions': '',
+				'guardian_name': '',
+				'guardian_contact': '',
+			},
+			follow=True,
+		)
+		self.assertEqual(response.status_code, 200)
+		created = HealthProfileForm.objects.latest('created_at')
+		self.assertTrue(is_guest_user(created.user))
+		self.assertEqual(created.user.first_name, 'Ana')
+		self.assertEqual(created.user.last_name, 'Reyes')
+		self.assertEqual(created.last_name, 'Reyes')
+		self.assertEqual(created.user.patient_profile.contact_email, 'walkin-create@test.com')
 
 	def test_create_prescription_uses_selected_patient_user(self):
 		response = self.client.post(
@@ -973,11 +1044,26 @@ class HealthFormSectionSaveTests(TestCase):
 		self.assertEqual(response.json()['error'], 'Personal Info section is read-only.')
 
 	def test_personal_phone_fields_reject_invalid_format(self):
+		from health_forms_services.forms import HealthProfilePersonalInfoForm
+
 		for field in ('mobile_number', 'telephone_number', 'guardian_contact'):
 			with self.subTest(field=field):
-				response = self._ajax_save(self._personal_post_data(**{field: '09171234567'}))
-				self.assertEqual(response.status_code, 403)
-				self.assertFalse(response.json()['success'])
+				data = self._personal_post_data(**{field: '12345'})
+				form = HealthProfilePersonalInfoForm(data, instance=self.health_form)
+				self.assertFalse(form.is_valid())
+				self.assertIn(field, form.errors)
+
+	def test_personal_phone_fields_accept_local_format(self):
+		from health_forms_services.forms import HealthProfilePersonalInfoForm
+
+		data = self._personal_post_data(mobile_number='09171234567')
+		form = HealthProfilePersonalInfoForm(data, instance=self.health_form)
+		self.assertTrue(form.is_valid(), form.errors)
+		self.assertEqual(form.cleaned_data['mobile_number'], '+639171234567')
+		self.assertEqual(
+			form.fields['mobile_number'].widget.attrs.get('data-phone-badge'),
+			'true',
+		)
 
 	def test_medical_section_saves_all_fields(self):
 		response = self._ajax_save(self._medical_post_data())
@@ -1850,6 +1936,97 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 		field_names = self._institutional_field_names(form)
 		self.assertEqual(field_names, ['designation'])
 
+	def test_blank_course_and_year_fallback_to_patient_profile(self):
+		from core.models import PatientProfile, User
+		from health_forms_services.forms import _soft_fill_academic_fields_from_patient_profile
+
+		patient = User.objects.create_user(
+			email='academic-fallback@test.com',
+			password='Pass123!',
+			role='patient',
+			is_active=True,
+			first_name='Ana',
+			last_name='Student',
+		)
+		profile = PatientProfile.objects.get(user=patient)
+		profile.patient_id = 'P-ACAD-001'
+		profile.department = 'College of Information Technology Education'
+		profile.course = 'BS Information Technology'
+		profile.year_level = '2nd Year'
+		profile.save(update_fields=['patient_id', 'department', 'course', 'year_level'])
+		self.assertEqual(
+			PatientProfile.objects.get(user=patient).course,
+			'BS Information Technology',
+		)
+
+		health_form = HealthProfileForm.objects.create(
+			user=patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+			first_name='Ana',
+			last_name='Student',
+			designation='student',
+			department_college_office='College of Information Technology Education',
+			institution_id='P-ACAD-001',
+			course='',
+			year_level='',
+		)
+		_soft_fill_academic_fields_from_patient_profile(health_form)
+		self.assertEqual(health_form.course, 'BS Information Technology')
+		self.assertEqual(health_form.year_level, '2nd Year')
+
+		form = HealthProfilePersonalInfoForm(instance=health_form)
+		self.assertEqual(form['course'].value(), 'BS Information Technology')
+		self.assertEqual(form['year_level'].value(), '2nd Year')
+		self.assertEqual(
+			form['department_college_office'].value(),
+			'College of Information Technology Education',
+		)
+
+	def test_dental_and_chart_blank_department_fallback_to_patient_profile(self):
+		from core.models import PatientProfile, User
+
+		patient = User.objects.create_user(
+			email='dept-fallback@test.com',
+			password='Pass123!',
+			role='patient',
+			is_active=True,
+			first_name='Ben',
+			last_name='Student',
+		)
+		profile = PatientProfile.objects.get(user=patient)
+		profile.department = 'College of Nursing'
+		profile.save(update_fields=['department'])
+
+		dental = DentalHealthForm(
+			user=patient,
+			status=DentalHealthForm.Status.PENDING,
+			first_name='Ben',
+			last_name='Student',
+			department_college_office='',
+		)
+		chart = PatientChart(
+			user=patient,
+			status=PatientChart.Status.PENDING,
+			first_name='Ben',
+			last_name='Student',
+			department_college_office='',
+		)
+		services = DentalServicesRequest(
+			user=patient,
+			status=DentalServicesRequest.Status.PENDING,
+			first_name='Ben',
+			last_name='Student',
+			department='',
+		)
+
+		dental_form = DentalHealthPersonalInfoForm(instance=dental)
+		chart_form = PatientChartPersonalInfoForm(instance=chart)
+		services_form = DentalServicesPersonalInfoForm(instance=services)
+
+		self.assertEqual(dental_form['department_college_office'].value(), 'College of Nursing')
+		self.assertEqual(chart_form['department_college_office'].value(), 'College of Nursing')
+		self.assertEqual(services_form['department'].value(), 'College of Nursing')
+
 	def test_guest_clean_clears_institutional_fields(self):
 		form = HealthProfilePersonalInfoForm(data={
 			'last_name': 'Guest',
@@ -2023,7 +2200,8 @@ class PrescriptionBodyFormatTests(TestCase):
 		middleware
 		for middleware in settings.MIDDLEWARE
 		if middleware != 'core.middleware.ProfileCompleteMiddleware'
-	]
+	],
+	EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
 )
 class HealthProfilePatientWorkflowTests(TestCase):
 	def setUp(self):
@@ -2205,6 +2383,58 @@ class HealthProfilePatientWorkflowTests(TestCase):
 		)
 		self.assertEqual(post_blocked.status_code, 403)
 
+	def test_patient_cancel_draft_and_delete_incomplete(self):
+		draft = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+			first_name='Cara',
+			last_name='Patient',
+		)
+		self._login_patient()
+
+		edit = self.client.get(reverse('health_forms_services:edit_form', args=[draft.pk]))
+		self.assertEqual(edit.status_code, 200)
+		self.assertContains(edit, 'Cancel draft')
+		self.assertContains(edit, 'open-modal')
+		self.assertContains(edit, reverse('health_forms_services:delete_form', args=[draft.pk]))
+		self.assertNotContains(edit, reverse('health_forms_services:cancel_draft', args=[draft.pk]))
+
+		deleted = self.client.post(reverse('health_forms_services:delete_form', args=[draft.pk]))
+		self.assertEqual(deleted.status_code, 302)
+		self.assertFalse(HealthProfileForm.objects.filter(pk=draft.pk).exists())
+
+	def test_patient_detail_shows_cancel_and_delete_for_draft(self):
+		draft = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+			first_name='Cara',
+			last_name='Patient',
+		)
+		self._login_patient()
+		detail = self.client.get(reverse('health_forms_services:form_detail', args=[draft.pk]))
+		self.assertEqual(detail.status_code, 200)
+		self.assertContains(detail, 'Cancel draft')
+		self.assertContains(detail, 'open-modal')
+		self.assertContains(detail, reverse('health_forms_services:delete_form', args=[draft.pk]))
+		self.assertNotContains(detail, reverse('health_forms_services:cancel_draft', args=[draft.pk]))
+
+	def test_patient_can_cancel_pending_submission(self):
+		form_obj = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.PENDING,
+			first_name='Cara',
+			last_name='Patient',
+		)
+		self._login_patient()
+		detail = self.client.get(reverse('health_forms_services:form_detail', args=[form_obj.pk]))
+		self.assertEqual(detail.status_code, 200)
+		self.assertContains(detail, 'Cancel submission')
+		self.assertContains(detail, reverse('health_forms_services:delete_form', args=[form_obj.pk]))
+
+		resp = self.client.post(reverse('health_forms_services:delete_form', args=[form_obj.pk]))
+		self.assertEqual(resp.status_code, 302)
+		self.assertFalse(HealthProfileForm.objects.filter(pk=form_obj.pk).exists())
+
 	def test_doctor_edits_clinical_on_pending_and_completes_review(self):
 		form_obj = HealthProfileForm.objects.create(
 			user=self.patient,
@@ -2299,8 +2529,272 @@ class HealthProfilePatientWorkflowTests(TestCase):
 		created = HealthProfileForm.objects.filter(user=self.patient).latest('created_at')
 		self.assertEqual(created.status, HealthProfileForm.Status.INCOMPLETE)
 
+	def test_staff_manual_entry_notifies_patient_and_emails_edit_link(self):
+		from django.core import mail
+		from core.doctor_access import ALL_MODULE_KEYS
+		from core.models import ClinicSettings, Notification, UserPreferences
+		from core.settings_service import invalidate_settings_cache
+		from core.utils import resolve_notification_url
 
-class HealthProfilePermissionHelperTests(TestCase):
+		ClinicSettings.load()
+		ClinicSettings.objects.filter(pk=ClinicSettings.SINGLETON_PK).update(
+			enable_email_notifications=True,
+		)
+		invalidate_settings_cache()
+
+		prefs, _ = UserPreferences.objects.get_or_create(user=self.patient)
+		prefs.in_app_notifications = True
+		prefs.email_notifications = True
+		prefs.save(update_fields=['in_app_notifications', 'email_notifications'])
+
+		# Ensure module grants survive any settings-cache side effects before the POST.
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
+
+		HealthProfileForm.objects.filter(user=self.patient).delete()
+		self._login_doctor()
+		response = self.client.post(
+			reverse('health_forms_services:manual_entry'),
+			{
+				'selected_user_id': str(self.patient.id),
+				'last_name': 'Patient',
+				'first_name': 'Cara',
+				'middle_name': '',
+				'permanent_address': '456 Clinic Rd',
+				'zip_code': '',
+				'current_address': '456 Clinic Rd',
+				'religion': '',
+				'civil_status': 'single',
+				'place_of_birth': 'Manila',
+				'date_of_birth': '2001-05-10',
+				'citizenship': 'Filipino',
+				'age': '24',
+				'gender': 'female',
+				'email_address': self.patient.email,
+				'mobile_number': '+639171111111',
+				'telephone_number': '',
+				'designation': 'student',
+				'institution_id': 'P-HP-2001',
+				'department_college_office': 'College of Nursing',
+				'course': 'BS Nursing',
+				'year_level': '',
+				'position': '',
+				'specialization': '',
+				'license_number': '',
+				'ptr_no': '',
+				'blood_type': '',
+				'allergies': '',
+				'medical_conditions': '',
+				'guardian_name': '',
+				'guardian_contact': '',
+			},
+		)
+		errors = ''
+		if response.status_code == 200 and getattr(response, 'context', None):
+			personal_form = response.context.get('personal_form')
+			if personal_form is not None:
+				errors = str(personal_form.errors)
+		self.assertEqual(
+			response.status_code,
+			302,
+			msg=f'expected redirect after create; status={response.status_code} loc={getattr(response, "url", None)!r} errors={errors}',
+		)
+		self.assertTrue(
+			HealthProfileForm.objects.filter(user=self.patient).exists(),
+			msg=f'redirect to {response.url!r} but no form created; all forms={list(HealthProfileForm.objects.values_list("pk","user_id","status"))}',
+		)
+		created = HealthProfileForm.objects.filter(user=self.patient).latest('created_at')
+		self.assertEqual(created.status, HealthProfileForm.Status.INCOMPLETE)
+		notif = Notification.objects.filter(
+			user=self.patient,
+			transaction_type='health_form_incomplete',
+			related_id=created.pk,
+		).first()
+		self.assertIsNotNone(
+			notif,
+			msg=list(Notification.objects.filter(user=self.patient).values_list('title', 'transaction_type', 'related_id')),
+		)
+		self.assertEqual(
+			resolve_notification_url(notif),
+			reverse('health_forms_services:edit_form', args=[created.pk]),
+		)
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, [self.patient.email])
+		self.assertIn(f'/health-forms/{created.pk}/edit/', mail.outbox[0].body)
+		self.assertNotIn('/guest/health-form/', mail.outbox[0].body)
+
+	def test_staff_manual_entry_guest_sends_magic_link_only(self):
+		from django.core import mail
+		from core.doctor_access import ALL_MODULE_KEYS
+		from core.guest_auth import is_guest_user
+		from core.models import ClinicSettings, Notification
+		from core.settings_service import invalidate_settings_cache
+
+		ClinicSettings.load()
+		ClinicSettings.objects.filter(pk=ClinicSettings.SINGLETON_PK).update(
+			enable_email_notifications=True,
+		)
+		invalidate_settings_cache()
+
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
+
+		self._login_doctor()
+		response = self.client.post(
+			reverse('health_forms_services:manual_entry'),
+			{
+				'register_guest': '1',
+				'last_name': 'Guest',
+				'first_name': 'Walkin',
+				'middle_name': '',
+				'permanent_address': '1 Guest St',
+				'zip_code': '',
+				'current_address': '1 Guest St',
+				'religion': '',
+				'civil_status': 'single',
+				'place_of_birth': 'Manila',
+				'date_of_birth': '1999-01-01',
+				'citizenship': 'Filipino',
+				'age': '26',
+				'gender': 'female',
+				'email_address': 'guest-hf-notify@test.com',
+				'mobile_number': '+639171111222',
+				'telephone_number': '',
+				'designation': 'guest',
+				'institution_id': '',
+				'department_college_office': '',
+				'course': '',
+				'year_level': '',
+				'position': '',
+				'specialization': '',
+				'license_number': '',
+				'ptr_no': '',
+				'blood_type': '',
+				'allergies': '',
+				'medical_conditions': '',
+				'guardian_name': '',
+				'guardian_contact': '',
+			},
+		)
+		self.assertEqual(response.status_code, 302, msg=getattr(response, 'url', None))
+		created = HealthProfileForm.objects.latest('created_at')
+		self.assertTrue(is_guest_user(created.user))
+		self.assertEqual(created.status, HealthProfileForm.Status.INCOMPLETE)
+		self.assertFalse(
+			Notification.objects.filter(
+				user=created.user,
+				transaction_type='health_form_incomplete',
+			).exists()
+		)
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['guest-hf-notify@test.com'])
+		self.assertIn('/guest/health-form/', mail.outbox[0].body)
+		self.assertNotIn(f'/health-forms/{created.pk}/edit/', mail.outbox[0].body)
+
+	def test_invite_guest_health_profile_creates_draft_and_emails_link(self):
+		from django.core import mail
+		from core.doctor_access import ALL_MODULE_KEYS
+		from core.guest_auth import is_guest_user
+		from core.models import ClinicSettings
+		from core.settings_service import invalidate_settings_cache
+
+		ClinicSettings.load()
+		ClinicSettings.objects.filter(pk=ClinicSettings.SINGLETON_PK).update(
+			enable_email_notifications=True,
+		)
+		invalidate_settings_cache()
+
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
+
+		self._login_doctor()
+		response = self.client.post(
+			reverse('health_forms_services:invite_guest_health_profile'),
+			{
+				'first_name': 'Invited',
+				'last_name': 'Guest',
+				'contact_email': 'invite-guest@test.com',
+				'mobile_number': '+639171234567',
+			},
+		)
+		self.assertEqual(response.status_code, 302, msg=getattr(response, 'url', None))
+		created = HealthProfileForm.objects.latest('created_at')
+		self.assertTrue(is_guest_user(created.user))
+		self.assertEqual(created.status, HealthProfileForm.Status.INCOMPLETE)
+		self.assertEqual(created.designation, 'guest')
+		self.assertEqual(created.email_address, 'invite-guest@test.com')
+		self.assertEqual(created.first_name, 'Invited')
+		self.assertFalse(created.department_college_office)
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['invite-guest@test.com'])
+		self.assertIn('/guest/health-form/', mail.outbox[0].body)
+
+	def test_resend_guest_health_form_link(self):
+		from django.core import mail
+		from core.doctor_access import ALL_MODULE_KEYS
+		from core.guest_auth import create_guest_user
+		from core.models import ClinicSettings
+		from core.settings_service import invalidate_settings_cache
+
+		ClinicSettings.load()
+		ClinicSettings.objects.filter(pk=ClinicSettings.SINGLETON_PK).update(
+			enable_email_notifications=True,
+		)
+		invalidate_settings_cache()
+
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
+
+		guest = create_guest_user(
+			first_name='Resend',
+			last_name='Guest',
+			contact_email='resend-guest@test.com',
+		)
+		health_form = HealthProfileForm.objects.create(
+			user=guest,
+			status=HealthProfileForm.Status.INCOMPLETE,
+			designation='guest',
+			first_name='Resend',
+			last_name='Guest',
+			email_address='resend-guest@test.com',
+		)
+
+		self._login_doctor()
+		response = self.client.post(
+			reverse('health_forms_services:resend_guest_health_form_link', args=[health_form.pk]),
+		)
+		self.assertEqual(response.status_code, 302)
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['resend-guest@test.com'])
+		self.assertIn('/guest/health-form/', mail.outbox[0].body)
+
+		detail = self.client.get(reverse('health_forms_services:form_detail', args=[health_form.pk]))
+		self.assertEqual(detail.status_code, 200)
+		self.assertContains(detail, 'Resend link')
+
+	def test_patient_dashboard_lists_incomplete_health_forms(self):
+		HealthProfileForm.objects.filter(user=self.patient).delete()
+		form_obj = HealthProfileForm.objects.create(
+			user=self.patient,
+			status=HealthProfileForm.Status.INCOMPLETE,
+			first_name='Cara',
+			last_name='Patient',
+		)
+		self._login_patient()
+		response = self.client.get(reverse('core:dashboard'))
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(response.context['pending_health_forms_count'], 1)
+		self.assertEqual(list(response.context['pending_health_forms'])[0].pk, form_obj.pk)
+		self.assertContains(response, 'Forms to complete')
+		self.assertContains(response, 'Action needed')
+		self.assertContains(response, reverse('health_forms_services:edit_form', args=[form_obj.pk]))
+
+
+class HealthProfileEditableSectionsTests(TestCase):
 	def setUp(self):
 		self.patient = User.objects.create_user(
 			email='patient-hp-perms@test.com',

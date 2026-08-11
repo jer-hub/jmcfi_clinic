@@ -1,0 +1,136 @@
+{% extends 'core/guest/base_guest.html' %}
+{% load static %}
+
+{% block title %}Health form - JMCFI Clinic{% endblock %}
+{% block header_width %}max-w-5xl{% endblock %}
+{% block main_width %}max-w-5xl{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex items-start gap-3">
+    <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+      <i class="fas fa-file-medical" aria-hidden="true"></i>
+    </span>
+    <div class="min-w-0">
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Complete your health profile</h1>
+      <p class="mt-1 text-sm text-gray-500">
+        Hi {{ patient.get_full_name|default:"Patient" }} — finish the sections below, then submit for clinic review.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden mb-4"
+     {% if active_section == 'medical' %}x-data="immunizationMedicalForm({{ active_form.immunization_flags_json }})"{% endif %}>
+  <nav class="flex w-full border-b border-gray-200" role="tablist" aria-label="Health form sections">
+    {% for tab in tabs %}
+    <a href="{{ guest_path }}?section={{ tab.key }}"
+       role="tab"
+       aria-selected="{% if tab.key == active_section %}true{% else %}false{% endif %}"
+       class="flex-1 min-w-0 px-2 sm:px-4 py-2.5 text-xs sm:text-sm font-medium text-center transition-colors
+              {% if tab.key == active_section %}
+                text-primary-600 border-b-2 border-primary-600 bg-primary-50/50
+              {% else %}
+                text-gray-500 hover:text-gray-700 hover:bg-gray-50
+              {% endif %}">
+      <span class="inline-flex items-center justify-center gap-1.5">
+        <i class="fas {{ tab.icon }} text-[11px]" aria-hidden="true"></i>
+        <span>{{ tab.label }}</span>
+      </span>
+    </a>
+    {% endfor %}
+  </nav>
+
+  <div class="p-4 sm:p-6">
+    <form method="post" class="space-y-6" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="section" value="{{ active_section }}">
+
+      {% with form=active_form %}
+      {% if form.non_field_errors or form.errors %}
+      <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg flex items-start gap-3" role="alert">
+        <svg class="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <p class="text-sm font-medium text-red-800">Please correct the highlighted fields below.</p>
+          {% if form.non_field_errors %}
+          <ul class="mt-1.5 text-sm text-red-700 list-disc list-inside space-y-0.5">
+            {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if active_section == 'personal' %}
+        {% include 'health_forms_services/partials/_section_groups_tab.html' with sections=form.personal_info_sections %}
+      {% elif active_section == 'medical' %}
+        {% include 'health_forms_services/partials/_medical_history_tab.html' with form=form %}
+      {% endif %}
+      {% endwith %}
+
+      <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-gray-100">
+        <div class="flex flex-wrap items-center gap-2">
+          {% if can_cancel %}
+          <button type="submit"
+                  name="action"
+                  value="cancel"
+                  formnovalidate
+                  onclick="return confirm('Cancel this health form draft? This cannot be undone.');"
+                  class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+            <i class="fas fa-trash-can" aria-hidden="true"></i>
+            Cancel draft
+          </button>
+          {% endif %}
+        </div>
+        <div class="flex flex-wrap items-center gap-2 sm:justify-end">
+          {% if can_submit_for_review %}
+          <button type="submit"
+                  name="action"
+                  value="submit"
+                  formnovalidate
+                  class="inline-flex items-center justify-center gap-2 px-3.5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
+            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+            Submit for clinic review
+          </button>
+          {% endif %}
+          <button type="submit"
+                  name="action"
+                  value="save"
+                  class="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors">
+            <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+            Save section
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<p class="text-xs text-gray-400 text-center sm:text-left">
+  Clinic staff will complete the exam and diagnostic sections after you submit.
+</p>
+{% endblock %}
+
+{% block scripts %}
+{% if college_options_json and course_options_by_college_json and year_level_options_by_college_json and course_optional_by_college_json %}
+<script>
+window.__jmcfiAcademicCatalog = {
+  colleges: {{ college_options_json|safe }},
+  coursesByCollege: {{ course_options_by_college_json|safe }},
+  yearLevelsByCollege: {{ year_level_options_by_college_json|safe }},
+  courseOptionalByCollege: {{ course_optional_by_college_json|safe }},
+};
+</script>
+{% endif %}
+<script>
+function immunizationMedicalForm(initialFlags) {
+  return { immunizationFlags: initialFlags || {} };
+}
+</script>
+<script src="{% static 'js/student-list-field.js' %}?v=2"></script>
+<script src="{% static 'js/phone-input.js' %}"></script>
+{% endblock %}

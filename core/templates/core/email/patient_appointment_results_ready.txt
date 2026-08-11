@@ -1,0 +1,16 @@
+{% autoescape off %}Hello {{ patient_name }},
+
+Your visit at {{ clinic_name }} is complete. Your {{ result_kind }} is ready to view.
+
+Date: {{ appointment.date|date:"F d, Y" }}
+Time: {{ appointment.time|time:"g:i A" }}
+Doctor: Dr. {{ doctor_name }}
+Type: {{ appointment.get_appointment_type_display }}
+
+View your results:
+{{ access_url }}
+
+You may need to sign in with your clinic account to open this link.
+
+— {{ clinic_name }}
+{% endautoescape %}

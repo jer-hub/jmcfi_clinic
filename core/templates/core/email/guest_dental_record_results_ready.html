@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; color: #111827; line-height: 1.5;">
+  <p>Hello {{ patient_name }},</p>
+  <p>Your visit at <strong>{{ clinic_name }}</strong> is complete. Your dental record is ready to view.</p>
+  <ul>
+    {% if appointment %}
+    <li><strong>Date:</strong> {{ appointment.date|date:"F d, Y" }}</li>
+    <li><strong>Time:</strong> {{ appointment.time|time:"g:i A" }}</li>
+    {% else %}
+    <li><strong>Exam date:</strong> {{ dental_record.date_of_examination|date:"F d, Y" }}</li>
+    {% endif %}
+    {% if doctor_name %}
+    <li><strong>Doctor:</strong> Dr. {{ doctor_name }}</li>
+    {% endif %}
+  </ul>
+  <p>
+    <a href="{{ access_url }}" style="display:inline-block;padding:10px 16px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;">
+      View your dental record
+    </a>
+  </p>
+  <p style="font-size:12px;color:#6b7280;">This secure link does not require a clinic login. It expires after a limited time — contact the clinic if you need a new link.</p>
+  <p>— {{ clinic_name }}</p>
+</body>
+</html>

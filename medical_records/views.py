@@ -861,7 +861,7 @@ def create_medical_record(request, appointment_id):
                 resource_label=_medical_record_label(medical_record),
             )
 
-            # Create notification for student
+            # Create notification for patient (in-app); results email includes record link.
             notify_user(
                 appointment.patient,
                 title='Medical Record Created',
@@ -869,7 +869,10 @@ def create_medical_record(request, appointment_id):
                 notification_type='general',
                 transaction_type='medical_record_created',
                 related_id=medical_record.id,
+                send_email=False,
             )
+            from core.guest_emails import email_appointment_results_ready
+            email_appointment_results_ready(request, locked_appointment, created_by=request.user)
             
             messages.success(request, 'Medical record created successfully!')
             return redirect('appointments:appointment_detail', appointment_id=appointment.id)
@@ -952,7 +955,33 @@ def create_medical_record_for_patient(request):
                 notification_type='general',
                 transaction_type='medical_record_created',
                 related_id=medical_record.id,
+                send_email=False,
             )
+            from core.guest_auth import is_guest_user
+            from core.guest_emails import email_medical_record_results_ready
+            from core.notification_delivery import format_email_send_error
+
+            try:
+                emailed = email_medical_record_results_ready(
+                    request, medical_record, created_by=request.user
+                )
+            except Exception as email_exc:
+                emailed = False
+                messages.warning(
+                    request,
+                    f'Record saved, but the results email was not sent ({format_email_send_error(email_exc)}).',
+                )
+            else:
+                if emailed:
+                    if is_guest_user(patient):
+                        messages.success(request, 'Results link emailed to the guest.')
+                    else:
+                        messages.success(request, 'Results link emailed to the patient.')
+                else:
+                    messages.warning(
+                        request,
+                        'Record saved, but the results email could not be sent (missing contact email or email settings).',
+                    )
 
             messages.success(request, 'Medical record created successfully!')
             return redirect('medical_records:medical_record_detail_page', record_id=medical_record.id)

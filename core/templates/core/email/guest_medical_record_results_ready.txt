@@ -1,0 +1,16 @@
+{% autoescape off %}Hello {{ patient_name }},
+
+Your visit at {{ clinic_name }} is complete. Your medical record is ready to view.
+
+{% if appointment %}Date: {{ appointment.date|date:"F d, Y" }}
+Time: {{ appointment.time|time:"g:i A" }}
+{% else %}Record date: {{ medical_record.created_at|date:"F d, Y" }}
+{% endif %}{% if doctor_name %}Doctor: Dr. {{ doctor_name }}
+{% endif %}
+View your medical record:
+{{ access_url }}
+
+This secure link does not require a clinic login. It expires after a limited time — contact the clinic if you need a new link.
+
+— {{ clinic_name }}
+{% endautoescape %}

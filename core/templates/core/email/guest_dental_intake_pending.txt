@@ -1,0 +1,11 @@
+{% autoescape off %}Hello {{ patient_name }},
+
+{{ clinic_name }} started a dental intake form for you. Please complete your personal details and consent.
+
+Open this link to complete the form:
+{{ access_url }}
+
+This link expires in a few days.
+
+— {{ clinic_name }}
+{% endautoescape %}

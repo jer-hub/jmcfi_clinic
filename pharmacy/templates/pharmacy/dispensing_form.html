@@ -145,7 +145,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'js/clinic-walk-in-register.js' %}?v=1"></script>
+<script src="{% static 'js/clinic-guest-register.js' %}?v=6"></script>
+<script src="{% static 'js/phone-input.js' %}"></script>
 <script>
 function dispensingPatientPicker() {
   return {
@@ -154,6 +155,7 @@ function dispensingPatientPicker() {
     results: [],
     showResults: false,
     selectedPatient: null,
+    guestRegisterOpen: false,
     searchUrl: '{{ patient_search_url|escapejs }}',
 
     initFromContext() {
@@ -165,6 +167,16 @@ function dispensingPatientPicker() {
             this.selectedPatient = initial;
           }
         } catch (e) { /* ignore */ }
+      }
+    },
+
+    onGuestToggled(detail) {
+      this.guestRegisterOpen = !!(detail && detail.open);
+      if (this.guestRegisterOpen) {
+        this.selectedPatient = null;
+        this.query = '';
+        this.results = [];
+        this.showResults = false;
       }
     },
 
@@ -204,7 +216,7 @@ function dispensingPatientPicker() {
       this.$nextTick(() => this.$refs.searchInput?.focus());
     },
 
-    onWalkInCreated(patient) {
+    onGuestCreated(patient) {
       if (!patient?.id) return;
       this.selectPatient({
         id: patient.id,

@@ -145,12 +145,12 @@ def is_profile_complete(user):
 
         required_fields = get_profile_required_fields(user.role)
         from .roles import ROLE_PATIENT, role_matches
-        from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
+        from .guest_auth import GUEST_INSTITUTIONAL_FIELDS, is_guest_user
 
-        if role_matches(user.role, ROLE_PATIENT) and is_walk_in_user(user):
+        if role_matches(user.role, ROLE_PATIENT) and is_guest_user(user):
             required_fields = [
                 f for f in required_fields
-                if f not in WALK_IN_INSTITUTIONAL_FIELDS
+                if f not in GUEST_INSTITUTIONAL_FIELDS
             ]
         elif role_matches(user.role, ROLE_PATIENT) and getattr(profile, 'is_employee', False):
             required_fields = [
@@ -202,12 +202,12 @@ def get_missing_profile_fields(user):
     profile = get_user_profile(user)
     required_fields = get_profile_required_fields(user.role)
     from .roles import ROLE_PATIENT, role_matches
-    from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
+    from .guest_auth import GUEST_INSTITUTIONAL_FIELDS, is_guest_user
 
-    if role_matches(user.role, ROLE_PATIENT) and is_walk_in_user(user):
+    if role_matches(user.role, ROLE_PATIENT) and is_guest_user(user):
         required_fields = [
             f for f in required_fields
-            if f not in WALK_IN_INSTITUTIONAL_FIELDS
+            if f not in GUEST_INSTITUTIONAL_FIELDS
         ]
     elif (
         profile
@@ -329,6 +329,7 @@ NON_ADMIN_NOTIFICATION_TRANSACTION_TYPES = frozenset({
     'health_tip_updated',
     'medical_record_created',
     'medical_record_updated',
+    'health_form_incomplete',
     'feedback_request',
 })
 
@@ -375,6 +376,11 @@ def resolve_notification_url(notification):
                 kwargs={'record_id': related_id},
             )
         return reverse('medical_records:medical_records')
+
+    if transaction_type == 'health_form_incomplete':
+        if related_id:
+            return reverse('health_forms_services:edit_form', kwargs={'pk': related_id})
+        return reverse('health_forms_services:forms_list')
 
     if transaction_type == 'feedback_request':
         return reverse('feedback:submit_feedback')
@@ -488,14 +494,14 @@ def student_display_name(student):
 
 
 def patient_search_result_for_picker(patient):
-    """JSON shape for clinical patient pickers and walk-in registration responses."""
+    """JSON shape for clinical patient pickers and guest registration responses."""
     profile = getattr(patient, 'patient_profile', None)
     name = student_display_name(patient)
     patient_id = getattr(profile, 'patient_id', '') if profile else ''
     course = getattr(profile, 'course', '') if profile else ''
     year_level = getattr(profile, 'year_level', '') if profile else ''
     detail_bits = [bit for bit in (course, year_level) if bit]
-    detail = ' · '.join(detail_bits) if detail_bits else 'Walk-in guest'
+    detail = ' · '.join(detail_bits) if detail_bits else 'Guest patient'
     return {
         'id': patient.id,
         'name': name,

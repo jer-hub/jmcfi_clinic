@@ -388,6 +388,24 @@ def dashboard(request):
     context = {}
     
     if role_matches(request.user.role, ROLE_PATIENT):
+        from health_forms_services.models import HealthProfileForm
+
+        pending_health_forms_qs = HealthProfileForm.objects.filter(
+            user=request.user,
+            status=HealthProfileForm.Status.INCOMPLETE,
+        ).order_by('-updated_at')
+        pending_health_forms = list(pending_health_forms_qs[:5])
+        pending_health_forms_count = pending_health_forms_qs.count()
+        if pending_health_forms_count == 1:
+            pending_health_forms_url = reverse(
+                'health_forms_services:edit_form',
+                kwargs={'pk': pending_health_forms[0].pk},
+            )
+        else:
+            pending_health_forms_url = (
+                reverse('health_forms_services:forms_list') + '?status=incomplete'
+            )
+
         context.update({
             'recent_records': MedicalRecord.objects.filter(
                 patient=request.user
@@ -399,6 +417,9 @@ def dashboard(request):
                 patient=request.user,
                 status=DocumentRequest.Status.PENDING_REVIEW,
             ).count(),
+            'pending_health_forms': pending_health_forms,
+            'pending_health_forms_count': pending_health_forms_count,
+            'pending_health_forms_url': pending_health_forms_url,
             'total_appointments': Appointment.objects.filter(patient=request.user).count(),
             'total_records': MedicalRecord.objects.filter(patient=request.user).count(),
             'total_dental_records': DentalRecord.objects.filter(patient=request.user).count(),
@@ -588,16 +609,16 @@ def profile_view(request):
     profile = get_user_profile(request.user)
     missing_fields = get_missing_profile_fields(request.user)
 
-    # Completion % uses the same required set as the gate (walk-ins skip institutional).
+    # Completion % uses the same required set as the gate (guests skip institutional).
     completion_percentage = 100
     if profile:
         required_fields = get_profile_required_fields(request.user.role)
         if role_matches(request.user.role, ROLE_PATIENT):
-            from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
-            if is_walk_in_user(request.user):
+            from .guest_auth import GUEST_INSTITUTIONAL_FIELDS, is_guest_user
+            if is_guest_user(request.user):
                 required_fields = [
                     f for f in required_fields
-                    if f not in WALK_IN_INSTITUTIONAL_FIELDS
+                    if f not in GUEST_INSTITUTIONAL_FIELDS
                 ]
             elif getattr(profile, 'is_employee', False):
                 required_fields = [
@@ -666,11 +687,11 @@ def quick_edit_profile(request):
             messages.error(request, 'Academic quick edit is only available for patients.')
             return redirect('core:profile')
 
-        from .walk_in_auth import is_walk_in_user
-        if is_walk_in_user(request.user):
+        from .guest_auth import is_guest_user
+        if is_guest_user(request.user):
             if is_ajax:
-                return JsonResponse({'success': False, 'error': 'Academic information is not used for walk-in guests.'}, status=400)
-            messages.error(request, 'Academic information is not used for walk-in guests.')
+                return JsonResponse({'success': False, 'error': 'Academic information is not used for guest patients.'}, status=400)
+            messages.error(request, 'Academic information is not used for guest patients.')
             return redirect('core:profile')
 
         department = request.POST.get('department', '').strip()
@@ -1155,8 +1176,8 @@ def edit_profile(request):
     catalog_context = {}
     include_academic_catalog = False
     if role_matches(request.user.role, ROLE_PATIENT):
-        from .walk_in_auth import is_walk_in_user
-        include_academic_catalog = not is_walk_in_user(request.user)
+        from .guest_auth import is_guest_user
+        include_academic_catalog = not is_guest_user(request.user)
         if include_academic_catalog:
             catalog_context = patient_catalog_context_for_form(form, request.user)
 
@@ -1655,10 +1676,10 @@ def user_reset_password(request, user_id):
 @login_required
 @require_POST
 @role_required('staff', 'doctor', 'admin')
-def register_walk_in_patient(request):
-    """Staff/doctor: create a clinic-managed walk-in guest patient for clinical workflows."""
+def register_guest_patient(request):
+    """Staff/doctor: create a clinic-managed guest patient for clinical workflows."""
     from .doctor_access import ALL_MODULE_KEYS, has_clinical_module
-    from .walk_in_auth import create_walk_in_user
+    from .guest_auth import create_guest_user
 
     content_type = request.content_type or ''
     if 'application/json' in content_type:
@@ -1681,6 +1702,7 @@ def register_walk_in_patient(request):
         return JsonResponse({'error': 'First and last name are required'}, status=400)
 
     phone = (data.get('phone') or '').strip() or None
+    contact_email = (data.get('email') or data.get('contact_email') or '').strip() or None
     gender = (data.get('gender') or '').strip() or None
     dob_raw = (data.get('date_of_birth') or '').strip()
     date_of_birth = None
@@ -1691,12 +1713,13 @@ def register_walk_in_patient(request):
         except ValueError:
             return JsonResponse({'error': 'Invalid date of birth'}, status=400)
 
-    user = create_walk_in_user(
+    user = create_guest_user(
         first_name=first_name,
         last_name=last_name,
         phone=phone,
         gender=gender,
         date_of_birth=date_of_birth,
+        contact_email=contact_email,
     )
     return JsonResponse(patient_search_result_for_picker(user), status=201)
 
@@ -1707,16 +1730,19 @@ def search_patients(request):
     """
     AJAX endpoint to search for patients by name or email.
     Used in forms where staff/doctors need to select a patient.
+    Guests are excluded — use Register guest patient for those accounts.
     """
+    from .guest_auth import exclude_guest_users
+
     query = request.GET.get('q', '').strip()
     if len(query) < 2:
         return JsonResponse([], safe=False)
 
-    patients = (
+    patients = exclude_guest_users(
         User.objects.filter(Q(role__in=PATIENT_ROLE_VALUES) & patient_search_q(query))
         .select_related('patient_profile')
-        .distinct()[:10]
-    )
+        .distinct()
+    )[:10]
 
     results = []
     for patient in patients:

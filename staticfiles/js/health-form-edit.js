@@ -39,9 +39,44 @@
   }
 
   function hasUnsavedChanges() {
-    return Object.keys(dirty).some(function (key) {
-      return dirty[key];
+    if (Object.keys(dirty).some(function (key) { return dirty[key]; })) {
+      return true;
+    }
+    // Also compare live form values to boot/save snapshots (catches programmatic
+    // updates that never fired input/change, and stale dirty flags).
+    var found = false;
+    document.querySelectorAll('form[data-section]').forEach(function (form) {
+      if (found || isReadOnlySectionForm(form)) return;
+      var key = form.getAttribute('data-section');
+      if (key && sectionDiffersFromSnapshot(key)) {
+        dirty[key] = true;
+        setTabStatus(key, 'unsaved');
+        found = true;
+      }
     });
+    return found;
+  }
+
+  function fieldStatesEqual(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  function sectionDiffersFromSnapshot(section) {
+    var form = getFormForSection(section);
+    var snapshot = sectionSnapshots[section];
+    if (!form || !snapshot || !snapshot.fields) return false;
+    var names = getFormFieldNames(form);
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i];
+      if (!fieldStatesEqual(captureFieldState(form, name), snapshot.fields[name])) {
+        return true;
+      }
+    }
+    var alpineNow = captureAlpineSnapshot(form);
+    if (alpineNow || snapshot.alpine) {
+      return !fieldStatesEqual(alpineNow, snapshot.alpine);
+    }
+    return false;
   }
 
   function setTabStatus(section, status) {
@@ -551,6 +586,12 @@
           showSaveIndicator(section);
           saveSectionSnapshot(section);
           markClean(section);
+          if (result.data.action_bar_html) {
+            var actionBar = document.getElementById('jmcfi-dental-edit-action-bar');
+            if (actionBar) {
+              actionBar.innerHTML = result.data.action_bar_html;
+            }
+          }
           if (options.onSuccess) options.onSuccess(result.data);
           return true;
         }
@@ -776,6 +817,7 @@
     submitSectionForm: submitSectionForm,
     switchToSection: switchToSection,
     getActiveSection: getActiveSection,
+    hasUnsavedChanges: hasUnsavedChanges,
     markDirty: markDirty,
     markClean: markClean,
     discardSectionChanges: discardSectionChanges,

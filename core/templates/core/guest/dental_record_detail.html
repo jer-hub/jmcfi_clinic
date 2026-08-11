@@ -1,0 +1,38 @@
+{% extends 'core/guest/base_guest.html' %}
+{% load role_tags static dental_extras %}
+
+{% block title %}Dental record - JMCFI Clinic{% endblock %}
+{% block header_width %}max-w-5xl{% endblock %}
+{% block main_width %}max-w-5xl{% endblock %}
+
+{% block content %}
+<div x-data="{ tab: 'demographics' }">
+  <div class="mb-6">
+    <div class="flex items-start gap-3">
+      <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+        <i class="fas fa-tooth text-lg" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Your dental record</h1>
+        <p class="mt-1 text-sm text-gray-500">
+          View-only results for {{ patient.get_full_name|default:"Patient" }}
+          {% if dental_record.date_of_examination %}
+          · Examined {{ dental_record.date_of_examination|date:"M d, Y" }}
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="border-b border-gray-200">
+      {% include 'dental_records/partials/_dental_record_tab_nav.html' with variant='detail' %}
+    </div>
+    {% include 'dental_records/partials/_dental_record_detail_panels.html' %}
+  </div>
+
+  <p class="mt-4 text-xs text-gray-400 text-center sm:text-left">
+    This is a view-only copy of your completed dental record.
+  </p>
+</div>
+{% endblock %}

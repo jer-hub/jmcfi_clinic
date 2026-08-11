@@ -1,4 +1,8 @@
-{% if unavailable %}
+{% if missing_consents %}
+  <div class="rounded-lg border border-warning-200 bg-warning-50 px-3 py-2.5 text-sm text-warning-800">
+    Both consent and informed consent must be checked (and saved) before marking this record completed.
+  </div>
+{% elif unavailable %}
   <div class="rounded-lg border border-warning-200 bg-warning-50 px-3 py-2.5 text-sm text-warning-800">
     This record's status changed since this dialog was opened. Close it and refresh the page.
   </div>

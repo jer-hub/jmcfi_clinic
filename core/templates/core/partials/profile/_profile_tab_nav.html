@@ -31,7 +31,7 @@
       <span class="truncate max-w-full">Medical</span>
     </button>
     {% endif %}
-    {% if user|is_patient_role and not user|is_walk_in_user %}
+    {% if user|is_patient_role and not user|is_guest_user %}
     <button type="button"
             role="tab"
             :aria-selected="(activeTab === 'academic').toString()"

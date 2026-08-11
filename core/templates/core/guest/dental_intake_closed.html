@@ -1,0 +1,30 @@
+{% extends 'core/guest/base_guest.html' %}
+
+{% block title %}Dental intake status - JMCFI Clinic{% endblock %}
+{% block header_width %}max-w-lg{% endblock %}
+{% block main_width %}max-w-lg{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden text-center">
+  <div class="px-6 py-8 sm:px-8">
+    {% if just_submitted %}
+    <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mb-4">
+      <i class="fas fa-circle-check text-lg" aria-hidden="true"></i>
+    </div>
+    <h1 class="text-xl font-bold text-gray-900">Intake submitted</h1>
+    <p class="mt-2 text-sm text-gray-600">
+      Thank you. The clinic will complete your dental examination and clinical sections.
+    </p>
+    {% else %}
+    <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 text-primary-600 mb-4">
+      <i class="fas fa-tooth text-lg" aria-hidden="true"></i>
+    </div>
+    <h1 class="text-xl font-bold text-gray-900">Intake closed</h1>
+    <p class="mt-2 text-sm text-gray-600">
+      This dental intake link is no longer open for editing.
+      {% if dental_record.intake_status == 'guest_submitted' %}The clinic has your submitted details.{% endif %}
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

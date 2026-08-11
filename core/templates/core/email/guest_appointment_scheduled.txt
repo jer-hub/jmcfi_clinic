@@ -1,0 +1,20 @@
+{% autoescape off %}Hello {{ patient_name }},
+
+An appointment has been scheduled for you at {{ clinic_name }}.
+
+Date: {{ appointment.date|date:"F d, Y" }}
+Time: {{ appointment.time|time:"g:i A" }}
+Doctor: Dr. {{ doctor_name }}
+Type: {{ appointment.get_appointment_type_display }}
+Status: {{ appointment.get_status_display }}
+
+Reason:
+{{ appointment.reason }}
+
+View or cancel your appointment:
+{{ access_url }}
+
+Open the link to view details or cancel online (subject to clinic cancellation rules). This link expires in a few days.
+
+— {{ clinic_name }}
+{% endautoescape %}

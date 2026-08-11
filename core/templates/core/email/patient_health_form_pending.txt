@@ -1,0 +1,11 @@
+{% autoescape off %}Hello {{ patient_name }},
+
+{{ clinic_name }} started a health profile form for you. Please complete your demographics and medical history.
+
+Open this link to continue:
+{{ access_url }}
+
+You may need to sign in with your clinic account to open this link.
+
+— {{ clinic_name }}
+{% endautoescape %}

@@ -426,7 +426,10 @@ def health_forms_services_subnav(context):
                     'health_forms_services:forms_list',
                     'health_forms_services:form_detail',
                     'health_forms_services:edit_form',
-                    'health_forms_services:request_health_profile',
+                    'health_forms_services:load_form_section',
+                    'health_forms_services:submit_for_review',
+                    'health_forms_services:export_form',
+                    'health_forms_services:export_health_profile_docx',
                 ),
             ),
             nav_item(
@@ -450,7 +453,8 @@ def health_forms_services_subnav(context):
                     'health_forms_services:forms_list',
                     'health_forms_services:form_detail',
                     'health_forms_services:edit_form',
-                    'health_forms_services:manual_entry',
+                    'health_forms_services:load_form_section',
+                    'health_forms_services:submit_for_review',
                     'health_forms_services:request_health_profile',
                 ),
             ),
@@ -517,6 +521,29 @@ def health_forms_services_subnav(context):
         ),
     ]
     items = [item for key, item in candidates if has_clinical_module(user, key)]
+    if has_clinical_module(user, MODULE_HEALTH_PROFILE_FORMS):
+        insert_at = next(
+            (i + 1 for i, item in enumerate(items) if item.get('label') == 'Health Forms'),
+            len(items),
+        )
+        items.insert(
+            insert_at,
+            nav_item(
+                'Invite Guest',
+                'health_forms_services:invite_guest_health_profile',
+                icon='fa-envelope-open-text',
+                active=is_active(vn, 'health_forms_services:invite_guest_health_profile'),
+            ),
+        )
+        items.insert(
+            insert_at + 1,
+            nav_item(
+                'New Health Form',
+                'health_forms_services:manual_entry',
+                icon='fa-plus',
+                active=is_active(vn, 'health_forms_services:manual_entry'),
+            ),
+        )
     return enrich_subnav(items, always_show_nav=True)
 
 
@@ -715,7 +742,7 @@ def messaging_subnav(context):
                 active=vn == 'messaging:start_conversation',
             )
         )
-    return enrich_subnav(items)
+    return enrich_subnav(items, always_show_nav=True, nav_layout='wrapped')
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)

@@ -224,6 +224,11 @@ class PatientProfile(models.Model):
     zip_code = models.CharField(max_length=10, blank=True, default='')
     phone = models.CharField(max_length=20, blank=True, default='')
     telephone_number = models.CharField(max_length=20, blank=True, default='')
+    contact_email = models.EmailField(
+        blank=True,
+        default='',
+        help_text='Real contact email for guest patients (not used for login).',
+    )
     emergency_contact = models.CharField(max_length=100, blank=True, default='')
     emergency_phone = models.CharField(max_length=20, blank=True, default='')
     
@@ -433,6 +438,9 @@ class Notification(models.Model):
         # Medical record related
         ('medical_record_created', 'Medical Record Created'),
         ('medical_record_updated', 'Medical Record Updated'),
+
+        # Health forms
+        ('health_form_incomplete', 'Health Form Incomplete'),
         
         # General system
         ('system_maintenance', 'System Maintenance'),
@@ -492,6 +500,44 @@ class UserInvite(models.Model):
         if self.revoked_at:
             status = 'revoked'
         return f"Invite<{self.user.email}> ({status})"
+
+
+class GuestAccessToken(models.Model):
+    """Signed magic-link access for guest patients (no Google login)."""
+
+    class Purpose(models.TextChoices):
+        APPOINTMENT = 'appointment', 'Appointment'
+        HEALTH_FORM = 'health_form', 'Health Form'
+        MEDICAL_RECORD = 'medical_record', 'Medical Record'
+        DENTAL_INTAKE = 'dental_intake', 'Dental Intake'
+        DENTAL_RECORD = 'dental_record', 'Dental Record'
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='guest_access_tokens')
+    purpose = models.CharField(max_length=32, choices=Purpose.choices)
+    object_id = models.PositiveIntegerField()
+    token_hash = models.CharField(max_length=64, unique=True, db_index=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_guest_access_tokens',
+    )
+    expires_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'purpose', 'object_id']),
+        ]
+
+    def __str__(self):
+        status = 'revoked' if self.revoked_at else 'active'
+        return f'GuestAccess<{self.purpose}:{self.object_id}> ({status})'
 
 
 class AccountProvisioningAudit(models.Model):

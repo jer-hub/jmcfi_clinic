@@ -37,7 +37,7 @@ class DentalRecordAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
             'fields': ('address', 'email', 'contact_number', 'telephone_number')
         }),
         ('Institutional Information', {
-            'fields': ('designation', 'department_college_office')
+            'fields': ('designation', 'department_college_office', 'course', 'year_level')
         }),
         ('Emergency Contact', {
             'fields': ('guardian_name', 'guardian_contact')

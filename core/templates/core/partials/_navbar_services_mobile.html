@@ -37,10 +37,10 @@
   {% if user|has_clinical_module:'dental_records' %}
   <a href="{% url 'dental_records:dental_record_list' %}" class="mobile-link text-sm">Dental Records</a>
   {% endif %}
-  {% if user|has_clinical_module:'manage_concern' %}
+  {% if not user|is_patient_role and user|has_clinical_module:'manage_concern' %}
   <a href="{% url 'manage_concern:concern_list' %}" class="mobile-link text-sm">Manage Concern</a>
   {% endif %}
-  {% if user|has_clinical_module:'files' %}
+  {% if not user|is_patient_role and user|has_clinical_module:'files' %}
   <a href="{% url 'files:browse' %}" class="mobile-link text-sm">Clinic Files</a>
   {% endif %}
   {% if svc_role == 'staff' and user|has_clinical_module:'pharmacy' %}

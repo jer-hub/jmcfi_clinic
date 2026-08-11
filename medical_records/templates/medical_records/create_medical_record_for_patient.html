@@ -7,7 +7,7 @@
 <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
   {% include 'medical_records/_subnav.html' %}
 
-  {% include "components/page_header.html" with title="New Medical Record" subtitle="Create a walk-in record for a patient without an appointment" icon="fa-file-medical" %}
+  {% include "components/page_header.html" with title="New Medical Record" subtitle="Create a record for a patient without an appointment" icon="fa-file-medical" %}
 
   {% if not patient %}
     {% include "medical_records/partials/_create_patient_picker.html" %}
@@ -30,7 +30,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'js/clinic-walk-in-register.js' %}?v=1"></script>
+<script src="{% static 'js/clinic-guest-register.js' %}?v=6"></script>
+<script src="{% static 'js/phone-input.js' %}"></script>
 <script>
 function medicalRecordPatientPicker() {
   return {
@@ -38,10 +39,20 @@ function medicalRecordPatientPicker() {
     results: [],
     showResults: false,
     loading: false,
+    guestRegisterOpen: false,
     searchUrl: '{% url "core:search_patients" %}',
     createUrl: '{% url "medical_records:create_medical_record_for_patient" %}',
 
     initFromDom() {},
+
+    onGuestToggled(detail) {
+      this.guestRegisterOpen = !!(detail && detail.open);
+      if (this.guestRegisterOpen) {
+        this.query = '';
+        this.results = [];
+        this.showResults = false;
+      }
+    },
 
     async searchPatients() {
       const q = this.query.trim();
@@ -78,7 +89,7 @@ function medicalRecordPatientPicker() {
       window.location.href = `${this.createUrl}?patient=${encodeURIComponent(row.id)}`;
     },
 
-    onWalkInCreated(patient) {
+    onGuestCreated(patient) {
       if (!patient?.id) {
         return;
       }

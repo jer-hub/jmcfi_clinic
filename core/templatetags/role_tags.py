@@ -21,13 +21,21 @@ def is_patient_role(user):
 
 
 @register.filter
-def is_walk_in_user(user):
-    """True for clinic-managed walk-in guests (@walkin.local)."""
+def is_guest_user(user):
+    """True for clinic-managed guests (@guest.local)."""
     if not user:
         return False
-    from core.walk_in_auth import is_walk_in_user as check_walk_in
+    from core.guest_auth import is_guest_user as check_guest
 
-    return check_walk_in(user)
+    return check_guest(user)
+
+
+@register.filter
+def patient_contact_email(user):
+    """Real contact email (guest profile contact_email, else User.email)."""
+    from core.guest_auth import resolve_patient_contact_email
+
+    return resolve_patient_contact_email(user) or ''
 
 
 @register.filter

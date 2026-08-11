@@ -24,27 +24,41 @@ class DentalRecord(models.Model):
         ('pending', 'Pending'),
         ('completed', 'Completed'),
     ]
+
+    INTAKE_STATUS_CHOICES = [
+        ('', 'Not applicable'),
+        ('awaiting_guest', 'Awaiting guest'),
+        ('guest_submitted', 'Guest submitted'),
+    ]
     
     # Link to existing user
     patient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='dental_records')
     
     # Patient Demographics (some may duplicate user data but kept for completeness)
+    # Blank/null allowed for guest-intake drafts (intake_status=awaiting_guest); forms enforce required on submit.
     middle_name = models.CharField(max_length=100, blank=True)
     age = models.PositiveIntegerField(null=True, blank=True)
-    gender = models.CharField(max_length=10, choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')])
-    civil_status = models.CharField(max_length=20, choices=CIVIL_STATUS_CHOICES)
-    address = models.TextField()
-    date_of_birth = models.DateField()
-    place_of_birth = models.CharField(max_length=200)
-    email = models.EmailField()
-    contact_number = models.CharField(max_length=20)
+    gender = models.CharField(
+        max_length=10,
+        choices=[('male', 'Male'), ('female', 'Female'), ('other', 'Other')],
+        blank=True,
+        default='',
+    )
+    civil_status = models.CharField(max_length=20, choices=CIVIL_STATUS_CHOICES, blank=True, default='')
+    address = models.TextField(blank=True, default='')
+    date_of_birth = models.DateField(null=True, blank=True)
+    place_of_birth = models.CharField(max_length=200, blank=True, default='')
+    email = models.EmailField(blank=True, default='')
+    contact_number = models.CharField(max_length=20, blank=True, default='')
     telephone_number = models.CharField(max_length=20, blank=True)
-    designation = models.CharField(max_length=20, choices=DESIGNATION_CHOICES)
-    department_college_office = models.CharField(max_length=200)
+    designation = models.CharField(max_length=20, choices=DESIGNATION_CHOICES, blank=True, default='')
+    department_college_office = models.CharField(max_length=200, blank=True, default='')
+    course = models.CharField(max_length=200, blank=True)
+    year_level = models.CharField(max_length=50, blank=True)
     
     # Emergency Contact
-    guardian_name = models.CharField(max_length=200)
-    guardian_contact = models.CharField(max_length=20)
+    guardian_name = models.CharField(max_length=200, blank=True, default='')
+    guardian_contact = models.CharField(max_length=20, blank=True, default='')
     
     # Examination Info
     date_of_examination = models.DateField(default=timezone.now)
@@ -61,6 +75,13 @@ class DentalRecord(models.Model):
     
     # Record Status
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    # Guest email-intake state (clinical status stays pending until doctor completes)
+    intake_status = models.CharField(
+        max_length=32,
+        choices=INTAKE_STATUS_CHOICES,
+        blank=True,
+        default='',
+    )
     
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
@@ -69,6 +90,14 @@ class DentalRecord(models.Model):
     class Meta:
         ordering = ['-date_of_examination']
     
+    CONSENTS_REQUIRED_FOR_COMPLETION = (
+        'Both consent and informed consent must be checked before marking this record completed.'
+    )
+
+    def has_required_consents(self) -> bool:
+        """True when data-accuracy and informed consent are both signed."""
+        return bool(self.consent_signed and self.informed_consent_signed)
+
     def __str__(self):
         name = f"{self.patient.first_name} {self.middle_name} {self.patient.last_name}".strip()
         return f"Dental Record - {name} ({self.date_of_examination})"

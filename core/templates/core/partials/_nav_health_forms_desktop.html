@@ -28,20 +28,27 @@
     role="region"
     aria-labelledby="nav-trigger-health-forms-desktop"
     class="absolute left-0 top-full z-50 mt-2 w-72 origin-top-left rounded-xl border border-gray-200 bg-white shadow-lg p-2">
-    {% if user|is_patient_role or user|has_clinical_module:'health_profile_forms' %}
+    {% if user|is_patient_role %}
+    <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">My Forms</a>
+    <a href="{% url 'health_forms_services:request_health_profile' %}" class="dropdown-item">Request Form</a>
+    {% elif user|has_clinical_module:'health_profile_forms' %}
     <a href="{% url 'health_forms_services:forms_list' %}" class="dropdown-item">Health Profile Forms</a>
     {% endif %}
     {% if not user|is_patient_role and user|has_clinical_module:'dental_health_forms' %}
     <a href="{% url 'health_forms_services:dental_forms_list' %}" class="dropdown-item">Dental Health Forms</a>
+    <a href="{% url 'health_forms_services:create_dental_form' %}" class="dropdown-item">New Dental Health Form</a>
     {% endif %}
     {% if not user|is_patient_role and user|has_clinical_module:'patient_charts' %}
     <a href="{% url 'health_forms_services:patient_chart_list' %}" class="dropdown-item">Patient Charts</a>
+    <a href="{% url 'health_forms_services:create_patient_chart' %}" class="dropdown-item">New Patient Chart</a>
     {% endif %}
     {% if not user|is_patient_role and user|has_clinical_module:'dental_services' %}
     <a href="{% url 'health_forms_services:dental_services_list' %}" class="dropdown-item">Dental Services</a>
+    <a href="{% url 'health_forms_services:create_dental_services' %}" class="dropdown-item">New Dental Services Form</a>
     {% endif %}
     {% if not user|is_patient_role and user|has_clinical_module:'prescriptions' %}
     <a href="{% url 'health_forms_services:prescription_list' %}" class="dropdown-item">Prescriptions</a>
+    <a href="{% url 'health_forms_services:create_prescription' %}" class="dropdown-item">New Prescription</a>
     {% endif %}
     {% if include_document_request_link and not user|is_patient_role and user|has_clinical_module:'document_request' %}
     <a href="{% url 'document_request:document_requests' %}" class="dropdown-item">Document Requests</a>

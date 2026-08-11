@@ -1,0 +1,199 @@
+{# Institutional Details — same design as health_forms_services institutional section. #}
+{# Expects: form (DentalRecordForm), optional department_value / course_value / year_level_value. #}
+{% with dept_value=department_value|default:form.department_college_office.value course_val=course_value|default:form.course.value year_val=year_level_value|default:form.year_level.value %}
+{% include "core/partials/_form_section_header.html" with title="Institutional Details" icon="fa-building" icon_theme="indigo" margin_class="mb-4" %}
+<p class="text-sm text-gray-500 -mt-2 mb-4 ml-9" data-institution-description>School or workplace affiliation.</p>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6"
+     data-academic-fieldset
+     x-data="hfAcademicInstitutionalSection({
+       department: '{{ dept_value|default_if_none:''|escapejs }}',
+       course: '{{ course_val|default_if_none:''|escapejs }}',
+       yearLevel: '{{ year_val|default_if_none:''|escapejs }}',
+       designation: '{{ form.designation.value|default_if_none:'student'|escapejs }}'
+     })"
+     x-init="init()">
+  <div data-section-field data-field-name="designation" class="md:col-span-2">
+    <label for="{{ form.designation.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+      Designation{% if form.designation.field.required %} <span class="text-red-500">*</span>{% endif %}
+    </label>
+    <select name="{{ form.designation.html_name }}"
+            id="{{ form.designation.id_for_label }}"
+            class="form-select"
+            x-model="designation"
+            {% if form.designation.field.required %}required{% endif %}>
+      {% for value, label in form.designation.field.choices %}
+        {% if value %}
+        <option value="{{ value }}" {% if form.designation.value == value %}selected{% endif %}>{{ label }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+    {% if form.designation.help_text %}
+      <p class="mt-1 text-xs text-gray-400">{{ form.designation.help_text }}</p>
+    {% endif %}
+    {% if form.designation.errors %}
+      <p class="mt-1 text-xs text-red-600 font-medium">{{ form.designation.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <div data-section-field data-field-name="department_college_office" class="md:col-span-2">
+    <label for="department-search" class="block text-sm font-semibold text-gray-700 mb-2">
+      Department / College{% if form.department_college_office.field.required %} <span class="text-red-500">*</span>{% endif %}
+    </label>
+    <input type="hidden"
+           name="{{ form.department_college_office.html_name }}"
+           id="{{ form.department_college_office.id_for_label }}"
+           :value="department"
+           data-initial-value="{{ dept_value|default_if_none:'' }}"
+           {% if form.department_college_office.field.required %}required{% endif %}>
+    <div class="relative" @click.outside="closeDepartmentDropdown()">
+      <div x-show="department && !departmentOpen"
+           x-cloak
+           class="flex w-full items-center gap-3 rounded-xl border border-primary-200 bg-gradient-to-r from-primary-50 to-white px-3.5 py-3 shadow-sm ring-1 ring-primary-100">
+        <button type="button"
+                @click="startDepartmentSearch()"
+                class="flex min-w-0 flex-1 items-center gap-3 text-left focus:outline-none">
+          <span class="inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-sm font-semibold text-white shadow-sm"
+                x-text="departmentInitial"></span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-sm font-semibold text-gray-900" x-text="department"></span>
+            <span class="mt-0.5 block text-xs text-primary-700">Tap to search or change</span>
+          </span>
+          <i class="fas fa-chevron-down text-xs text-primary-500" aria-hidden="true"></i>
+        </button>
+        <button type="button"
+                @click="clearDepartment()"
+                class="inline-flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-white hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                aria-label="Clear department">
+          <i class="fas fa-circle-xmark text-sm" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div x-show="!department || departmentOpen" x-cloak class="form-input-icon">
+        <i class="fas fa-magnifying-glass form-input-icon__icon text-sm" aria-hidden="true"></i>
+        <input type="text"
+               id="department-search"
+               x-ref="departmentSearch"
+               x-model="departmentQuery"
+               @focus="openDepartmentDropdown()"
+               @input="onDepartmentQueryInput()"
+               @keydown.arrow-down.prevent="highlightNextDepartment()"
+               @keydown.arrow-up.prevent="highlightPrevDepartment()"
+               @keydown.enter.prevent="selectHighlightedDepartment()"
+               @keydown.escape.prevent="closeDepartmentDropdown()"
+               autocomplete="off"
+               role="combobox"
+               placeholder="Type to find college/department..."
+               class="form-input pr-10"
+               :class="departmentOpen ? 'border-primary-400 ring-2 ring-primary-500/20' : ''"
+               aria-autocomplete="list"
+               aria-controls="department-options"
+               :aria-expanded="departmentOpen.toString()">
+        <button type="button"
+                x-show="departmentQuery"
+                x-cloak
+                @click="departmentQuery = ''; openDepartmentDropdown(); departmentHighlight = 0"
+                class="absolute inset-y-0 right-0 z-10 flex items-center pr-3 text-gray-400 hover:text-gray-600"
+                aria-label="Clear search">
+          <i class="fas fa-circle-xmark text-sm" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <div x-show="departmentOpen"
+           x-cloak
+           x-transition:enter="transition ease-out duration-150"
+           x-transition:enter-start="opacity-0 -translate-y-1"
+           x-transition:enter-end="opacity-100 translate-y-0"
+           x-transition:leave="transition ease-in duration-100"
+           x-transition:leave-start="opacity-100 translate-y-0"
+           x-transition:leave-end="opacity-0 -translate-y-1"
+           id="department-options"
+           class="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl ring-1 ring-black/5">
+        <div class="sticky top-0 flex items-center justify-between gap-2 border-b border-gray-100 bg-gray-50 px-3 py-2">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+            <span x-text="filteredCollegeOptions.length"></span>
+            <span x-text="filteredCollegeOptions.length === 1 ? ' match' : ' matches'"></span>
+          </p>
+        </div>
+        <div x-ref="departmentList" class="max-h-56 overflow-y-auto p-1.5">
+          <template x-if="filteredCollegeOptions.length">
+            <ul role="listbox" aria-label="College and department options">
+              <template x-for="(option, idx) in filteredCollegeOptions" :key="option">
+                <li role="option" :aria-selected="(idx === departmentHighlight).toString()">
+                  <button type="button"
+                          :data-dept-idx="idx"
+                          class="flex w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors"
+                          :class="idx === departmentHighlight
+                              ? 'border-primary-200 bg-primary-50'
+                              : (option === department ? 'border-primary-100 bg-primary-50/60' : 'border-transparent hover:bg-gray-50')"
+                          @mouseenter="departmentHighlight = idx"
+                          @click="selectDepartment(option)">
+                    <span class="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                          :class="idx === departmentHighlight || option === department
+                              ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white'
+                              : 'bg-gray-100 text-gray-600'"
+                          x-text="collegeInitial(option)"></span>
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate text-sm font-medium"
+                            :class="idx === departmentHighlight || option === department ? 'text-primary-900' : 'text-gray-800'"
+                            x-text="option"></span>
+                    </span>
+                    <i class="fas fa-check text-xs text-primary-600"
+                       x-show="option === department"
+                       x-cloak
+                       aria-hidden="true"></i>
+                  </button>
+                </li>
+              </template>
+            </ul>
+          </template>
+          <div x-show="!filteredCollegeOptions.length" class="px-3 py-8 text-center">
+            <i class="fas fa-building-columns mb-2 text-2xl text-gray-300" aria-hidden="true"></i>
+            <p class="text-sm font-medium text-gray-600">No matches</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% if form.department_college_office.help_text %}
+      <p class="mt-1 text-xs text-gray-400">{{ form.department_college_office.help_text }}</p>
+    {% endif %}
+    {% if form.department_college_office.errors %}
+      <p class="mt-1 text-xs text-red-600 font-medium">{{ form.department_college_office.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <div data-section-field data-field-name="course" x-show="isStudentDesignation()" x-cloak>
+    <label for="{{ form.course.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+      Course / Program
+    </label>
+    <select name="{{ form.course.html_name }}"
+            id="{{ form.course.id_for_label }}"
+            x-ref="courseSelect"
+            x-model="course"
+            data-prefill-value="{{ course_val|default_if_none:'' }}"
+            class="form-select">
+      <option value="">Select course/program</option>
+    </select>
+    {% if form.course.errors %}
+      <p class="mt-1 text-xs text-red-600 font-medium">{{ form.course.errors.0 }}</p>
+    {% endif %}
+  </div>
+
+  <div data-section-field data-field-name="year_level" x-show="isStudentDesignation()" x-cloak>
+    <label for="{{ form.year_level.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
+      Year Level
+    </label>
+    <select name="{{ form.year_level.html_name }}"
+            id="{{ form.year_level.id_for_label }}"
+            x-ref="yearLevelSelect"
+            x-model="yearLevel"
+            data-prefill-value="{{ year_val|default_if_none:'' }}"
+            class="form-select">
+      <option value="">Select year level</option>
+    </select>
+    {% if form.year_level.errors %}
+      <p class="mt-1 text-xs text-red-600 font-medium">{{ form.year_level.errors.0 }}</p>
+    {% endif %}
+  </div>
+</div>
+{% endwith %}

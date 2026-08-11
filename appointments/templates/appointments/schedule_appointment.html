@@ -219,10 +219,8 @@ function appointmentForm() {
       this.$watch('selectedType', () => this.syncSelectedDoctor());
       this.$nextTick(() => {
         this.syncSelectedDoctor();
-        const hasServerError = Boolean(
-          document.querySelector('.bg-danger-50, [class*="bg-danger-50"]')
-        );
-        if (hasServerError && !this.validate()) this.focusFirstError();
+        if (!document.querySelector('[data-schedule-server-error]')) return;
+        if (!this.validate()) this.focusFirstError();
       });
     },
     syncSelectedDoctor() {

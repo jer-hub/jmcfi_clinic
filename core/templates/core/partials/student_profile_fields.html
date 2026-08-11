@@ -1,7 +1,7 @@
 {% load role_tags %}
 <!-- Patient profile fields -->
 <div class="space-y-8"
-     {% if not user|is_walk_in_user %}
+     {% if not user|is_guest_user %}
      x-data="studentAcademicEditForm(
          '{{ form.department.value|default_if_none:""|escapejs }}',
          '{{ form.course.value|default_if_none:""|escapejs }}',
@@ -193,8 +193,8 @@
         </div>
     </div>
 
-    {% if not user|is_walk_in_user %}
-    <!-- Institutional Information Section (hidden for walk-in/guest users) -->
+    {% if not user|is_guest_user %}
+    <!-- Institutional Information Section (hidden for guest users) -->
     <div class="border-b border-gray-100 pb-8">
         {% include "core/partials/_form_section_header.html" with title="Academic Information" icon="fa-graduation-cap" icon_theme="indigo" %}
         <div class="mb-4">
@@ -416,7 +416,7 @@
         </template>
     </div>
     {% else %}
-    {# Walk-ins: omit academic UI; server clears these on save. #}
+    {# Guests: omit academic UI; server clears these on save. #}
     <input type="hidden" name="department" value="">
     <input type="hidden" name="course" value="">
     <input type="hidden" name="year_level" value="">

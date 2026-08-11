@@ -71,8 +71,16 @@
       </div>
 
     {% elif section.key == 'institutional_details' %}
-
-      {% include 'health_forms_services/partials/_institutional_details_section.html' with section=section %}
+      {% if section.guest_hidden %}
+        {% for item in section.fields %}
+          <input type="hidden"
+                 name="{{ item.field.html_name }}"
+                 id="{{ item.field.id_for_label }}"
+                 value="{{ item.field.value|default_if_none:'guest' }}">
+        {% endfor %}
+      {% else %}
+        {% include 'health_forms_services/partials/_institutional_details_section.html' with section=section %}
+      {% endif %}
 
     {% elif section.key == 'address_birth' %}
 
@@ -132,12 +140,12 @@
 
 <script>
 
-function hfAcademicInstitutionalSection() {
+function hfAcademicInstitutionalSection(initial = {}) {
   const catalog = window.__jmcfiAcademicCatalog || {};
   return {
-    department: '',
-    course: '',
-    yearLevel: '',
+    department: initial.department || '',
+    course: initial.course || '',
+    yearLevel: initial.yearLevel || '',
     departmentQuery: '',
     departmentOpen: false,
     departmentHighlight: 0,
@@ -156,16 +164,75 @@ function hfAcademicInstitutionalSection() {
     },
 
     init() {
+      const live = window.__jmcfiAcademicCatalog || {};
+      this.collegeOptions = live.colleges || this.collegeOptions;
+      this.courseOptionsByCollege = live.coursesByCollege || this.courseOptionsByCollege;
+      this.yearLevelOptionsByCollege = live.yearLevelsByCollege || this.yearLevelOptionsByCollege;
+
       const deptInput = this.$root.querySelector('#id_department_college_office');
-      const courseInput = this.$root.querySelector('#id_course');
-      const yearInput = this.$root.querySelector('#id_year_level');
-      this.department = deptInput ? this.normalizeDepartment(deptInput.value) : '';
-      this.course = courseInput ? (courseInput.value || '').trim() : '';
-      this.yearLevel = yearInput ? (yearInput.value || '').trim() : '';
+      const courseSelect = this.$refs.courseSelect;
+      const yearSelect = this.$refs.yearLevelSelect;
+
+      const deptRaw = (
+        this.department
+        || deptInput?.dataset?.initialValue
+        || deptInput?.getAttribute?.('value')
+        || deptInput?.value
+        || ''
+      ).trim();
+      this.department = this.normalizeDepartment(deptRaw);
       if (deptInput) deptInput.value = this.department;
+
+      this.course = (
+        this.course
+        || courseSelect?.dataset?.prefillValue
+        || courseSelect?.value
+        || ''
+      ).trim();
+      this.yearLevel = (
+        this.yearLevel
+        || yearSelect?.dataset?.prefillValue
+        || yearSelect?.value
+        || ''
+      ).trim();
+
       this.departmentQuery = this.department;
-      this.$watch('department', () => this.onDepartmentChange());
-      this.$nextTick(() => this.refreshDependentSelects());
+      this._suppressDeptWatch = false;
+      this.$watch('department', () => {
+        if (this._suppressDeptWatch) return;
+        this.onDepartmentChange();
+      });
+      if (deptInput) {
+        const onExternal = () => this.syncFromExternalPrefill();
+        deptInput.addEventListener('input', onExternal);
+        deptInput.addEventListener('change', onExternal);
+      }
+      this.$nextTick(() => this.refreshDependentSelects({ clearInvalid: false }));
+    },
+
+    syncFromExternalPrefill() {
+      const deptInput = this.$root.querySelector('#id_department_college_office');
+      const courseSelect = this.$refs.courseSelect;
+      const yearSelect = this.$refs.yearLevelSelect;
+      this._suppressDeptWatch = true;
+      this.department = this.normalizeDepartment(
+        (deptInput?.value || deptInput?.dataset?.initialValue || '').trim(),
+      );
+      this.departmentQuery = this.department;
+      this.course = (
+        courseSelect?.dataset?.prefillValue
+        || courseSelect?.value
+        || this.course
+        || ''
+      ).trim();
+      this.yearLevel = (
+        yearSelect?.dataset?.prefillValue
+        || yearSelect?.value
+        || this.yearLevel
+        || ''
+      ).trim();
+      this.refreshDependentSelects({ clearInvalid: false });
+      this._suppressDeptWatch = false;
     },
 
     get filteredCollegeOptions() {
@@ -296,7 +363,15 @@ function hfAcademicInstitutionalSection() {
       }
     },
 
-    refreshDependentSelects() {
+    refreshDependentSelects({ clearInvalid = false } = {}) {
+      if (clearInvalid) {
+        if (this.course && !this.filteredCourseOptions.includes(this.course)) {
+          this.course = '';
+        }
+        if (this.yearLevel && !this.filteredYearLevelOptions.includes(this.yearLevel)) {
+          this.yearLevel = '';
+        }
+      }
       this.populateSelect(this.$refs.courseSelect, 'Select course/program', this.filteredCourseOptions, this.course);
       this.populateSelect(this.$refs.yearLevelSelect, 'Select year level', this.filteredYearLevelOptions, this.yearLevel);
       this.course = this.$refs.courseSelect ? this.$refs.courseSelect.value : this.course;
@@ -304,7 +379,7 @@ function hfAcademicInstitutionalSection() {
     },
 
     onDepartmentChange() {
-      this.refreshDependentSelects();
+      this.refreshDependentSelects({ clearInvalid: true });
     },
 
     isGuestDesignation() {

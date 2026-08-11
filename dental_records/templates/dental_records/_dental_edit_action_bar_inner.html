@@ -1,5 +1,10 @@
 {# Status + actions row for dental record edit (health forms action bar pattern) #}
 <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+  {% if dental_record.intake_status == 'awaiting_guest' %}
+    {% include "components/status_badge.html" with label="Awaiting guest" variant="muted" icon="fa-envelope" %}
+  {% elif dental_record.intake_status == 'guest_submitted' %}
+    {% include "components/status_badge.html" with label="Guest submitted" variant="primary" icon="fa-user-check" %}
+  {% endif %}
   {% if dental_record.status == 'completed' %}
     {% include "components/status_badge.html" with label="Completed" variant="success" icon="fa-circle-check" %}
   {% else %}
@@ -12,18 +17,43 @@
 </div>
 
 <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+  {% if can_resend_guest_intake %}
+  <form method="post" action="{% url 'dental_records:resend_guest_intake_link' dental_record.id %}" class="inline">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.path }}">
+    <button type="submit"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-gray-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors border border-gray-300 bg-white">
+      <i class="fas fa-envelope" aria-hidden="true"></i>
+      <span>Resend link</span>
+    </button>
+  </form>
+  {% endif %}
   {% if dental_record.status == 'pending' %}
-  <button type="button"
-          data-record-id="{{ dental_record.id }}"
-          data-subtitle="{{ dental_record.patient.get_full_name|escape }}"
-          onclick="window.__jmcfiDentalStatusModal(this); return false;"
-          class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-success-600 text-white rounded-lg hover:bg-success-700 font-medium text-sm transition-colors">
-    <i class="fas fa-circle-check" aria-hidden="true"></i>
-    {% if dental_record.appointment and dental_record.appointment.status != 'completed' %}
-      Mark &amp; Complete
+    {% if dental_record.has_required_consents %}
+    <button type="button"
+            data-record-id="{{ dental_record.id }}"
+            data-subtitle="{{ dental_record.patient.get_full_name|escape }}"
+            onclick="window.__jmcfiDentalStatusModal(this); return false;"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-success-600 text-white rounded-lg hover:bg-success-700 font-medium text-sm transition-colors">
+      <i class="fas fa-circle-check" aria-hidden="true"></i>
+      {% if dental_record.appointment and dental_record.appointment.status != 'completed' %}
+        Mark &amp; Complete
+      {% else %}
+        Mark Completed
+      {% endif %}
+    </button>
     {% else %}
-      Mark Completed
+    <button type="button"
+            disabled
+            title="Check and save both consent fields before marking completed"
+            class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-300 text-gray-500 rounded-lg font-medium text-sm cursor-not-allowed">
+      <i class="fas fa-circle-check" aria-hidden="true"></i>
+      {% if dental_record.appointment and dental_record.appointment.status != 'completed' %}
+        Mark &amp; Complete
+      {% else %}
+        Mark Completed
+      {% endif %}
+    </button>
     {% endif %}
-  </button>
   {% endif %}
 </div>

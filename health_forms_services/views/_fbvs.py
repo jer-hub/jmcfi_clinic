@@ -19,7 +19,7 @@ from django.views.decorators.http import require_GET, require_POST, require_http
 
 from core.decorators import role_required
 from core.roles import PATIENT_ROLE_VALUES
-from core.walk_in_auth import is_walk_in_user
+from core.guest_auth import create_guest_user, get_or_create_guest_for_invite, is_guest_user
 from core.academic_catalog import patient_catalog_context
 
 from ..exports import (
@@ -36,6 +36,7 @@ from ..forms import (
     DentalHealthPersonalInfoForm,
     DentalServicesPersonalInfoForm,
     DentalServicesReviewForm,
+    GuestHealthFormInviteForm,
     HealthFormReviewForm,
     HealthProfileClinicalSummaryForm,
     HealthProfileDiagnosticTestsForm,
@@ -88,6 +89,69 @@ def _selected_patient_from_request(request):
     return patient, None
 
 
+def _phone_from_personal_cleaned(cleaned_data):
+    for key in ('mobile_number', 'contact_number', 'telephone_number'):
+        value = (cleaned_data.get(key) or '').strip()
+        if value:
+            return value
+    return None
+
+
+def _names_from_personal_cleaned(cleaned_data):
+    first = (cleaned_data.get('first_name') or '').strip()
+    last = (cleaned_data.get('last_name') or '').strip()
+    if first and last:
+        return first, last
+    patient_name = (cleaned_data.get('patient_name') or '').strip()
+    if not patient_name:
+        return '', ''
+    parts = patient_name.split(None, 1)
+    if len(parts) == 2:
+        return parts[0], parts[1]
+    return parts[0], 'Guest'
+
+
+def _resolve_create_patient(request, personal_form):
+    """
+    Patient for staff create flows: picker selection, or guest from profiling fields on submit.
+    """
+    patient, picker_error = _selected_patient_from_request(request)
+    if picker_error:
+        return None, picker_error
+    if patient:
+        return patient, None
+
+    registering_guest = request.POST.get('register_guest') == '1'
+    if not registering_guest:
+        return None, 'Please search for a patient or check Register guest patient.'
+
+    if not personal_form.is_valid():
+        return None, None
+
+    first_name, last_name = _names_from_personal_cleaned(personal_form.cleaned_data)
+    if not first_name or not last_name:
+        return None, 'First and last name are required for guest registration.'
+
+    phone = _phone_from_personal_cleaned(personal_form.cleaned_data)
+    gender = personal_form.cleaned_data.get('gender') or None
+    date_of_birth = personal_form.cleaned_data.get('date_of_birth')
+    contact_email = (
+        (personal_form.cleaned_data.get('email_address') or '').strip()
+        or None
+    )
+    if not contact_email:
+        return None, 'A contact email is required for guest registration.'
+
+    return create_guest_user(
+        first_name=first_name,
+        last_name=last_name,
+        phone=phone,
+        gender=gender,
+        date_of_birth=date_of_birth,
+        contact_email=contact_email,
+    ), None
+
+
 def _patient_search_result_payload(patient):
     """Shared payload contract for patient picker search results."""
     profile = getattr(patient, 'patient_profile', None)
@@ -111,7 +175,7 @@ def _patient_profile_prefill_payload(patient):
     profile = getattr(patient, 'patient_profile', None)
     staff_profile = getattr(patient, 'staff_profile', None)
     is_employee = bool(getattr(profile, 'is_employee', False)) if profile else False
-    is_guest = is_walk_in_user(patient)
+    is_guest = is_guest_user(patient)
     if is_guest:
         default_designation = 'guest'
         is_employee = False
@@ -192,7 +256,7 @@ def _patient_picker_config(request, form_key, selected_patient=None):
         ),
         'initialSelected': initial_selected,
         'fieldMappings': picker_field_mappings(form_key),
-        'registerWalkInUrl': reverse('core:register_walk_in_patient'),
+        'registerGuestUrl': reverse('core:register_guest_patient'),
         'clinicalModule': clinical_module_for_form_key(form_key),
     }
 
@@ -247,17 +311,78 @@ def manual_entry(request):
     """Create a new health profile form using personal info only."""
     selected_patient = None
     if request.method == 'POST':
-        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         personal_form = HealthProfilePersonalInfoForm(request.POST)
+        selected_patient, selected_patient_error = _resolve_create_patient(request, personal_form)
         if selected_patient_error:
             personal_form.add_error(None, selected_patient_error)
-        if personal_form.is_valid():
-            health_form = HealthProfileForm(user=selected_patient or request.user)
+        if personal_form.is_valid() and not selected_patient_error and selected_patient:
+            health_form = HealthProfileForm(user=selected_patient)
             for field in personal_form.cleaned_data:
                 setattr(health_form, field, personal_form.cleaned_data[field])
             # Start as draft so the patient can finish history online, or staff can submit in-clinic.
             health_form.status = HealthProfileForm.Status.INCOMPLETE
             health_form.save()
+
+            from core.guest_emails import (
+                email_guest_health_form_pending,
+                email_patient_health_form_pending,
+            )
+            from core.notification_delivery import format_email_send_error, notify_user
+            from core.guest_auth import is_guest_user, resolve_patient_contact_email
+
+            # Keep contact email on existing guests in sync with the form snapshot.
+            form_email = (personal_form.cleaned_data.get('email_address') or '').strip()
+            if is_guest_user(selected_patient) and form_email:
+                profile = getattr(selected_patient, 'patient_profile', None)
+                if profile and profile.contact_email != form_email:
+                    profile.contact_email = form_email
+                    profile.save(update_fields=['contact_email'])
+
+            emailed = False
+            email_error = ''
+            contact = resolve_patient_contact_email(selected_patient)
+
+            if is_guest_user(selected_patient):
+                try:
+                    emailed = email_guest_health_form_pending(
+                        request, health_form, created_by=request.user
+                    )
+                except Exception as email_exc:
+                    email_error = format_email_send_error(email_exc)
+                    emailed = False
+            else:
+                notify_user(
+                    selected_patient,
+                    title='Complete your health profile',
+                    message=(
+                        'The clinic started a health profile form for you. '
+                        'Please finish your demographics and medical history, then submit for review.'
+                    ),
+                    notification_type='general',
+                    transaction_type='health_form_incomplete',
+                    related_id=health_form.pk,
+                    send_email=False,
+                )
+                try:
+                    emailed = email_patient_health_form_pending(request, health_form)
+                except Exception as email_exc:
+                    email_error = format_email_send_error(email_exc)
+                    emailed = False
+
+            if not contact:
+                messages.warning(
+                    request,
+                    'Draft created, but this patient has no contact email — they were not emailed.',
+                )
+            elif emailed:
+                messages.success(request, f'Health-form link emailed to {contact}.')
+            else:
+                detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+                messages.warning(
+                    request,
+                    f'Draft created, but the email was not sent ({detail}).',
+                )
+
             messages.success(
                 request,
                 'Health profile form created as a draft. Complete personal/history, then submit for review.',
@@ -273,6 +398,122 @@ def manual_entry(request):
         'personal_form': personal_form,
         **_patient_picker_create_context(request, 'health_profile', selected_patient),
     })
+
+
+@login_required
+@role_required('staff', 'doctor')
+def invite_guest_health_profile(request):
+    """Invite a guest by name + contact email to complete a health profile online."""
+    if request.method == 'POST':
+        form = GuestHealthFormInviteForm(request.POST)
+        if form.is_valid():
+            first_name = form.cleaned_data['first_name'].strip()
+            last_name = form.cleaned_data['last_name'].strip()
+            contact_email = form.cleaned_data['contact_email']
+            mobile = (form.cleaned_data.get('mobile_number') or '').strip() or None
+
+            guest, _created = get_or_create_guest_for_invite(
+                first_name=first_name,
+                last_name=last_name,
+                contact_email=contact_email,
+                phone=mobile,
+            )
+
+            health_form = HealthProfileForm(
+                user=guest,
+                status=HealthProfileForm.Status.INCOMPLETE,
+                designation=HealthProfileForm.Designation.GUEST,
+                first_name=first_name,
+                last_name=last_name,
+                email_address=contact_email,
+                mobile_number=mobile or '',
+            )
+            health_form.save()
+
+            from core.guest_emails import email_guest_health_form_pending
+            from core.guest_auth import resolve_patient_contact_email
+            from core.notification_delivery import format_email_send_error
+
+            emailed = False
+            email_error = ''
+            contact = resolve_patient_contact_email(guest)
+            try:
+                emailed = email_guest_health_form_pending(
+                    request, health_form, created_by=request.user
+                )
+            except Exception as email_exc:
+                email_error = format_email_send_error(email_exc)
+                emailed = False
+
+            if not contact:
+                messages.warning(
+                    request,
+                    'Draft created, but this guest has no contact email — they were not emailed.',
+                )
+            elif emailed:
+                messages.success(request, f'Health-form link emailed to {contact}.')
+            else:
+                detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+                messages.warning(
+                    request,
+                    f'Draft created, but the email was not sent ({detail}).',
+                )
+
+            messages.success(
+                request,
+                'Guest health profile draft created. They can complete personal and medical history online.',
+            )
+            return redirect('health_forms_services:form_detail', pk=health_form.pk)
+    else:
+        form = GuestHealthFormInviteForm()
+
+    return render(request, 'health_forms_services/invite_guest.html', {
+        'form': form,
+    })
+
+
+@login_required
+@role_required('staff', 'doctor')
+@require_POST
+def resend_guest_health_form_link(request, pk):
+    """Re-issue magic link email for an incomplete guest health profile draft."""
+    health_form = get_form_or_404(
+        HealthProfileForm, pk, request.user, select_related_fields=['user', 'user__patient_profile']
+    )
+    if not is_guest_user(health_form.user):
+        messages.error(request, 'Resend link is only available for guest patients.')
+        return redirect('health_forms_services:form_detail', pk=pk)
+    if health_form.status != HealthProfileForm.Status.INCOMPLETE:
+        messages.error(request, 'Resend link is only available while the form is still a draft.')
+        return redirect('health_forms_services:form_detail', pk=pk)
+
+    from core.guest_emails import email_guest_health_form_pending
+    from core.guest_auth import resolve_patient_contact_email
+    from core.notification_delivery import format_email_send_error
+
+    contact = resolve_patient_contact_email(health_form.user)
+    emailed = False
+    email_error = ''
+    try:
+        emailed = email_guest_health_form_pending(
+            request, health_form, created_by=request.user
+        )
+    except Exception as email_exc:
+        email_error = format_email_send_error(email_exc)
+        emailed = False
+
+    if not contact:
+        messages.warning(request, 'This guest has no contact email — link was not sent.')
+    elif emailed:
+        messages.success(request, f'Health-form link resent to {contact}.')
+    else:
+        detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+        messages.warning(request, f'Could not resend the email ({detail}).')
+
+    next_url = (request.POST.get('next') or '').strip()
+    if next_url.startswith('/'):
+        return redirect(next_url)
+    return redirect('health_forms_services:form_detail', pk=pk)
 
 
 @login_required
@@ -330,6 +571,30 @@ def submit_for_review(request, pk):
     health_form.save(update_fields=['status', 'updated_at'])
     messages.success(request, 'Form submitted for clinic review.')
     return redirect('health_forms_services:form_detail', pk=pk)
+
+
+@login_required
+@require_POST
+def cancel_draft(request, pk):
+    """Cancel an incomplete draft or pending submission (patient owner or clinician)."""
+    from health_forms_services.services import can_cancel_draft
+
+    health_form = get_form_or_404(
+        HealthProfileForm, pk, request.user,
+        ['user', 'reviewed_by', 'examining_physician'],
+    )
+    if not can_cancel_draft(request.user, health_form):
+        messages.error(request, 'You cannot cancel this form.')
+        return redirect('health_forms_services:form_detail', pk=pk)
+
+    was_pending = health_form.status == HealthProfileForm.Status.PENDING
+    health_form.status = HealthProfileForm.Status.CANCELLED
+    health_form.save(update_fields=['status', 'updated_at'])
+    if was_pending:
+        messages.success(request, 'Health form submission cancelled.')
+    else:
+        messages.success(request, 'Health form draft cancelled.')
+    return redirect('health_forms_services:forms_list')
 
 
 @login_required
@@ -397,16 +662,16 @@ def review_form(request, pk):
 
 
 @login_required
-@role_required('staff', 'doctor')
+@require_POST
 def delete_form(request, pk):
-    user = request.user
-    if user.role in ['staff', 'doctor', 'admin']:
-        health_form = get_object_or_404(HealthProfileForm, pk=pk)
-    else:
-        health_form = get_object_or_404(HealthProfileForm, pk=pk, user=user)
+    from health_forms_services.services import can_delete_health_profile
 
-    if health_form.status not in ['pending', 'rejected', 'incomplete']:
-        messages.error(request, 'Cannot delete a form that has been processed.')
+    health_form = get_form_or_404(
+        HealthProfileForm, pk, request.user,
+        ['user', 'reviewed_by', 'examining_physician'],
+    )
+    if not can_delete_health_profile(request.user, health_form):
+        messages.error(request, 'You cannot delete this form.')
         return redirect('health_forms_services:form_detail', pk=pk)
 
     health_form.delete()
@@ -515,12 +780,12 @@ def export_form_json(request, pk):
 def create_dental_form(request):
     selected_patient = None
     if request.method == 'POST':
-        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         personal_form = DentalServicesPersonalInfoForm(request.POST)
+        selected_patient, selected_patient_error = _resolve_create_patient(request, personal_form)
         if selected_patient_error:
             personal_form.add_error(None, selected_patient_error)
-        if personal_form.is_valid():
-            service_form = DentalServicesRequest(user=selected_patient or request.user)
+        if personal_form.is_valid() and not selected_patient_error and selected_patient:
+            service_form = DentalServicesRequest(user=selected_patient)
             for field in personal_form.cleaned_data:
                 setattr(service_form, field, personal_form.cleaned_data[field])
             service_form.status = DentalServicesRequest.Status.PENDING
@@ -590,12 +855,12 @@ def delete_dental_form(request, pk):
 def create_dental_services(request):
     selected_patient = None
     if request.method == 'POST':
-        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         personal_form = DentalHealthPersonalInfoForm(request.POST)
+        selected_patient, selected_patient_error = _resolve_create_patient(request, personal_form)
         if selected_patient_error:
             personal_form.add_error(None, selected_patient_error)
-        if personal_form.is_valid():
-            dental_form = DentalHealthForm(user=selected_patient or request.user)
+        if personal_form.is_valid() and not selected_patient_error and selected_patient:
+            dental_form = DentalHealthForm(user=selected_patient)
             for field in personal_form.cleaned_data:
                 setattr(dental_form, field, personal_form.cleaned_data[field])
             dental_form.status = DentalHealthForm.Status.PENDING
@@ -831,12 +1096,17 @@ def dental_form_chart_api_delete(request, pk, tooth_id):
 @require_GET
 @role_required('staff', 'doctor')
 def search_patients(request):
-    """Search patient accounts for picker-first transaction create flows."""
+    """Search patient accounts for picker-first transaction create flows.
+
+    Guests are excluded — use Register guest patient for those accounts.
+    """
+    from core.guest_auth import exclude_guest_users
+
     query = (request.GET.get('q') or '').strip()
     if len(query) < 2:
         return JsonResponse({'results': []})
 
-    patients = (
+    patients = exclude_guest_users(
         User.objects.filter(role__in=PATIENT_ROLE_VALUES)
         .filter(
             Q(first_name__icontains=query)
@@ -845,8 +1115,8 @@ def search_patients(request):
             | Q(patient_profile__patient_id__icontains=query)
         )
         .select_related('patient_profile')
-        .order_by('last_name', 'first_name')[:20]
-    )
+        .order_by('last_name', 'first_name')
+    )[:20]
     return JsonResponse({'results': [_patient_search_result_payload(patient) for patient in patients]})
 
 
@@ -868,12 +1138,12 @@ def patient_profile_prefill(request, patient_id):
 def create_patient_chart(request):
     selected_patient = None
     if request.method == 'POST':
-        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         form = PatientChartPersonalInfoForm(request.POST)
+        selected_patient, selected_patient_error = _resolve_create_patient(request, form)
         if selected_patient_error:
             form.add_error(None, selected_patient_error)
-        if form.is_valid():
-            chart = PatientChart(user=selected_patient or request.user)
+        if form.is_valid() and not selected_patient_error and selected_patient:
+            chart = PatientChart(user=selected_patient)
             for field in form.cleaned_data:
                 setattr(chart, field, form.cleaned_data[field])
             chart.status = PatientChart.Status.PENDING
@@ -1009,13 +1279,13 @@ def delete_chart_entry(request, pk, entry_id):
 def create_prescription(request):
     selected_patient = None
     if request.method == 'POST':
-        selected_patient, selected_patient_error = _selected_patient_from_request(request)
         form = PrescriptionPatientForm(request.POST, user=request.user)
+        selected_patient, selected_patient_error = _resolve_create_patient(request, form)
         if selected_patient_error:
             form.add_error(None, selected_patient_error)
-        if form.is_valid():
+        if form.is_valid() and not selected_patient_error and selected_patient:
             prescription = form.save(commit=False)
-            prescription.user = selected_patient or request.user
+            prescription.user = selected_patient
             prescription.status = Prescription.Status.INCOMPLETE
             prescription.save()
             messages.success(request, 'Prescription created successfully.')

@@ -1,6 +1,6 @@
 {% load role_tags %}
 <!-- Academic Information Tab (Patients) -->
-                        {% if user|is_patient_role and not user|is_walk_in_user %}
+                        {% if user|is_patient_role and not user|is_guest_user %}
                         <div x-show="activeTab === 'academic'" x-cloak>
                             {% if profile %}
                             <div class="mb-3 flex flex-wrap items-center justify-between gap-2">

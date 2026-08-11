@@ -16,6 +16,7 @@ from django.contrib.auth import get_user_model
 from django.test import RequestFactory
 from datetime import datetime
 from urllib.parse import urlparse
+from django.views.decorators.http import require_POST
 
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
@@ -24,13 +25,15 @@ from .models import (
     ToothSurface, DentalChartSnapshot, ProgressNote
 )
 from .forms import (
-    DentalRecordForm, StudentDentalIntakeForm, DentalExaminationForm, DentalVitalSignsForm,
+    DentalRecordForm, StudentDentalIntakeForm, GuestDentalIntakeForm, DentalExaminationForm, DentalVitalSignsForm,
     DentalHealthQuestionnaireForm, DentalSystemsReviewForm,
     DentalHistoryForm, PediatricDentalHistoryForm, ProgressNoteForm
 )
 import json
 from core.decorators import role_required
 from core.clinical_audit import log_clinical_access, _dental_record_label
+from core.academic_catalog import patient_catalog_context
+from core.guest_auth import is_guest_user, resolve_patient_contact_email
 from core.htmx_utils import htmx_add_toast, htmx_add_trigger, is_htmx_request
 from core.roles import is_patient_role
 from appointments.models import Appointment
@@ -360,9 +363,208 @@ def dental_record_detail(request, record_id):
         'dental_chart': dental_chart,
         'dental_chart_json': json.dumps(dental_chart_json),
         'is_pediatric': dental_record.age and dental_record.age < 18,
+        'can_resend_guest_intake': (
+            is_guest_user(dental_record.patient)
+            and dental_record.intake_status == 'awaiting_guest'
+        ),
     }
     
     return render(request, 'dental_records/dental_record_detail.html', context)
+
+
+
+def _dental_action_bar_context(dental_record):
+    """Shared context for edit-page status/action bar partials."""
+    return {
+        'dental_record': dental_record,
+        'can_resend_guest_intake': (
+            is_guest_user(dental_record.patient)
+            and dental_record.intake_status == 'awaiting_guest'
+        ),
+    }
+
+
+def _create_dental_clinical_shells(dental_record):
+    """Create empty related clinical sections for a new dental record draft."""
+    DentalExamination.objects.create(dental_record=dental_record)
+    DentalVitalSigns.objects.create(dental_record=dental_record)
+    DentalHealthQuestionnaire.objects.create(dental_record=dental_record)
+    DentalSystemsReview.objects.create(dental_record=dental_record)
+    DentalHistory.objects.create(dental_record=dental_record)
+
+
+def _create_guest_dental_intake_draft(*, patient, examined_by, appointment=None):
+    """Create a pending dental record awaiting guest demographics/consent."""
+    contact = resolve_patient_contact_email(patient) or ''
+    dental_record = DentalRecord(
+        patient=patient,
+        examined_by=examined_by,
+        appointment=appointment,
+        status='pending',
+        intake_status='awaiting_guest',
+        designation='student',
+        department_college_office='Guest',
+        course='',
+        year_level='',
+        email=contact,
+        date_of_examination=timezone.now().date(),
+    )
+    dental_record.save()
+    _create_dental_clinical_shells(dental_record)
+    return dental_record
+
+
+@login_required
+@role_required('doctor')
+@require_POST
+def send_guest_intake_link(request):
+    """From New Dental Record: create guest draft; optionally email magic intake link."""
+    from core.guest_emails import email_guest_dental_intake_pending
+    from core.notification_delivery import format_email_send_error
+
+    action = (request.POST.get('action') or 'send').strip()
+    save_only = action == 'save_draft'
+    patient_id = (request.POST.get('patient') or '').strip()
+    appointment_id = (request.POST.get('appointment') or '').strip()
+
+    patient = get_object_or_404(User, pk=patient_id) if patient_id else None
+    if not patient or not is_guest_user(patient):
+        messages.error(
+            request,
+            'Select a guest patient before saving a draft or sending an intake link.',
+        )
+        return redirect('dental_records:dental_record_create')
+
+    appointment = None
+    if appointment_id:
+        appointment = get_object_or_404(Appointment, pk=appointment_id)
+        if appointment.patient_id != patient.pk:
+            messages.error(request, 'Guest does not match the linked appointment.')
+            return redirect('dental_records:dental_record_create')
+        existing = DentalRecord.objects.filter(appointment=appointment).first()
+        if existing:
+            messages.warning(request, 'A dental record already exists for this appointment.')
+            return redirect('dental_records:dental_record_edit', record_id=existing.id)
+        if MedicalRecord.objects.filter(appointment=appointment).exists():
+            messages.warning(
+                request,
+                'A medical record already exists for this appointment. Only one record per appointment is allowed.',
+            )
+            return redirect('appointments:appointment_detail', appointment_id=appointment.id)
+
+    try:
+        with transaction.atomic():
+            locked_appointment = None
+            if appointment:
+                locked_appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
+                if DentalRecord.objects.filter(appointment=locked_appointment).exists():
+                    existing = DentalRecord.objects.filter(appointment=locked_appointment).first()
+                    messages.warning(request, 'A dental record already exists for this appointment.')
+                    return redirect('dental_records:dental_record_edit', record_id=existing.id)
+                if MedicalRecord.objects.filter(appointment=locked_appointment).exists():
+                    messages.warning(
+                        request,
+                        'A medical record already exists for this appointment. Only one record per appointment is allowed.',
+                    )
+                    return redirect('appointments:appointment_detail', appointment_id=locked_appointment.id)
+
+            dental_record = _create_guest_dental_intake_draft(
+                patient=patient,
+                examined_by=request.user,
+                appointment=locked_appointment,
+            )
+            _audit_dental(
+                request,
+                dental_record,
+                'create',
+                intake='guest_draft' if save_only else 'guest_email',
+            )
+    except Exception as exc:
+        messages.error(request, f'Error creating dental intake draft: {exc}')
+        create_url = reverse('dental_records:dental_record_create')
+        if appointment_id:
+            create_url = f'{create_url}?appointment={appointment_id}'
+        elif patient_id:
+            create_url = f'{create_url}?patient={patient_id}'
+        return redirect(create_url)
+
+    if save_only:
+        messages.success(
+            request,
+            'Guest dental draft saved. You can email the intake link from the record page when ready.',
+        )
+        return redirect('dental_records:dental_record_detail', record_id=dental_record.id)
+
+    contact = resolve_patient_contact_email(patient)
+    emailed = False
+    email_error = ''
+    try:
+        emailed = email_guest_dental_intake_pending(
+            request, dental_record, created_by=request.user
+        )
+    except Exception as email_exc:
+        email_error = format_email_send_error(email_exc)
+        emailed = False
+
+    if not contact:
+        messages.warning(
+            request,
+            'Draft created, but this guest has no contact email — they were not emailed.',
+        )
+    elif emailed:
+        messages.success(request, f'Dental intake link emailed to {contact}.')
+    else:
+        detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+        messages.warning(
+            request,
+            f'Draft created, but the email was not sent ({detail}).',
+        )
+
+    return redirect('dental_records:dental_record_detail', record_id=dental_record.id)
+
+
+@login_required
+@role_required('doctor', 'admin')
+@require_POST
+def resend_guest_intake_link(request, record_id):
+    """Re-issue magic link while dental intake is still awaiting the guest."""
+    from core.guest_emails import email_guest_dental_intake_pending
+    from core.notification_delivery import format_email_send_error
+
+    dental_record = get_object_or_404(
+        DentalRecord.objects.select_related('patient', 'patient__patient_profile'),
+        pk=record_id,
+    )
+    if not is_guest_user(dental_record.patient):
+        messages.error(request, 'Resend link is only available for guest patients.')
+        return redirect('dental_records:dental_record_detail', record_id=record_id)
+    if dental_record.intake_status != 'awaiting_guest':
+        messages.error(request, 'Resend link is only available while awaiting guest intake.')
+        return redirect('dental_records:dental_record_detail', record_id=record_id)
+
+    contact = resolve_patient_contact_email(dental_record.patient)
+    emailed = False
+    email_error = ''
+    try:
+        emailed = email_guest_dental_intake_pending(
+            request, dental_record, created_by=request.user
+        )
+    except Exception as email_exc:
+        email_error = format_email_send_error(email_exc)
+        emailed = False
+
+    if not contact:
+        messages.warning(request, 'This guest has no contact email — link was not sent.')
+    elif emailed:
+        messages.success(request, f'Dental intake link resent to {contact}.')
+    else:
+        detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+        messages.warning(request, f'Could not resend the email ({detail}).')
+
+    next_url = (request.POST.get('next') or '').strip()
+    if next_url.startswith('/'):
+        return redirect(next_url)
+    return redirect('dental_records:dental_record_detail', record_id=record_id)
 
 
 @login_required
@@ -432,11 +634,7 @@ def dental_record_create(request):
                         dental_record.save()
                     
                     # Create empty related records so the edit page can populate them
-                    DentalExamination.objects.create(dental_record=dental_record)
-                    DentalVitalSigns.objects.create(dental_record=dental_record)
-                    DentalHealthQuestionnaire.objects.create(dental_record=dental_record)
-                    DentalSystemsReview.objects.create(dental_record=dental_record)
-                    DentalHistory.objects.create(dental_record=dental_record)
+                    _create_dental_clinical_shells(dental_record)
                     
                     _audit_dental(request, dental_record, 'create')
                     
@@ -459,6 +657,7 @@ def dental_record_create(request):
             if hasattr(preselected_patient, 'patient_profile') and preselected_patient.patient_profile:
                 profile = preselected_patient.patient_profile
                 is_employee = bool(getattr(profile, 'is_employee', False))
+                guest = is_guest_user(preselected_patient)
                 initial_data.update({
                     'middle_name': profile.middle_name or '',
                     'age': profile.age,
@@ -470,8 +669,10 @@ def dental_record_create(request):
                     'email': preselected_patient.email,
                     'contact_number': profile.phone or '',
                     'telephone_number': profile.telephone_number or '',
-                    'designation': 'employee' if is_employee else 'student',
-                    'department_college_office': profile.department or '',
+                    'designation': 'student' if guest else ('employee' if is_employee else 'student'),
+                    'department_college_office': 'Guest' if guest else (profile.department or ''),
+                    'course': '' if (guest or is_employee) else (profile.course or ''),
+                    'year_level': '' if (guest or is_employee) else (profile.year_level or ''),
                     'guardian_name': profile.emergency_contact or '',
                     'guardian_contact': profile.emergency_phone or '',
                 })
@@ -490,17 +691,34 @@ def dental_record_create(request):
                     'telephone_number': profile.telephone_number or '',
                     'designation': 'employee',
                     'department_college_office': profile.department or '',
+                    'course': '',
+                    'year_level': '',
                     'guardian_name': profile.emergency_contact or '',
                     'guardian_contact': profile.emergency_phone or '',
                 })
         
         form = DentalRecordForm(initial=initial_data)
     
+    guest_flag_patient = preselected_patient
+    if request.method == 'POST':
+        posted_patient_id = request.POST.get('patient')
+        if posted_patient_id:
+            guest_flag_patient = User.objects.filter(pk=posted_patient_id).first() or guest_flag_patient
+
+    preselected_guest_contact = ''
+    if guest_flag_patient and is_guest_user(guest_flag_patient):
+        preselected_guest_contact = resolve_patient_contact_email(guest_flag_patient) or ''
+
     context = {
         'form': form,
         'title': 'Create New Dental Record',
         'preselected_patient': preselected_patient,
+        'preselected_patient_is_guest': bool(
+            guest_flag_patient and is_guest_user(guest_flag_patient)
+        ),
+        'preselected_guest_contact': preselected_guest_contact,
         'appointment': appointment,
+        **patient_catalog_context(),
     }
     
     return render(request, 'dental_records/dental_record_form.html', context)
@@ -577,11 +795,19 @@ def dental_record_edit(request, record_id):
                 _audit_dental(request, dental_record, 'edit', section=form_type)
                 if is_ajax:
                     section_key = section_by_form_type.get(form_type, form_type)
-                    return JsonResponse({
+                    payload = {
                         'success': True,
                         'section': section_key,
                         'message': success_msg,
-                    })
+                    }
+                    if form_type == 'demographics':
+                        dental_record.refresh_from_db()
+                        payload['action_bar_html'] = render_to_string(
+                            'dental_records/_dental_edit_action_bar_inner.html',
+                            _dental_action_bar_context(dental_record),
+                            request=request,
+                        )
+                    return JsonResponse(payload)
                 messages.success(request, success_msg)
                 return redirect('dental_records:dental_record_edit', record_id=record_id)
             elif is_ajax:
@@ -657,6 +883,8 @@ def dental_record_edit(request, record_id):
         'is_pediatric': is_pediatric,
         'active_section': active_section,
         'title': f'Edit Dental Record - {dental_record.patient.get_full_name()}',
+        **_dental_action_bar_context(dental_record),
+        **patient_catalog_context(),
     }
     
     return render(request, 'dental_records/dental_record_edit.html', context)
@@ -689,14 +917,17 @@ def dental_record_status_modal(request, record_id):
     """HTMX GET: confirmation copy + hidden hx-post form for edit-page status actions."""
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
     to = (request.GET.get('to') or '').strip().lower()
+    missing_consents = to == 'completed' and not dental_record.has_required_consents()
     unavailable = (
         to not in ('pending', 'completed')
         or (to == 'completed' and dental_record.status != 'pending')
         or to == 'pending'
+        or missing_consents
     )
     context = {
         'dental_record': dental_record,
         'unavailable': unavailable,
+        'missing_consents': missing_consents,
         'target_status': to,
         'post_url': reverse('dental_records:mark_record_completed', kwargs={'record_id': dental_record.id}),
     }
@@ -715,6 +946,14 @@ def mark_record_completed(request, record_id):
 
     dental_record = get_object_or_404(DentalRecord, pk=record_id)
     new_status = request.POST.get('status', 'completed')
+    if new_status == 'completed' and not dental_record.has_required_consents():
+        err = DentalRecord.CONSENTS_REQUIRED_FOR_COMPLETION
+        if is_htmx:
+            response = HttpResponse('', status=409)
+            return htmx_add_toast(response, err, 'error')
+        messages.error(request, err)
+        return redirect(edit_url)
+
     if new_status not in ('pending', 'completed'):
         if is_htmx:
             response = HttpResponse('', status=400)
@@ -741,7 +980,16 @@ def mark_record_completed(request, record_id):
             messages.info(request, err)
             return redirect(edit_url)
         locked.status = new_status
-        locked.save(update_fields=['status', 'updated_at'])
+        update_fields = ['status', 'updated_at']
+        # Closing guest intake when the clinical record is completed (no longer awaiting).
+        if (
+            new_status == 'completed'
+            and is_guest_user(locked.patient)
+            and locked.intake_status != 'guest_submitted'
+        ):
+            locked.intake_status = 'guest_submitted'
+            update_fields.append('intake_status')
+        locked.save(update_fields=update_fields)
 
         if new_status == 'completed' and locked.appointment_id:
             apt = Appointment.objects.select_for_update().get(pk=locked.appointment_id)
@@ -757,6 +1005,42 @@ def mark_record_completed(request, record_id):
         else:
             msg = 'Dental record marked as completed. The patient can now view their record.'
 
+        dental_record = DentalRecord.objects.select_related(
+            'appointment', 'appointment__doctor', 'appointment__patient', 'patient'
+        ).get(pk=dental_record.pk)
+        patient = dental_record.patient
+        if patient:
+            from core.guest_emails import (
+                email_appointment_results_ready,
+                email_guest_dental_record_results_ready,
+            )
+            from core.notification_delivery import notify_user
+
+            visit_date = (
+                dental_record.appointment.date.strftime('%B %d, %Y')
+                if dental_record.appointment_id
+                else 'your visit'
+            )
+            notify_user(
+                patient,
+                title='Dental Record Ready',
+                message=f'Your dental record from {visit_date} is now available.',
+                notification_type='general',
+                transaction_type='appointment_completed',
+                related_id=dental_record.appointment_id or dental_record.pk,
+                send_email=False,
+            )
+            if is_guest_user(patient):
+                emailed = email_guest_dental_record_results_ready(
+                    request, dental_record, created_by=request.user
+                )
+                if emailed:
+                    msg = f'{msg} Guest was emailed a view-only link.'
+            elif dental_record.appointment_id:
+                email_appointment_results_ready(
+                    request, dental_record.appointment, created_by=request.user
+                )
+
     if is_htmx:
         dr = DentalRecord.objects.select_related('appointment', 'patient').get(pk=record_id)
         get_params = _effective_dental_list_get_params(request)
@@ -764,9 +1048,9 @@ def mark_record_completed(request, record_id):
         oob_html = render_to_string(
             'dental_records/_dr_post_status_oob.html',
             {
-                'dental_record': dr,
                 'user': request.user,
                 **list_ctx,
+                **_dental_action_bar_context(dr),
             },
             request=request,
         )
@@ -1268,19 +1552,26 @@ def dental_record_export_json(request, record_id):
 @login_required
 @role_required('doctor')
 def search_patients(request):
-    """Search for patients by name, email, or ID for autocomplete"""
+    """Search for authenticated patients by name, email, or ID for autocomplete.
+
+    Guests are excluded — use Register guest patient for those accounts.
+    """
+    from core.guest_auth import exclude_guest_users
+    from core.roles import PATIENT_ROLE_VALUES
+
     query = request.GET.get('q', '').strip()
-    
+
     if len(query) < 2:
         return JsonResponse({'results': []})
-    
-    # Search users by first name, last name, or email
-    patients = User.objects.filter(
-        models.Q(first_name__icontains=query) |
-        models.Q(last_name__icontains=query) |
-        models.Q(email__icontains=query) |
-        models.Q(id__icontains=query)
-    )[:20]  # Limit to 20 results
+
+    patients = exclude_guest_users(
+        User.objects.filter(role__in=PATIENT_ROLE_VALUES).filter(
+            models.Q(first_name__icontains=query)
+            | models.Q(last_name__icontains=query)
+            | models.Q(email__icontains=query)
+            | models.Q(patient_profile__patient_id__icontains=query)
+        )
+    )[:20]
     
     results = []
     for patient in patients:
@@ -1314,7 +1605,8 @@ def get_patient_profile(request, patient_id):
     patient = get_object_or_404(User, pk=patient_id)
     
     from datetime import date
-    
+    from core.guest_auth import is_guest_user, resolve_patient_contact_email
+
     data = {
         'first_name': patient.first_name,
         'last_name': patient.last_name,
@@ -1331,8 +1623,12 @@ def get_patient_profile(request, patient_id):
         'telephone_number': '',
         'designation': '',
         'department_college_office': '',
+        'course': '',
+        'year_level': '',
         'guardian_name': '',
         'guardian_contact': '',
+        'is_guest': is_guest_user(patient),
+        'contact_email': resolve_patient_contact_email(patient) or '',
     }
     
     # Get profile data based on user role
@@ -1351,14 +1647,18 @@ def get_patient_profile(request, patient_id):
                 'address': profile.address or '',
                 'contact_number': profile.phone or '',
                 'telephone_number': profile.telephone_number or '',
-                'designation': 'employee' if is_employee else 'student',
+                'designation': '' if data['is_guest'] else ('employee' if is_employee else 'student'),
                 'department_college_office': (
-                    (profile.department or '')
-                    if is_employee
-                    else f"{profile.course or ''} - {profile.department or ''}".strip(' -')
+                    ''
+                    if data['is_guest']
+                    else (profile.department or '')
                 ),
+                'course': '' if (data['is_guest'] or is_employee) else (profile.course or ''),
+                'year_level': '' if (data['is_guest'] or is_employee) else (profile.year_level or ''),
                 'guardian_name': profile.emergency_contact or '',
                 'guardian_contact': profile.emergency_phone or '',
+                'email': resolve_patient_contact_email(patient) or patient.email,
+                'contact_email': resolve_patient_contact_email(patient) or '',
             })
             
             # Calculate age from date of birth if not set

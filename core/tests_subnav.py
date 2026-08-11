@@ -2,10 +2,15 @@ import re
 
 from django.template import Context
 from django.template.loader import render_to_string
-from django.test import RequestFactory, SimpleTestCase
+from django.test import RequestFactory, SimpleTestCase, TestCase
 
 from core.subnav_helpers import enrich_subnav, nav_dropdown, nav_group, nav_item
-from core.templatetags.app_subnav import feedback_subnav, medical_records_subnav, pharmacy_subnav
+from core.templatetags.app_subnav import (
+    feedback_subnav,
+    health_forms_services_subnav,
+    medical_records_subnav,
+    pharmacy_subnav,
+)
 
 
 class EnrichSubnavTests(SimpleTestCase):
@@ -180,6 +185,99 @@ class FeedbackSubnavTemplateTests(SimpleTestCase):
         self.assertIn('aria-label="Feedback sections"', html)
         self.assertIn('role="tablist"', html)
         self.assertIn('class="nav-link sub-nav-tab flex-1 min-w-0 basis-0 active"', html)
+
+
+class HealthFormsPatientSubnavTests(SimpleTestCase):
+    def _health_forms_context(self, view_name, *, role='patient'):
+        request = RequestFactory().get('/health-forms/')
+        request.resolver_match = type(
+            'M',
+            (),
+            {'view_name': view_name, 'kwargs': {}},
+        )()
+        request.user = type('U', (), {'role': role})()
+        return health_forms_services_subnav(Context({'request': request}))
+
+    def test_request_form_tab_active_only_on_request_page(self):
+        ctx = self._health_forms_context('health_forms_services:request_health_profile')
+        self.assertFalse(ctx['items'][0]['active'])
+        self.assertTrue(ctx['items'][1]['active'])
+
+    def test_my_forms_active_on_list_and_edit(self):
+        for vn in (
+            'health_forms_services:forms_list',
+            'health_forms_services:edit_form',
+        ):
+            ctx = self._health_forms_context(vn)
+            self.assertTrue(ctx['items'][0]['active'], vn)
+            self.assertFalse(ctx['items'][1]['active'], vn)
+
+    def test_request_page_keeps_tab_strip_not_breadcrumbs(self):
+        ctx = self._health_forms_context('health_forms_services:request_health_profile')
+        self.assertFalse(ctx['show_breadcrumbs'])
+        self.assertEqual(len(ctx['items']), 2)
+
+
+class HealthFormsStaffSubnavTests(TestCase):
+    def test_subnav_includes_new_health_form_tab(self):
+        from core.doctor_access import MODULE_HEALTH_PROFILE_FORMS
+        from core.models import User
+        from health_forms_services.tests import _complete_staff_like_profile
+
+        doctor_user = User.objects.create_user(
+            email='subnav-hf-doc@test.com',
+            password='x',
+            role='doctor',
+            is_staff=True,
+            is_active=True,
+        )
+        _complete_staff_like_profile(doctor_user, 'DOC-SN-HF')
+        profile = doctor_user.staff_profile
+        profile.allowed_clinical_modules = [MODULE_HEALTH_PROFILE_FORMS]
+        profile.save(update_fields=['allowed_clinical_modules'])
+
+        request = RequestFactory().get('/health-forms/new/')
+        request.resolver_match = type(
+            'M',
+            (),
+            {'view_name': 'health_forms_services:manual_entry', 'kwargs': {}},
+        )()
+        request.user = doctor_user
+        ctx = health_forms_services_subnav(Context({'request': request}))
+        labels = [item['label'] for item in ctx['items']]
+        self.assertEqual(labels, ['Health Forms', 'Invite Guest', 'New Health Form'])
+        self.assertTrue(ctx['items'][2]['active'])
+        self.assertFalse(ctx['items'][0]['active'])
+        self.assertFalse(ctx['items'][1]['active'])
+
+    def test_invite_guest_tab_is_only_active_item(self):
+        from core.doctor_access import MODULE_HEALTH_PROFILE_FORMS
+        from core.models import User
+        from health_forms_services.tests import _complete_staff_like_profile
+
+        doctor_user = User.objects.create_user(
+            email='subnav-hf-invite@test.com',
+            password='x',
+            role='doctor',
+            is_staff=True,
+            is_active=True,
+        )
+        _complete_staff_like_profile(doctor_user, 'DOC-SN-INV')
+        profile = doctor_user.staff_profile
+        profile.allowed_clinical_modules = [MODULE_HEALTH_PROFILE_FORMS]
+        profile.save(update_fields=['allowed_clinical_modules'])
+
+        request = RequestFactory().get('/health-forms/invite-guest/')
+        request.resolver_match = type(
+            'M',
+            (),
+            {'view_name': 'health_forms_services:invite_guest_health_profile', 'kwargs': {}},
+        )()
+        request.user = doctor_user
+        ctx = health_forms_services_subnav(Context({'request': request}))
+        self.assertTrue(ctx['items'][1]['active'])
+        self.assertFalse(ctx['items'][0]['active'])
+        self.assertFalse(ctx['items'][2]['active'])
 
 
 class MedicalRecordsSubnavTemplateTests(SimpleTestCase):

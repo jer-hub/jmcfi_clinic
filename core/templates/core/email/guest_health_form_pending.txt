@@ -1,0 +1,11 @@
+{% autoescape off %}Hello {{ patient_name }},
+
+{{ clinic_name }} started a health profile form for you. Some details still need to be completed.
+
+Open this link to complete the form or cancel the draft:
+{{ access_url }}
+
+This link expires in a few days.
+
+— {{ clinic_name }}
+{% endautoescape %}

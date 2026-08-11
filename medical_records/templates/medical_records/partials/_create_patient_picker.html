@@ -1,6 +1,6 @@
 {% load user_filters %}
 {% comment %}
-  Alpine patient search for walk-in medical record create.
+  Alpine patient search for guest medical record create.
   On select, navigates to create-for-patient?patient=<id>.
 {% endcomment %}
 <div class="bg-white rounded-card border border-gray-200 shadow-sm p-5 sm:p-6"
@@ -9,14 +9,15 @@
      data-student-email="{% if student %}{{ student.email|escape }}{% endif %}"
      x-data="medicalRecordPatientPicker()"
      x-init="initFromDom()"
-     @clinic-walk-in-created.window="onWalkInCreated($event.detail)">
+     @clinic-guest-created.window="onGuestCreated($event.detail)"
+     @clinic-guest-toggled="onGuestToggled($event.detail)">
   <div class="flex items-center gap-2 mb-4 pb-2 border-b border-gray-200">
     <i class="fas fa-search text-primary-600 text-sm"></i>
     <h2 class="text-sm font-semibold text-gray-800 uppercase tracking-wider">Select a patient</h2>
   </div>
   <p class="text-sm text-gray-600 mb-4">Search by name, email, or patient ID. You will complete the clinical form after choosing a patient.</p>
 
-  <div class="relative">
+  <div x-show="guestRegisterOpen !== true" class="relative">
     <label class="block text-sm font-medium text-gray-700 mb-2" for="medical-patient-search">
       <i class="fas fa-magnifying-glass mr-1 text-gray-400"></i> Search patients
       <span class="ml-1 text-xs text-gray-400 font-normal">(min. 2 characters)</span>
@@ -75,5 +76,5 @@
     </div>
   </div>
 
-  {% include "core/partials/_register_walk_in_guest.html" with clinical_module="medical_records" %}
+  {% include "core/partials/_register_guest.html" with clinical_module="medical_records" %}
 </div>

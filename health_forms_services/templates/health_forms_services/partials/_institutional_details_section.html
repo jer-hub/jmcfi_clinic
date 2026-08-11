@@ -6,7 +6,11 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6"
      data-academic-fieldset
-     x-data="hfAcademicInstitutionalSection()"
+     x-data="hfAcademicInstitutionalSection({
+       department: '{% for item in section.fields %}{% if item.name == 'department_college_office' %}{{ item.field.value|default_if_none:''|escapejs }}{% endif %}{% endfor %}',
+       course: '{% for item in section.fields %}{% if item.name == 'course' %}{{ item.field.value|default_if_none:''|escapejs }}{% endif %}{% endfor %}',
+       yearLevel: '{% for item in section.fields %}{% if item.name == 'year_level' %}{{ item.field.value|default_if_none:''|escapejs }}{% endif %}{% endfor %}'
+     })"
      x-init="init()">
   {% for item in section.fields %}
     {% if item.name == 'designation' %}
@@ -22,7 +26,8 @@
         <input type="hidden"
                name="{{ item.field.html_name }}"
                id="{{ item.field.id_for_label }}"
-               x-model="department"
+               :value="department"
+               data-initial-value="{{ item.field.value|default_if_none:'' }}"
                {% if item.field.field.required %}required{% endif %}>
         <div class="relative" @click.outside="closeDepartmentDropdown()">
           <div x-show="department && !departmentOpen"
@@ -148,6 +153,7 @@
                 id="{{ item.field.id_for_label }}"
                 x-ref="courseSelect"
                 x-model="course"
+                data-prefill-value="{{ item.field.value|default_if_none:'' }}"
                 class="form-select"
                 {% if item.field.field.required %}:required="!isGuestDesignation()"{% endif %}>
           <option value="">Select course/program</option>
@@ -168,6 +174,7 @@
                 id="{{ item.field.id_for_label }}"
                 x-ref="yearLevelSelect"
                 x-model="yearLevel"
+                data-prefill-value="{{ item.field.value|default_if_none:'' }}"
                 class="form-select"
                 {% if item.field.field.required %}:required="!isGuestDesignation()"{% endif %}>
           <option value="">Select year level</option>

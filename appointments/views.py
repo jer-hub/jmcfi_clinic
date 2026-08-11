@@ -560,7 +560,7 @@ def _validate_assigned_doctor_for_type(doctor, appointment_type):
 @role_required('student', 'staff', 'doctor', 'admin')
 def appointment_detail(request, appointment_id):
     appointment = get_object_or_404(
-        Appointment.objects.select_related('patient', 'doctor').prefetch_related('dental_records', 'medicalrecord_set'),
+        Appointment.objects.select_related('patient', 'patient__patient_profile', 'doctor', 'doctor__staff_profile').prefetch_related('dental_records', 'medicalrecord_set'),
         id=appointment_id,
     )
     
@@ -620,14 +620,34 @@ def appointment_detail(request, appointment_id):
                         'missed': 'appointment_reminder',
                         'cancelled': 'appointment_cancelled',
                     }
-                    notify_user(
-                        appointment.patient,
-                        title='Appointment Update',
-                        message=f'Your appointment status has been updated to {appointment.get_status_display()}',
-                        notification_type='appointment',
-                        transaction_type=status_to_transaction.get(appointment.status, 'appointment_reminder'),
-                        related_id=appointment.id,
-                    )
+                    # Completed visits: in-app + results email with record/appointment link.
+                    # Other status changes: plain notify (in-app + optional email).
+                    if appointment.status == 'completed':
+                        notify_user(
+                            appointment.patient,
+                            title='Appointment Completed',
+                            message=(
+                                f'Your appointment on {appointment.date.strftime("%B %d, %Y")} '
+                                f'is complete. Your results are ready to view.'
+                            ),
+                            notification_type='appointment',
+                            transaction_type='appointment_completed',
+                            related_id=appointment.id,
+                            send_email=False,
+                        )
+                        from core.guest_emails import email_appointment_results_ready
+                        email_appointment_results_ready(request, appointment, created_by=request.user)
+                    else:
+                        notify_user(
+                            appointment.patient,
+                            title='Appointment Update',
+                            message=f'Your appointment status has been updated to {appointment.get_status_display()}',
+                            notification_type='appointment',
+                            transaction_type=status_to_transaction.get(
+                                appointment.status, 'appointment_reminder'
+                            ),
+                            related_id=appointment.id,
+                        )
 
                 success_message = f'Appointment updated to {appointment.get_status_display()}.'
 
@@ -1137,17 +1157,68 @@ def schedule_for_patient(request):
                 status='confirmed',
             )
 
-            notify_user(
-                patient,
-                title='Appointment Scheduled for You',
-                message=(
-                    f'Dr. {doctor.get_full_name()} has scheduled a new appointment for you on '
-                    f'{appointment_date.strftime("%B %d, %Y")} at {appointment_time.strftime("%I:%M %p")}.'
-                ),
-                notification_type='appointment',
-                transaction_type='appointment_scheduled',
-                related_id=appointment.id,
+            # Ensure profile (contact_email) is available for guest delivery.
+            patient = User.objects.select_related('patient_profile').get(pk=patient.pk)
+            appointment.patient = patient
+
+            from django.conf import settings as dj_settings
+            from core.guest_emails import (
+                email_guest_appointment_scheduled,
+                email_patient_appointment_scheduled,
             )
+            from core.notification_delivery import format_email_send_error
+            from core.guest_auth import is_guest_user, resolve_patient_contact_email
+
+            contact = resolve_patient_contact_email(patient)
+            emailed = False
+            email_error = ''
+
+            if is_guest_user(patient):
+                try:
+                    emailed = email_guest_appointment_scheduled(
+                        request, appointment, created_by=request.user
+                    )
+                except Exception as email_exc:
+                    email_error = format_email_send_error(email_exc)
+                    emailed = False
+            else:
+                # In-app only here; details + appointment URL go in the templated email.
+                notify_user(
+                    patient,
+                    title='Appointment Scheduled for You',
+                    message=(
+                        f'Dr. {doctor.get_full_name()} has scheduled a new appointment for you on '
+                        f'{appointment_date.strftime("%B %d, %Y")} at '
+                        f'{appointment_time.strftime("%I:%M %p")}.'
+                    ),
+                    notification_type='appointment',
+                    transaction_type='appointment_scheduled',
+                    related_id=appointment.id,
+                    send_email=False,
+                )
+                try:
+                    emailed = email_patient_appointment_scheduled(request, appointment)
+                except Exception as email_exc:
+                    email_error = format_email_send_error(email_exc)
+                    emailed = False
+
+            if is_guest_user(patient) and not contact:
+                messages.warning(
+                    request,
+                    'Appointment scheduled, but this guest has no contact email — the patient was not emailed.',
+                )
+            elif emailed:
+                msg = f'Confirmation email sent to {contact}.'
+                if 'console' in (dj_settings.EMAIL_BACKEND or ''):
+                    msg += ' (Dev: EMAIL_BACKEND is console — message is printed in the server terminal, not delivered to an inbox.)'
+                messages.success(request, msg)
+            elif not emailed:
+                detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+                if is_guest_user(patient) or contact:
+                    messages.warning(
+                        request,
+                        f'Appointment scheduled, but the confirmation email was not sent ({detail}).',
+                    )
 
             messages.success(request, f'Appointment successfully scheduled for {patient.get_full_name()}.')
             return redirect('appointments:appointment_list')

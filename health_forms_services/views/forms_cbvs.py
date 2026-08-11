@@ -13,6 +13,7 @@ from django.views import View
 from core.decorators import role_required
 from core.models import PatientProfile, StaffProfile
 from core.roles import is_patient_role
+from core.guest_auth import is_guest_user
 from ..forms import (
     HealthProfileClinicalSummaryForm,
     HealthProfileDiagnosticTestsForm,
@@ -22,8 +23,11 @@ from ..forms import (
 )
 from ..models import HealthProfileForm
 from ..services import (
+    can_cancel_draft,
+    can_delete_health_profile,
     can_review_health_profile,
     can_submit_for_review,
+    cancel_action_label,
     edit_phase_label,
     editable_sections,
     is_clinician,
@@ -41,7 +45,7 @@ class HealthProfileListView(BaseFormListView):
     edit_url_name = 'health_forms_services:edit_form'
     create_url_name = 'health_forms_services:manual_entry'
     form_type_label = 'Health Profile Forms'
-    bulk_action_url_name = 'health_forms_services:bulk_review'
+    bulk_action_url_name = None
     search_fields = ['last_name', 'first_name', 'user__email', 'email_address']
     status_choices = HealthProfileForm.Status
 
@@ -63,14 +67,16 @@ class HealthProfileListView(BaseFormListView):
         patient = is_patient_role(request.user.role)
         if patient:
             create_url = reverse('health_forms_services:request_health_profile')
-            bulk_action_url_name = None
             create_label = 'Request Health Profile Form'
+            secondary_create_url = None
+            secondary_create_label = ''
             edit_when_statuses = ['incomplete']
             list_subtitle_text = 'Your health profile forms'
         else:
-            create_url = reverse(self.create_url_name) if self.create_url_name else None
-            bulk_action_url_name = self.bulk_action_url_name
-            create_label = f'New {self.form_type_label}'
+            create_url = reverse('health_forms_services:invite_guest_health_profile')
+            create_label = 'Invite Guest'
+            secondary_create_url = reverse('health_forms_services:manual_entry')
+            secondary_create_label = 'New Health Form'
             edit_when_statuses = ['incomplete', 'pending']
             list_subtitle_text = ''
 
@@ -83,9 +89,11 @@ class HealthProfileListView(BaseFormListView):
             'status_choices': status_choices,
             'create_url': create_url,
             'create_label': create_label,
+            'secondary_create_url': secondary_create_url,
+            'secondary_create_label': secondary_create_label,
             'detail_url_name': self.detail_url_name,
             'edit_url_name': self.edit_url_name,
-            'bulk_action_url_name': bulk_action_url_name,
+            'bulk_action_url_name': None,
             'list_columns': self.list_columns or [],
             'form_type_label': self.form_type_label,
             'total_count': qs.count() if hasattr(qs, 'count') else 0,
@@ -245,10 +253,22 @@ class HealthProfileDetailView(BaseFormDetailView):
         sections = editable_sections(user, obj)
         ctx['can_edit'] = bool(sections)
         ctx['can_review'] = can_review_health_profile(user, obj)
-        ctx['can_delete'] = is_clinician(user)
+        ctx['can_delete'] = can_delete_health_profile(user, obj)
         ctx['can_submit_for_review'] = can_submit_for_review(user, obj)
+        ctx['can_cancel_draft'] = can_cancel_draft(user, obj)
+        ctx['cancel_action_label'] = cancel_action_label(obj)
         ctx['phase_label'] = edit_phase_label(user, obj)
         ctx['submit_url'] = reverse('health_forms_services:submit_for_review', kwargs={'pk': obj.pk})
+        ctx['cancel_url'] = reverse('health_forms_services:cancel_draft', kwargs={'pk': obj.pk})
+        ctx['can_resend_guest_link'] = (
+            is_clinician(user)
+            and is_guest_user(obj.user)
+            and obj.status == HealthProfileForm.Status.INCOMPLETE
+        )
+        if ctx['can_resend_guest_link']:
+            ctx['resend_guest_link_url'] = reverse(
+                'health_forms_services:resend_guest_health_form_link', kwargs={'pk': obj.pk}
+            )
         if is_patient_role(user.role):
             ctx['export_url'] = None
             ctx['docx_export_url'] = None
@@ -319,7 +339,21 @@ class HealthProfileEditView(BaseFormEditView):
         ctx['editable_sections'] = allowed
         ctx['phase_label'] = edit_phase_label(self.request.user, obj)
         ctx['can_submit_for_review'] = can_submit_for_review(self.request.user, obj)
+        ctx['can_cancel_draft'] = can_cancel_draft(self.request.user, obj)
+        ctx['cancel_action_label'] = cancel_action_label(obj)
+        ctx['can_delete'] = can_delete_health_profile(self.request.user, obj)
         ctx['submit_url'] = reverse('health_forms_services:submit_for_review', kwargs={'pk': obj.pk})
+        ctx['cancel_url'] = reverse('health_forms_services:cancel_draft', kwargs={'pk': obj.pk})
+        ctx['delete_url'] = reverse('health_forms_services:delete_form', kwargs={'pk': obj.pk})
+        ctx['can_resend_guest_link'] = (
+            is_clinician(self.request.user)
+            and is_guest_user(obj.user)
+            and obj.status == HealthProfileForm.Status.INCOMPLETE
+        )
+        if ctx['can_resend_guest_link']:
+            ctx['resend_guest_link_url'] = reverse(
+                'health_forms_services:resend_guest_health_form_link', kwargs={'pk': obj.pk}
+            )
         return ctx
 
     def get(self, request, *args, **kwargs):

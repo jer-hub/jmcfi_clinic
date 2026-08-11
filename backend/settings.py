@@ -394,14 +394,25 @@ STORAGES["staticfiles"]["BACKEND"] = (
 # PDF generation engine path (wkhtmltopdf)
 WKHTMLTOPDF_CMD = config("WKHTMLTOPDF_CMD", default="")
 
-# Email (console backend in dev; override via EMAIL_BACKEND in production)
+# Email (console backend in dev; set EMAIL_BACKEND + SMTP env for real delivery)
+# Gmail: use an App Password (not the account password) in EMAIL_HOST_PASSWORD.
+# https://support.google.com/accounts/answer/185833
 EMAIL_BACKEND = config(
     "EMAIL_BACKEND",
     default="django.core.mail.backends.console.EmailBackend",
 )
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="clinic@jmcfi.edu.ph")
+EMAIL_HOST = config("EMAIL_HOST", default="")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=False, cast=bool)
+# Prefer the authenticated SMTP mailbox as From (Gmail rejects mismatched From).
+_default_from = (EMAIL_HOST_USER or "").strip() or "clinic@jmcfi.edu.ph"
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=_default_from)
 SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
-
+# Public site origin for absolute links in emails (e.g. https://clinic.example.com)
+SITE_URL = config("SITE_URL", default="").rstrip("/")
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 

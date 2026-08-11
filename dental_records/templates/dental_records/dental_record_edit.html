@@ -1,5 +1,5 @@
-{% extends 'core/base.html' %}
-{% load static dental_extras %}
+﻿{% extends 'core/base.html' %}
+{% load static dental_extras role_tags %}
 
 {% block title %}{{ title }} - JMCFI Clinic{% endblock %}
 
@@ -7,15 +7,15 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
   {% include 'dental_records/_subnav.html' %}
 
-  {% include "components/page_header.html" with title=title subtitle="Comprehensive dental health record" icon="fa-tooth" actions_include="dental_records/_dental_edit_header_actions.html" %}
+  {% include "components/page_header.html" with title=title subtitle="Comprehensive dental health record" icon="fa-tooth" %}
 
-  {# ── Status & Actions Bar ── #}
+  {# â”€â”€ Status & Actions Bar â”€â”€ #}
   <div id="jmcfi-dental-edit-action-bar"
        class="bg-white rounded-card border border-gray-200 shadow-sm p-4 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
     {% include "dental_records/_dental_edit_action_bar_inner.html" %}
   </div>
 
-  {# ── Tabbed Edit Panel ── #}
+  {# â”€â”€ Tabbed Edit Panel â”€â”€ #}
   <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
     <div class="border-b border-gray-200">
       {% include 'dental_records/partials/_dental_record_edit_tab_nav.html' with active_section=active_section %}
@@ -23,9 +23,9 @@
 
     <div class="p-5 sm:p-6">
 
-      {# ════════════════════════════════════ #}
-      {# ── Demographics Tab               ── #}
-      {# ════════════════════════════════════ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+      {# â”€â”€ Demographics Tab               â”€â”€ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
       <div data-tab-panel="demographics" class="{% if active_section != 'demographics' %}hidden{% endif %}">
         <form method="post"
               action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
@@ -76,10 +76,15 @@
             </div>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.middle_name.label }}</label>{{ demographics_form.middle_name }}{% include 'partials/field_errors.html' with errors=demographics_form.middle_name.errors %}</div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.age.label }}</label>{{ demographics_form.age }}{% include 'partials/field_errors.html' with errors=demographics_form.age.errors %}</div>
+              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.date_of_birth.label }}</label>{{ demographics_form.date_of_birth }}{% include 'partials/field_errors.html' with errors=demographics_form.date_of_birth.errors %}</div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.age.label }}</label>
+                {{ demographics_form.age }}
+                <p class="mt-1 text-xs text-gray-400">Calculated from date of birth</p>
+                {% include 'partials/field_errors.html' with errors=demographics_form.age.errors %}
+              </div>
               <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.gender.label }}</label>{{ demographics_form.gender }}{% include 'partials/field_errors.html' with errors=demographics_form.gender.errors %}</div>
               <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.civil_status.label }}</label>{{ demographics_form.civil_status }}{% include 'partials/field_errors.html' with errors=demographics_form.civil_status.errors %}</div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.date_of_birth.label }}</label>{{ demographics_form.date_of_birth }}{% include 'partials/field_errors.html' with errors=demographics_form.date_of_birth.errors %}</div>
               <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.place_of_birth.label }}</label>{{ demographics_form.place_of_birth }}{% include 'partials/field_errors.html' with errors=demographics_form.place_of_birth.errors %}</div>
             </div>
           </section>
@@ -98,17 +103,17 @@
             </div>
           </section>
 
-          {# Institutional Information #}
+          {# Institutional Details (hidden for guest patients) #}
+          {% if not dental_record.patient|is_guest_user %}
           <section>
-            <div class="flex items-center gap-2 mb-3 pb-2 border-b border-gray-200">
-              <i class="fas fa-building text-primary-600 text-sm"></i>
-              <h3 class="text-sm font-semibold text-gray-800">Institutional Information</h3>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.designation.label }}</label>{{ demographics_form.designation }}{% include 'partials/field_errors.html' with errors=demographics_form.designation.errors %}</div>
-              <div><label class="block text-sm font-medium text-gray-700 mb-1.5">{{ demographics_form.department_college_office.label }}</label>{{ demographics_form.department_college_office }}{% include 'partials/field_errors.html' with errors=demographics_form.department_college_office.errors %}</div>
-            </div>
+            {% include 'dental_records/partials/_dental_institutional_details_section.html' with form=demographics_form %}
           </section>
+          {% else %}
+          {{ demographics_form.designation.as_hidden }}
+          <input type="hidden" name="{{ demographics_form.department_college_office.html_name }}" value="Guest">
+          <input type="hidden" name="{{ demographics_form.course.html_name }}" value="">
+          <input type="hidden" name="{{ demographics_form.year_level.html_name }}" value="">
+          {% endif %}
 
           {# Emergency Contact #}
           <section>
@@ -177,9 +182,9 @@
         </form>
       </div>
 
-      {# ════════════════════════════════════ #}
-      {# ── Health Questionnaire Tab       ── #}
-      {# ════════════════════════════════════ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+      {# â”€â”€ Health Questionnaire Tab       â”€â”€ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
       <div data-tab-panel="questionnaire" class="{% if active_section != 'questionnaire' %}hidden{% endif %}">
         <form method="post"
               action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
@@ -207,9 +212,9 @@
         </form>
       </div>
 
-      {# ════════════════════════════════════ #}
-      {# ── Systems Review Tab             ── #}
-      {# ════════════════════════════════════ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+      {# â”€â”€ Systems Review Tab             â”€â”€ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
       <div data-tab-panel="systems" class="{% if active_section != 'systems' %}hidden{% endif %}">
         <form method="post"
               action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
@@ -237,9 +242,9 @@
         </form>
       </div>
 
-      {# ════════════════════════════════════ #}
-      {# ── Dental History Tab             ── #}
-      {# ════════════════════════════════════ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+      {# â”€â”€ Dental History Tab             â”€â”€ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
       <div data-tab-panel="history" class="{% if active_section != 'history' %}hidden{% endif %}">
         <form method="post"
               action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
@@ -267,9 +272,9 @@
         </form>
       </div>
 
-      {# ════════════════════════════════════ #}
-      {# ── Pediatric Tab                  ── #}
-      {# ════════════════════════════════════ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+      {# â”€â”€ Pediatric Tab                  â”€â”€ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
       {% if is_pediatric %}
       <div data-tab-panel="pediatric" class="{% if active_section != 'pediatric' %}hidden{% endif %}">
         <form method="post"
@@ -316,9 +321,9 @@
       </div>
       {% endif %}
 
-      {# ════════════════════════════════════ #}
-      {# ── Examination Tab                ── #}
-      {# ════════════════════════════════════ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+      {# â”€â”€ Examination Tab                â”€â”€ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
       <div data-tab-panel="exam" class="{% if active_section != 'exam' %}hidden{% endif %}">
         <form method="post"
               action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
@@ -346,9 +351,9 @@
         </form>
       </div>
 
-      {# ════════════════════════════════════ #}
-      {# ── Vital Signs Tab                ── #}
-      {# ════════════════════════════════════ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+      {# â”€â”€ Vital Signs Tab                â”€â”€ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
       <div data-tab-panel="vitals" class="{% if active_section != 'vitals' %}hidden{% endif %}">
         <form method="post"
               action="{% url 'dental_records:dental_record_edit' dental_record.id %}"
@@ -386,16 +391,16 @@
         </form>
       </div>
 
-      {# ════════════════════════════════════ #}
-      {# ── Dental Chart Tab               ── #}
-      {# ════════════════════════════════════ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+      {# â”€â”€ Dental Chart Tab               â”€â”€ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
       <div data-tab-panel="chart" class="{% if active_section != 'chart' %}hidden{% endif %}">
         {% include 'dental_records/partials/interactive_dental_chart.html' %}
       </div>
 
-      {# ════════════════════════════════════ #}
-      {# ── Progress Notes Tab             ── #}
-      {# ════════════════════════════════════ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
+      {# â”€â”€ Progress Notes Tab             â”€â”€ #}
+      {# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• #}
       <div data-tab-panel="notes" class="{% if active_section != 'notes' %}hidden{% endif %}"
            x-data="progressNotes()"
            x-init="init()">
@@ -463,7 +468,7 @@
                     <td class="px-4 py-3 text-sm text-gray-700 font-medium whitespace-nowrap" x-text="note.date_display"></td>
                     <td class="px-4 py-3 text-sm text-gray-700" x-text="note.procedure_done"></td>
                     <td class="px-4 py-3 text-sm text-gray-700 whitespace-nowrap" x-text="note.dentist"></td>
-                    <td class="px-4 py-3 text-sm text-gray-500" x-text="note.remarks || '—'"></td>
+                    <td class="px-4 py-3 text-sm text-gray-500" x-text="note.remarks || 'â€”'"></td>
                     <td class="px-4 py-3 text-center">
                       <button @click="confirmDelete(note)" type="button" class="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-danger-600 hover:bg-danger-50 rounded-lg transition-colors" title="Delete note">
                         <i class="fas fa-trash-alt text-xs"></i>
@@ -514,7 +519,7 @@
   </div>{# end card #}
 </div>
 
-{# ── Unsaved changes confirmation modal (health forms pattern) ── #}
+{# â”€â”€ Unsaved changes confirmation modal (health forms pattern) â”€â”€ #}
 <div id="unsaved-changes-modal" class="fixed inset-0 z-50" aria-hidden="true" role="dialog" aria-modal="true" style="display:none">
   <div class="absolute inset-0 bg-black/30 backdrop-blur-sm" data-unsaved-backdrop></div>
   <div class="absolute inset-0 flex items-center justify-center p-3 sm:p-4">
@@ -548,7 +553,20 @@
 
 {% block scripts %}
 {{ block.super }}
-<script src="{% static 'js/health-form-edit.js' %}"></script>
+{% if college_options_json and course_options_by_college_json and year_level_options_by_college_json and course_optional_by_college_json %}
+<script>
+window.__jmcfiAcademicCatalog = {
+  colleges: {{ college_options_json|safe }},
+  coursesByCollege: {{ course_options_by_college_json|safe }},
+  yearLevelsByCollege: {{ year_level_options_by_college_json|safe }},
+  courseOptionalByCollege: {{ course_optional_by_college_json|safe }},
+};
+</script>
+{% endif %}
+<script src="{% static 'js/hf-academic-institutional.js' %}?v=2"></script>
+<script src="{% static 'js/age-from-dob.js' %}?v=1"></script>
+<script src="{% static 'js/consent-date.js' %}?v=1"></script>
+<script src="{% static 'js/health-form-edit.js' %}?v=3"></script>
 <script>
 function confirmDeleteTooth(recordId, toothId, toothNumber) {
   window.dispatchEvent(new CustomEvent('open-modal', {

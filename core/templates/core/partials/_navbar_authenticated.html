@@ -32,6 +32,7 @@
 
           {% if user|is_patient_role %}
             {% include 'core/partials/_navbar_services_desktop.html' with svc_role=user.role %}
+            {% include 'core/partials/_nav_health_forms_desktop.html' with include_document_request_link=False %}
             {% if role_features.show_health_tips_nav %}
             <a href="{% url 'health_tips:health_tips_list' %}" class="nav-link {% if nav_active.health_tips %}active{% endif %}">Health Tips</a>
             {% endif %}
@@ -148,6 +149,7 @@
 
         {% if user|is_patient_role %}
           {% include 'core/partials/_navbar_services_mobile.html' with svc_role=user.role %}
+          {% include 'core/partials/_nav_health_forms_mobile.html' with include_document_request_link=False %}
           {% if role_features.show_health_tips_nav %}
           <a href="{% url 'health_tips:health_tips_list' %}" class="mobile-link {% if nav_active.health_tips %}active{% endif %}">Health Tips</a>
           {% endif %}

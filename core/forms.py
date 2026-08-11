@@ -26,7 +26,7 @@ from .utils import (
     format_ph_mobile_badge_display,
     normalize_person_name,
 )
-from .walk_in_auth import WALK_IN_INSTITUTIONAL_FIELDS, is_walk_in_user
+from .guest_auth import GUEST_INSTITUTIONAL_FIELDS, is_guest_user
 
 User = get_user_model()
 PH_STRICT_E164_RE = re.compile(r'^\+63\d{10}$')
@@ -273,18 +273,18 @@ class StudentProfileForm(forms.ModelForm):
         subject = self.user
         if subject is None and self.instance and self.instance.pk:
             subject = getattr(self.instance, 'user', None)
-        if subject is not None and is_walk_in_user(subject):
-            for field_name in (*WALK_IN_INSTITUTIONAL_FIELDS, 'is_employee'):
+        if subject is not None and is_guest_user(subject):
+            for field_name in (*GUEST_INSTITUTIONAL_FIELDS, 'is_employee'):
                 if field_name not in self.fields:
                     continue
                 self.fields[field_name].required = False
                 self.fields[field_name].widget.attrs.pop('required', None)
                 self.fields[field_name].widget.attrs.pop('aria-required', None)
             if 'patient_id' in self.fields:
-                # Walk-in IDs are system-assigned (WI-…); keep editable look via [readonly] CSS.
+                # Guest IDs are system-assigned (G-…); keep editable look via [readonly] CSS.
                 self.fields['patient_id'].widget.attrs['readonly'] = True
                 self.fields['patient_id'].widget.attrs['title'] = (
-                    'Walk-in patient ID cannot be changed'
+                    'Guest patient ID cannot be changed'
                 )
             sync_widget_required_attrs(self)
         else:
@@ -329,7 +329,7 @@ class StudentProfileForm(forms.ModelForm):
         subject = self.user
         if subject is None and self.instance and self.instance.pk:
             subject = getattr(self.instance, 'user', None)
-        if subject is not None and is_walk_in_user(subject):
+        if subject is not None and is_guest_user(subject):
             cleaned_data['department'] = ''
             cleaned_data['course'] = ''
             cleaned_data['year_level'] = ''
@@ -395,10 +395,10 @@ class StudentProfileForm(forms.ModelForm):
         subject = self.user
         if subject is None and self.instance and self.instance.pk:
             subject = getattr(self.instance, 'user', None)
-        # Walk-ins cannot change their system-assigned WI-… ID (ignore POST tampering).
+        # Guests cannot change their system-assigned G-/WI-… ID (ignore POST tampering).
         if (
             subject is not None
-            and is_walk_in_user(subject)
+            and is_guest_user(subject)
             and self.instance
             and self.instance.pk
             and self.instance.patient_id

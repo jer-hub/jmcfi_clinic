@@ -440,9 +440,23 @@
             <div class="p-5">
               <dl class="space-y-3 text-sm">
                 <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Patient ID</dt><dd class="mt-0.5 text-gray-900">{{ appointment.patient.patient_profile.patient_id }}</dd></div>
+                <div>
+                  <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Email</dt>
+                  <dd class="mt-0.5 text-gray-900 break-all">
+                    {% with contact_email=appointment.patient|patient_contact_email %}
+                      {{ contact_email|default:"Not specified" }}
+                    {% endwith %}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Contact number</dt>
+                  <dd class="mt-0.5 text-gray-900">
+                    {{ appointment.patient.patient_profile.phone|default:"Not specified" }}
+                  </dd>
+                </div>
                 <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Blood Type</dt><dd class="mt-0.5 text-gray-900">{{ appointment.patient.patient_profile.blood_type|default:"Not specified" }}</dd></div>
-                <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Emergency Contact</dt><dd class="mt-0.5 text-gray-900">{{ appointment.patient.patient_profile.emergency_contact }}</dd></div>
-                <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Emergency Phone</dt><dd class="mt-0.5 text-gray-900">{{ appointment.patient.patient_profile.emergency_phone }}</dd></div>
+                <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Emergency Contact</dt><dd class="mt-0.5 text-gray-900">{{ appointment.patient.patient_profile.emergency_contact|default:"Not specified" }}</dd></div>
+                <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Emergency Phone</dt><dd class="mt-0.5 text-gray-900">{{ appointment.patient.patient_profile.emergency_phone|default:"Not specified" }}</dd></div>
                 {% if appointment.patient.patient_profile.allergies %}
                   <div><dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Allergies</dt><dd class="mt-0.5 text-danger-600">{{ appointment.patient.patient_profile.allergies }}</dd></div>
                 {% endif %}

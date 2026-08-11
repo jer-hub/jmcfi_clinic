@@ -45,7 +45,7 @@
     </template>
 
     {# Search (adjustable mode) #}
-    <div x-show="!patientLocked && !selected" x-cloak>
+    <div x-show="!patientLocked && !selected && guestRegisterOpen !== true" x-cloak>
       <label for="dental-patient-search" class="sr-only">Search patients</label>
       <div class="relative" @click.away="showResults = false">
         <div class="relative">
@@ -107,10 +107,10 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <div x-show="!patientLocked" x-cloak>
-        {% include "core/partials/_register_walk_in_guest.html" with clinical_module="dental_records" %}
-      </div>
+    <div x-show="!patientLocked && !selected" x-cloak>
+      {% include "core/partials/_register_guest.html" with clinical_module="dental_records" %}
     </div>
 
     {# Selected patient (adjustable mode) #}
@@ -132,8 +132,11 @@
       </div>
     </div>
 
-    <p x-show="!selected && !patientLocked" class="text-xs text-danger-600">Select a patient to continue with the form.</p>
-
-    <div class="hidden">{{ form.patient }}</div>
+    <div class="hidden"
+         x-effect="(() => {
+           const el = document.getElementById('patient-select-field');
+           if (!el) return;
+           el.disabled = !!isGuestPatient;
+         })()">{{ form.patient }}</div>
   </div>
 </div>

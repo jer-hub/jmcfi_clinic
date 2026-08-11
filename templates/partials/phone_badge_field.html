@@ -5,7 +5,7 @@ Optional: label, required, badge_bg (Tailwind bg class suffix, default gray-50)
 {% endcomment %}
 <div data-phone-wrapper class="{% if field.errors %}has-phone-error{% endif %}">
   <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">
-    {{ label|default:field.label }}{% if required %}<span class="text-red-500 ml-1">*</span>{% endif %}
+    {{ label|default:field.label }}{% if required %}<span class="text-red-500 ml-1">*</span>{% elif optional %}<span class="text-gray-400 text-xs font-normal ml-1">(optional)</span>{% endif %}
   </label>
   <div class="relative flex items-stretch rounded-lg border overflow-hidden transition-all {% if field.errors %}border-red-300 focus-within:border-red-300{% else %}border-gray-300 focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500{% endif %}">
     <span class="flex items-center px-3 {% if field.errors %}bg-red-50/60 border-r border-red-200 text-red-400{% else %}bg-gray-50 border-r border-gray-300 text-gray-500{% endif %} text-sm font-semibold select-none whitespace-nowrap flex-shrink-0" aria-hidden="true">+63</span>

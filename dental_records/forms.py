@@ -6,7 +6,12 @@ Forms for collecting comprehensive dental patient information
 from django import forms
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from core.utils import clean_philippine_phone, format_ph_mobile_badge_display
+from core.academic_catalog import (
+    active_colleges_queryset,
+    soft_fill_academic_fields_from_patient_profile,
+)
+from core.guest_auth import is_guest_user
+from core.utils import age_from_date_of_birth, clean_philippine_phone, format_ph_mobile_badge_display
 from .models import (
     DentalRecord, DentalExamination, DentalVitalSigns,
     DentalHealthQuestionnaire, DentalSystemsReview,
@@ -42,6 +47,51 @@ def _apply_badge_phone_initials(form):
             form.initial[field_name] = format_ph_mobile_badge_display(raw)
 
 
+def _wire_consent_date_attrs(form):
+    """Link consent checkboxes to readonly date fields for consent-date.js."""
+    pairs = (
+        ('consent_signed', 'consent_date'),
+        ('informed_consent_signed', 'informed_consent_date'),
+    )
+    for signed_name, date_name in pairs:
+        if signed_name not in form.fields or date_name not in form.fields:
+            continue
+        form.fields[signed_name].widget.attrs['data-consent-date-for'] = form[date_name].id_for_label
+
+
+def _ensure_consent_dates(cleaned_data):
+    """Fill consent dates with today when the matching checkbox is checked."""
+    today = timezone.now().date()
+    if cleaned_data.get('consent_signed') and not cleaned_data.get('consent_date'):
+        cleaned_data['consent_date'] = today
+    if cleaned_data.get('informed_consent_signed') and not cleaned_data.get('informed_consent_date'):
+        cleaned_data['informed_consent_date'] = today
+    return cleaned_data
+
+
+def _apply_department_college_select(form, field_name='department_college_office'):
+    """Use active college catalog for department/college fields."""
+    if field_name not in form.fields:
+        return
+    colleges = list(active_colleges_queryset().values_list('name', flat=True))
+    current = ''
+    if form.is_bound:
+        current = (form.data.get(form.add_prefix(field_name)) or form.data.get(field_name) or '').strip()
+    if not current:
+        current = (form.initial.get(field_name) or '').strip()
+    if not current and form.instance:
+        current = (getattr(form.instance, field_name, None) or '').strip()
+    choices = [('', 'Select college/department'), *[(name, name) for name in colleges]]
+    if current and current not in colleges:
+        choices.append((current, f'{current} (existing)'))
+    form.fields[field_name].widget = forms.Select(
+        attrs={
+            'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+        }
+    )
+    form.fields[field_name].choices = choices
+
+
 class DentalRecordForm(forms.ModelForm):
     """Main form for patient demographics"""
     
@@ -70,6 +120,9 @@ class DentalRecordForm(forms.ModelForm):
     )
 
     def __init__(self, *args, **kwargs):
+        data = args[0] if args else kwargs.get('data')
+        if data is None:
+            soft_fill_academic_fields_from_patient_profile(kwargs.get('instance'))
         super().__init__(*args, **kwargs)
         today = timezone.now().date()
         # Set consent date defaults for new records
@@ -91,10 +144,48 @@ class DentalRecordForm(forms.ModelForm):
         self.fields['examined_by'].label_from_instance = (
             lambda u: u.get_full_name() or u.email or str(u.pk)
         )
+        if not self.is_bound and self.instance:
+            soft_fill_academic_fields_from_patient_profile(self.instance)
+            dept = (getattr(self.instance, 'department_college_office', None) or '').strip()
+            if dept:
+                self.initial['department_college_office'] = dept
         _apply_badge_phone_initials(self)
+        # Department uses searchable Alpine picker in templates (not a Select widget).
+        if 'department_college_office' in self.fields:
+            self.fields['department_college_office'].widget = forms.HiddenInput()
+        if 'designation' in self.fields:
+            self.fields['designation'].widget.attrs['class'] = 'form-select'
+        for academic_field in ('course', 'year_level'):
+            if academic_field in self.fields:
+                self.fields[academic_field].required = False
+                self.fields[academic_field].widget.attrs['class'] = 'form-select'
+        _wire_consent_date_attrs(self)
 
     def clean(self):
         cleaned_data = super().clean()
+
+        patient = cleaned_data.get('patient')
+        if patient and is_guest_user(patient):
+            cleaned_data['designation'] = 'student'
+            cleaned_data['department_college_office'] = 'Guest'
+            cleaned_data['course'] = ''
+            cleaned_data['year_level'] = ''
+            self._errors.pop('designation', None)
+            self._errors.pop('department_college_office', None)
+            self._errors.pop('course', None)
+            self._errors.pop('year_level', None)
+        else:
+            designation = (cleaned_data.get('designation') or '').strip().lower()
+            if designation == 'employee':
+                cleaned_data['course'] = ''
+                cleaned_data['year_level'] = ''
+                self._errors.pop('course', None)
+                self._errors.pop('year_level', None)
+
+        dob = cleaned_data.get('date_of_birth')
+        if dob and 'age' in self.fields:
+            cleaned_data['age'] = age_from_date_of_birth(dob)
+            self._errors.pop('age', None)
 
         if not self.instance.pk:
             consent_signed = cleaned_data.get('consent_signed')
@@ -106,11 +197,7 @@ class DentalRecordForm(forms.ModelForm):
             if not informed_consent_signed:
                 self.add_error('informed_consent_signed', 'Informed consent is required before creating a dental record.')
 
-            if consent_signed and not cleaned_data.get('consent_date'):
-                cleaned_data['consent_date'] = timezone.now().date()
-
-            if informed_consent_signed and not cleaned_data.get('informed_consent_date'):
-                cleaned_data['informed_consent_date'] = timezone.now().date()
+        _ensure_consent_dates(cleaned_data)
 
         return cleaned_data
 
@@ -126,7 +213,8 @@ class DentalRecordForm(forms.ModelForm):
             'patient', 'middle_name', 'age', 'gender', 'civil_status',
             'address', 'date_of_birth', 'place_of_birth', 'email',
             'contact_number', 'telephone_number', 'designation',
-            'department_college_office', 'guardian_name', 'guardian_contact',
+            'department_college_office', 'course', 'year_level',
+            'guardian_name', 'guardian_contact',
             'date_of_examination', 'examined_by', 'appointment', 'consent_signed', 'consent_date',
             'informed_consent_signed', 'informed_consent_date'
         ]
@@ -140,9 +228,11 @@ class DentalRecordForm(forms.ModelForm):
                 'placeholder': 'Middle Name'
             }),
             'age': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 transition-all',
                 'min': '0',
-                'max': '150'
+                'max': '150',
+                'readonly': True,
+                'title': 'Age is calculated from Date of Birth',
             }),
             'gender': forms.Select(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
@@ -173,12 +263,11 @@ class DentalRecordForm(forms.ModelForm):
                 'placeholder': 'Landline (optional)'
             }),
             'designation': forms.Select(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all'
+                'class': 'form-select'
             }),
-            'department_college_office': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'placeholder': 'Department/College/Office'
-            }),
+            'department_college_office': forms.HiddenInput(),
+            'course': forms.Select(attrs={'class': 'form-select'}),
+            'year_level': forms.Select(attrs={'class': 'form-select'}),
             'guardian_name': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Emergency Contact Name'
@@ -226,6 +315,8 @@ class DentalRecordForm(forms.ModelForm):
             'telephone_number': 'Telephone Number',
             'designation': 'Designation',
             'department_college_office': 'Department/College/Office',
+            'course': 'Course / Program',
+            'year_level': 'Year Level',
             'guardian_name': 'Guardian/Emergency Contact Name',
             'guardian_contact': 'Guardian Contact Number',
             'date_of_examination': 'Date of Examination',
@@ -246,24 +337,43 @@ class StudentDentalIntakeForm(forms.ModelForm):
     """
 
     def __init__(self, *args, **kwargs):
+        data = args[0] if args else kwargs.get('data')
+        if data is None:
+            soft_fill_academic_fields_from_patient_profile(kwargs.get('instance'))
         super().__init__(*args, **kwargs)
         today = timezone.now().date()
         self.fields['consent_date'].initial = today
         self.fields['informed_consent_date'].initial = today
         self.fields['consent_signed'].required = True
         self.fields['informed_consent_signed'].required = True
+        if not self.is_bound and self.instance:
+            soft_fill_academic_fields_from_patient_profile(self.instance)
+            dept = (getattr(self.instance, 'department_college_office', None) or '').strip()
+            if dept:
+                self.initial['department_college_office'] = dept
         _apply_badge_phone_initials(self)
+        # Department uses searchable Alpine picker in templates (not a Select widget).
+        if 'department_college_office' in self.fields:
+            self.fields['department_college_office'].widget = forms.HiddenInput()
+        if 'designation' in self.fields:
+            self.fields['designation'].widget.attrs['class'] = 'form-select'
+        for academic_field in ('course', 'year_level'):
+            if academic_field in self.fields:
+                self.fields[academic_field].required = False
+                self.fields[academic_field].widget.attrs['class'] = 'form-select'
+        _wire_consent_date_attrs(self)
 
     def clean(self):
         cleaned_data = super().clean()
+        dob = cleaned_data.get('date_of_birth')
+        if dob and 'age' in self.fields:
+            cleaned_data['age'] = age_from_date_of_birth(dob)
+            self._errors.pop('age', None)
         if not cleaned_data.get('consent_signed'):
             self.add_error('consent_signed', 'You must give consent before submitting.')
         if not cleaned_data.get('informed_consent_signed'):
             self.add_error('informed_consent_signed', 'You must give informed consent before submitting.')
-        if cleaned_data.get('consent_signed') and not cleaned_data.get('consent_date'):
-            cleaned_data['consent_date'] = timezone.now().date()
-        if cleaned_data.get('informed_consent_signed') and not cleaned_data.get('informed_consent_date'):
-            cleaned_data['informed_consent_date'] = timezone.now().date()
+        _ensure_consent_dates(cleaned_data)
         return cleaned_data
 
     def clean_contact_number(self):
@@ -278,7 +388,8 @@ class StudentDentalIntakeForm(forms.ModelForm):
             'middle_name', 'age', 'gender', 'civil_status',
             'address', 'date_of_birth', 'place_of_birth', 'email',
             'contact_number', 'telephone_number', 'designation',
-            'department_college_office', 'guardian_name', 'guardian_contact',
+            'department_college_office', 'course', 'year_level',
+            'guardian_name', 'guardian_contact',
             'consent_signed', 'consent_date',
             'informed_consent_signed', 'informed_consent_date',
         ]
@@ -288,8 +399,10 @@ class StudentDentalIntakeForm(forms.ModelForm):
                 'placeholder': 'Middle Name (optional)',
             }),
             'age': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 transition-all',
                 'min': '0', 'max': '150',
+                'readonly': True,
+                'title': 'Age is calculated from Date of Birth',
             }),
             'gender': forms.Select(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
@@ -320,12 +433,11 @@ class StudentDentalIntakeForm(forms.ModelForm):
                 'placeholder': 'Landline (optional)',
             }),
             'designation': forms.Select(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
+                'class': 'form-select',
             }),
-            'department_college_office': forms.TextInput(attrs={
-                'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
-                'placeholder': 'Department / College / Office',
-            }),
+            'department_college_office': forms.HiddenInput(),
+            'course': forms.Select(attrs={'class': 'form-select'}),
+            'year_level': forms.Select(attrs={'class': 'form-select'}),
             'guardian_name': forms.TextInput(attrs={
                 'class': 'w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all',
                 'placeholder': 'Emergency Contact Name',
@@ -361,6 +473,8 @@ class StudentDentalIntakeForm(forms.ModelForm):
             'telephone_number': 'Telephone Number (optional)',
             'designation': 'Designation',
             'department_college_office': 'Department / College / Office',
+            'course': 'Course / Program',
+            'year_level': 'Year Level',
             'guardian_name': 'Emergency Contact Name',
             'guardian_contact': 'Emergency Contact Number',
             'consent_signed': 'I certify that all information provided is true and accurate.',
@@ -368,6 +482,53 @@ class StudentDentalIntakeForm(forms.ModelForm):
             'informed_consent_signed': 'I authorize the dental clinic to perform necessary dental procedures.',
             'informed_consent_date': 'Date',
         }
+
+
+class GuestDentalIntakeForm(StudentDentalIntakeForm):
+    """Guest magic-link intake: demographics + consent; institutional fields forced for Guest."""
+
+    class Meta(StudentDentalIntakeForm.Meta):
+        fields = [
+            'middle_name', 'age', 'gender', 'civil_status',
+            'address', 'date_of_birth', 'place_of_birth', 'email',
+            'contact_number', 'telephone_number',
+            'guardian_name', 'guardian_contact',
+            'consent_signed', 'consent_date',
+            'informed_consent_signed', 'informed_consent_date',
+        ]
+
+    def __init__(self, *args, draft=False, **kwargs):
+        self.draft = draft
+        super().__init__(*args, **kwargs)
+        for field_name in (
+            'gender', 'civil_status', 'address', 'date_of_birth', 'place_of_birth',
+            'email', 'contact_number', 'guardian_name', 'guardian_contact',
+        ):
+            if field_name in self.fields:
+                self.fields[field_name].required = not draft
+        if draft:
+            for field in self.fields.values():
+                field.required = False
+
+    def clean(self):
+        if self.draft:
+            cleaned_data = forms.ModelForm.clean(self)
+            dob = cleaned_data.get('date_of_birth')
+            if dob and 'age' in self.fields:
+                cleaned_data['age'] = age_from_date_of_birth(dob)
+                self._errors.pop('age', None)
+            return cleaned_data
+        return super().clean()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.designation = 'student'
+        instance.department_college_office = 'Guest'
+        instance.course = ''
+        instance.year_level = ''
+        if commit:
+            instance.save()
+        return instance
 
 
 _EXAM_TEXTAREA_ATTRS = {

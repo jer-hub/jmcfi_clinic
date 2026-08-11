@@ -14,7 +14,8 @@
 <script type="application/json" id="schedule-form-prefill">{{ form_data_json|safe }}</script>
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0"
      x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }}, staffPicksDoctor: {{ staff_picks_doctor|yesno:'true,false' }} })"
-     @clinic-walk-in-created.window="onWalkInCreated($event.detail)">
+     @clinic-guest-created.window="onGuestCreated($event.detail)"
+     @clinic-guest-toggled="onGuestToggled($event.detail)">
     {% include 'appointments/_subnav.html' %}
 
     {% if patient_locked and prefill_patient %}
@@ -26,7 +27,8 @@
     {% if messages %}
     <div class="space-y-2 mb-6">
         {% for message in messages %}
-        <div class="flex items-start gap-3 p-3 rounded-lg text-sm
+        <div {% if message.tags == 'error' %}data-schedule-server-error{% endif %}
+             class="flex items-start gap-3 p-3 rounded-lg text-sm
                     {% if message.tags == 'error' %}bg-danger-50 text-danger-700 border border-danger-200
                     {% elif message.tags == 'success' %}bg-success-50 text-success-700 border border-success-200
                     {% else %}bg-info-50 text-info-700 border border-info-200{% endif %}">
@@ -102,8 +104,8 @@
                 <input type="hidden" name="book_again" value="1">
                 {% else %}
 
-                {# Search (hidden when a patient is selected) #}
-                <div x-show="!hasSelectedStudent" x-cloak>
+                {# Search (hidden when a patient is selected or guest registration is open) #}
+                <div x-show="!hasSelectedStudent && guestRegisterOpen !== true" x-cloak>
                     <label for="patient-search" class="sr-only">Search patients</label>
                     <div class="relative" @click.away="showResults = false">
                         <div class="relative">
@@ -164,8 +166,10 @@
                         </div>
                     </div>
                     <p x-show="errors.patient" x-text="errors.patient" x-cloak class="mt-1.5 text-sm text-danger-600"></p>
+                </div>
 
-                    {% include "core/partials/_register_walk_in_guest.html" with clinical_module="appointments" %}
+                <div x-show="!hasSelectedStudent" x-cloak>
+                    {% include "core/partials/_register_guest.html" with clinical_module="appointments" %}
                 </div>
 
                 {# Selected patient card #}
@@ -191,7 +195,7 @@
                 </div>
 
                 <input type="hidden" name="patient" x-model="selectedPatientId">
-                <p x-show="!hasSelectedStudent" class="text-xs text-danger-600">
+                <p x-show="!hasSelectedStudent" class="text-xs text-gray-500">
                     Select a patient to enable scheduling.
                 </p>
                 {% endif %}
@@ -375,6 +379,17 @@ function scheduleForPatient(opts = {}) {
         submitting: false,
         dateError: '',
         errors: {},
+        guestRegisterOpen: false,
+
+        onGuestToggled(detail) {
+            this.guestRegisterOpen = !!(detail && detail.open);
+            if (this.guestRegisterOpen && !this.patientLocked) {
+                this.clearPatient();
+                this.patientQuery = '';
+                this.searchResults = [];
+                this.showResults = false;
+            }
+        },
 
         get filteredDoctors() {
             if (!this.staffPicksDoctor || !this.selectedType) return [];
@@ -390,11 +405,9 @@ function scheduleForPatient(opts = {}) {
                 this.$nextTick(() => this.syncSelectedDoctor());
             }
             // After a failed server POST, focus the first empty/invalid field.
+            // Use an explicit marker — substring class matches also hit hover:bg-danger-50.
             this.$nextTick(() => {
-                const hasServerError = Boolean(
-                    document.querySelector('[class*="bg-danger-50"][class*="text-danger"]')
-                );
-                if (!hasServerError) return;
+                if (!document.querySelector('[data-schedule-server-error]')) return;
                 if (!this.validate()) this.focusFirstError();
             });
         },
@@ -568,7 +581,7 @@ function scheduleForPatient(opts = {}) {
             this.selectedPatientYear = '';
         },
 
-        onWalkInCreated(patient) {
+        onGuestCreated(patient) {
             if (!patient?.id) return;
             this.selectPatient({
                 id: patient.id,
@@ -581,5 +594,6 @@ function scheduleForPatient(opts = {}) {
     };
 }
 </script>
-<script src="{% static 'js/clinic-walk-in-register.js' %}?v=1"></script>
+<script src="{% static 'js/clinic-guest-register.js' %}?v=6"></script>
+<script src="{% static 'js/phone-input.js' %}"></script>
 {% endblock content %}

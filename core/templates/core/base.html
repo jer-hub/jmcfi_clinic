@@ -346,10 +346,49 @@
         };
       }
 
+      /** True when dental edit tabs have unsaved section changes (API + badge fallback). */
+      window.__jmcfiDentalEditHasUnsaved = function () {
+        if (
+          window.healthFormEdit &&
+          typeof window.healthFormEdit.hasUnsavedChanges === 'function'
+        ) {
+          try {
+            if (window.healthFormEdit.hasUnsavedChanges()) return true;
+          } catch (err) {
+            /* fall through to badge check */
+          }
+        }
+        var badges = document.querySelectorAll('[data-tab-badge]');
+        for (var i = 0; i < badges.length; i++) {
+          var badge = badges[i];
+          if (
+            badge &&
+            !badge.classList.contains('hidden') &&
+            badge.classList.contains('text-amber-500')
+          ) {
+            return true;
+          }
+        }
+        return false;
+      };
+
       /** Dental record edit/list: open mark-completed confirm modal (completed status cannot be reverted). */
       window.__jmcfiDentalStatusModal = function (btn) {
         var rid = btn && btn.getAttribute('data-record-id');
         if (!rid) return;
+        // Edit page: block while any tab still has unsaved AJAX section changes.
+        if (window.__jmcfiDentalEditHasUnsaved && window.__jmcfiDentalEditHasUnsaved()) {
+          window.dispatchEvent(
+            new CustomEvent('user-toast', {
+              bubbles: true,
+              detail: {
+                message: 'Save unsaved changes on all tabs before marking this record completed.',
+                type: 'warning',
+              },
+            }),
+          );
+          return;
+        }
         var sub = (btn.getAttribute('data-subtitle') || '').trim();
         window.__jmcfiDispatchOpenModal({
           type: 'success',

@@ -413,7 +413,12 @@
     return true;
   }
 
+  function isReadOnlySectionForm(form) {
+    return Boolean(form && form.getAttribute('data-section-readonly') === '1');
+  }
+
   function enableDisabledFields(form) {
+    if (isReadOnlySectionForm(form)) return;
     form.querySelectorAll(':disabled').forEach(function (el) {
       el.disabled = false;
     });
@@ -485,7 +490,7 @@
       }
       return;
     }
-    if (target.disabled) target.disabled = false;
+    if (target.disabled && !isReadOnlySectionForm(form)) target.disabled = false;
     target.focus({ preventScroll: true });
     target.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -587,6 +592,7 @@
     document.querySelectorAll('form[data-section]').forEach(function (form) {
       var key = form.getAttribute('data-section');
       dirty[key] = false;
+      if (isReadOnlySectionForm(form)) return;
       form.addEventListener('input', function () {
         markDirty(key);
       });

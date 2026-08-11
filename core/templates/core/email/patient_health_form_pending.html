@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; color: #111827; line-height: 1.5;">
+  <p>Hello {{ patient_name }},</p>
+  <p><strong>{{ clinic_name }}</strong> started a health profile form for you. Please complete your demographics and medical history.</p>
+  <p>
+    <a href="{{ access_url }}" style="display:inline-block;padding:10px 16px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;">
+      Complete your health form
+    </a>
+  </p>
+  <p style="font-size:12px;color:#6b7280;">You may need to sign in with your clinic account to open this link.</p>
+  <p>— {{ clinic_name }}</p>
+</body>
+</html>

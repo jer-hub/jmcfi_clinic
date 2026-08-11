@@ -99,8 +99,14 @@
                         </h2>
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                             <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.date_of_birth.label }} <span class="text-red-500">*</span></label>
+                                {{ form.date_of_birth }}
+                                {% if form.date_of_birth.errors %}<p class="text-red-600 text-xs mt-1">{{ form.date_of_birth.errors.0 }}</p>{% endif %}
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.age.label }} <span class="text-red-500">*</span></label>
                                 {{ form.age }}
+                                <p class="mt-1 text-xs text-gray-400">Calculated from date of birth</p>
                                 {% if form.age.errors %}<p class="text-red-600 text-xs mt-1">{{ form.age.errors.0 }}</p>{% endif %}
                             </div>
                             <div>
@@ -112,11 +118,6 @@
                                 <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.civil_status.label }} <span class="text-red-500">*</span></label>
                                 {{ form.civil_status }}
                                 {% if form.civil_status.errors %}<p class="text-red-600 text-xs mt-1">{{ form.civil_status.errors.0 }}</p>{% endif %}
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-2">{{ form.date_of_birth.label }} <span class="text-red-500">*</span></label>
-                                {{ form.date_of_birth }}
-                                {% if form.date_of_birth.errors %}<p class="text-red-600 text-xs mt-1">{{ form.date_of_birth.errors.0 }}</p>{% endif %}
                             </div>
                         </div>
                         <div class="mt-6">
@@ -289,23 +290,7 @@
     }
 </style>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const today = new Date().toISOString().split('T')[0];
-
-        function wireConsent(checkboxId, dateId) {
-            const cb = document.getElementById(checkboxId);
-            const dt = document.getElementById(dateId);
-            if (!cb || !dt) return;
-            if (!dt.value) dt.value = today;
-            cb.addEventListener('change', function () {
-                if (cb.checked && !dt.value) dt.value = today;
-            });
-        }
-
-        wireConsent('{{ form.consent_signed.id_for_label }}', '{{ form.consent_date.id_for_label }}');
-        wireConsent('{{ form.informed_consent_signed.id_for_label }}', '{{ form.informed_consent_date.id_for_label }}');
-    });
-</script>
+<script src="{% static 'js/consent-date.js' %}?v=1"></script>
+<script src="{% static 'js/age-from-dob.js' %}?v=1"></script>
 <script src="{% static 'js/phone-input.js' %}"></script>
 {% endblock %}

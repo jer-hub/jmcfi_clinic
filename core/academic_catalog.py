@@ -140,3 +140,57 @@ def patient_catalog_context():
         'year_level_options_by_college_json': json.dumps(year_level_map),
         'course_optional_by_college_json': json.dumps(optional_map),
     }
+
+
+def _patient_user_id_from_instance(instance):
+    """Resolve linked patient user id from common clinic model shapes."""
+    if instance is None:
+        return None
+    user_id = getattr(instance, 'user_id', None)
+    if user_id:
+        return user_id
+    user = getattr(instance, 'user', None)
+    user_id = getattr(user, 'pk', None)
+    if user_id:
+        return user_id
+    # DentalRecord and similar: patient FK → User
+    patient = getattr(instance, 'patient', None)
+    return getattr(patient, 'pk', None)
+
+
+def soft_fill_academic_fields_from_patient_profile(instance) -> None:
+    """
+    Copy blank academic fields from the linked PatientProfile onto *instance*
+    (in memory only). Call before ModelForm.__init__ so model_to_dict picks them up.
+
+    Supports ``department_college_office``, ``department``, ``institution_id``,
+    ``course``, and ``year_level`` when present on the model.
+    """
+    user_id = _patient_user_id_from_instance(instance)
+    if not user_id:
+        return
+
+    # Always query — avoid stale reverse-OneToOne cache on user.patient_profile.
+    profile = PatientProfile.objects.filter(user_id=user_id).first()
+    if profile is None:
+        return
+
+    is_employee = bool(getattr(profile, 'is_employee', False))
+    department = getattr(profile, 'department', '') or ''
+    fallbacks = {
+        'department_college_office': department,
+        'department': department,
+        'institution_id': getattr(profile, 'patient_id', '') or '',
+    }
+    if not is_employee:
+        fallbacks['course'] = getattr(profile, 'course', '') or ''
+        fallbacks['year_level'] = getattr(profile, 'year_level', '') or ''
+
+    for field_name, raw in fallbacks.items():
+        if not hasattr(instance, field_name):
+            continue
+        if str(getattr(instance, field_name, None) or '').strip():
+            continue
+        value = str(raw or '').strip()
+        if value:
+            setattr(instance, field_name, value)

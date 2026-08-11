@@ -16,11 +16,18 @@
 
     {% include "components/page_header.html" with title=form_type_label subtitle=list_subtitle_text|default:"" icon="fa-file-medical" %}
 
-    {% if create_url %}
-      <div class="flex justify-end mb-4">
-        <a href="{{ create_url }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm">
-          <i class="fas fa-plus"></i><span>{% if create_label %}{{ create_label }}{% else %}New {{ form_type_label }}{% endif %}</span>
+    {% if create_url or secondary_create_url %}
+      <div class="flex justify-end flex-wrap gap-2 mb-4">
+        {% if secondary_create_url %}
+        <a href="{{ secondary_create_url }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm">
+          <i class="fas fa-plus"></i><span>{{ secondary_create_label|default:"New Form" }}</span>
         </a>
+        {% endif %}
+        {% if create_url %}
+        <a href="{{ create_url }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm">
+          <i class="fas fa-{% if secondary_create_url %}envelope-open-text{% else %}plus{% endif %}"></i><span>{% if create_label %}{{ create_label }}{% else %}New {{ form_type_label }}{% endif %}</span>
+        </a>
+        {% endif %}
       </div>
     {% endif %}
 

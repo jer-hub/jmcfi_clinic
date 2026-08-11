@@ -1,6 +1,6 @@
 # JMCFI Clinic Management System
 
-A web-based clinic management system built with Django for managing patient profiles, appointments, dental and medical records, document requests, pharmacy inventory, and clinic analytics.
+A web-based clinic management system built with Django for managing patient profiles, appointments, dental and medical records, document requests, pharmacy inventory, clinic files, and analytics.
 
 ---
 
@@ -23,7 +23,7 @@ A web-based clinic management system built with Django for managing patient prof
 
 ## Overview
 
-JMCFI Clinic is a Django application for clinic operations at an educational institution. It supports Google OAuth sign-in, role-based dashboards, appointment scheduling with month/week calendar views, medical and dental records, certificate/document requests, messaging, and admin analytics.
+JMCFI Clinic is a Django application for clinic operations at an educational institution. It supports Google OAuth sign-in, role-based dashboards, appointment scheduling with month/week calendar views, medical and dental records, certificate/document requests, shared clinic files, messaging, and admin analytics.
 
 ---
 
@@ -55,6 +55,8 @@ JMCFI Clinic is a Django application for clinic operations at an educational ins
 ### Operations
 - Document/certificate requests and processing
 - Pharmacy inventory and dispensing
+- Concern / services records
+- Clinic Files (staff/doctor Drive): folders, upload with progress, search, trash, multi-select
 - Feedback and health tips
 - Direct messaging and announcements
 - Analytics dashboards and compliance reporting (admin/staff/doctor)
@@ -158,8 +160,8 @@ Production deploy guidance for DigitalOcean App Platform is available in [`docs/
 | Role | Typical access |
 |------|----------------|
 | **Patient** | Complete profile, book appointments, view own records, request documents, feedback, messaging |
-| **Staff** | Clinic operations, appointments, records, document processing, analytics (per role settings) |
-| **Doctor** | Appointments, clinical records, certificates, schedule-for-patient, patient search |
+| **Staff** | Clinic operations, appointments, records, document processing, Clinic Files, analytics (per role settings) |
+| **Doctor** | Appointments, clinical records, certificates, Clinic Files (when granted), schedule-for-patient, patient search |
 | **Admin** | User management, clinic/role settings, analytics; clinical namespaces can be blocked by policy |
 
 Role constants and legacy compatibility live in `core/roles.py` (`student` in old data or decorators is normalized to `patient`).
@@ -180,6 +182,8 @@ Role constants and legacy compatibility live in `core/roles.py` (`student` in ol
 | `health_forms_services/` | `/health-forms/` | Health/dental forms and charts |
 | `analytics/` | `/analytics/` | Reporting and population health |
 | `pharmacy/` | `/pharmacy/` | Inventory and dispensing |
+| `manage_concern/` | `/manage-concern/` | Concern / services records |
+| `files/` | `/files/` | Clinic Files (staff/doctor Drive) |
 | `messaging/` | `/messages/` | Direct messages and announcements |
 
 ---
@@ -199,6 +203,8 @@ jmcfi_clinic/
 ├── health_forms_services/
 ├── analytics/
 ├── pharmacy/
+├── manage_concern/
+├── files/                # Clinic Files (Drive)
 ├── messaging/
 ├── templates/            # Shared components (calendar, modals, badges)
 ├── static/
@@ -265,7 +271,12 @@ python manage.py migrate
 
 ## Version History
 
-**Current** — Patient role rename and calendar enhancements
+**Current** — Clinic Files and clinical workflow updates
+- Clinic Files (`/files/`): shared staff/doctor Drive with folders, background upload progress, search, trash, and multi-select bulk actions
+- Module gating via clinical modules; Services nav and subnav for My Drive / Trash
+- Health profile patient–clinician workflow and Manage Concern module
+
+**Earlier** — Patient role rename and calendar enhancements
 - `student` role and `StudentProfile` renamed to **patient** / `PatientProfile` (DB migrations included)
 - Unified dashboard calendar with month/week views for all roles
 - Patient-first URLs and forms; legacy student aliases removed

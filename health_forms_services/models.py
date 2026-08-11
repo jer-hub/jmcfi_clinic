@@ -11,7 +11,8 @@ class HealthProfileForm(models.Model):
         COMPLETED = 'completed', 'Completed'
         REJECTED = 'rejected', 'Rejected'
         INCOMPLETE = 'incomplete', 'Incomplete'
-    
+        CANCELLED = 'cancelled', 'Cancelled'
+
     class Designation(models.TextChoices):
         STUDENT = 'student', 'Student'
         STAFF = 'staff', 'Staff'

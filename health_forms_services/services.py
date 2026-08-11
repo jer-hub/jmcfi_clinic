@@ -27,6 +27,17 @@ SUBMIT_REQUIRED_FIELDS = (
     'email_address',
 )
 
+# Guests do not fill institutional affiliation fields
+GUEST_SUBMIT_REQUIRED_FIELDS = (
+    'last_name',
+    'first_name',
+    'date_of_birth',
+    'gender',
+    'designation',
+    'mobile_number',
+    'email_address',
+)
+
 # Prefill keys from patient profile payload that map onto HealthProfileForm fields
 HEALTH_PROFILE_PREFILL_FIELDS = (
     'first_name',
@@ -173,14 +184,58 @@ def can_submit_for_review(user, form) -> bool:
     return is_clinician(user)
 
 
+def can_cancel_draft(user, form) -> bool:
+    """Patient owner or clinician may cancel an incomplete or pending health-profile form."""
+    if form.status not in (form.Status.INCOMPLETE, form.Status.PENDING):
+        return False
+    if is_patient_role(getattr(user, 'role', None)):
+        return getattr(form, 'user_id', None) == getattr(user, 'id', None)
+    return is_clinician(user)
+
+
+def can_delete_health_profile(user, form) -> bool:
+    """Clinicians may delete unfinished forms; patients may delete their own unfinished forms."""
+    if form.status not in (
+        form.Status.PENDING,
+        form.Status.REJECTED,
+        form.Status.INCOMPLETE,
+    ):
+        return False
+    if is_clinician(user):
+        return True
+    if is_patient_role(getattr(user, 'role', None)):
+        return (
+            form.status in (form.Status.INCOMPLETE, form.Status.PENDING)
+            and getattr(form, 'user_id', None) == getattr(user, 'id', None)
+        )
+    return False
+
+
+def cancel_action_label(form) -> str:
+    if form.status == form.Status.PENDING:
+        return 'Cancel submission'
+    if form.status == form.Status.INCOMPLETE:
+        return 'Cancel draft'
+    return 'Delete form'
+
+
 def can_review_health_profile(user, form) -> bool:
     return is_clinician(user) and form.status == form.Status.PENDING
 
 
 def validate_submit_for_review(form) -> list[str]:
     """Return human-readable missing-field messages; empty list means ready."""
+    designation = (getattr(form, 'designation', None) or '').strip().lower()
+    guest_form = designation == 'guest'
+    if not guest_form:
+        from core.guest_auth import is_guest_user
+
+        user = getattr(form, 'user', None)
+        guest_form = bool(user and is_guest_user(user))
+
+    required = GUEST_SUBMIT_REQUIRED_FIELDS if guest_form else SUBMIT_REQUIRED_FIELDS
     errors = []
-    for field_name in SUBMIT_REQUIRED_FIELDS:
+    for field_name in required:
         value = getattr(form, field_name, None)
         if value is None or (isinstance(value, str) and not value.strip()):
             label = field_name.replace('_', ' ').title()

@@ -3,16 +3,40 @@
 from __future__ import annotations
 
 import logging
+import smtplib
 
 from django.conf import settings
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives, send_mail
+from django.template.loader import render_to_string
 
 from .settings_service import get_clinic_settings, get_user_preferences
+from .guest_auth import is_guest_user, resolve_patient_contact_email
 
 logger = logging.getLogger(__name__)
 
 
+def format_email_send_error(exc: BaseException) -> str:
+    """Human-readable SMTP/config error for staff flash messages."""
+    if isinstance(exc, smtplib.SMTPAuthenticationError):
+        return (
+            'SMTP login failed. For Gmail, set EMAIL_HOST_PASSWORD to a Google App Password '
+            '(not your normal account password). See https://support.google.com/accounts/answer/185833'
+        )
+    if isinstance(exc, smtplib.SMTPSenderRefused):
+        return (
+            f'Sender rejected by SMTP. Set DEFAULT_FROM_EMAIL to match EMAIL_HOST_USER '
+            f'({getattr(settings, "EMAIL_HOST_USER", "") or "your SMTP mailbox"}).'
+        )
+    if isinstance(exc, (smtplib.SMTPException, OSError)):
+        return f'SMTP error: {exc}'
+    return str(exc) or exc.__class__.__name__
+
 def user_wants_email_notifications(user) -> bool:
+    if not user:
+        return False
+    # Guests never authenticate; allow email when contact_email is present.
+    if is_guest_user(user):
+        return bool(resolve_patient_contact_email(user))
     if not getattr(user, 'is_authenticated', False):
         return False
     if not (getattr(user, 'email', None) or '').strip():
@@ -30,6 +54,13 @@ def clinic_allows_email_notifications() -> bool:
         return False
 
 
+def _clinic_name() -> str:
+    try:
+        return get_clinic_settings().clinic_name or 'JMCFI Clinic'
+    except Exception:
+        return 'JMCFI Clinic'
+
+
 def send_notification_email(user, subject: str, message: str) -> bool:
     """Send a plain-text notification email when clinic and user allow it."""
     if not clinic_allows_email_notifications():
@@ -37,28 +68,73 @@ def send_notification_email(user, subject: str, message: str) -> bool:
     if not user_wants_email_notifications(user):
         return False
 
-    clinic_name = 'JMCFI Clinic'
-    try:
-        clinic_name = get_clinic_settings().clinic_name or clinic_name
-    except Exception:
-        pass
+    to_email = resolve_patient_contact_email(user)
+    if not to_email:
+        return False
 
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'noreply@localhost'
-    full_subject = f'[{clinic_name}] {subject}'
+    full_subject = f'[{_clinic_name()}] {subject}'
 
     try:
         send_mail(
             full_subject,
             message,
             from_email,
-            [user.email],
+            [to_email],
             fail_silently=False,
         )
         return True
     except Exception:
-        logger.exception('Failed to send notification email to %s', user.email)
+        logger.exception('Failed to send notification email to %s', to_email)
         return False
 
+
+def send_templated_email(
+    user,
+    subject: str,
+    template_base: str,
+    context: dict,
+    *,
+    raise_on_error: bool = False,
+) -> bool:
+    """
+    Send HTML+text email using templates named `{template_base}.txt` and `.html`.
+    Guests use contact_email; others use User.email.
+    """
+    if not clinic_allows_email_notifications():
+        return False
+
+    to_email = resolve_patient_contact_email(user)
+    if not to_email:
+        return False
+
+    # Non-guest patients still respect email preference.
+    if not is_guest_user(user) and not user_wants_email_notifications(user):
+        return False
+
+    ctx = {
+        'clinic_name': _clinic_name(),
+        'user': user,
+        **(context or {}),
+    }
+    text_body = render_to_string(f'{template_base}.txt', ctx)
+    html_body = render_to_string(f'{template_base}.html', ctx)
+    # Gmail requires From to be the authenticated mailbox (or an allowed alias).
+    host_user = (getattr(settings, 'EMAIL_HOST_USER', None) or '').strip()
+    configured_from = (getattr(settings, 'DEFAULT_FROM_EMAIL', None) or '').strip()
+    from_email = host_user or configured_from or 'noreply@localhost'
+    full_subject = f'[{ctx["clinic_name"]}] {subject}'
+
+    try:
+        msg = EmailMultiAlternatives(full_subject, text_body, from_email, [to_email])
+        msg.attach_alternative(html_body, 'text/html')
+        msg.send(fail_silently=False)
+        return True
+    except Exception as exc:
+        logger.exception('Failed to send templated email to %s', to_email)
+        if raise_on_error:
+            raise
+        return False
 
 def notify_user(
     user,
@@ -67,22 +143,28 @@ def notify_user(
     notification_type: str = 'general',
     related_id=None,
     transaction_type=None,
+    *,
+    skip_in_app_for_guest: bool = True,
+    send_email: bool = True,
 ):
     """
     Deliver notification via in-app record and/or email per preferences.
-    Returns the in-app Notification instance, or None if in-app is disabled.
+    Returns the in-app Notification instance, or None if in-app is skipped/disabled.
     """
     from .utils import create_notification
 
-    notification = create_notification(
-        user,
-        title,
-        message,
-        notification_type=notification_type,
-        related_id=related_id,
-        transaction_type=transaction_type,
-    )
-    send_notification_email(user, title, message)
+    notification = None
+    if not (skip_in_app_for_guest and is_guest_user(user)):
+        notification = create_notification(
+            user,
+            title,
+            message,
+            notification_type=notification_type,
+            related_id=related_id,
+            transaction_type=transaction_type,
+        )
+    if send_email:
+        send_notification_email(user, title, message)
     return notification
 
 

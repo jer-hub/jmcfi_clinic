@@ -74,7 +74,7 @@ PICKER_FIELD_MAPPINGS = {
         'gender': 'gender',
         'date_of_birth': 'date_of_birth',
         'contact_number': 'contact_number',
-        'department': 'department',
+        'department': 'department_college_office',
     },
     'dental_services': {
         'last_name': 'last_name',

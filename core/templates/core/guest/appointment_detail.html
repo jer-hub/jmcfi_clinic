@@ -1,0 +1,113 @@
+{% extends 'core/guest/base_guest.html' %}
+
+{% block title %}Appointment details - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden"
+     x-data="{ showCancelModal: false }">
+  <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/80">
+    <h1 class="text-lg font-semibold text-gray-900">Your appointment</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Hello {{ patient.get_full_name|default:"Patient" }} — details for your clinic visit.</p>
+  </div>
+  <div class="p-5">
+    {% if just_cancelled or appointment.status == 'cancelled' %}
+    <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      This appointment has been cancelled.
+    </div>
+    {% endif %}
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Status</dt>
+        <dd class="mt-1 text-sm font-medium text-gray-900">{{ appointment.get_status_display }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Type</dt>
+        <dd class="mt-1 text-sm text-gray-900">{{ appointment.get_appointment_type_display }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Date</dt>
+        <dd class="mt-1 text-sm text-gray-900">{{ appointment.date|date:"F d, Y" }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Time</dt>
+        <dd class="mt-1 text-sm text-gray-900">{{ appointment.time|time:"g:i A" }}</dd>
+      </div>
+      <div class="sm:col-span-2">
+        <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Doctor</dt>
+        <dd class="mt-1 text-sm text-gray-900">Dr. {{ appointment.doctor.get_full_name|default:appointment.doctor.email }}</dd>
+      </div>
+      <div class="sm:col-span-2">
+        <dt class="text-xs uppercase tracking-wider font-medium text-gray-500">Reason</dt>
+        <dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap">{{ appointment.reason }}</dd>
+      </div>
+    </dl>
+
+    {% if can_cancel %}
+    <div class="mt-6 pt-5 border-t border-gray-100">
+      <button type="button"
+              @click="showCancelModal = true"
+              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm font-medium hover:bg-red-100">
+        <i class="fas fa-times text-xs" aria-hidden="true"></i>
+        Cancel appointment
+      </button>
+    </div>
+
+    {# Confirmation modal #}
+    <div x-show="showCancelModal"
+         x-cloak
+         class="fixed inset-0 z-50 overflow-y-auto"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="guest-cancel-appt-title"
+         @keydown.escape.window="showCancelModal = false">
+      <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-gray-900/50 backdrop-blur-[2px]"
+             @click="showCancelModal = false"
+             aria-hidden="true"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-auto"
+             @click.stop>
+          <div class="flex items-center gap-3 px-5 py-4 border-b border-red-100 bg-red-50 rounded-t-2xl">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-white text-red-600 border border-red-100">
+              <i class="fas fa-ban" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0">
+              <h2 id="guest-cancel-appt-title" class="text-base font-semibold text-gray-900">Cancel appointment?</h2>
+              <p class="text-xs text-gray-600 mt-0.5">Dr. {{ appointment.doctor.get_full_name|default:appointment.doctor.email }}</p>
+            </div>
+          </div>
+          <div class="px-5 py-4">
+            <p class="text-sm text-gray-700">
+              Cancel your appointment on {{ appointment.date|date:"M d, Y" }} at {{ appointment.time|time:"g:i A" }}?
+              This cannot be undone.
+            </p>
+          </div>
+          <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+            <button type="button"
+                    @click="showCancelModal = false"
+                    class="inline-flex justify-center px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+              Keep appointment
+            </button>
+            <form method="post" class="contents">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="cancel">
+              <button type="submit"
+                      class="inline-flex justify-center px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700">
+                Cancel appointment
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% elif cancel_blocked_by_cutoff %}
+    <p class="mt-6 text-xs text-gray-500">
+      Online cancellation must be at least {{ cancellation_cutoff_hours }} hours before the appointment. Please contact the clinic.
+    </p>
+    {% elif appointment.status != 'cancelled' %}
+    <p class="mt-6 text-xs text-gray-500">
+      If you need help with this appointment, please contact the clinic.
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

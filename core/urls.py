@@ -5,6 +5,7 @@ from . import settings_views
 from . import clinical_audit_views
 from . import media_views
 from . import academic_settings_views
+from . import guest_views
 
 app_name = "core"
 
@@ -59,7 +60,14 @@ urlpatterns = [
     
     # Search
     path('search/patients/', views.search_patients, name='search_patients'),
-    path('api/clinical/register-walk-in/', views.register_walk_in_patient, name='register_walk_in_patient'),
+    path('api/clinical/register-guest/', views.register_guest_patient, name='register_guest_patient'),
+
+    # Guest magic links (login-exempt)
+    path('guest/appointment/<str:token>/', guest_views.guest_appointment, name='guest_appointment'),
+    path('guest/health-form/<str:token>/', guest_views.guest_health_form, name='guest_health_form'),
+    path('guest/medical-record/<str:token>/', guest_views.guest_medical_record, name='guest_medical_record'),
+    path('guest/dental-intake/<str:token>/', guest_views.guest_dental_intake, name='guest_dental_intake'),
+    path('guest/dental-record/<str:token>/', guest_views.guest_dental_record, name='guest_dental_record'),
 
     # System settings (admin)
     path('settings/', settings_views.settings_hub, name='settings_hub'),

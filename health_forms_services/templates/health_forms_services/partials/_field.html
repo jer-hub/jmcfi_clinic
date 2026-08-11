@@ -1,6 +1,8 @@
 {# ── Single form field rendered with Tailwind classes ── #}
 {% if field.is_hidden %}
   {{ field }}
+{% elif 'data-phone-badge' in field.field.widget.attrs %}
+  {% include "partials/phone_badge_field.html" with field=field required=field.field.required %}
 {% else %}
 <div data-field-wrapper class="{% if field.errors %}has-error{% endif %} {% if field.field.widget.attrs.rows %}md:col-span-2{% endif %}">
   {% if field.label %}

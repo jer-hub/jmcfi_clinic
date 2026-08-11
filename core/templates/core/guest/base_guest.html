@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="{% static 'favicon/favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'favicon/favicon-32x32.png' %}">
+  <meta name="theme-color" content="#7c3aed">
+  <title>{% block title %}JMCFI Clinic{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="{% static 'css/form-elements.css' %}">
+  <link rel="stylesheet" href="{% static 'css/form-errors.css' %}">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <style>[x-cloak]{display:none!important}</style>
+  {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header class="border-b border-gray-200 bg-white">
+    <div class="{% block header_width %}max-w-3xl{% endblock %} mx-auto px-4 sm:px-6 py-4 flex items-center gap-3">
+      {% if clinic_logo_url %}
+      <img src="{{ clinic_logo_url }}"
+           alt=""
+           class="jmc-logo h-10 w-10 object-contain flex-shrink-0"
+           width="40"
+           height="40">
+      {% else %}
+      <img src="{% static 'logo/jmc-logo.png' %}"
+           alt=""
+           class="jmc-logo h-10 w-10 object-contain flex-shrink-0"
+           width="40"
+           height="40">
+      {% endif %}
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-gray-900 leading-tight">JMCFI Clinic</p>
+        <p class="text-xs text-gray-500 mt-0.5">Guest access</p>
+      </div>
+    </div>
+  </header>
+  <main class="{% block main_width %}max-w-3xl{% endblock %} mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    {% if messages %}
+    <div class="space-y-2 mb-5">
+      {% for message in messages %}
+      <div class="rounded-lg border-l-4 px-4 py-3 text-sm shadow-sm
+                  {% if message.tags == 'error' %}border-red-400 bg-red-50 text-red-800
+                  {% elif message.tags == 'success' %}border-emerald-400 bg-emerald-50 text-emerald-800
+                  {% elif message.tags == 'warning' %}border-amber-400 bg-amber-50 text-amber-900
+                  {% else %}border-primary-400 bg-primary-50 text-primary-900{% endif %}"
+           role="status">
+        {{ message }}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

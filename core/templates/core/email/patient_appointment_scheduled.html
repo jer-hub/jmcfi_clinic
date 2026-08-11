@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; color: #111827; line-height: 1.5;">
+  <p>Hello {{ patient_name }},</p>
+  <p>An appointment has been scheduled for you at <strong>{{ clinic_name }}</strong>.</p>
+  <ul>
+    <li><strong>Date:</strong> {{ appointment.date|date:"F d, Y" }}</li>
+    <li><strong>Time:</strong> {{ appointment.time|time:"g:i A" }}</li>
+    <li><strong>Doctor:</strong> Dr. {{ doctor_name }}</li>
+    <li><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</li>
+    <li><strong>Status:</strong> {{ appointment.get_status_display }}</li>
+  </ul>
+  <p><strong>Reason:</strong><br>{{ appointment.reason|linebreaksbr }}</p>
+  <p>
+    <a href="{{ access_url }}" style="display:inline-block;padding:10px 16px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;">
+      View appointment details
+    </a>
+  </p>
+  <p style="font-size:12px;color:#6b7280;">You may need to sign in with your clinic account to open this link.</p>
+  <p>— {{ clinic_name }}</p>
+</body>
+</html>

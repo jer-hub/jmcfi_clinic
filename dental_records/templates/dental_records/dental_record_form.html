@@ -1,4 +1,4 @@
-{% extends 'core/base.html' %}
+﻿{% extends 'core/base.html' %}
 {% load static %}
 
 {% block title %}{{ title }} - JMCFI Clinic{% endblock %}
@@ -7,13 +7,21 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0"
      x-data="dentalRecordForm()"
      x-init="init()"
-     @clinic-walk-in-created.window="onWalkInCreated($event.detail)">
+     @clinic-guest-created.window="onGuestCreated($event.detail)"
+     @clinic-guest-toggled="onGuestToggled($event.detail)">
     {% include 'dental_records/_subnav.html' %}
 
     {% include "components/page_header.html" with title=title subtitle="Complete the form below to create a dental record" icon="fa-tooth" %}
 
-    <form method="post" novalidate class="space-y-6">
+    <form method="post"
+          novalidate
+          class="space-y-6"
+          data-send-intake-url="{% url 'dental_records:send_guest_intake_link' %}"
+          :action="isGuestPatient ? $el.dataset.sendIntakeUrl : ''">
         {% csrf_token %}
+        {% if appointment %}
+        <input type="hidden" name="appointment" value="{{ appointment.id }}">
+        {% endif %}
 
         {% if appointment %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -51,7 +59,51 @@
 
         {% include 'dental_records/partials/_dental_record_patient_section.html' with form=form %}
 
-  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  {# Guest: email intake link instead of staff-filled demographics #}
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+       x-show="selected && isGuestPatient"
+       x-cloak>
+    <div class="p-6 sm:p-8">
+      <section class="mb-2">
+        {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-envelope" title="Guest dental intake" description="Email a magic link so the guest completes demographics and consent. You finish clinical sections afterward." %}
+        <div class="mt-4 rounded-lg border border-primary-100 bg-primary-50/60 px-4 py-3 text-sm text-primary-900">
+          <p class="font-medium" x-text="selected ? selected.name : ''"></p>
+          <p class="mt-1 text-primary-800/80">
+            Contact email:
+            <span class="font-semibold" x-text="guestContactEmail || 'No contact email on file'"></span>
+          </p>
+        </div>
+      </section>
+      {# Ensure patient id is posted even if the hidden <select> lacks a matching option #}
+      <input type="hidden" name="patient" :value="selected ? selected.id : ''" :disabled="!isGuestPatient">
+      <div class="mt-6 flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-gray-100">
+        <button type="button"
+                @click="clearSelection()"
+                x-show="!patientLocked"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+          Clear
+        </button>
+        <button type="submit"
+                name="action"
+                value="save_draft"
+                class="inline-flex items-center gap-2 px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+          <i class="fas fa-floppy-disk" aria-hidden="true"></i><span>Save draft</span>
+        </button>
+        <button type="submit"
+                name="action"
+                value="send"
+                class="inline-flex items-center gap-2 px-6 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm text-sm font-medium"
+                :disabled="!guestContactEmail"
+                :class="!guestContactEmail && 'opacity-50 cursor-not-allowed'">
+          <i class="fas fa-paper-plane" aria-hidden="true"></i><span>Send intake link</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+       x-show="selected && !isGuestPatient"
+       x-cloak>
     <div class="p-6 sm:p-8">
 
         {% if form.non_field_errors %}
@@ -67,7 +119,7 @@
         </div>
         {% endif %}
 
-        {# ── Patient Information ── #}
+        {# â”€â”€ Patient Information â”€â”€ #}
         <section class="mb-8">
           {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-user-circle" title="Patient Information" description="ID and name fields auto-fill when a patient is selected." %}
           <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -86,13 +138,19 @@
                 </div>
         </section>
 
-        {# ── Demographics ── #}
+        {# â”€â”€ Demographics â”€â”€ #}
         <section class="mb-8">
           {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-id-card" title="Demographics" %}
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.date_of_birth.label }}</label>
+                        {{ form.date_of_birth }}
+                        {% include 'partials/field_errors.html' with errors=form.date_of_birth.errors %}
+                    </div>
+                    <div>
               <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.age.label }}</label>
                         {{ form.age }}
+                        <p class="mt-1 text-xs text-gray-400">Calculated from date of birth</p>
                         {% include 'partials/field_errors.html' with errors=form.age.errors %}
                     </div>
                     <div>
@@ -104,11 +162,6 @@
               <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.civil_status.label }}</label>
                         {{ form.civil_status }}
                         {% include 'partials/field_errors.html' with errors=form.civil_status.errors %}
-                    </div>
-                    <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.date_of_birth.label }}</label>
-                        {{ form.date_of_birth }}
-                        {% include 'partials/field_errors.html' with errors=form.date_of_birth.errors %}
                     </div>
                 </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
@@ -125,7 +178,7 @@
                 </div>
         </section>
 
-        {# ── Contact Information ── #}
+        {# â”€â”€ Contact Information â”€â”€ #}
         <section class="mb-8">
           {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-phone" title="Contact Information" %}
           <div class="mb-5">
@@ -143,24 +196,22 @@
                 </div>
         </section>
 
-        {# ── Institutional Information ── #}
+        {# â”€â”€ Institutional Details (hidden for guest patients) â”€â”€ #}
+        <template x-if="!isGuestPatient && !guestRegisterOpen">
         <section class="mb-8">
-          {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-building" title="Institutional Information" %}
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.designation.label }}</label>
-                        {{ form.designation }}
-                        {% include 'partials/field_errors.html' with errors=form.designation.errors %}
-                    </div>
-                    <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.department_college_office.label }}</label>
-                        {{ form.department_college_office }}
-                        {% include 'partials/field_errors.html' with errors=form.department_college_office.errors %}
-                    </div>
-                </div>
+          {% include 'dental_records/partials/_dental_institutional_details_section.html' with form=form %}
         </section>
+        </template>
+        <template x-if="isGuestPatient || guestRegisterOpen">
+          <div class="hidden" aria-hidden="true">
+            <input type="hidden" name="designation" value="student">
+            <input type="hidden" name="department_college_office" value="Guest">
+            <input type="hidden" name="course" value="">
+            <input type="hidden" name="year_level" value="">
+          </div>
+        </template>
 
-        {# ── Emergency Contact ── #}
+        {# â”€â”€ Emergency Contact â”€â”€ #}
         <section class="mb-8">
           {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-user-shield" title="Emergency Contact" %}
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -173,7 +224,7 @@
                 </div>
         </section>
 
-        {# ── Examination Details ── #}
+        {# â”€â”€ Examination Details â”€â”€ #}
         <section class="mb-8">
           {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-stethoscope" title="Examination Details" %}
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -194,7 +245,7 @@
                 </div>
         </section>
 
-        {# ── What Happens Next ── #}
+        {# â”€â”€ What Happens Next â”€â”€ #}
         <div class="mb-8 bg-info-50 border border-info-200 rounded-xl p-4 flex gap-3">
           <i class="fas fa-info-circle text-info-500 mt-0.5 flex-shrink-0"></i>
           <div class="text-sm text-info-800">
@@ -205,7 +256,7 @@
                 </div>
             </div>
 
-        {# ── Patient Consent ── #}
+        {# â”€â”€ Patient Consent â”€â”€ #}
         <section class="mb-8">
           {% include 'dental_records/partials/_dental_record_section_header.html' with icon="fa-file-signature" title="Patient Consent" %}
 
@@ -250,17 +301,12 @@
                 </div>
         </section>
 
-        {# ── Form Actions ── #}
-            <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+        {# â”€â”€ Form Actions â”€â”€ #}
+            <div class="flex items-center {% if appointment %}justify-between{% else %}justify-end{% endif %} pt-6 border-t border-gray-200">
                 {% if appointment %}
                 <a href="{% url 'appointments:appointment_detail' appointment.id %}"
              class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
             <i class="fas fa-arrow-left text-xs"></i><span>Back to Appointment</span>
-                </a>
-                {% else %}
-                <a href="{% url 'dental_records:dental_record_list' %}"
-             class="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
-            <i class="fas fa-arrow-left text-xs"></i><span>Back to List</span>
                 </a>
                 {% endif %}
                 <button type="submit"
@@ -284,6 +330,20 @@ function dentalRecordForm() {
     highlightedIdx: -1,
     isPreselected: {{ preselected_patient|yesno:"true,false" }},
     patientLocked: {% if appointment and preselected_patient %}true{% else %}false{% endif %},
+    guestRegisterOpen: false,
+    isGuestPatient: {% if preselected_patient_is_guest %}true{% else %}false{% endif %},
+    guestContactEmail: '{{ preselected_guest_contact|default:""|escapejs }}',
+
+    onGuestToggled(detail) {
+      this.guestRegisterOpen = !!(detail && detail.open);
+      if (this.guestRegisterOpen && !this.patientLocked) {
+        this.clearSelection();
+        this.query = '';
+        this.results = [];
+        this.showResults = false;
+        this.isGuestPatient = false;
+      }
+    },
 
     init() {
     {% if preselected_patient %}
@@ -293,8 +353,17 @@ function dentalRecordForm() {
         email: '{{ preselected_patient.email|escapejs }}',
         role: '{% if preselected_patient.role == "patient" or preselected_patient.role == "student" %}Patient{% else %}Staff{% endif %}'
       };
+      this.isGuestPatient = {% if preselected_patient_is_guest %}true{% else %}false{% endif %};
+    {% elif form.patient.value %}
+      this.selected = {
+        id: '{{ form.patient.value }}',
+        name: 'Selected patient',
+        email: '',
+        role: 'Patient'
+      };
+      this.isGuestPatient = {% if preselected_patient_is_guest %}true{% else %}false{% endif %};
     {% endif %}
-    
+
       {% if form.errors %}
       this.$nextTick(() => this.focusFirstError());
     {% endif %}
@@ -328,8 +397,19 @@ function dentalRecordForm() {
       const patientSelect = document.getElementById('patient-select-field');
       if (!patientSelect) return;
 
-      patientSelect.value = patient.id;
-      this.selected = { id: patient.id, name: patient.text, email: patient.email, role: patient.role };
+      // Newly registered guests are not in the rendered <select> options; without an
+      // <option>, browsers discard .value and POST has no patient (send link fails).
+      const patientId = String(patient.id);
+      const label = patient.text || patient.name || patientId;
+      let opt = Array.from(patientSelect.options).find((o) => o.value === patientId);
+      if (!opt) {
+        opt = document.createElement('option');
+        opt.value = patientId;
+        opt.textContent = label;
+        patientSelect.appendChild(opt);
+      }
+      patientSelect.value = patientId;
+      this.selected = { id: patient.id, name: label, email: patient.email, role: patient.role };
       this.showResults = false;
       this.query = '';
 
@@ -340,9 +420,11 @@ function dentalRecordForm() {
         );
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
         const profile = await resp.json();
+        this.isGuestPatient = !!profile.is_guest;
+        this.guestContactEmail = profile.contact_email || profile.email || '';
         this.autoFillForm(profile);
       } catch (e) {
-        // Profile fetch failed — patient selection still stands
+        // Profile fetch failed â€” patient selection still stands
       }
     },
 
@@ -361,6 +443,8 @@ function dentalRecordForm() {
         'id_telephone_number': profile.telephone_number,
         'id_designation': profile.designation,
         'id_department_college_office': profile.department_college_office,
+        'id_course': profile.course,
+        'id_year_level': profile.year_level,
         'id_guardian_name': profile.guardian_name,
         'id_guardian_contact': profile.guardian_contact,
       };
@@ -368,11 +452,19 @@ function dentalRecordForm() {
         const el = document.getElementById(id);
         if (!el) continue;
         el.value = val || '';
+        if (id === 'id_course' || id === 'id_year_level') {
+          el.dataset.prefillValue = val || '';
+        }
         if (el.dataset.phoneInput) {
           el.dispatchEvent(new Event('input', { bubbles: true }));
                     } else {
           el.dispatchEvent(new Event('change', { bubbles: true }));
         }
+      }
+      const dobEl = document.getElementById('id_date_of_birth');
+      const ageEl = document.getElementById('id_age');
+      if (dobEl && ageEl && typeof ageFromDateOfBirth === 'function') {
+        ageEl.value = ageFromDateOfBirth(dobEl.value);
       }
       const idDisplay = document.getElementById('student-id-display');
       if (idDisplay) idDisplay.value = profile.student_id || profile.staff_id || '';
@@ -385,6 +477,7 @@ function dentalRecordForm() {
         'student_id', 'middle_name', 'email', 'age', 'gender', 'civil_status',
                                     'date_of_birth', 'place_of_birth', 'address', 'contact_number',
                                     'telephone_number', 'designation', 'department_college_office',
+                                    'course', 'year_level',
         'guardian_name', 'guardian_contact'
       ];
       fields.forEach(f => {
@@ -396,12 +489,15 @@ function dentalRecordForm() {
       const patientSelect = document.getElementById('patient-select-field');
       if (patientSelect) patientSelect.value = '';
       this.selected = null;
+      this.isGuestPatient = false;
+      this.guestContactEmail = '';
       this.query = '';
       this.$nextTick(() => this.$el.querySelector('input[type="text"]:not([readonly])').focus());
     },
 
-    onWalkInCreated(patient) {
+    onGuestCreated(patient) {
       if (!patient?.id) return;
+      this.isGuestPatient = true;
       this.selectPatient({
         id: patient.id,
         text: patient.name,
@@ -424,6 +520,19 @@ function dentalRecordForm() {
   };
 }
 </script>
-<script src="{% static 'js/clinic-walk-in-register.js' %}?v=1"></script>
+{% if college_options_json and course_options_by_college_json and year_level_options_by_college_json and course_optional_by_college_json %}
+<script>
+window.__jmcfiAcademicCatalog = {
+  colleges: {{ college_options_json|safe }},
+  coursesByCollege: {{ course_options_by_college_json|safe }},
+  yearLevelsByCollege: {{ year_level_options_by_college_json|safe }},
+  courseOptionalByCollege: {{ course_optional_by_college_json|safe }},
+};
+</script>
+{% endif %}
+<script src="{% static 'js/hf-academic-institutional.js' %}?v=2"></script>
+<script src="{% static 'js/age-from-dob.js' %}?v=1"></script>
+<script src="{% static 'js/consent-date.js' %}?v=1"></script>
+<script src="{% static 'js/clinic-guest-register.js' %}?v=6"></script>
 <script src="{% static 'js/phone-input.js' %}"></script>
 {% endblock %}

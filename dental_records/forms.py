@@ -9,6 +9,7 @@ from django.utils import timezone
 from core.academic_catalog import (
     active_colleges_queryset,
     soft_fill_academic_fields_from_patient_profile,
+    validate_academic_affiliation,
 )
 from core.guest_auth import is_guest_user
 from core.utils import age_from_date_of_birth, clean_philippine_phone, format_ph_mobile_badge_display
@@ -94,7 +95,13 @@ def _apply_department_college_select(form, field_name='department_college_office
 
 class DentalRecordForm(forms.ModelForm):
     """Main form for patient demographics"""
-    
+
+    is_employee = forms.BooleanField(
+        required=False,
+        label='I am an employee',
+        widget=forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+    )
+
     # Custom patient search field
     patient_search = forms.CharField(
         required=False,
@@ -154,12 +161,29 @@ class DentalRecordForm(forms.ModelForm):
         if 'department_college_office' in self.fields:
             self.fields['department_college_office'].widget = forms.HiddenInput()
         if 'designation' in self.fields:
-            self.fields['designation'].widget.attrs['class'] = 'form-select'
+            self.fields['designation'].widget = forms.HiddenInput()
         for academic_field in ('course', 'year_level'):
             if academic_field in self.fields:
                 self.fields[academic_field].required = False
                 self.fields[academic_field].widget.attrs['class'] = 'form-select'
+        self._init_is_employee_field()
         _wire_consent_date_attrs(self)
+
+    def _init_is_employee_field(self):
+        if 'is_employee' not in self.fields or self.is_bound:
+            return
+        if 'is_employee' in self.initial:
+            return
+        designation = ''
+        if self.instance and getattr(self.instance, 'designation', None):
+            designation = (self.instance.designation or '').strip().lower()
+        if designation == 'employee':
+            self.initial['is_employee'] = True
+            return
+        patient = getattr(self.instance, 'patient', None) if self.instance else None
+        profile = getattr(patient, 'patient_profile', None) if patient else None
+        if profile and getattr(profile, 'is_employee', False):
+            self.initial['is_employee'] = True
 
     def clean(self):
         cleaned_data = super().clean()
@@ -170,17 +194,29 @@ class DentalRecordForm(forms.ModelForm):
             cleaned_data['department_college_office'] = 'Guest'
             cleaned_data['course'] = ''
             cleaned_data['year_level'] = ''
+            cleaned_data['is_employee'] = False
             self._errors.pop('designation', None)
             self._errors.pop('department_college_office', None)
             self._errors.pop('course', None)
             self._errors.pop('year_level', None)
         else:
-            designation = (cleaned_data.get('designation') or '').strip().lower()
-            if designation == 'employee':
+            is_employee = bool(cleaned_data.get('is_employee'))
+            cleaned_data['designation'] = 'employee' if is_employee else 'student'
+            if is_employee:
                 cleaned_data['course'] = ''
                 cleaned_data['year_level'] = ''
                 self._errors.pop('course', None)
                 self._errors.pop('year_level', None)
+            validate_academic_affiliation(
+                is_employee=is_employee,
+                department=(cleaned_data.get('department_college_office') or '').strip(),
+                course=(cleaned_data.get('course') or '').strip(),
+                year_level=(cleaned_data.get('year_level') or '').strip(),
+                add_error=self.add_error,
+                department_field='department_college_office',
+                course_field='course',
+                year_level_field='year_level',
+            )
 
         dob = cleaned_data.get('date_of_birth')
         if dob and 'age' in self.fields:
@@ -336,6 +372,12 @@ class StudentDentalIntakeForm(forms.ModelForm):
     appointment, date_of_examination) are handled by the view, not the student.
     """
 
+    is_employee = forms.BooleanField(
+        required=False,
+        label='I am an employee',
+        widget=forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+    )
+
     def __init__(self, *args, **kwargs):
         data = args[0] if args else kwargs.get('data')
         if data is None:
@@ -356,15 +398,49 @@ class StudentDentalIntakeForm(forms.ModelForm):
         if 'department_college_office' in self.fields:
             self.fields['department_college_office'].widget = forms.HiddenInput()
         if 'designation' in self.fields:
-            self.fields['designation'].widget.attrs['class'] = 'form-select'
+            self.fields['designation'].widget = forms.HiddenInput()
         for academic_field in ('course', 'year_level'):
             if academic_field in self.fields:
                 self.fields[academic_field].required = False
                 self.fields[academic_field].widget.attrs['class'] = 'form-select'
+        self._init_is_employee_field()
         _wire_consent_date_attrs(self)
+
+    def _init_is_employee_field(self):
+        if 'is_employee' not in self.fields or self.is_bound:
+            return
+        if 'is_employee' in self.initial:
+            return
+        designation = ''
+        if self.instance and getattr(self.instance, 'designation', None):
+            designation = (self.instance.designation or '').strip().lower()
+        if designation == 'employee':
+            self.initial['is_employee'] = True
+            return
+        profile = getattr(self.instance, 'patient', None)
+        profile = getattr(profile, 'patient_profile', None) if profile else None
+        if profile and getattr(profile, 'is_employee', False):
+            self.initial['is_employee'] = True
 
     def clean(self):
         cleaned_data = super().clean()
+        is_employee = bool(cleaned_data.get('is_employee'))
+        cleaned_data['designation'] = 'employee' if is_employee else 'student'
+        if is_employee:
+            cleaned_data['course'] = ''
+            cleaned_data['year_level'] = ''
+            self._errors.pop('course', None)
+            self._errors.pop('year_level', None)
+        validate_academic_affiliation(
+            is_employee=is_employee,
+            department=(cleaned_data.get('department_college_office') or '').strip(),
+            course=(cleaned_data.get('course') or '').strip(),
+            year_level=(cleaned_data.get('year_level') or '').strip(),
+            add_error=self.add_error,
+            department_field='department_college_office',
+            course_field='course',
+            year_level_field='year_level',
+        )
         dob = cleaned_data.get('date_of_birth')
         if dob and 'age' in self.fields:
             cleaned_data['age'] = age_from_date_of_birth(dob)

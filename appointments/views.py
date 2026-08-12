@@ -491,7 +491,7 @@ def _get_schedule_context(form_data=None, *, doctors_only=False):
         .order_by('appointment_type')
     )
 
-    role_filter = ['doctor'] if doctors_only else ['staff', 'doctor']
+    role_filter = ['doctor']
 
     type_doctor_map = {}
     all_assigned_ids = set()
@@ -546,7 +546,7 @@ def _validate_assigned_doctor_for_type(doctor, appointment_type):
 
     allowed_ids = list(
         type_default.assigned_doctors.filter(
-            role__in=['staff', 'doctor'], is_active=True
+            role='doctor', is_active=True
         ).values_list('id', flat=True)
     )
     if not allowed_ids:
@@ -716,7 +716,7 @@ def appointment_detail(request, appointment_id):
 def _get_doctors_queryset():
     """Shared queryset for all appointment-type forms — evaluated once per request."""
     return (
-        User.objects.filter(role__in=['doctor', 'staff'], is_active=True)
+        User.objects.filter(role='doctor', is_active=True)
         .select_related('staff_profile')
         .order_by('first_name', 'last_name')
     )

@@ -257,7 +257,7 @@ class GuestViewsAndEmailHooksTests(TestCase):
 		notif = Notification.objects.filter(
 			user=self.doctor,
 			related_id=health_form.pk,
-			transaction_type='health_form_incomplete',
+			transaction_type='health_form_submitted',
 		).first()
 		self.assertIsNotNone(notif)
 		self.assertIn('submitted', notif.title.lower())
@@ -692,6 +692,26 @@ class GuestViewsAndEmailHooksTests(TestCase):
 		self.assertIn(f'/health-forms/{health_form.pk}/edit/', mail.outbox[0].body)
 		self.assertNotIn('/guest/health-form/', mail.outbox[0].body)
 		self.assertIn('sign in', mail.outbox[0].body.lower())
+
+	def test_health_form_email_fails_clearly_when_clinic_email_disabled(self):
+		from core.guest_emails import email_guest_health_form_pending
+		from core.settings_service import invalidate_settings_cache
+
+		ClinicSettings.objects.filter(pk=ClinicSettings.SINGLETON_PK).update(
+			enable_email_notifications=False,
+		)
+		invalidate_settings_cache()
+		health_form = HealthProfileForm.objects.create(
+			user=self.guest,
+			status=HealthProfileForm.Status.INCOMPLETE,
+			first_name='Guest',
+			last_name='Patient',
+			email_address='guest-patient@example.com',
+		)
+		factory = RequestFactory()
+		request = factory.get('/')
+		with self.assertRaisesMessage(RuntimeError, 'Clinic email notifications are turned off'):
+			email_guest_health_form_pending(request, health_form, created_by=self.doctor)
 
 
 class GuestSubmitValidationTests(TestCase):

@@ -31,43 +31,31 @@ from .settings_service import get_clinic_settings
 
 def _notify_clinic_guest_health_form_submitted(health_form, access_token):
     """Ping creating clinician, or health-profile module holders, when a guest submits."""
-    patient_name = (
-        health_form.get_full_name()
-        or getattr(health_form.user, 'get_full_name', lambda: '')()
-        or 'Guest'
-    )
-    title = 'Guest health form submitted'
-    message = (
-        f'{patient_name} submitted a health profile for clinical completion and review.'
-    )
-    recipients: list[User] = []
+    from health_forms_services.services import notify_clinicians_health_form_submitted
+
     created_by = getattr(access_token, 'created_by', None)
     if created_by and getattr(created_by, 'is_active', False) and not getattr(created_by, 'is_deleted', False):
-        recipients = [created_by]
-    else:
-        from .doctor_access import MODULE_HEALTH_PROFILE_FORMS, has_clinical_module
+        from core.notification_delivery import notify_user
 
-        candidates = User.objects.filter(
-            role__in=['staff', 'doctor', 'admin'],
-            is_active=True,
-            is_deleted=False,
+        patient_name = (
+            health_form.get_full_name()
+            or getattr(health_form.user, 'get_full_name', lambda: '')()
+            or 'Guest'
         )
-        recipients = [
-            user
-            for user in candidates
-            if has_clinical_module(user, MODULE_HEALTH_PROFILE_FORMS)
-        ]
-
-    for recipient in recipients:
         notify_user(
-            recipient,
-            title=title,
-            message=message,
+            created_by,
+            title='Guest health form submitted',
+            message=(
+                f'{patient_name} submitted a health profile for clinical completion and review.'
+            ),
             notification_type='general',
-            transaction_type='health_form_incomplete',
+            transaction_type='health_form_submitted',
             related_id=health_form.pk,
             send_email=False,
         )
+        return
+
+    notify_clinicians_health_form_submitted(health_form, guest=True)
 
 
 def _require_guest_token(raw_token: str, purpose: str):

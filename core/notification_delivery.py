@@ -102,14 +102,25 @@ def send_templated_email(
     Guests use contact_email; others use User.email.
     """
     if not clinic_allows_email_notifications():
+        if raise_on_error:
+            raise RuntimeError(
+                'Clinic email notifications are turned off. '
+                'Enable them under Clinic Settings → Notifications.'
+            )
         return False
 
     to_email = resolve_patient_contact_email(user)
     if not to_email:
+        if raise_on_error:
+            raise RuntimeError('No contact email is available for this patient.')
         return False
 
     # Non-guest patients still respect email preference.
     if not is_guest_user(user) and not user_wants_email_notifications(user):
+        if raise_on_error:
+            raise RuntimeError(
+                'This patient has email notifications disabled in their preferences.'
+            )
         return False
 
     ctx = {

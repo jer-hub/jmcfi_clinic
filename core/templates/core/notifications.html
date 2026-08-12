@@ -24,12 +24,16 @@
                          {% elif notification.notification_type == 'certificate' %}bg-success-100 text-success-600
                          {% elif notification.notification_type == 'health_tip' %}bg-primary-100 text-primary-600
                          {% elif notification.transaction_type == 'health_form_incomplete' %}bg-warning-100 text-warning-700
+                         {% elif notification.transaction_type == 'health_form_submitted' %}bg-info-100 text-info-700
+                         {% elif notification.transaction_type == 'health_form_completed' %}bg-success-100 text-success-700
                          {% else %}bg-gray-100 text-gray-500{% endif %}">
               <i class="fas
                        {% if notification.notification_type == 'appointment' %}fa-calendar-check
                        {% elif notification.notification_type == 'certificate' %}fa-file-medical
                        {% elif notification.notification_type == 'health_tip' %}fa-heart-pulse
                        {% elif notification.transaction_type == 'health_form_incomplete' %}fa-clipboard-list
+                       {% elif notification.transaction_type == 'health_form_submitted' %}fa-clipboard-check
+                       {% elif notification.transaction_type == 'health_form_completed' %}fa-circle-check
                        {% else %}fa-bell{% endif %}"></i>
             </span>
             <div class="flex-1 min-w-0">

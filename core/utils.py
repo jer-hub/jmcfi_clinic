@@ -330,6 +330,8 @@ NON_ADMIN_NOTIFICATION_TRANSACTION_TYPES = frozenset({
     'medical_record_created',
     'medical_record_updated',
     'health_form_incomplete',
+    'health_form_submitted',
+    'health_form_completed',
     'feedback_request',
 })
 
@@ -380,6 +382,11 @@ def resolve_notification_url(notification):
     if transaction_type == 'health_form_incomplete':
         if related_id:
             return reverse('health_forms_services:edit_form', kwargs={'pk': related_id})
+        return reverse('health_forms_services:forms_list')
+
+    if transaction_type in ('health_form_submitted', 'health_form_completed'):
+        if related_id:
+            return reverse('health_forms_services:form_detail', kwargs={'pk': related_id})
         return reverse('health_forms_services:forms_list')
 
     if transaction_type == 'feedback_request':

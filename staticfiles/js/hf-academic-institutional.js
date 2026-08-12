@@ -1,6 +1,6 @@
 /**
  * Alpine component for institutional department/college search picker.
- * Requires window.__jmcfiAcademicCatalog = { colleges, coursesByCollege, yearLevelsByCollege }.
+ * Requires window.__jmcfiAcademicCatalog = { colleges, coursesByCollege, yearLevelsByCollege, courseOptionalByCollege }.
  */
 function hfAcademicInstitutionalSection(initial = {}) {
   const catalog = window.__jmcfiAcademicCatalog || {};
@@ -9,12 +9,14 @@ function hfAcademicInstitutionalSection(initial = {}) {
     course: initial.course || '',
     yearLevel: initial.yearLevel || '',
     designation: (initial.designation || 'student').toLowerCase(),
+    isEmployee: !!initial.isEmployee,
     departmentQuery: '',
     departmentOpen: false,
     departmentHighlight: 0,
     collegeOptions: catalog.colleges || [],
     courseOptionsByCollege: catalog.coursesByCollege || {},
     yearLevelOptionsByCollege: catalog.yearLevelsByCollege || {},
+    courseOptionalByCollege: catalog.courseOptionalByCollege || {},
 
     normalizeDepartment(value) {
       const raw = String(value || '').trim();
@@ -26,16 +28,17 @@ function hfAcademicInstitutionalSection(initial = {}) {
       return raw;
     },
 
-    isStudentDesignation() {
-      return (this.designation || '').toLowerCase() === 'student';
+    isDoctorDesignation() {
+      return (this.designation || '').toLowerCase() === 'doctor';
     },
 
-    isEmployeeDesignation() {
-      return (this.designation || '').toLowerCase() === 'employee';
+    isAcademicDesignation() {
+      const value = (this.designation || '').toLowerCase();
+      return !value || value === 'student' || value === 'staff' || value === 'employee';
     },
 
     isGuestDesignation() {
-      return ((this.designation || '').toLowerCase() === 'guest');
+      return (this.designation || '').toLowerCase() === 'guest';
     },
 
     init() {
@@ -43,23 +46,32 @@ function hfAcademicInstitutionalSection(initial = {}) {
       this.collegeOptions = live.colleges || this.collegeOptions;
       this.courseOptionsByCollege = live.coursesByCollege || this.courseOptionsByCollege;
       this.yearLevelOptionsByCollege = live.yearLevelsByCollege || this.yearLevelOptionsByCollege;
+      this.courseOptionalByCollege = live.courseOptionalByCollege || this.courseOptionalByCollege;
 
       const deptInput = this.$root.querySelector('#id_department_college_office');
-      const designationSelect = this.$root.querySelector('#id_designation');
+      const designationInput = this.$root.querySelector('#id_designation');
       const courseSelect = this.$refs.courseSelect;
       const yearSelect = this.$refs.yearLevelSelect;
 
-      if (designationSelect && !this.designation) {
-        this.designation = (designationSelect.value || 'student').toLowerCase();
+      if (designationInput) {
+        this.designation = (designationInput.value || this.designation || 'student').toLowerCase();
       }
-      this.$watch('designation', (value) => {
-        if ((value || '').toLowerCase() === 'employee') {
-          this.course = '';
-          this.yearLevel = '';
-          if (courseSelect) courseSelect.value = '';
-          if (yearSelect) yearSelect.value = '';
+      if (!this.isAcademicDesignation()) {
+        this.isEmployee = false;
+      } else if (designationInput && !initial.isEmployee && ['staff', 'employee'].includes(this.designation)) {
+        this.isEmployee = true;
+      }
+
+      this.$watch('designation', () => {
+        if (this.isDoctorDesignation() || this.isGuestDesignation()) {
+          this.isEmployee = false;
         }
-        this.refreshDependentSelects({ clearInvalid: false });
+        this.syncDesignationHidden();
+        this.updateInstitutionDescription();
+      });
+      this.$watch('isEmployee', () => {
+        this.syncDesignationHidden();
+        this.updateInstitutionDescription();
       });
 
       const deptRaw = (
@@ -96,7 +108,33 @@ function hfAcademicInstitutionalSection(initial = {}) {
         deptInput.addEventListener('input', onExternal);
         deptInput.addEventListener('change', onExternal);
       }
-      this.$nextTick(() => this.refreshDependentSelects({ clearInvalid: false }));
+      this.$nextTick(() => {
+        this.refreshDependentSelects({ clearInvalid: false });
+        this.syncDesignationHidden();
+        this.updateInstitutionDescription();
+      });
+    },
+
+    syncDesignationHidden() {
+      const designationInput = this.$root.querySelector('#id_designation');
+      if (!designationInput || this.isDoctorDesignation() || this.isGuestDesignation()) return;
+      const employeeValue = designationInput.dataset.employeeValue || 'staff';
+      const nextValue = this.isEmployee ? employeeValue : 'student';
+      if (designationInput.value !== nextValue) {
+        designationInput.value = nextValue;
+      }
+    },
+
+    updateInstitutionDescription() {
+      const descNode = this.$root.closest('section')?.querySelector('[data-institution-description]');
+      if (!descNode) return;
+      if (this.isDoctorDesignation()) {
+        descNode.textContent = 'Clinical workplace affiliation and professional credentials.';
+      } else if (this.isEmployee) {
+        descNode.textContent = 'Workplace affiliation and position details.';
+      } else {
+        descNode.textContent = 'School affiliation and student details.';
+      }
     },
 
     syncFromExternalPrefill() {
@@ -223,6 +261,10 @@ function hfAcademicInstitutionalSection(initial = {}) {
       return this.yearLevelOptionsByCollege[this.department] || [];
     },
 
+    get isCourseOptional() {
+      return !!this.courseOptionalByCollege[(this.department || '').trim()];
+    },
+
     populateSelect(selectEl, placeholder, options, selected) {
       if (!selectEl) return;
       const prefilled = selectEl.dataset.prefillValue || '';
@@ -271,8 +313,16 @@ function hfAcademicInstitutionalSection(initial = {}) {
       this.refreshDependentSelects({ clearInvalid: true });
     },
 
-    isGuestDesignation() {
-      return ((this.designation || '').toLowerCase() === 'guest');
+    onEmployeeChange() {
+      if (this.isEmployee) {
+        this.course = '';
+        this.yearLevel = '';
+        if (this.$refs.courseSelect) this.$refs.courseSelect.value = '';
+        if (this.$refs.yearLevelSelect) this.$refs.yearLevelSelect.value = '';
+      }
+      this.syncDesignationHidden();
+      this.updateInstitutionDescription();
+      this.$nextTick(() => this.refreshDependentSelects({ clearInvalid: false }));
     },
   };
 }

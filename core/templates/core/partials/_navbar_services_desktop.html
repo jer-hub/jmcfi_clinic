@@ -31,9 +31,6 @@
     {% if user|has_clinical_module:'appointments' %}
     <a href="{% url 'appointments:appointment_list' %}" class="dropdown-item">Appointments</a>
     {% endif %}
-    {% if svc_role == 'staff' and user|has_clinical_module:'appointments' %}
-      <a href="{% url 'appointments:schedule_for_patient' %}" class="dropdown-item">Schedule for Patient</a>
-    {% endif %}
     {% if user|has_clinical_module:'medical_records' %}
     <a href="{% url 'medical_records:medical_records' %}" class="dropdown-item">Medical Records</a>
     {% endif %}

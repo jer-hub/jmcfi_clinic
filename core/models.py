@@ -441,6 +441,8 @@ class Notification(models.Model):
 
         # Health forms
         ('health_form_incomplete', 'Health Form Incomplete'),
+        ('health_form_submitted', 'Health Form Submitted for Review'),
+        ('health_form_completed', 'Health Form Completed'),
         
         # General system
         ('system_maintenance', 'System Maintenance'),

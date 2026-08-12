@@ -275,3 +275,91 @@ def edit_phase_label(user, form) -> str:
     if form.status == form.Status.REJECTED:
         return 'Rejected'
     return form.get_status_display()
+
+
+def _health_form_display_name(health_form) -> str:
+    name = (health_form.get_full_name() or '').strip()
+    if name:
+        return name
+    user = getattr(health_form, 'user', None)
+    if user:
+        return (user.get_full_name() or user.email or '').strip() or 'Patient'
+    return 'Patient'
+
+
+def users_with_health_profile_module_access(*, exclude_user_ids=None):
+    """Active staff/doctors with the health profile forms clinical module."""
+    from django.contrib.auth import get_user_model
+
+    from core.doctor_access import MODULE_HEALTH_PROFILE_FORMS, has_clinical_module
+
+    User = get_user_model()
+    exclude = {pk for pk in (exclude_user_ids or []) if pk}
+    candidates = User.objects.filter(
+        role__in=['staff', 'doctor'],
+        is_active=True,
+        is_deleted=False,
+    )
+    return [
+        user
+        for user in candidates
+        if user.pk not in exclude and has_clinical_module(user, MODULE_HEALTH_PROFILE_FORMS)
+    ]
+
+
+def notify_clinicians_health_form_submitted(health_form, *, actor=None, guest=False):
+    """Notify module-granted staff/doctors when a health profile is submitted for review."""
+    from core.notification_delivery import notify_user
+
+    patient_name = _health_form_display_name(health_form)
+    if guest:
+        title = 'Guest health form submitted'
+        message = (
+            f'{patient_name} submitted a health profile for clinical completion and review.'
+        )
+    else:
+        title = 'Health form submitted for review'
+        message = (
+            f'{patient_name} submitted a health profile form for clinic review.'
+        )
+
+    exclude_ids = []
+    if actor is not None and getattr(actor, 'pk', None):
+        exclude_ids.append(actor.pk)
+    patient = getattr(health_form, 'user', None)
+    if patient is not None and getattr(patient, 'pk', None):
+        exclude_ids.append(patient.pk)
+
+    recipients = users_with_health_profile_module_access(exclude_user_ids=exclude_ids)
+    for recipient in recipients:
+        notify_user(
+            recipient,
+            title=title,
+            message=message,
+            notification_type='general',
+            transaction_type='health_form_submitted',
+            related_id=health_form.pk,
+            send_email=False,
+        )
+    return recipients
+
+
+def notify_patient_health_form_completed(health_form):
+    """Notify the patient when their health profile form is marked completed."""
+    from core.notification_delivery import notify_user
+
+    patient = getattr(health_form, 'user', None)
+    if not patient:
+        return None
+
+    return notify_user(
+        patient,
+        title='Health profile completed',
+        message=(
+            'Your health profile form has been reviewed and marked as completed by the clinic.'
+        ),
+        notification_type='general',
+        transaction_type='health_form_completed',
+        related_id=health_form.pk,
+        send_email=True,
+    )

@@ -21,7 +21,9 @@
       <div class="flex flex-wrap items-center gap-2 shrink-0">
         {% if can_delete and delete_url and form_obj.status in 'pending,rejected,incomplete' %}
         <button type="button"
-                @click="$dispatch('open-modal', { type: 'danger', title: '{{ cancel_action_label|default:"Cancel draft"|escapejs }}', size: 'sm', embedFrom: '#hf-edit-delete-embed-{{ form_obj.pk }}', hasForm: true, actionLabel: 'Delete' })"
+                data-modal-title="{{ cancel_action_label|default:'Cancel draft' }}"
+                data-embed-from="#hf-edit-delete-embed-{{ form_obj.pk }}"
+                onclick="window.__jmcfiHealthFormCancelDraftModal(this)"
                 class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
           {{ cancel_action_label|default:"Cancel draft" }}
         </button>
@@ -357,9 +359,10 @@ window.__jmcfiAcademicCatalog = {
 };
 </script>
 {% endif %}
+<script src="{% static 'js/hf-academic-institutional.js' %}?v=4"></script>
 <script src="{% static 'js/student-list-field.js' %}"></script>
 <script src="{% static 'js/phone-input.js' %}"></script>
-<script src="{% static 'js/health-form-edit.js' %}?v=3"></script>
+<script src="{% static 'js/health-form-edit.js' %}?v=4"></script>
 <script>
 (function enforceReadOnlySections() {
   document.querySelectorAll('form[data-section-readonly="1"]').forEach((form) => {

@@ -26,6 +26,68 @@ def is_course_optional_for_department(department_name):
         return False
 
 
+def validate_academic_affiliation(
+    *,
+    is_employee,
+    department,
+    course,
+    year_level,
+    add_error,
+    department_field='department',
+    course_field='course',
+    year_level_field='year_level',
+):
+    """Validate college/department/course/year like patient profile profiling."""
+    department = (department or '').strip()
+    course = (course or '').strip()
+    year_level = (year_level or '').strip()
+
+    if is_employee:
+        if not department:
+            add_error(
+                department_field,
+                'Department is required for employees.',
+            )
+            return
+        if not CollegeDepartment.objects.filter(is_active=True, name=department).exists():
+            add_error(department_field, 'Select a valid College/Department.')
+        return
+
+    if not department:
+        return
+
+    if not CollegeDepartment.objects.filter(is_active=True, name=department).exists():
+        add_error(department_field, 'Select a valid College/Department.')
+        return
+
+    course_is_optional = is_course_optional_for_department(department)
+    if not course and not course_is_optional:
+        add_error(
+            course_field,
+            'Course/Program is required for the selected College/Department.',
+        )
+
+    if course and not CourseProgram.objects.filter(
+        is_active=True,
+        college_department__name=department,
+        name=course,
+    ).exists():
+        add_error(
+            course_field,
+            'Course/Program must match the selected College/Department.',
+        )
+
+    if year_level and not YearLevelOption.objects.filter(
+        is_active=True,
+        college_department__name=department,
+        name=year_level,
+    ).exists():
+        add_error(
+            year_level_field,
+            'Year Level must match the selected College/Department.',
+        )
+
+
 def courses_by_college(active_only=True):
     mapping = {}
     qs = CourseProgram.objects.select_related('college_department')

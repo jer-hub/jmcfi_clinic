@@ -6,14 +6,6 @@
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0">
   {% include 'manage_concern/_subnav.html' %}
 
-  <div class="mb-4">
-    <a href="{% url 'manage_concern:concern_list' %}"
-       class="inline-flex items-center gap-2 px-3.5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
-      <i class="fas fa-arrow-left" aria-hidden="true"></i>
-      Back to list
-    </a>
-  </div>
-
   {% include "components/page_header.html" with title=record.display_name subtitle="Concern record details" icon="fa-clipboard-list" actions_include="manage_concern/_concern_detail_header_actions.html" header_mb="mb-4" %}
 
   {% include 'partials/messages.html' %}

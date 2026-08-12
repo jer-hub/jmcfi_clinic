@@ -9,6 +9,7 @@ from core.academic_catalog import (
     active_colleges_queryset,
     courses_by_college,
     soft_fill_academic_fields_from_patient_profile,
+    validate_academic_affiliation,
     year_levels_by_college,
 )
 from core.forms import PHONE_BADGE_WIDGET_ATTRS, _apply_badge_phone_initials, clean_badge_ph_number
@@ -281,6 +282,16 @@ GUEST_INSTITUTIONAL_FIELDS: tuple[str, ...] = (
 )
 GUEST_CHART_INSTITUTIONAL_FIELDS: tuple[str, ...] = ('department_college_office',)
 
+ACADEMIC_INSTITUTIONAL_FIELDS: tuple[str, ...] = (
+    'designation',
+    'is_employee',
+    'institution_id',
+    'department_college_office',
+    'course',
+    'year_level',
+    'position',
+)
+
 
 def designation_choices_with_guest(choices):
     normalized = list(choices or [])
@@ -408,7 +419,13 @@ DENTAL_CONDITION_CHECKBOXES: tuple[tuple[str, str], ...] = (
 
 class HealthProfilePersonalInfoForm(forms.ModelForm):
     """Form for editing personal information section"""
-    
+
+    is_employee = forms.BooleanField(
+        required=False,
+        label='I am an employee',
+        widget=forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+    )
+
     class Meta:
         model = HealthProfileForm
         fields = [
@@ -538,6 +555,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             course_field='course',
             year_field='year_level',
         )
+        self._init_is_employee_field()
 
         if readonly:
             for field in self.fields.values():
@@ -559,14 +577,35 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             designation = 'student'
         return designation
 
+    def _selected_is_employee(self):
+        if self.is_bound and 'is_employee' in self.fields:
+            return self.data.get(self.add_prefix('is_employee')) in (
+                'on', 'true', 'True', '1', True,
+            )
+        if 'is_employee' in self.initial:
+            return bool(self.initial.get('is_employee'))
+        designation = self._selected_designation()
+        if designation in {'staff', 'employee'}:
+            return True
+        instance = getattr(self, 'instance', None)
+        user = getattr(instance, 'user', None) if instance else None
+        profile = getattr(user, 'patient_profile', None) if user else None
+        return bool(getattr(profile, 'is_employee', False))
+
+    def _init_is_employee_field(self):
+        if 'is_employee' not in self.fields or self.is_bound:
+            return
+        if 'is_employee' in self.initial:
+            return
+        if self._selected_is_employee():
+            self.initial['is_employee'] = True
+
     def personal_info_sections(self):
         designation = self._selected_designation()
+        is_employee = self._selected_is_employee()
 
         institutional_base = ['designation', 'institution_id', 'department_college_office']
         designation_specific = {
-            'student': ['course', 'year_level'],
-            'staff': ['position'],
-            'employee': ['position'],
             'doctor': ['position', 'specialization', 'license_number', 'ptr_no'],
             'guest': [],
         }
@@ -592,13 +631,15 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
                         'guest_hidden': True,
                     })
                     continue
-                section_fields = institutional_base + designation_specific.get(designation, ['course', 'year_level'])
                 if designation == 'doctor':
+                    section_fields = institutional_base + designation_specific['doctor']
                     section_desc = 'Clinical workplace affiliation and professional credentials.'
-                elif designation in {'staff', 'employee'}:
-                    section_desc = 'Workplace affiliation and position details.'
                 else:
-                    section_desc = 'School affiliation and student details.'
+                    section_fields = list(ACADEMIC_INSTITUTIONAL_FIELDS)
+                    if is_employee:
+                        section_desc = 'Workplace affiliation and position details.'
+                    else:
+                        section_desc = 'School affiliation and student details.'
 
             fields = [
                 {'name': name, 'field': self[name]}
@@ -610,10 +651,38 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if (cleaned.get('designation') or '').strip().lower() == GUEST_DESIGNATION_VALUE:
+        designation = (cleaned.get('designation') or '').strip().lower()
+        if designation == GUEST_DESIGNATION_VALUE:
             for field_name in GUEST_INSTITUTIONAL_FIELDS:
                 if field_name in cleaned:
                     cleaned[field_name] = ''
+            cleaned['is_employee'] = False
+            return cleaned
+
+        if designation == 'doctor':
+            cleaned['is_employee'] = False
+            cleaned['course'] = ''
+            cleaned['year_level'] = ''
+            return cleaned
+
+        is_employee = bool(cleaned.get('is_employee'))
+        cleaned['designation'] = 'staff' if is_employee else 'student'
+        if is_employee:
+            cleaned['course'] = ''
+            cleaned['year_level'] = ''
+        else:
+            cleaned['position'] = ''
+
+        validate_academic_affiliation(
+            is_employee=is_employee,
+            department=(cleaned.get('department_college_office') or '').strip(),
+            course=(cleaned.get('course') or '').strip(),
+            year_level=(cleaned.get('year_level') or '').strip(),
+            add_error=self.add_error,
+            department_field='department_college_office',
+            course_field='course',
+            year_level_field='year_level',
+        )
         return cleaned
 
     def clean_mobile_number(self):

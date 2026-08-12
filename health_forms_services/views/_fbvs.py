@@ -550,6 +550,7 @@ def submit_for_review(request, pk):
     """Submit an incomplete draft for clinic review (patient owner or assisting clinician)."""
     from health_forms_services.services import (
         can_submit_for_review,
+        visible_edit_tabs,
         validate_submit_for_review,
     )
 
@@ -563,12 +564,73 @@ def submit_for_review(request, pk):
 
     errors = validate_submit_for_review(health_form)
     if errors:
-        for err in errors:
-            messages.error(request, err)
-        return redirect('health_forms_services:edit_form', pk=pk)
+        from health_forms_services.services import (
+            GUEST_SUBMIT_REQUIRED_FIELDS,
+            SUBMIT_REQUIRED_FIELDS,
+        )
+        from .forms_cbvs import HealthProfileEditView
+
+        designation = (getattr(health_form, 'designation', None) or '').strip().lower()
+        guest_form = designation == 'guest' or is_guest_user(getattr(health_form, 'user', None))
+        required_fields = GUEST_SUBMIT_REQUIRED_FIELDS if guest_form else SUBMIT_REQUIRED_FIELDS
+
+        form_view = HealthProfileEditView()
+        form_view.request = request
+        form_view.kwargs = {'pk': pk}
+
+        tabs = visible_edit_tabs(request.user, health_form, form_view.tabs)
+        form_instances = {}
+        for key, form_class in form_view.form_class_map.items():
+            if key not in {t['key'] for t in tabs}:
+                continue
+            form_instances[key] = form_view._build_form(
+                form_class,
+                instance=health_form,
+                section=key,
+            )
+
+        personal_form = form_instances.get('personal')
+        if personal_form is not None:
+            posted = {}
+            for field_name, field in personal_form.fields.items():
+                value = getattr(health_form, field_name, '')
+                if field_name == 'is_employee':
+                    posted[field_name] = 'on' if (getattr(health_form, 'designation', '') or '').strip().lower() in {'staff', 'employee'} else ''
+                    continue
+                if hasattr(value, 'isoformat'):
+                    posted[field_name] = value.isoformat() if value else ''
+                else:
+                    posted[field_name] = '' if value is None else str(value)
+            posted['section'] = 'personal'
+            personal_form = form_view._build_form(
+                form_view.form_class_map['personal'],
+                instance=health_form,
+                data=posted,
+                section='personal',
+            )
+            personal_form.is_valid()
+
+            for field_name in required_fields:
+                value = getattr(health_form, field_name, None)
+                if value is None or (isinstance(value, str) and not value.strip()):
+                    if field_name not in personal_form.errors:
+                        label = personal_form.fields.get(field_name).label if field_name in personal_form.fields else field_name.replace('_', ' ').title()
+                        personal_form.add_error(field_name, f'{label} is required before submitting for review.')
+            form_instances['personal'] = personal_form
+
+        ctx = form_view.get_edit_context(
+            health_form,
+            active_section='personal',
+            form_instances=form_instances,
+        )
+        ctx.update(form_view.get_extra_edit_context(health_form))
+        return render(request, form_view.template_name, ctx)
 
     health_form.status = HealthProfileForm.Status.PENDING
     health_form.save(update_fields=['status', 'updated_at'])
+    from health_forms_services.services import notify_clinicians_health_form_submitted
+
+    notify_clinicians_health_form_submitted(health_form, actor=request.user)
     messages.success(request, 'Form submitted for clinic review.')
     return redirect('health_forms_services:form_detail', pk=pk)
 
@@ -655,6 +717,10 @@ def review_form(request, pk):
             )
         else:
             health_form.save()
+            if health_form.status == HealthProfileForm.Status.COMPLETED:
+                from health_forms_services.services import notify_patient_health_form_completed
+
+                notify_patient_health_form_completed(health_form)
             messages.success(request, f'Form status updated to {health_form.get_status_display()}.')
     else:
         messages.error(request, 'Invalid form data.')

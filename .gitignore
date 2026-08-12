@@ -45,3 +45,8 @@ static/img/
 
 # Node / Tailwind build
 node_modules/
+.DS_Store
+
+.cursorrules
+
+db.sqlite3

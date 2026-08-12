@@ -65,20 +65,15 @@ class HealthProfileListView(BaseFormListView):
         page_obj = paginator.get_page(request.GET.get('page', 1))
 
         patient = is_patient_role(request.user.role)
+        create_url = None
+        create_label = ''
+        secondary_create_url = None
+        secondary_create_label = ''
+        list_subtitle_text = ''
         if patient:
-            create_url = reverse('health_forms_services:request_health_profile')
-            create_label = 'Request Health Profile Form'
-            secondary_create_url = None
-            secondary_create_label = ''
             edit_when_statuses = ['incomplete']
-            list_subtitle_text = 'Your health profile forms'
         else:
-            create_url = reverse('health_forms_services:invite_guest_health_profile')
-            create_label = 'Invite Guest'
-            secondary_create_url = reverse('health_forms_services:manual_entry')
-            secondary_create_label = 'New Health Form'
             edit_when_statuses = ['incomplete', 'pending']
-            list_subtitle_text = ''
 
         status_choices = self.status_choices.choices if self.status_choices else []
 

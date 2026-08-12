@@ -6,7 +6,10 @@
 </a>
 <button type="button"
         class="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium rounded-lg border border-red-200 text-red-700 bg-white hover:bg-red-50 transition-colors"
-        @click="$dispatch('open-modal', {type:'danger', title:'Delete Concern Record', subtitle:'{{ record.display_name|escapejs }}', actionLabel:'Delete Permanently', size:'sm', formAction:'{% url 'manage_concern:concern_delete' record.pk %}', hasForm:true})">
+        data-form-action="{% url 'manage_concern:concern_delete' record.pk %}"
+        data-subtitle="{{ record.display_name }}"
+        data-message="This will permanently delete this concern record. This cannot be undone."
+        onclick="window.__jmcfiConcernDeleteModal(this)">
   <i class="fas fa-trash text-xs" aria-hidden="true"></i>
   Delete
 </button>

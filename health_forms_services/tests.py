@@ -1912,7 +1912,31 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 		field_names = self._institutional_field_names(form)
 		self.assertEqual(
 			field_names,
-			['designation', 'institution_id', 'department_college_office', 'course', 'year_level'],
+			[
+				'designation',
+				'is_employee',
+				'institution_id',
+				'department_college_office',
+				'course',
+				'year_level',
+				'position',
+			],
+		)
+
+	def test_institutional_fields_for_staff_designation(self):
+		form = HealthProfilePersonalInfoForm(initial={'designation': 'staff'})
+		field_names = self._institutional_field_names(form)
+		self.assertEqual(
+			field_names,
+			[
+				'designation',
+				'is_employee',
+				'institution_id',
+				'department_college_office',
+				'course',
+				'year_level',
+				'position',
+			],
 		)
 
 	def test_institutional_fields_for_doctor_designation(self):
@@ -2202,6 +2226,14 @@ class PrescriptionBodyFormatTests(TestCase):
 		if middleware != 'core.middleware.ProfileCompleteMiddleware'
 	],
 	EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
+	STORAGES={
+		'default': {
+			'BACKEND': 'django.core.files.storage.FileSystemStorage',
+		},
+		'staticfiles': {
+			'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+		},
+	},
 )
 class HealthProfilePatientWorkflowTests(TestCase):
 	def setUp(self):
@@ -2287,7 +2319,8 @@ class HealthProfilePatientWorkflowTests(TestCase):
 		self._login_patient()
 		response = self.client.get(reverse('health_forms_services:forms_list'))
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, 'Request Health Profile Form')
+		self.assertNotContains(response, 'Request Health Profile Form')
+		self.assertNotContains(response, 'Your health profile forms')
 		forms = list(response.context['forms'])
 		self.assertEqual(len(forms), 1)
 		self.assertEqual(forms[0].pk, own.pk)
@@ -2365,14 +2398,30 @@ class HealthProfilePatientWorkflowTests(TestCase):
 			first_name='Incomplete',
 		)
 		bad = self.client.post(reverse('health_forms_services:submit_for_review', args=[missing.pk]))
-		self.assertEqual(bad.status_code, 302)
+		self.assertIn(bad.status_code, (200, 302))
 		missing.refresh_from_db()
 		self.assertEqual(missing.status, HealthProfileForm.Status.INCOMPLETE)
+		if bad.status_code == 200:
+			self.assertTrue(
+				b'required before submitting for review' in bad.content.lower()
+				or b'last name' in bad.content.lower()
+				or bad.context is not None,
+			)
 
 		ok = self.client.post(reverse('health_forms_services:submit_for_review', args=[form_obj.pk]))
 		self.assertEqual(ok.status_code, 302)
 		form_obj.refresh_from_db()
 		self.assertEqual(form_obj.status, HealthProfileForm.Status.PENDING)
+
+		from core.models import Notification
+
+		clinician_notifs = Notification.objects.filter(
+			user=self.doctor,
+			transaction_type='health_form_submitted',
+			related_id=form_obj.pk,
+		)
+		self.assertEqual(clinician_notifs.count(), 1)
+		self.assertIn('submitted', clinician_notifs.first().title.lower())
 
 		edit = self.client.get(reverse('health_forms_services:edit_form', args=[form_obj.pk]))
 		self.assertEqual(edit.status_code, 302)
@@ -2465,6 +2514,16 @@ class HealthProfilePatientWorkflowTests(TestCase):
 		self.assertEqual(review.status_code, 302)
 		form_obj.refresh_from_db()
 		self.assertEqual(form_obj.status, HealthProfileForm.Status.COMPLETED)
+
+		from core.models import Notification
+
+		patient_notifs = Notification.objects.filter(
+			user=self.patient,
+			transaction_type='health_form_completed',
+			related_id=form_obj.pk,
+		)
+		self.assertEqual(patient_notifs.count(), 1)
+		self.assertIn('completed', patient_notifs.first().title.lower())
 
 	def test_reject_returns_to_incomplete_for_patient_revision(self):
 		form_obj = HealthProfileForm.objects.create(

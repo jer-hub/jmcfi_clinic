@@ -432,16 +432,20 @@ def search_users(request):
     if len(query) < 2:
         return JsonResponse([], safe=False)
 
+    from core.guest_auth import exclude_guest_users
+
     user_model = get_user_model()
     users = (
-        user_model.objects.filter(
-            Q(is_active=True)
-            & ~Q(role='admin')
-            & (
-                patient_search_q(query)
-                | Q(first_name__icontains=query)
-                | Q(last_name__icontains=query)
-                | Q(email__icontains=query)
+        exclude_guest_users(
+            user_model.objects.filter(
+                Q(is_active=True)
+                & ~Q(role='admin')
+                & (
+                    patient_search_q(query)
+                    | Q(first_name__icontains=query)
+                    | Q(last_name__icontains=query)
+                    | Q(email__icontains=query)
+                )
             )
         )
         .select_related('patient_profile', 'staff_profile')

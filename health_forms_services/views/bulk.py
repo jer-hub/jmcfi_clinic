@@ -12,6 +12,7 @@ from django.views import View
 from core.decorators import role_required
 
 from ..models import HealthProfileForm
+from ..services import notify_patient_health_form_completed
 
 
 @method_decorator(login_required, name='dispatch')
@@ -32,11 +33,19 @@ class HealthProfileBulkReviewView(View):
             messages.error(request, 'No forms selected.')
             return redirect('health_forms_services:forms_list')
 
+        forms = list(
+            HealthProfileForm.objects.filter(pk__in=ids).select_related('user')
+        )
         updated = HealthProfileForm.objects.filter(pk__in=ids).update(
             status=action,
             reviewed_by=request.user,
             reviewed_at=timezone.now(),
         )
+
+        if action == 'completed':
+            for health_form in forms:
+                health_form.status = HealthProfileForm.Status.COMPLETED
+                notify_patient_health_form_completed(health_form)
 
         label_map = {'completed': 'approved', 'incomplete': 'marked incomplete', 'rejected': 'rejected'}
         label = label_map.get(action, action)

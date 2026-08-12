@@ -9,6 +9,7 @@
   var sectionSnapshots = {};
   var suppressDirty = false;
   var allowUnload = false;
+  var initialSnapshotReady = false;
 
   function getCookie(name) {
     var cookieValue = null;
@@ -39,9 +40,45 @@
   }
 
   function hasUnsavedChanges() {
-    return Object.keys(dirty).some(function (key) {
-      return dirty[key];
+    if (!initialSnapshotReady) return false;
+    if (Object.keys(dirty).some(function (key) { return dirty[key]; })) {
+      return true;
+    }
+    // Also compare live form values to boot/save snapshots (catches programmatic
+    // updates that never fired input/change, and stale dirty flags).
+    var found = false;
+    document.querySelectorAll('form[data-section]').forEach(function (form) {
+      if (found || isReadOnlySectionForm(form)) return;
+      var key = form.getAttribute('data-section');
+      if (key && sectionDiffersFromSnapshot(key)) {
+        dirty[key] = true;
+        setTabStatus(key, 'unsaved');
+        found = true;
+      }
     });
+    return found;
+  }
+
+  function fieldStatesEqual(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  function sectionDiffersFromSnapshot(section) {
+    var form = getFormForSection(section);
+    var snapshot = sectionSnapshots[section];
+    if (!form || !snapshot || !snapshot.fields) return false;
+    var names = getFormFieldNames(form);
+    for (var i = 0; i < names.length; i++) {
+      var name = names[i];
+      if (!fieldStatesEqual(captureFieldState(form, name), snapshot.fields[name])) {
+        return true;
+      }
+    }
+    var alpineNow = captureAlpineSnapshot(form);
+    if (alpineNow || snapshot.alpine) {
+      return !fieldStatesEqual(alpineNow, snapshot.alpine);
+    }
+    return false;
   }
 
   function setTabStatus(section, status) {
@@ -74,7 +111,8 @@
   }
 
   function markDirty(section) {
-    if (suppressDirty || !section) return;
+    // Ignore Alpine/phone/catalog init mutations that fire before the baseline snapshot.
+    if (suppressDirty || !section || !initialSnapshotReady) return;
     dirty[section] = true;
     setTabStatus(section, 'unsaved');
   }
@@ -551,6 +589,12 @@
           showSaveIndicator(section);
           saveSectionSnapshot(section);
           markClean(section);
+          if (result.data.action_bar_html) {
+            var actionBar = document.getElementById('jmcfi-dental-edit-action-bar');
+            if (actionBar) {
+              actionBar.innerHTML = result.data.action_bar_html;
+            }
+          }
           if (options.onSuccess) options.onSuccess(result.data);
           return true;
         }
@@ -751,6 +795,41 @@
     });
   }
 
+  function resnapshotAllSections(clearBadges) {
+    document.querySelectorAll('form[data-section]').forEach(function (form) {
+      var key = form.getAttribute('data-section');
+      if (!key) return;
+      dirty[key] = false;
+      if (isReadOnlySectionForm(form)) return;
+      saveSectionSnapshot(key);
+      if (clearBadges) setTabStatus(key, 'none');
+    });
+  }
+
+  function finalizeInitialSnapshot() {
+    if (initialSnapshotReady) return;
+    resnapshotAllSections(true);
+    initialSnapshotReady = true;
+  }
+
+  function scheduleInitialSnapshot() {
+    var finished = false;
+    function run() {
+      if (finished) return;
+      finished = true;
+      // Alpine institutional init uses $nextTick; wait two frames after that flush.
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () {
+          finalizeInitialSnapshot();
+        });
+      });
+    }
+
+    document.addEventListener('alpine:initialized', run, { once: true });
+    // Fallback if Alpine is absent or already finished before we subscribed.
+    window.setTimeout(run, 250);
+  }
+
   function boot() {
     initForms();
     initTabs();
@@ -759,11 +838,7 @@
     initNavigationApiReloadGuard();
     initNavigationGuard();
     initBeforeUnload();
-    window.requestAnimationFrame(function () {
-      document.querySelectorAll('form[data-section]').forEach(function (form) {
-        saveSectionSnapshot(form.getAttribute('data-section'));
-      });
-    });
+    scheduleInitialSnapshot();
   }
 
   if (document.readyState === 'loading') {
@@ -776,6 +851,7 @@
     submitSectionForm: submitSectionForm,
     switchToSection: switchToSection,
     getActiveSection: getActiveSection,
+    hasUnsavedChanges: hasUnsavedChanges,
     markDirty: markDirty,
     markClean: markClean,
     discardSectionChanges: discardSectionChanges,

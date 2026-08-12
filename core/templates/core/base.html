@@ -372,6 +372,54 @@
         return false;
       };
 
+      /** Manage Concern: confirm before permanently deleting a concern record. */
+      window.__jmcfiConcernDeleteModal = function (btn) {
+        if (!btn) return;
+        var formAction = btn.getAttribute('data-form-action');
+        if (!formAction) return;
+        var subtitle = (btn.getAttribute('data-subtitle') || '').trim();
+        var message = (btn.getAttribute('data-message') || '').trim()
+          || 'This will permanently delete this concern record. This cannot be undone.';
+        window.__jmcfiDispatchOpenModal({
+          type: 'danger',
+          title: 'Delete Concern Record',
+          subtitle: subtitle,
+          message: message,
+          actionLabel: 'Delete Permanently',
+          size: 'sm',
+          formAction: formAction,
+          hasForm: true,
+        });
+      };
+
+      /** Health forms edit: open cancel-draft / delete modal only when sections are saved. */
+      window.__jmcfiHealthFormCancelDraftModal = function (btn) {
+        if (!btn) return;
+        if (window.__jmcfiDentalEditHasUnsaved && window.__jmcfiDentalEditHasUnsaved()) {
+          window.dispatchEvent(
+            new CustomEvent('user-toast', {
+              bubbles: true,
+              detail: {
+                message: 'Save or discard unsaved changes before cancelling this draft.',
+                type: 'warning',
+              },
+            }),
+          );
+          return;
+        }
+        var title = (btn.getAttribute('data-modal-title') || 'Cancel draft').trim();
+        var embedFrom = btn.getAttribute('data-embed-from');
+        if (!embedFrom) return;
+        window.__jmcfiDispatchOpenModal({
+          type: 'danger',
+          title: title,
+          size: 'sm',
+          embedFrom: embedFrom,
+          hasForm: true,
+          actionLabel: 'Delete',
+        });
+      };
+
       /** Dental record edit/list: open mark-completed confirm modal (completed status cannot be reverted). */
       window.__jmcfiDentalStatusModal = function (btn) {
         var rid = btn && btn.getAttribute('data-record-id');
@@ -530,8 +578,21 @@
                 function escAttr(s) {
                   return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;');
                 }
+                function escHtml(s) {
+                  return String(s || '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+                }
+                const msg = opts.message || self.message || '';
+                const msgHtml = msg
+                  ? '<p class="text-sm text-gray-600 leading-relaxed">' + escHtml(msg) + '</p>'
+                  : '';
                 self.bodyHtml =
-                  '<form method="post" action="' + escAttr(opts.formAction) + '">' +
+                  msgHtml +
+                  '<form method="post" action="' + escAttr(opts.formAction) + '"' +
+                  (msgHtml ? ' class="hidden"' : '') + '>' +
                   (csrf ? '<input type="hidden" name="csrfmiddlewaretoken" value="' + escAttr(csrf) + '">' : '') +
                   '</form>';
               }
@@ -629,7 +690,7 @@
                 modalForm.addEventListener('htmx:sendError', finish, { once: true });
                 htmx.trigger(modalForm, 'submit');
               } else {
-                this.closeModal();
+                // Submit before closing so Alpine does not tear down the form mid-request.
                 if (modalForm.requestSubmit) {
                   modalForm.requestSubmit();
                 } else {

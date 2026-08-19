@@ -341,6 +341,12 @@ class StudentProfileForm(forms.ModelForm):
         course = (cleaned_data.get('course') or '').strip()
         year_level = (cleaned_data.get('year_level') or '').strip()
 
+        others_mode = self.data.get('department_others') in ('on', 'true', 'True', '1')
+        if not others_mode and department:
+            others_mode = not CollegeDepartment.objects.filter(
+                is_active=True, name=department
+            ).exists()
+
         if is_employee:
             cleaned_data['course'] = ''
             cleaned_data['year_level'] = ''
@@ -348,11 +354,14 @@ class StudentProfileForm(forms.ModelForm):
                 if self.fields.get('department') and self.fields['department'].required:
                     self.add_error('department', 'Department is required for employees.')
                 return cleaned_data
-            if not CollegeDepartment.objects.filter(is_active=True, name=department).exists():
+            if not others_mode and not CollegeDepartment.objects.filter(is_active=True, name=department).exists():
                 self.add_error('department', 'Select a valid College/Department.')
             return cleaned_data
 
         if not department:
+            return cleaned_data
+
+        if others_mode:
             return cleaned_data
 
         if not CollegeDepartment.objects.filter(is_active=True, name=department).exists():

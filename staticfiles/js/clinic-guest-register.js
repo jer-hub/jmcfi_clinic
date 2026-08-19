@@ -30,17 +30,23 @@
 
   function clinicGuestPanelFactory(config) {
     config = config || {};
-    const mode = config.mode === 'defer' ? 'defer' : 'instant';
+    const mode = (config.mode === 'defer' || config.mode === 'collect') ? config.mode : 'instant';
 
     return {
       mode,
-      guestOpen: false,
-      guestFirstName: '',
-      guestLastName: '',
-      guestEmail: '',
-      guestPhone: '',
+      guestOpen: Boolean(config.initialOpen),
+      guestFirstName: config.initialFirstName || '',
+      guestLastName: config.initialLastName || '',
+      guestEmail: config.initialEmail || '',
+      guestPhone: config.initialPhone || '',
       guestSubmitting: false,
       guestError: '',
+
+      init() {
+        if (this.guestOpen) {
+          this.$dispatch('clinic-guest-toggled', { open: true });
+        }
+      },
 
       toggleGuestPanel() {
         this.setGuestOpen(!this.guestOpen);
@@ -64,6 +70,9 @@
 
       async submitGuest(options) {
         options = options || {};
+        if (this.mode !== 'instant') {
+          return;
+        }
         const first = (options.firstName || this.guestFirstName || '').trim();
         const last = (options.lastName || this.guestLastName || '').trim();
         const email = (options.email || this.guestEmail || '').trim();

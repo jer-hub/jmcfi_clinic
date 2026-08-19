@@ -6,7 +6,8 @@
          '{{ form.department.value|default_if_none:""|escapejs }}',
          '{{ form.course.value|default_if_none:""|escapejs }}',
          '{{ form.year_level.value|default_if_none:""|escapejs }}',
-         {% if form.is_employee.value %}true{% else %}false{% endif %}
+         {% if form.is_employee.value %}true{% else %}false{% endif %},
+         {% if form.department.value and form.department.value not in college_names %}true{% else %}false{% endif %}
      )"
      x-init="init()"
      {% endif %}>
@@ -216,9 +217,24 @@
                 {% endfor %}
             {% endif %}
         </div>
+        {# ── "Others" checkbox ── #}
+        <div class="mb-4">
+            <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                <input type="checkbox"
+                       name="department_others"
+                       value="on"
+                       class="form-checkbox"
+                       x-model="othersMode"
+                       @change="onOthersModeChange()"
+                       {% if form.department.value and form.department.value not in college_names %}checked{% endif %}>
+                <span>Others <span class="text-xs text-gray-400 font-normal">(not in the list)</span></span>
+            </label>
+            <p class="mt-1 text-xs text-gray-500">Check if your college/department is not listed above and type it manually.</p>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Department -->
-            <div class="form-group" :class="isEmployee ? 'md:col-span-1' : ''">
+            <!-- Department (catalog picker) -->
+            <div class="form-group" :class="isEmployee ? 'md:col-span-1' : ''" x-show="!othersMode">
                 <label for="department-search" class="block text-sm font-semibold text-gray-700 mb-2">
                     Department / College <span class="text-red-600">*</span>
                 </label>
@@ -226,6 +242,7 @@
                        name="department"
                        id="{{ form.department.id_for_label }}"
                        :value="department"
+                       :disabled="othersMode"
                        required>
                 <div class="relative" @click.outside="closeDepartmentDropdown()">
                     {# Selected summary (closed) #}
@@ -354,22 +371,58 @@
                 {% endif %}
             </div>
 
+            {# Department (free-text for "Others") #}
+            <div class="form-group" :class="isEmployee ? 'md:col-span-1' : ''" x-show="othersMode" x-cloak>
+                <label for="department-others-input" class="block text-sm font-semibold text-gray-700 mb-2">
+                    Department / College <span class="text-red-600">*</span>
+                </label>
+                <input type="text"
+                       id="department-others-input"
+                       name="department"
+                       x-model="department"
+                       :disabled="!othersMode"
+                       :required="othersMode"
+                       placeholder="Type your college/department name…"
+                       class="form-input">
+                <p class="mt-1.5 text-xs text-gray-500">Type the full name of your college or department.</p>
+                {% if form.department.errors %}
+                    {% for error in form.department.errors %}
+                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ error }}
+                        </p>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
             <!-- Course -->
             <div class="form-group" x-show="!isEmployee" x-cloak>
                 <label for="{{ form.course.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
                     Course / Program
-                    <span x-show="!isCourseOptional" class="text-red-600">*</span>
-                    <span x-show="isCourseOptional" class="text-gray-400 text-xs">(Optional)</span>
+                    <span x-show="!othersMode && !isCourseOptional" class="text-red-600">*</span>
+                    <span x-show="othersMode || isCourseOptional" class="text-gray-400 text-xs">(Optional)</span>
                 </label>
-                <select name="course"
-                        id="{{ form.course.id_for_label }}"
-                        x-ref="courseSelect"
-                        x-model="course"
-                        :required="!isEmployee && !isCourseOptional"
-                        class="form-select">
-                    <option value="">Select course/program</option>
-                </select>
-                <p class="mt-1 text-xs text-gray-500">Filtered by selected college/department</p>
+                <template x-if="!othersMode">
+                    <select name="course"
+                            id="{{ form.course.id_for_label }}"
+                            x-ref="courseSelect"
+                            x-model="course"
+                            :required="!isEmployee && !isCourseOptional"
+                            class="form-select">
+                        <option value="">Select course/program</option>
+                    </select>
+                </template>
+                <template x-if="othersMode">
+                    <input type="text"
+                           id="{{ form.course.id_for_label }}"
+                           name="course"
+                           x-model="course"
+                           placeholder="Type your course/program…"
+                           class="form-input">
+                </template>
+                <p class="mt-1 text-xs text-gray-500" x-text="othersMode ? 'Type your course or leave blank' : 'Filtered by selected college/department'"></p>
                 {% if form.course.errors %}
                     {% for error in form.course.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">
@@ -385,17 +438,29 @@
             <!-- Year Level -->
             <div class="form-group" x-show="!isEmployee" x-cloak>
                 <label for="{{ form.year_level.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
-                    Year Level <span class="text-red-600">*</span>
+                    Year Level
+                    <span x-show="!othersMode" class="text-red-600">*</span>
+                    <span x-show="othersMode" class="text-gray-400 text-xs">(Optional)</span>
                 </label>
-                <select name="year_level"
-                        id="{{ form.year_level.id_for_label }}"
-                        x-ref="yearLevelSelect"
-                        x-model="yearLevel"
-                        :required="!isEmployee"
-                        class="form-select">
-                    <option value="">Select year level</option>
-                </select>
-                <p class="mt-1 text-xs text-gray-500">Filtered by selected college/department</p>
+                <template x-if="!othersMode">
+                    <select name="year_level"
+                            id="{{ form.year_level.id_for_label }}"
+                            x-ref="yearLevelSelect"
+                            x-model="yearLevel"
+                            :required="!isEmployee"
+                            class="form-select">
+                        <option value="">Select year level</option>
+                    </select>
+                </template>
+                <template x-if="othersMode">
+                    <input type="text"
+                           id="{{ form.year_level.id_for_label }}"
+                           name="year_level"
+                           x-model="yearLevel"
+                           placeholder="Type your year level…"
+                           class="form-input">
+                </template>
+                <p class="mt-1 text-xs text-gray-500" x-text="othersMode ? 'Type your year level or leave blank' : 'Filtered by selected college/department'"></p>
                 {% if form.year_level.errors %}
                     {% for error in form.year_level.errors %}
                         <p class="mt-2 text-sm text-red-600 flex items-center">

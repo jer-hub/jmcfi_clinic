@@ -77,8 +77,10 @@ def patient_catalog_context_for_form(form, user):
     if form is not None and role_matches(user.role, ROLE_PATIENT) and 'department' in form.fields:
         selected_department = (form['department'].value() or '').strip()
 
+    college_names = set(catalog['college_options'])
     return {
         'college_options': catalog['college_options'],
+        'college_names': college_names,
         'initial_course_options': course_options_by_college.get(selected_department, []),
         'initial_year_level_options': year_level_options_by_college.get(selected_department, []),
         'college_options_json': catalog['college_options_json'],

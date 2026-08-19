@@ -13,11 +13,17 @@ from django.utils.dateparse import parse_date
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from datetime import timedelta
 import json
+import logging
 
 from .models import Appointment, AppointmentTypeDefault
 from .forms import AppointmentTypeDefaultForm
-from .appointment_utils import check_appointment_availability, format_conflict_message
+from .appointment_utils import (
+    check_appointment_availability,
+    classify_clinic_time_slots,
+    format_conflict_message,
+)
 from .calendar_service import (
     CalendarFilters,
     build_calendar_context,
@@ -41,6 +47,7 @@ def _is_json_request(request):
     return content_type.startswith('application/json')
 
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 def _doctor_assignment_label(doctors, *, total_doctors=None):
@@ -457,7 +464,30 @@ def schedule_appointment(request):
                 notification_type='appointment',
                 transaction_type='appointment_scheduled',
                 related_id=appointment.id,
+                send_email=False,
             )
+
+            try:
+                from core.guest_emails import (
+                    email_doctor_new_appointment_request,
+                    email_patient_appointment_scheduled,
+                )
+
+                email_doctor_new_appointment_request(request, appointment)
+            except Exception:
+                logger.warning(
+                    'Doctor new appointment request email failed',
+                    exc_info=True,
+                )
+            try:
+                from core.guest_emails import email_patient_appointment_scheduled
+
+                email_patient_appointment_scheduled(request, appointment)
+            except Exception:
+                logger.warning(
+                    'Patient self-schedule confirmation email failed',
+                    exc_info=True,
+                )
 
             messages.success(request, 'Appointment scheduled successfully!')
             return redirect('appointments:appointment_list')
@@ -558,6 +588,74 @@ def _validate_assigned_doctor_for_type(doctor, appointment_type):
 
 @login_required
 @role_required('student', 'staff', 'doctor', 'admin')
+def appointment_slot_availability(request):
+    """JSON: which clinic time slots are free for a doctor on a given date."""
+    date_value = parse_date((request.GET.get('date') or '').strip())
+    if date_value is None:
+        return JsonResponse({'ok': False, 'error': 'Please select a valid date.'}, status=400)
+
+    today = timezone.localdate()
+    if date_value < today:
+        return JsonResponse({
+            'ok': False,
+            'error': 'Cannot schedule appointments for past dates.',
+            'available': [],
+            'occupied': [],
+            'reasons': {},
+        })
+
+    if date_value.weekday() >= 5:
+        return JsonResponse({
+            'ok': False,
+            'error': 'Appointments are not available on weekends.',
+            'available': [],
+            'occupied': [],
+            'reasons': {},
+        })
+
+    if role_matches(request.user.role, ROLE_PATIENT):
+        max_days = get_clinic_settings().max_advance_booking_days
+        if date_value > today + timedelta(days=max_days):
+            return JsonResponse({
+                'ok': False,
+                'error': f'Appointments can only be booked up to {max_days} days in advance.',
+                'available': [],
+                'occupied': [],
+                'reasons': {},
+            })
+
+    doctor_id = (request.GET.get('doctor') or '').strip()
+    doctor = None
+    if doctor_id:
+        doctor = User.objects.filter(id=doctor_id, is_active=True).first()
+        if doctor is None or (
+            doctor.role != ROLE_DOCTOR and doctor.id != request.user.id
+        ):
+            return JsonResponse({'ok': False, 'error': 'Invalid doctor selected.'}, status=400)
+    elif role_matches(request.user.role, ROLE_DOCTOR):
+        doctor = request.user
+    else:
+        return JsonResponse({'ok': False, 'error': 'Please select a doctor first.'}, status=400)
+
+    patient = None
+    if role_matches(request.user.role, ROLE_PATIENT):
+        patient = request.user
+    else:
+        patient_id = (request.GET.get('patient') or '').strip()
+        if patient_id:
+            patient = User.objects.filter(id=patient_id, role__in=PATIENT_ROLE_VALUES).first()
+
+    payload = classify_clinic_time_slots(doctor, date_value, patient=patient)
+    return JsonResponse({
+        'ok': True,
+        'available': payload['available'],
+        'occupied': payload['occupied'],
+        'reasons': payload['reasons'],
+    })
+
+
+@login_required
+@role_required('student', 'staff', 'doctor', 'admin')
 def appointment_detail(request, appointment_id):
     appointment = get_object_or_404(
         Appointment.objects.select_related('patient', 'patient__patient_profile', 'doctor', 'doctor__staff_profile').prefetch_related('dental_records', 'medicalrecord_set'),
@@ -590,6 +688,8 @@ def appointment_detail(request, appointment_id):
             return None
 
         success_message = None
+        email_feedback = None
+        email_feedback_type = 'success'
 
         if can_write_appointments(request.user, appointment):
             status = request.POST.get('status')
@@ -613,6 +713,9 @@ def appointment_detail(request, appointment_id):
                 appointment.save()
 
                 if status and appointment.status != previous_status:
+                    from core.guest_auth import resolve_patient_contact_email
+                    from core.notification_delivery import format_email_send_error
+
                     status_to_transaction = {
                         'pending': 'appointment_reminder',
                         'confirmed': 'appointment_confirmed',
@@ -620,8 +723,10 @@ def appointment_detail(request, appointment_id):
                         'missed': 'appointment_reminder',
                         'cancelled': 'appointment_cancelled',
                     }
-                    # Completed visits: in-app + results email with record/appointment link.
-                    # Other status changes: plain notify (in-app + optional email).
+                    contact = resolve_patient_contact_email(appointment.patient)
+                    emailed = False
+                    email_error = ''
+
                     if appointment.status == 'completed':
                         notify_user(
                             appointment.patient,
@@ -636,24 +741,83 @@ def appointment_detail(request, appointment_id):
                             send_email=False,
                         )
                         from core.guest_emails import email_appointment_results_ready
-                        email_appointment_results_ready(request, appointment, created_by=request.user)
+
+                        try:
+                            emailed = email_appointment_results_ready(
+                                request, appointment, created_by=request.user
+                            )
+                        except Exception as email_exc:
+                            email_error = format_email_send_error(email_exc)
+                            emailed = False
+                        if not contact:
+                            email_feedback = 'Patient has no contact email — results email was not sent.'
+                            email_feedback_type = 'warning'
+                        elif emailed:
+                            email_feedback = f'Results email sent to {contact}.'
+                        else:
+                            detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+                            email_feedback = f'Results email was not sent ({detail}).'
+                            email_feedback_type = 'warning'
                     else:
                         notify_user(
                             appointment.patient,
                             title='Appointment Update',
-                            message=f'Your appointment status has been updated to {appointment.get_status_display()}',
+                            message=(
+                                f'Your appointment status has been updated to '
+                                f'{appointment.get_status_display()}'
+                            ),
                             notification_type='appointment',
                             transaction_type=status_to_transaction.get(
                                 appointment.status, 'appointment_reminder'
                             ),
                             related_id=appointment.id,
+                            send_email=False,
                         )
+                        from core.guest_emails import email_appointment_updated
+
+                        try:
+                            emailed = email_appointment_updated(
+                                request,
+                                appointment,
+                                previous_status=previous_status,
+                                created_by=request.user,
+                            )
+                        except Exception as email_exc:
+                            email_error = format_email_send_error(email_exc)
+                            emailed = False
+                        if not contact:
+                            email_feedback = 'Patient has no contact email — update email was not sent.'
+                            email_feedback_type = 'warning'
+                        elif emailed:
+                            email_feedback = f'Update email sent to {contact}.'
+                        else:
+                            detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+                            email_feedback = f'Update email was not sent ({detail}).'
+                            email_feedback_type = 'warning'
+
+                        if (
+                            appointment.status == 'cancelled'
+                            and request.user.id != appointment.doctor_id
+                        ):
+                            from core.guest_emails import email_doctor_appointment_cancelled
+
+                            try:
+                                email_doctor_appointment_cancelled(
+                                    request,
+                                    appointment,
+                                    cancelled_by=request.user,
+                                )
+                            except Exception:
+                                logger.warning(
+                                    'Doctor appointment cancelled email failed',
+                                    exc_info=True,
+                                )
 
                 success_message = f'Appointment updated to {appointment.get_status_display()}.'
 
         elif role_matches(request.user.role, ROLE_PATIENT) and appointment.patient == request.user:
             status = request.POST.get('status')
-            if status == 'cancelled' and appointment.status in ['pending']:
+            if status == 'cancelled' and appointment.status in ('pending', 'confirmed'):
                 from datetime import datetime as dt
 
                 cutoff_hours = get_clinic_settings().cancellation_cutoff_hours
@@ -680,7 +844,22 @@ def appointment_detail(request, appointment_id):
                     notification_type='appointment',
                     transaction_type='appointment_cancelled',
                     related_id=appointment.id,
+                    send_email=False,
                 )
+
+                try:
+                    from core.guest_emails import email_doctor_appointment_cancelled
+
+                    email_doctor_appointment_cancelled(
+                        request,
+                        appointment,
+                        cancelled_by=request.user,
+                    )
+                except Exception:
+                    logger.warning(
+                        'Doctor appointment cancelled email failed',
+                        exc_info=True,
+                    )
 
                 success_message = 'Appointment cancelled successfully!'
             else:
@@ -694,10 +873,22 @@ def appointment_detail(request, appointment_id):
             return access_denied_response(request, status_code=403, reason=AccessReason.FORBIDDEN)
 
         if list_htmx and success_message:
-            return _appointment_list_htmx_oob_response(request, success_message)
+            combined = success_message
+            if email_feedback:
+                combined = f'{combined} {email_feedback}'
+            return _appointment_list_htmx_oob_response(
+                request,
+                combined,
+                email_feedback_type if email_feedback else 'success',
+            )
 
         if success_message:
             messages.success(request, success_message)
+        if email_feedback:
+            if email_feedback_type == 'warning':
+                messages.warning(request, email_feedback)
+            else:
+                messages.success(request, email_feedback)
 
         if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
             return redirect(next_url)
@@ -1018,20 +1209,20 @@ def _schedule_for_patient_patient_param(request, patient_id_hint=None):
     return request.GET.get('patient') or request.GET.get('student')
 
 
-def _schedule_for_patient_get_context(request, patient_id_hint=None, form_data=None):
-    active_type_keys = set(
-        AppointmentTypeDefault.objects
-        .filter(is_active=True)
-        .values_list('appointment_type', flat=True)
+def _active_appointment_type_choices(user=None):
+    """Active appointment types; doctors only see types they are assigned to."""
+    defaults = AppointmentTypeDefault.objects.filter(is_active=True)
+    if user is not None and role_matches(getattr(user, 'role', None), ROLE_DOCTOR):
+        defaults = defaults.filter(assigned_doctors=user)
+    active_type_keys = list(
+        defaults.order_by('appointment_type').values_list('appointment_type', flat=True)
     )
-    if active_type_keys:
-        appointment_types = [
-            (key, label)
-            for key, label in Appointment.APPOINTMENT_TYPE_CHOICES
-            if key in active_type_keys
-        ]
-    else:
-        appointment_types = Appointment.APPOINTMENT_TYPE_CHOICES
+    labels = dict(Appointment.APPOINTMENT_TYPE_CHOICES)
+    return [(key, labels.get(key, key)) for key in active_type_keys]
+
+
+def _schedule_for_patient_get_context(request, patient_id_hint=None, form_data=None):
+    appointment_types = _active_appointment_type_choices(request.user)
 
     prefill_patient = None
     prefill_invalid = False
@@ -1064,6 +1255,52 @@ def _schedule_for_patient_get_context(request, patient_id_hint=None, form_data=N
     return context
 
 
+def _schedule_guest_form_fields(post):
+    """Persist guest draft fields after a failed schedule POST."""
+    return {
+        'register_guest': '1' if post.get('register_guest') == '1' else '',
+        'guest_first_name': (post.get('guest_first_name') or '').strip(),
+        'guest_last_name': (post.get('guest_last_name') or '').strip(),
+        'guest_email': (post.get('guest_email') or '').strip(),
+        'guest_phone': (post.get('guest_phone') or '').strip(),
+    }
+
+
+def _parse_schedule_guest_post(post):
+    """Return (create_guest_user kwargs, error_message) for deferred guest booking."""
+    from django.core.exceptions import ValidationError as DjangoValidationError
+    from django.core.validators import validate_email
+
+    from core.utils import clean_philippine_phone
+
+    first_name = (post.get('guest_first_name') or '').strip()
+    last_name = (post.get('guest_last_name') or '').strip()
+    contact_email = (post.get('guest_email') or '').strip()
+    phone_raw = (post.get('guest_phone') or '').strip()
+    if not first_name or not last_name:
+        return None, 'First and last name are required for guest registration.'
+    if not contact_email:
+        return None, 'A contact email is required for guest registration.'
+    try:
+        validate_email(contact_email)
+    except DjangoValidationError:
+        return None, 'Enter a valid contact email for the guest patient.'
+
+    phone = None
+    if phone_raw:
+        try:
+            phone = clean_philippine_phone(phone_raw)
+        except DjangoValidationError:
+            return None, 'Enter a valid 10-digit mobile number, or leave it blank.'
+
+    return {
+        'first_name': first_name,
+        'last_name': last_name,
+        'contact_email': contact_email,
+        'phone': phone,
+    }, None
+
+
 def _render_schedule_for_patient(request, patient_id_hint=None, form_data=None):
     context = _schedule_for_patient_get_context(request, patient_id_hint=patient_id_hint, form_data=form_data)
     return render(request, 'appointments/schedule_for_patient.html', context)
@@ -1082,26 +1319,41 @@ def schedule_for_patient(request):
         time_str = request.POST.get('time')
         reason = request.POST.get('reason')
         doctor_id = request.POST.get('doctor') if staff_picks_doctor else None
+        registering_guest = request.POST.get('register_guest') == '1'
+        guest_kwargs = None
 
         form_data = {
-            'patient': patient_id or '',
+            'patient': '' if registering_guest else (patient_id or ''),
             'appointment_type': appointment_type or '',
             'date': date_str or '',
             'time': time_str or '',
             'reason': reason or '',
             'doctor': doctor_id or '',
         }
+        form_data.update(_schedule_guest_form_fields(request.POST))
 
-        required = [patient_id, appointment_type, date_str, time_str, reason]
+        if registering_guest:
+            guest_kwargs, guest_err = _parse_schedule_guest_post(request.POST)
+            if guest_err:
+                messages.error(request, guest_err)
+                return _render_schedule_for_patient(request, form_data=form_data)
+            patient_id = ''
+
+        required = [appointment_type, date_str, time_str, reason]
+        if not registering_guest:
+            required.append(patient_id)
         if staff_picks_doctor:
             required.append(doctor_id)
 
         if not all(required):
             messages.error(request, 'All fields are required.')
-            return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
+            return _render_schedule_for_patient(
+                request,
+                patient_id_hint=patient_id or None,
+                form_data=form_data,
+            )
 
         try:
-            patient = User.objects.get(id=patient_id, role__in=PATIENT_ROLE_VALUES)
             if staff_picks_doctor:
                 doctor = User.objects.get(id=doctor_id, role=ROLE_DOCTOR, is_active=True)
             else:
@@ -1112,50 +1364,70 @@ def schedule_for_patient(request):
 
             if appointment_date < timezone.now().date():
                 messages.error(request, 'Cannot schedule appointments for past dates.')
-                return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
+                return _render_schedule_for_patient(
+                    request, patient_id_hint=patient_id or None, form_data=form_data
+                )
 
             if appointment_date.weekday() >= 5:
                 messages.error(request, 'Appointments are not available on weekends.')
-                return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
+                return _render_schedule_for_patient(
+                    request, patient_id_hint=patient_id or None, form_data=form_data
+                )
 
-            if staff_picks_doctor:
+            if staff_picks_doctor or role_matches(request.user.role, ROLE_DOCTOR):
                 is_valid, err_msg = _validate_assigned_doctor_for_type(doctor, appointment_type)
                 if not is_valid:
                     messages.error(request, err_msg)
-                    return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
+                    return _render_schedule_for_patient(
+                        request, patient_id_hint=patient_id or None, form_data=form_data
+                    )
             else:
                 type_default = AppointmentTypeDefault.objects.filter(
                     appointment_type=appointment_type, is_active=True
                 ).first()
                 if not type_default and AppointmentTypeDefault.objects.filter(appointment_type=appointment_type).exists():
                     messages.error(request, 'This appointment type is currently inactive.')
-                    return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
+                    return _render_schedule_for_patient(
+                        request, patient_id_hint=patient_id or None, form_data=form_data
+                    )
 
             is_available, conflicts = check_appointment_availability(doctor, appointment_date, appointment_time)
             if not is_available:
                 conflict_msg = format_conflict_message(doctor, conflicts)
                 messages.error(request, conflict_msg)
-                return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
+                return _render_schedule_for_patient(
+                    request, patient_id_hint=patient_id or None, form_data=form_data
+                )
 
-            patient_conflict = Appointment.objects.filter(
-                patient=patient,
-                date=appointment_date,
-                time=appointment_time,
-                status__in=['pending', 'confirmed']
-            ).exists()
-            if patient_conflict:
-                messages.error(request, f'{patient.get_full_name()} already has a pending or confirmed appointment at this time.')
-                return _render_schedule_for_patient(request, patient_id_hint=patient_id, form_data=form_data)
+            patient = None
+            if not registering_guest:
+                patient = User.objects.get(id=patient_id, role__in=PATIENT_ROLE_VALUES)
+                patient_conflict = Appointment.objects.filter(
+                    patient=patient,
+                    date=appointment_date,
+                    time=appointment_time,
+                    status__in=['pending', 'confirmed']
+                ).exists()
+                if patient_conflict:
+                    messages.error(request, f'{patient.get_full_name()} already has a pending or confirmed appointment at this time.')
+                    return _render_schedule_for_patient(
+                        request, patient_id_hint=patient_id, form_data=form_data
+                    )
 
-            appointment = Appointment.objects.create(
-                patient=patient,
-                doctor=doctor,
-                appointment_type=appointment_type,
-                date=appointment_date,
-                time=appointment_time,
-                reason=reason,
-                status='confirmed',
-            )
+            with transaction.atomic():
+                if registering_guest:
+                    from core.guest_auth import create_guest_user
+
+                    patient = create_guest_user(**guest_kwargs)
+                appointment = Appointment.objects.create(
+                    patient=patient,
+                    doctor=doctor,
+                    appointment_type=appointment_type,
+                    date=appointment_date,
+                    time=appointment_time,
+                    reason=reason,
+                    status='confirmed',
+                )
 
             # Ensure profile (contact_email) is available for guest delivery.
             patient = User.objects.select_related('patient_profile').get(pk=patient.pk)
@@ -1230,6 +1502,10 @@ def schedule_for_patient(request):
         except Exception as e:
             messages.error(request, f'An error occurred: {e}')
 
-        return _render_schedule_for_patient(request, patient_id_hint=request.POST.get('patient'), form_data=form_data)
+        return _render_schedule_for_patient(
+            request,
+            patient_id_hint=patient_id or None,
+            form_data=form_data,
+        )
 
     return _render_schedule_for_patient(request)

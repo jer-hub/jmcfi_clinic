@@ -8,7 +8,7 @@
     <li><strong>Date:</strong> {{ appointment.date|date:"F d, Y" }}</li>
     <li><strong>Time:</strong> {{ appointment.time|time:"g:i A" }}</li>
     {% else %}
-    <li><strong>Record date:</strong> {{ medical_record.created_at|date:"F d, Y" }}</li>
+    <li><strong>Record date:</strong> {{ medical_record.effective_record_date|date:"F d, Y" }}</li>
     {% endif %}
     {% if doctor_name %}
     <li><strong>Doctor:</strong> Dr. {{ doctor_name }}</li>

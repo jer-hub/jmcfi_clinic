@@ -36,11 +36,17 @@ def validate_academic_affiliation(
     department_field='department',
     course_field='course',
     year_level_field='year_level',
+    others_mode=False,
 ):
     """Validate college/department/course/year like patient profile profiling."""
     department = (department or '').strip()
     course = (course or '').strip()
     year_level = (year_level or '').strip()
+
+    if not others_mode and department:
+        others_mode = not CollegeDepartment.objects.filter(
+            is_active=True, name=department
+        ).exists()
 
     if is_employee:
         if not department:
@@ -49,11 +55,14 @@ def validate_academic_affiliation(
                 'Department is required for employees.',
             )
             return
-        if not CollegeDepartment.objects.filter(is_active=True, name=department).exists():
+        if not others_mode and not CollegeDepartment.objects.filter(is_active=True, name=department).exists():
             add_error(department_field, 'Select a valid College/Department.')
         return
 
     if not department:
+        return
+
+    if others_mode:
         return
 
     if not CollegeDepartment.objects.filter(is_active=True, name=department).exists():

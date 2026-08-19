@@ -8,6 +8,7 @@ urlpatterns = [
     path('', views.appointment_list, name='appointment_list'),
     path('schedule/', views.schedule_appointment, name='schedule_appointment'),
     path('schedule-for-patient/', views.schedule_for_patient, name='schedule_for_patient'),
+    path('availability/', views.appointment_slot_availability, name='slot_availability'),
     path('<int:appointment_id>/', views.appointment_detail, name='appointment_detail'),
 
     # Calendar (full page + HTMX fragments)

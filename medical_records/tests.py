@@ -144,3 +144,78 @@ class StaffMedicalRecordsReadOnlyTests(TestCase):
 		self.client.force_login(self.staff)
 		response = self.client.get(reverse('medical_records:create_medical_record_for_patient'))
 		self.assertEqual(response.status_code, 302)
+
+
+@override_settings(
+	MIDDLEWARE=[
+		middleware
+		for middleware in settings.MIDDLEWARE
+		if middleware != 'core.middleware.ProfileCompleteMiddleware'
+	]
+)
+class MedicalRecordDateTests(TestCase):
+	def setUp(self):
+		self.doctor = User.objects.create_user(
+			email='doctor-record-date@example.com',
+			password='test-pass-123',
+			role='doctor',
+			first_name='Doc',
+			last_name='Tor',
+		)
+		self.patient = User.objects.create_user(
+			email='patient-record-date@example.com',
+			password='test-pass-123',
+			role='patient',
+			first_name='Pat',
+			last_name='Ient',
+		)
+		self.doctor.staff_profile.license_number = 'LIC-2'
+		self.doctor.staff_profile.ptr_no = 'PTR-2'
+		self.doctor.staff_profile.phone = '09998887766'
+		self.doctor.staff_profile.department = 'Clinic'
+		self.doctor.staff_profile.specialization = 'General Medicine'
+		self.doctor.staff_profile.save(update_fields=['license_number', 'ptr_no', 'phone', 'department', 'specialization'])
+		self.patient.patient_profile.patient_id = 'P-REC-001'
+		self.patient.patient_profile.course = 'BS IT'
+		self.patient.patient_profile.department = 'CITE'
+		self.patient.patient_profile.save(update_fields=['patient_id', 'course', 'department'])
+
+	def test_record_date_defaults_from_appointment(self):
+		appointment = Appointment.objects.create(
+			patient=self.patient,
+			doctor=self.doctor,
+			appointment_type='checkup',
+			date=date(2026, 3, 10),
+			time=time(10, 0),
+			reason='Checkup',
+			status='completed',
+		)
+		record = MedicalRecord.objects.create(
+			patient=self.patient,
+			doctor=self.doctor,
+			appointment=appointment,
+			diagnosis='Test',
+			treatment='Rest',
+		)
+		self.assertEqual(record.record_date, date(2026, 3, 10))
+
+	def test_visit_snapshot_frozen_at_creation(self):
+		record = MedicalRecord.objects.create(
+			patient=self.patient,
+			doctor=self.doctor,
+			diagnosis='Test',
+			treatment='Rest',
+		)
+		self.assertEqual(record.display_patient_name, 'Pat Ient')
+		self.assertEqual(record.display_patient_id, 'P-REC-001')
+		self.assertEqual(record.display_patient_course, 'BS IT')
+		self.assertEqual(record.display_doctor_department, 'Clinic')
+
+		self.patient.first_name = 'Changed'
+		self.patient.save(update_fields=['first_name'])
+		self.patient.patient_profile.course = 'BS CS'
+		self.patient.patient_profile.save(update_fields=['course'])
+
+		record.refresh_from_db()
+		self.assertEqual(record.display_patient_name, 'Pat Ient')
+		self.assertEqual(record.display_patient_course, 'BS IT')

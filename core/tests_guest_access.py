@@ -199,6 +199,11 @@ class GuestViewsAndEmailHooksTests(TestCase):
 		token.refresh_from_db()
 		self.assertIsNotNone(token.revoked_at)
 		self.assertContains(response, 'cancelled')
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['doc-guest@test.com'])
+		self.assertIn('cancelled', mail.outbox[0].body.lower())
+		self.assertIn(f'/appointments/{appointment.pk}/', mail.outbox[0].body)
+		self.assertIn('Checkup', mail.outbox[0].body)
 
 	def test_guest_appointment_cancel_blocked_by_cutoff(self):
 		ClinicSettings.load()
@@ -354,6 +359,180 @@ class GuestViewsAndEmailHooksTests(TestCase):
 		self.assertIn(f'/appointments/{appointment.pk}/', mail.outbox[0].body)
 		self.assertNotIn('/guest/appointment/', mail.outbox[0].body)
 		self.assertIn('sign in', mail.outbox[0].body.lower())
+
+	def test_email_doctor_new_appointment_request(self):
+		from core.guest_emails import email_doctor_new_appointment_request
+		from core.models import PatientProfile
+
+		patient = User.objects.create_user(
+			email='booking-patient@example.com',
+			password='Pass123!',
+			role='patient',
+			is_active=True,
+			first_name='Booking',
+			last_name='Patient',
+		)
+		PatientProfile.objects.update_or_create(
+			user=patient,
+			defaults={'patient_id': 'P-EMAIL-BOOK'},
+		)
+		appointment = Appointment.objects.create(
+			patient=patient,
+			doctor=self.doctor,
+			appointment_type='consultation',
+			date=date.today() + timedelta(days=3),
+			time=time(15, 0),
+			reason='Self-booked checkup',
+			status='pending',
+		)
+		factory = RequestFactory()
+		request = factory.get('/')
+		ok = email_doctor_new_appointment_request(request, appointment)
+		self.assertTrue(ok)
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['doc-guest@test.com'])
+		self.assertIn(f'/appointments/{appointment.pk}/', mail.outbox[0].body)
+		self.assertIn('Booking Patient', mail.outbox[0].body)
+		self.assertIn('Self-booked checkup', mail.outbox[0].body)
+		html_parts = [alt[0] for alt in mail.outbox[0].alternatives if alt[1] == 'text/html']
+		self.assertIn('View appointment details', html_parts[0])
+
+	def test_email_doctor_appointment_cancelled(self):
+		from core.guest_emails import email_doctor_appointment_cancelled
+		from core.models import PatientProfile
+
+		patient = User.objects.create_user(
+			email='cancel-booking@example.com',
+			password='Pass123!',
+			role='patient',
+			is_active=True,
+			first_name='Cancel',
+			last_name='Booking',
+		)
+		PatientProfile.objects.update_or_create(
+			user=patient,
+			defaults={'patient_id': 'P-EMAIL-CANCEL-DOC'},
+		)
+		appointment = Appointment.objects.create(
+			patient=patient,
+			doctor=self.doctor,
+			appointment_type='consultation',
+			date=date.today() + timedelta(days=3),
+			time=time(16, 0),
+			reason='Will cancel',
+			status='cancelled',
+			notes='Patient called ahead.',
+		)
+		factory = RequestFactory()
+		request = factory.get('/')
+		ok = email_doctor_appointment_cancelled(
+			request,
+			appointment,
+			cancelled_by=patient,
+		)
+		self.assertTrue(ok)
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['doc-guest@test.com'])
+		self.assertIn('cancelled', mail.outbox[0].body.lower())
+		self.assertIn(f'/appointments/{appointment.pk}/', mail.outbox[0].body)
+		self.assertIn('Cancel Booking', mail.outbox[0].body)
+		self.assertIn('Patient called ahead.', mail.outbox[0].body)
+		self.assertIn('Cancelled by: Cancel Booking', mail.outbox[0].body)
+
+	def test_email_guest_appointment_updated_confirmed(self):
+		from core.guest_emails import email_guest_appointment_updated
+
+		appointment = Appointment.objects.create(
+			patient=self.guest,
+			doctor=self.doctor,
+			appointment_type='consultation',
+			date=date.today() + timedelta(days=2),
+			time=time(9, 30),
+			reason='Follow-up',
+			status='confirmed',
+		)
+		factory = RequestFactory()
+		request = factory.get('/')
+		ok = email_guest_appointment_updated(
+			request,
+			appointment,
+			previous_status='pending',
+			created_by=self.doctor,
+		)
+		self.assertTrue(ok)
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['guest-patient@example.com'])
+		self.assertIn('/guest/appointment/', mail.outbox[0].body)
+		self.assertIn('confirmed', mail.outbox[0].body.lower())
+		self.assertIn('Previous status: Pending', mail.outbox[0].body)
+
+	def test_email_patient_appointment_updated_cancelled(self):
+		from core.guest_emails import email_patient_appointment_updated
+		from core.models import PatientProfile
+
+		patient = User.objects.create_user(
+			email='cancel-patient@example.com',
+			password='Pass123!',
+			role='patient',
+			is_active=True,
+			first_name='Cancel',
+			last_name='Patient',
+		)
+		PatientProfile.objects.update_or_create(
+			user=patient,
+			defaults={'patient_id': 'P-EMAIL-CANCEL'},
+		)
+		appointment = Appointment.objects.create(
+			patient=patient,
+			doctor=self.doctor,
+			appointment_type='consultation',
+			date=date.today() + timedelta(days=4),
+			time=time(14, 0),
+			reason='Routine visit',
+			status='cancelled',
+		)
+		factory = RequestFactory()
+		request = factory.get('/')
+		ok = email_patient_appointment_updated(
+			request,
+			appointment,
+			previous_status='confirmed',
+		)
+		self.assertTrue(ok)
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['cancel-patient@example.com'])
+		self.assertIn(f'/appointments/{appointment.pk}/', mail.outbox[0].body)
+		self.assertIn('cancelled', mail.outbox[0].body.lower())
+
+	def test_email_appointment_updated_skips_when_no_contact(self):
+		from core.guest_emails import email_appointment_updated
+
+		guest_no_email = create_guest_user(
+			first_name='No',
+			last_name='Email',
+			contact_email='',
+		)
+		guest_no_email.patient_profile.contact_email = ''
+		guest_no_email.patient_profile.save(update_fields=['contact_email'])
+		appointment = Appointment.objects.create(
+			patient=guest_no_email,
+			doctor=self.doctor,
+			appointment_type='consultation',
+			date=date.today() + timedelta(days=1),
+			time=time(8, 0),
+			reason='Walk-in',
+			status='confirmed',
+		)
+		factory = RequestFactory()
+		request = factory.get('/')
+		ok = email_appointment_updated(
+			request,
+			appointment,
+			previous_status='pending',
+			created_by=self.doctor,
+		)
+		self.assertFalse(ok)
+		self.assertEqual(len(mail.outbox), 0)
 
 	def test_email_patient_appointment_results_ready(self):
 		from core.guest_emails import email_patient_appointment_results_ready

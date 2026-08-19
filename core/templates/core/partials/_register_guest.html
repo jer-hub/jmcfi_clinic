@@ -2,15 +2,22 @@
   Staff guest patient registration (requires clinical_module in context).
   guest_mode:
     defer — checkbox only; POST register_guest=1 and create patient on form submit (health forms).
-    instant — collect name/email then register via API (picker-only flows).
-  Parent Alpine scope should handle @clinic-guest-created.window when using instant mode.
+    collect — name/email fields posted with the parent form; guest created on successful submit (appointments).
+    instant — collect name/email then register via API immediately (picker-only flows).
+  Parent Alpine scope should handle @clinic-guest-created.window when using instant mode
+  and @clinic-guest-toggled when guest registration enables the rest of the form.
 {% endcomment %}
 {% if clinical_module %}
 <div class="mt-4 pt-4 border-t border-dashed border-gray-200"
      x-data="clinicGuestPanel({
        registerUrl: '{% url 'core:register_guest_patient' %}',
        clinicalModule: '{{ clinical_module|escapejs }}',
-       mode: '{{ guest_mode|default:'instant'|escapejs }}'
+       mode: '{{ guest_mode|default:'instant'|escapejs }}',
+       initialOpen: {% if form_data.register_guest == '1' %}true{% else %}false{% endif %},
+       initialFirstName: '{{ form_data.guest_first_name|default:''|escapejs }}',
+       initialLastName: '{{ form_data.guest_last_name|default:''|escapejs }}',
+       initialEmail: '{{ form_data.guest_email|default:''|escapejs }}',
+       initialPhone: '{{ form_data.guest_phone|default:''|escapejs }}'
      })">
   <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
     <input type="checkbox"
@@ -28,28 +35,36 @@
     Complete the demographics below (including email). The guest patient will be created when you submit this form.
   </p>
 
-  <div x-show="guestOpen && mode === 'instant'" x-cloak class="mt-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4 space-y-3">
-    <p class="text-xs text-gray-600">Creates a clinic-managed patient (no Google login). Contact email is used for appointment and form notifications.</p>
+  <div x-show="guestOpen && (mode === 'instant' || mode === 'collect')" x-cloak class="mt-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4 space-y-3">
+    <p class="text-xs text-gray-600" x-show="mode === 'instant'">Creates a clinic-managed patient (no Google login). Contact email is used for appointment and form notifications.</p>
+    <p class="text-xs text-gray-600" x-show="mode === 'collect'" x-cloak>Fill in the guest details below. The guest patient is created only when you schedule the appointment.</p>
+    {% if guest_mode == 'collect' %}
+    <input type="hidden" name="register_guest" :value="guestOpen ? '1' : ''">
+    {% endif %}
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs font-semibold text-gray-700 mb-1">First name <span class="text-red-600">*</span></label>
-        <input type="text" x-model="guestFirstName" class="form-input text-sm" autocomplete="off">
+        <label class="block text-xs font-semibold text-gray-700 mb-1" for="guest_first_name">First name <span class="text-red-600">*</span></label>
+        <input type="text" id="guest_first_name" x-model="guestFirstName" class="form-input text-sm" autocomplete="off"
+               {% if guest_mode == 'collect' %}name="guest_first_name" :required="guestOpen" :disabled="!guestOpen"{% endif %}>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-700 mb-1">Last name <span class="text-red-600">*</span></label>
-        <input type="text" x-model="guestLastName" class="form-input text-sm" autocomplete="off">
+        <label class="block text-xs font-semibold text-gray-700 mb-1" for="guest_last_name">Last name <span class="text-red-600">*</span></label>
+        <input type="text" id="guest_last_name" x-model="guestLastName" class="form-input text-sm" autocomplete="off"
+               {% if guest_mode == 'collect' %}name="guest_last_name" :required="guestOpen" :disabled="!guestOpen"{% endif %}>
       </div>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-700 mb-1">Contact email <span class="text-red-600">*</span></label>
-      <input type="email" x-model="guestEmail" class="form-input text-sm" placeholder="patient@example.com" autocomplete="off">
+      <label class="block text-xs font-semibold text-gray-700 mb-1" for="guest_email">Contact email <span class="text-red-600">*</span></label>
+      <input type="email" id="guest_email" x-model="guestEmail" class="form-input text-sm" placeholder="patient@example.com" autocomplete="off"
+             {% if guest_mode == 'collect' %}name="guest_email" :required="guestOpen" :disabled="!guestOpen"{% endif %}>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-700 mb-1">Mobile <span class="text-gray-400 font-normal">(optional)</span></label>
+      <label class="block text-xs font-semibold text-gray-700 mb-1" for="guest_phone">Mobile <span class="text-gray-400 font-normal">(optional)</span></label>
       <div data-phone-wrapper>
         <div class="relative flex items-stretch rounded-lg border border-gray-300 overflow-hidden transition-all bg-white focus-within:ring-2 focus-within:ring-primary-500/20 focus-within:border-primary-500">
           <span class="flex items-center px-3 bg-gray-50 border-r border-gray-300 text-gray-500 text-sm font-semibold select-none whitespace-nowrap flex-shrink-0" aria-hidden="true">+63</span>
           <input type="text"
+                 id="guest_phone"
                  x-ref="guestPhoneInput"
                  x-model="guestPhone"
                  class="flex-1 min-w-0 px-3 pr-8 py-2.5 border-0 focus:outline-none focus:ring-0 bg-transparent text-sm"
@@ -58,7 +73,8 @@
                  data-phone-badge="true"
                  inputmode="tel"
                  autocomplete="tel"
-                 maxlength="16">
+                 maxlength="16"
+                 {% if guest_mode == 'collect' %}name="guest_phone" :disabled="!guestOpen"{% endif %}>
         </div>
         <div class="mt-1 flex items-center justify-between gap-2">
           <p class="text-xs text-gray-400">e.g. 917 123 4567</p>
@@ -67,6 +83,7 @@
       </div>
     </div>
     <button type="button"
+            x-show="mode === 'instant'"
             @click="submitGuest()"
             :disabled="guestSubmitting"
             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-60">

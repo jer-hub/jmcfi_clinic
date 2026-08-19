@@ -13,7 +13,7 @@
 {% endif %}
 <script type="application/json" id="schedule-form-prefill">{{ form_data_json|safe }}</script>
 <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 pt-0"
-     x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }}, staffPicksDoctor: {{ staff_picks_doctor|yesno:'true,false' }} })"
+     x-data="scheduleForPatient({ patientLocked: {{ patient_locked|yesno:'true,false' }}, staffPicksDoctor: {{ staff_picks_doctor|yesno:'true,false' }}, currentDoctorId: '{% if staff_picks_doctor %}{% else %}{{ request.user.id }}{% endif %}' })"
      @clinic-guest-created.window="onGuestCreated($event.detail)"
      @clinic-guest-toggled="onGuestToggled($event.detail)">
     {% include 'appointments/_subnav.html' %}
@@ -169,7 +169,8 @@
                 </div>
 
                 <div x-show="!hasSelectedStudent" x-cloak>
-                    {% include "core/partials/_register_guest.html" with clinical_module="appointments" %}
+                    {% include "core/partials/_register_guest.html" with clinical_module="appointments" guest_mode="collect" %}
+                    <p x-show="errors.patient" x-text="errors.patient" x-cloak class="mt-1.5 text-sm text-danger-600"></p>
                 </div>
 
                 {# Selected patient card #}
@@ -195,8 +196,8 @@
                 </div>
 
                 <input type="hidden" name="patient" x-model="selectedPatientId">
-                <p x-show="!hasSelectedStudent" class="text-xs text-gray-500">
-                    Select a patient to enable scheduling.
+                <p x-show="!hasScheduleTarget" class="text-xs text-gray-500">
+                    Select a patient or register a guest to enable scheduling.
                 </p>
                 {% endif %}
             </div>
@@ -206,8 +207,8 @@
         <fieldset class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden space-y-0 min-w-0 p-0 m-0 border-solid"
                   {% if patient_locked %}
                   {% else %}
-                  :disabled="!hasSelectedStudent"
-                  :class="!hasSelectedStudent ? 'opacity-60' : ''"
+                  :disabled="!hasScheduleTarget"
+                  :class="!hasScheduleTarget ? 'opacity-60' : ''"
                   {% endif %}>
             <legend class="sr-only">Appointment details</legend>
             <div class="px-5 py-4 border-b border-gray-100 bg-gray-50/60 w-full">
@@ -229,8 +230,13 @@
                         <option value="">Select a type…</option>
                         {% for type_key, type_display in appointment_types %}
                         <option value="{{ type_key }}" {% if form_data.appointment_type == type_key %}selected{% endif %}>{{ type_display }}</option>
+                        {% empty %}
+                        <option value="" disabled>No appointment types assigned to you</option>
                         {% endfor %}
                     </select>
+                    {% if not appointment_types %}
+                    <p class="mt-1.5 text-xs text-danger-600">You are not assigned to any appointment types. Contact the clinic admin.</p>
+                    {% endif %}
                     <p x-show="errors.appointment_type" x-text="errors.appointment_type" x-cloak class="mt-1.5 text-sm text-danger-600"></p>
                 </div>
 
@@ -268,46 +274,63 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label for="date" class="block text-sm font-medium text-gray-700 mb-1.5">Date</label>
+                        <div class="relative">
                         <input type="date" name="date" id="date" required :min="minDate"
                                x-model="selectedDate"
                                @change="validateWeekday(); delete errors.date"
-                               :class="{ 'form-field-error': errors.date || dateError }"
+                               :class="{ 'form-field-error': dateStatusKind === 'error' || errors.date || dateError }"
                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50">
+                            <span x-show="canCheckSlots && slotCheckLoading"
+                                  class="pointer-events-none absolute inset-y-0 right-9 flex items-center text-primary-500"
+                                  x-cloak>
+                                <i class="fas fa-spinner fa-spin text-sm" aria-hidden="true"></i>
+                            </span>
+                        </div>
+                        {% include 'appointments/_slot_field_status.html' with status_prefix='date' %}
                         <p class="mt-1 text-xs text-gray-500">Weekdays only</p>
-                        <p x-show="dateError" x-text="dateError" x-cloak class="mt-1 text-xs text-danger-600"></p>
-                        <p x-show="errors.date" x-text="errors.date" x-cloak class="mt-1 text-sm text-danger-600"></p>
                     </div>
                     <div>
                         <label for="time" class="block text-sm font-medium text-gray-700 mb-1.5">Time</label>
+                        <div class="relative">
                         <select name="time" id="time" required
                                 x-model="selectedTime"
+                                :disabled="!canCheckSlots"
                                 @change="delete errors.time"
-                                :class="{ 'form-field-error': errors.time }"
-                                class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50">
+                                :class="{ 'form-field-error': timeStatusKind === 'error' || errors.time }"
+                                class="w-full px-3 py-2.5 pr-10 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 disabled:bg-gray-50">
                             <option value="">Select a time…</option>
                             <optgroup label="Morning">
-                                <option value="08:00">8:00 AM</option>
-                                <option value="08:30">8:30 AM</option>
-                                <option value="09:00">9:00 AM</option>
-                                <option value="09:30">9:30 AM</option>
-                                <option value="10:00">10:00 AM</option>
-                                <option value="10:30">10:30 AM</option>
-                                <option value="11:00">11:00 AM</option>
-                                <option value="11:30">11:30 AM</option>
+                                <option value="08:00" :disabled="isSlotOccupied('08:00')" x-text="slotOptionLabel('08:00', '8:00 AM')"></option>
+                                <option value="08:30" :disabled="isSlotOccupied('08:30')" x-text="slotOptionLabel('08:30', '8:30 AM')"></option>
+                                <option value="09:00" :disabled="isSlotOccupied('09:00')" x-text="slotOptionLabel('09:00', '9:00 AM')"></option>
+                                <option value="09:30" :disabled="isSlotOccupied('09:30')" x-text="slotOptionLabel('09:30', '9:30 AM')"></option>
+                                <option value="10:00" :disabled="isSlotOccupied('10:00')" x-text="slotOptionLabel('10:00', '10:00 AM')"></option>
+                                <option value="10:30" :disabled="isSlotOccupied('10:30')" x-text="slotOptionLabel('10:30', '10:30 AM')"></option>
+                                <option value="11:00" :disabled="isSlotOccupied('11:00')" x-text="slotOptionLabel('11:00', '11:00 AM')"></option>
+                                <option value="11:30" :disabled="isSlotOccupied('11:30')" x-text="slotOptionLabel('11:30', '11:30 AM')"></option>
                             </optgroup>
                             <optgroup label="Afternoon">
-                                <option value="13:00">1:00 PM</option>
-                                <option value="13:30">1:30 PM</option>
-                                <option value="14:00">2:00 PM</option>
-                                <option value="14:30">2:30 PM</option>
-                                <option value="15:00">3:00 PM</option>
-                                <option value="15:30">3:30 PM</option>
-                                <option value="16:00">4:00 PM</option>
-                                <option value="16:30">4:30 PM</option>
+                                <option value="13:00" :disabled="isSlotOccupied('13:00')" x-text="slotOptionLabel('13:00', '1:00 PM')"></option>
+                                <option value="13:30" :disabled="isSlotOccupied('13:30')" x-text="slotOptionLabel('13:30', '1:30 PM')"></option>
+                                <option value="14:00" :disabled="isSlotOccupied('14:00')" x-text="slotOptionLabel('14:00', '2:00 PM')"></option>
+                                <option value="14:30" :disabled="isSlotOccupied('14:30')" x-text="slotOptionLabel('14:30', '2:30 PM')"></option>
+                                <option value="15:00" :disabled="isSlotOccupied('15:00')" x-text="slotOptionLabel('15:00', '3:00 PM')"></option>
+                                <option value="15:30" :disabled="isSlotOccupied('15:30')" x-text="slotOptionLabel('15:30', '3:30 PM')"></option>
+                                <option value="16:00" :disabled="isSlotOccupied('16:00')" x-text="slotOptionLabel('16:00', '4:00 PM')"></option>
+                                <option value="16:30" :disabled="isSlotOccupied('16:30')" x-text="slotOptionLabel('16:30', '4:30 PM')"></option>
                             </optgroup>
                         </select>
+                            <span x-show="canCheckSlots && slotCheckLoading"
+                                  class="pointer-events-none absolute inset-y-0 right-8 flex items-center text-primary-500"
+                                  x-cloak>
+                                <i class="fas fa-spinner fa-spin text-sm" aria-hidden="true"></i>
+                            </span>
+                        </div>
+                        {% include 'appointments/_slot_field_status.html' with status_prefix='time' %}
                         <p class="mt-1 text-xs text-gray-500">Clinic hours: 8 AM – 12 NN, 1 – 5 PM</p>
-                        <p x-show="errors.time" x-text="errors.time" x-cloak class="mt-1 text-sm text-danger-600"></p>
+                        <p x-show="!canCheckSlots" class="mt-1 text-xs text-warning-700">
+                            {% if staff_picks_doctor %}Select a doctor and a weekday to check open times.{% else %}Select a weekday to check open times.{% endif %}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -319,7 +342,7 @@
                 Cancel
             </a>
             <button type="submit"
-                    :disabled="submitting || (!patientLocked && !hasSelectedStudent)"
+                    :disabled="submitting || !dateTimeValid || (!patientLocked && !hasScheduleTarget)"
                     class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
                 <i class="fas fa-spinner fa-spin" x-show="submitting" x-cloak></i>
                 <i class="fas fa-calendar-plus" x-show="!submitting"></i>
@@ -329,6 +352,7 @@
     </form>
 </div>
 
+{% include 'appointments/_slot_availability_js.html' %}
 <script>
 function readSchedulePatientPrefill() {
     const el = document.getElementById('schedule-patient-prefill');
@@ -359,7 +383,7 @@ function scheduleForPatient(opts = {}) {
         ? String(prefill.id)
         : (formPrefill.patient ? String(formPrefill.patient) : '');
 
-    return {
+    const data = {
         patientLocked,
         staffPicksDoctor,
         patientQuery: '',
@@ -378,6 +402,7 @@ function scheduleForPatient(opts = {}) {
         selectedDate: formPrefill.date || '',
         selectedTime: formPrefill.time || '',
         reason: formPrefill.reason || '',
+        currentDoctorId: staffPicksDoctor ? '' : String(opts.currentDoctorId || ''),
         typeDoctorMap: staffPicksDoctor ? readScheduleJsonScript('schedule-type-doctor-map', {}) : {},
         doctors: staffPicksDoctor ? readScheduleJsonScript('schedule-doctors-json', []) : [],
         submitting: false,
@@ -404,6 +429,7 @@ function scheduleForPatient(opts = {}) {
         },
 
         init() {
+            this.bindSlotAvailability();
             if (this.staffPicksDoctor) {
                 this.$watch('selectedType', () => this.syncSelectedDoctor());
                 this.$nextTick(() => this.syncSelectedDoctor());
@@ -429,6 +455,12 @@ function scheduleForPatient(opts = {}) {
             return String(this.selectedPatientId || '').trim().length > 0;
         },
 
+        get hasScheduleTarget() {
+            if (this.patientLocked) return true;
+            if (this.guestRegisterOpen) return true;
+            return this.hasSelectedStudent;
+        },
+
         get minDate() {
             return new Date().toISOString().split('T')[0];
         },
@@ -445,9 +477,11 @@ function scheduleForPatient(opts = {}) {
         },
 
         focusFirstError() {
-            const order = ['patient-search', 'appointment_type', 'doctor', 'reason', 'date', 'time'];
+            const order = ['patient-search', 'guest_first_name', 'guest_email', 'appointment_type', 'doctor', 'reason', 'date', 'time'];
             const errorKeys = {
                 'patient-search': 'patient',
+                guest_first_name: 'patient',
+                guest_email: 'patient',
                 appointment_type: 'appointment_type',
                 doctor: 'doctor',
                 reason: 'reason',
@@ -469,7 +503,18 @@ function scheduleForPatient(opts = {}) {
         validate() {
             this.errors = {};
             if (!this.patientLocked && !this.hasSelectedStudent) {
-                this.errors.patient = 'Please select a patient.';
+                if (this.guestRegisterOpen) {
+                    const first = (document.getElementById('guest_first_name') || {}).value || '';
+                    const last = (document.getElementById('guest_last_name') || {}).value || '';
+                    const email = (document.getElementById('guest_email') || {}).value || '';
+                    if (!String(first).trim() || !String(last).trim()) {
+                        this.errors.patient = 'First and last name are required for guest registration.';
+                    } else if (!String(email).trim()) {
+                        this.errors.patient = 'A contact email is required for guest registration.';
+                    }
+                } else {
+                    this.errors.patient = 'Please select a patient.';
+                }
             }
             if (!this.selectedType) {
                 this.errors.appointment_type = 'Please select an appointment type.';
@@ -493,6 +538,8 @@ function scheduleForPatient(opts = {}) {
             }
             if (!this.selectedTime) {
                 this.errors.time = 'Please select a time.';
+            } else if (this.isSlotOccupied(this.selectedTime)) {
+                this.errors.time = this.occupancyMessage(this.selectedTime);
             }
             return Object.keys(this.errors).length === 0;
         },
@@ -512,10 +559,11 @@ function scheduleForPatient(opts = {}) {
                 this.dateError = '';
                 delete this.errors.date;
             }
+            this.syncFieldMessages();
         },
 
         handleSubmit(e) {
-            if (!this.validate()) {
+            if (!this.dateTimeValid || !this.validate()) {
                 e.preventDefault();
                 this.$nextTick(() => this.focusFirstError());
                 return;
@@ -596,8 +644,11 @@ function scheduleForPatient(opts = {}) {
             });
         },
     };
+    return window.jmcfiAppointmentSlots.apply(data, {
+        url: '{% url "appointments:slot_availability" %}',
+    });
 }
 </script>
-<script src="{% static 'js/clinic-guest-register.js' %}?v=6"></script>
+<script src="{% static 'js/clinic-guest-register.js' %}?v=7"></script>
 <script src="{% static 'js/phone-input.js' %}"></script>
 {% endblock content %}

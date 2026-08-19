@@ -1,0 +1,27 @@
+{% autoescape off %}Hello Dr. {{ doctor_name }},
+
+An appointment at {{ clinic_name }} has been cancelled.
+{% if cancelled_by_name %}
+Cancelled by: {{ cancelled_by_name }}
+{% endif %}
+Patient: {{ patient_name }}
+Date: {{ appointment.date|date:"F d, Y" }}
+Time: {{ appointment.time|time:"g:i A" }}
+Type: {{ appointment.get_appointment_type_display }}
+Status: {{ appointment.get_status_display }}
+
+Reason:
+{{ appointment.reason }}
+{% if appointment.notes %}
+
+Notes:
+{{ appointment.notes }}
+{% endif %}
+
+View appointment details:
+{{ access_url }}
+
+Sign in with your clinic account to open this appointment.
+
+— {{ clinic_name }}
+{% endautoescape %}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; color: #111827; line-height: 1.5;">
+  <p>Hello Dr. {{ doctor_name }},</p>
+  <p>A patient has requested a new appointment at <strong>{{ clinic_name }}</strong>.</p>
+  <ul>
+    <li><strong>Patient:</strong> {{ patient_name }}</li>
+    <li><strong>Date:</strong> {{ appointment.date|date:"F d, Y" }}</li>
+    <li><strong>Time:</strong> {{ appointment.time|time:"g:i A" }}</li>
+    <li><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</li>
+    <li><strong>Status:</strong> {{ appointment.get_status_display }}</li>
+  </ul>
+  <p><strong>Reason:</strong><br>{{ appointment.reason|linebreaksbr }}</p>
+  {% if appointment.notes %}
+  <p><strong>Notes:</strong><br>{{ appointment.notes|linebreaksbr }}</p>
+  {% endif %}
+  <p>
+    <a href="{{ access_url }}" style="display:inline-block;padding:10px 16px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;">
+      View appointment details
+    </a>
+  </p>
+  <p style="font-size:12px;color:#6b7280;">Sign in with your clinic account to review or update this appointment.</p>
+  <p>— {{ clinic_name }}</p>
+</body>
+</html>

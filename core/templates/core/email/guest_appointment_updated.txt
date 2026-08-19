@@ -1,0 +1,26 @@
+{% autoescape off %}Hello {{ patient_name }},
+
+{{ intro_line }}
+{% if previous_status_label %}Previous status: {{ previous_status_label }}
+{% endif %}
+Date: {{ appointment.date|date:"F d, Y" }}
+Time: {{ appointment.time|time:"g:i A" }}
+Doctor: Dr. {{ doctor_name }}
+Type: {{ appointment.get_appointment_type_display }}
+Status: {{ status_label }}
+
+Reason:
+{{ appointment.reason }}
+{% if appointment.notes %}
+
+Notes:
+{{ appointment.notes }}
+{% endif %}
+
+{{ cta_label }}:
+{{ access_url }}
+
+Open the link to view details or cancel online (subject to clinic cancellation rules). This link expires in a few days.
+
+— {{ clinic_name }}
+{% endautoescape %}

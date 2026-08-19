@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<body style="font-family: system-ui, sans-serif; color: #111827; line-height: 1.5;">
+  <p>Hello {{ patient_name }},</p>
+  <p>{{ intro_line }}</p>
+  {% if previous_status_label %}
+  <p style="font-size:14px;color:#4b5563;">Previous status: {{ previous_status_label }}</p>
+  {% endif %}
+  <ul>
+    <li><strong>Date:</strong> {{ appointment.date|date:"F d, Y" }}</li>
+    <li><strong>Time:</strong> {{ appointment.time|time:"g:i A" }}</li>
+    <li><strong>Doctor:</strong> Dr. {{ doctor_name }}</li>
+    <li><strong>Type:</strong> {{ appointment.get_appointment_type_display }}</li>
+    <li><strong>Status:</strong> {{ status_label }}</li>
+  </ul>
+  <p><strong>Reason:</strong><br>{{ appointment.reason|linebreaksbr }}</p>
+  {% if appointment.notes %}
+  <p><strong>Notes:</strong><br>{{ appointment.notes|linebreaksbr }}</p>
+  {% endif %}
+  <p>
+    <a href="{{ access_url }}" style="display:inline-block;padding:10px 16px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;">
+      {{ cta_label }}
+    </a>
+  </p>
+  <p style="font-size:12px;color:#6b7280;">Open the link to view details or cancel online (subject to clinic cancellation rules). This link expires in a few days.</p>
+  <p>— {{ clinic_name }}</p>
+</body>
+</html>

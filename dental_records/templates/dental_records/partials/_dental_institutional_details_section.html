@@ -11,7 +11,8 @@
        course: '{{ course_val|default_if_none:''|escapejs }}',
        yearLevel: '{{ year_val|default_if_none:''|escapejs }}',
        designation: '{{ form.designation.value|default_if_none:'student'|escapejs }}',
-       isEmployee: {% if form.is_employee.value %}true{% else %}false{% endif %}
+       isEmployee: {% if form.is_employee.value %}true{% else %}false{% endif %},
+       othersMode: {% if dept_value and dept_value not in college_options %}true{% else %}false{% endif %}
      })"
      x-init="init()">
   <input type="hidden"
@@ -38,7 +39,22 @@
     {% endif %}
   </div>
 
-  <div data-section-field data-field-name="department_college_office" class="md:col-span-2">
+  {# Others checkbox #}
+  <div data-section-field class="md:col-span-2" x-show="isAcademicDesignation()" x-cloak>
+    <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+      <input type="checkbox"
+             name="department_others"
+             value="on"
+             class="form-checkbox"
+             x-model="othersMode"
+             @change="onOthersModeChange()">
+      <span>Others <span class="text-xs text-gray-400 font-normal">(not in the list)</span></span>
+    </label>
+    <p class="mt-1 text-xs text-gray-500">Check if your college/department is not listed and type it manually.</p>
+  </div>
+
+  {# Department picker (catalog) #}
+  <div data-section-field data-field-name="department_college_office" class="md:col-span-2" x-show="!othersMode">
     <label for="department-search" class="block text-sm font-semibold text-gray-700 mb-2">
       Department / College{% if form.department_college_office.field.required %} <span class="text-red-500">*</span>{% endif %}
     </label>
@@ -46,6 +62,7 @@
            name="{{ form.department_college_office.html_name }}"
            id="{{ form.department_college_office.id_for_label }}"
            :value="department"
+           :disabled="othersMode"
            data-initial-value="{{ dept_value|default_if_none:'' }}"
            {% if form.department_college_office.field.required %}required{% endif %}>
     <div class="relative" @click.outside="closeDepartmentDropdown()">
@@ -164,19 +181,52 @@
     {% endif %}
   </div>
 
+  {# Department free-text (Others mode) #}
+  <div data-section-field data-field-name="department_college_office" class="md:col-span-2" x-show="othersMode">
+    <label for="department-others-input" class="block text-sm font-semibold text-gray-700 mb-2">
+      Department / College{% if form.department_college_office.field.required %} <span class="text-red-500">*</span>{% endif %}
+    </label>
+    <input type="text"
+           id="department-others-input"
+           name="{{ form.department_college_office.html_name }}"
+           x-model="department"
+           :disabled="!othersMode"
+           :required="othersMode"
+           placeholder="Type your college/department name…"
+           class="form-input">
+    <p class="mt-1 text-xs text-gray-400">Type the full name of your college or department.</p>
+    {% if form.department_college_office.errors %}
+      <p class="mt-1 text-xs text-red-600 font-medium">{{ form.department_college_office.errors.0 }}</p>
+    {% endif %}
+  </div>
+
   <div data-section-field data-field-name="course" x-show="isAcademicDesignation() && !isEmployee" x-cloak>
     <label for="{{ form.course.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
       Course / Program
+      <span x-show="!othersMode && !isCourseOptional" class="text-red-500">*</span>
+      <span x-show="othersMode || isCourseOptional" class="text-gray-400 text-xs">(Optional)</span>
     </label>
     <select name="{{ form.course.html_name }}"
             id="{{ form.course.id_for_label }}"
             x-ref="courseSelect"
-            x-model="course"
+            x-show="!othersMode"
+            :value="course"
+            @change="course = $event.target.value"
+            :disabled="othersMode"
             data-prefill-value="{{ course_val|default_if_none:'' }}"
             class="form-select"
-            :required="!isEmployee && !isCourseOptional">
+            :required="!isEmployee && !isCourseOptional && !othersMode">
       <option value="">Select course/program</option>
     </select>
+    <input type="text"
+           id="{{ form.course.id_for_label }}-others"
+           name="{{ form.course.html_name }}"
+           x-show="othersMode"
+           x-model="course"
+           :disabled="!othersMode"
+           placeholder="Type your course/program…"
+           class="form-input">
+    <p class="mt-1 text-xs text-gray-400" x-text="othersMode ? 'Type your course or leave blank' : 'Filtered by selected college/department'"></p>
     {% if form.course.errors %}
       <p class="mt-1 text-xs text-red-600 font-medium">{{ form.course.errors.0 }}</p>
     {% endif %}
@@ -185,15 +235,30 @@
   <div data-section-field data-field-name="year_level" x-show="isAcademicDesignation() && !isEmployee" x-cloak>
     <label for="{{ form.year_level.id_for_label }}" class="block text-sm font-semibold text-gray-700 mb-2">
       Year Level
+      <span x-show="!othersMode" class="text-red-500">*</span>
+      <span x-show="othersMode" class="text-gray-400 text-xs">(Optional)</span>
     </label>
     <select name="{{ form.year_level.html_name }}"
             id="{{ form.year_level.id_for_label }}"
             x-ref="yearLevelSelect"
-            x-model="yearLevel"
+            x-show="!othersMode"
+            :value="yearLevel"
+            @change="yearLevel = $event.target.value"
+            :disabled="othersMode"
             data-prefill-value="{{ year_val|default_if_none:'' }}"
-            class="form-select">
+            class="form-select"
+            :required="!isEmployee && !othersMode">
       <option value="">Select year level</option>
     </select>
+    <input type="text"
+           id="{{ form.year_level.id_for_label }}-others"
+           name="{{ form.year_level.html_name }}"
+           x-show="othersMode"
+           x-model="yearLevel"
+           :disabled="!othersMode"
+           placeholder="Type your year level…"
+           class="form-input">
+    <p class="mt-1 text-xs text-gray-400" x-text="othersMode ? 'Type your year level or leave blank' : 'Filtered by selected college/department'"></p>
     {% if form.year_level.errors %}
       <p class="mt-1 text-xs text-red-600 font-medium">{{ form.year_level.errors.0 }}</p>
     {% endif %}

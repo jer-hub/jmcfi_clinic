@@ -56,14 +56,15 @@ function profileImagePreview() {
 }
 
 {% if include_academic_catalog %}
-function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel, initialIsEmployee) {
+function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLevel, initialIsEmployee, initialOthersMode) {
     const catalog = window.__jmcfiAcademicCatalog || {};
     return {
         department: initialDepartment || '',
         course: initialCourse || '',
         yearLevel: initialYearLevel || '',
         isEmployee: !!initialIsEmployee,
-        departmentQuery: initialDepartment || '',
+        othersMode: !!initialOthersMode,
+        departmentQuery: initialOthersMode ? '' : (initialDepartment || ''),
         departmentOpen: false,
         departmentHighlight: 0,
         collegeOptions: catalog.colleges || [],
@@ -185,6 +186,17 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
             });
         },
 
+        onOthersModeChange() {
+            this.department = '';
+            this.departmentQuery = '';
+            this.course = '';
+            this.yearLevel = '';
+            this.departmentOpen = false;
+            if (!this.othersMode) {
+                this.$nextTick(() => this.refreshDependentSelects());
+            }
+        },
+
         get filteredCourseOptions() {
             return this.courseOptionsByCollege[this.department] || [];
         },
@@ -215,7 +227,7 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
         },
 
         refreshDependentSelects() {
-            if (this.isEmployee) {
+            if (this.isEmployee || this.othersMode) {
                 return;
             }
             this.populateSelect(
@@ -240,6 +252,7 @@ function studentAcademicEditForm(initialDepartment, initialCourse, initialYearLe
         },
 
         syncSelections() {
+            if (this.othersMode) return;
             if (this.course && !this.filteredCourseOptions.includes(this.course)) {
                 this.course = '';
             }

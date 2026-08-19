@@ -1,8 +1,28 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 
 User = get_user_model()
+
+
+def build_visit_snapshot(patient, doctor):
+    """Capture patient/physician display fields at record creation time."""
+    profile = getattr(patient, 'patient_profile', None)
+    staff = getattr(doctor, 'staff_profile', None)
+    email = (patient.email or '').strip()
+    if profile and (profile.contact_email or '').strip():
+        email = profile.contact_email.strip()
+    return {
+        'patient_name': patient.get_full_name() or email or '',
+        'patient_id': (profile.patient_id if profile else '') or '',
+        'email': email,
+        'course': (profile.course if profile else '') or '',
+        'department': (profile.department if profile else '') or '',
+        'doctor_name': doctor.get_full_name() or doctor.email or '',
+        'doctor_department': (staff.department if staff else '') or '',
+        'doctor_specialization': (getattr(staff, 'specialization', '') if staff else '') or '',
+    }
 
 
 class MedicalRecord(models.Model):
@@ -43,6 +63,16 @@ class MedicalRecord(models.Model):
             'Pending only while the linked appointment is not yet confirmed. '
             'Completed when there is prescription or clinical documentation (vitals, labs, diagnosis/treatment).'
         ),
+    )
+    record_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Calendar date the clinical data was recorded (visit / entry date).',
+    )
+    visit_snapshot = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Patient and physician info frozen at record creation.',
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -138,12 +168,99 @@ class MedicalRecord(models.Model):
             return apt
         return 'completed' if self.is_documentation_complete else 'pending'
 
+    @property
+    def effective_record_date(self):
+        """Date shown as the record date (appointment day or created date)."""
+        if self.record_date:
+            return self.record_date
+        created = self.created_at
+        if timezone.is_aware(created):
+            created = timezone.localtime(created)
+        return created.date()
+
+    def _snapshot_value(self, key):
+        val = (self.visit_snapshot or {}).get(key)
+        if val is not None and str(val).strip():
+            return str(val).strip()
+        return ''
+
+    @property
+    def display_patient_name(self):
+        snap = self._snapshot_value('patient_name')
+        return snap or self.patient.get_full_name()
+
+    @property
+    def display_patient_id(self):
+        snap = self._snapshot_value('patient_id')
+        if snap:
+            return snap
+        profile = getattr(self.patient, 'patient_profile', None)
+        return profile.patient_id if profile else ''
+
+    @property
+    def display_patient_email(self):
+        snap = self._snapshot_value('email')
+        return snap or (self.patient.email or '')
+
+    @property
+    def display_patient_course(self):
+        snap = self._snapshot_value('course')
+        if snap:
+            return snap
+        profile = getattr(self.patient, 'patient_profile', None)
+        return profile.course if profile else ''
+
+    @property
+    def display_patient_department(self):
+        snap = self._snapshot_value('department')
+        if snap:
+            return snap
+        profile = getattr(self.patient, 'patient_profile', None)
+        return profile.department if profile else ''
+
+    @property
+    def display_doctor_name(self):
+        snap = self._snapshot_value('doctor_name')
+        return snap or self.doctor.get_full_name() or self.doctor.email or ''
+
+    @property
+    def display_doctor_department(self):
+        snap = self._snapshot_value('doctor_department')
+        if snap:
+            return snap
+        staff = getattr(self.doctor, 'staff_profile', None)
+        return staff.department if staff else ''
+
+    @property
+    def display_doctor_specialization(self):
+        snap = self._snapshot_value('doctor_specialization')
+        if snap:
+            return snap
+        staff = getattr(self.doctor, 'staff_profile', None)
+        return getattr(staff, 'specialization', '') if staff else ''
+
     def save(self, *args, **kwargs):
+        if not self.visit_snapshot and self.patient_id and self.doctor_id:
+            self.visit_snapshot = build_visit_snapshot(self.patient, self.doctor)
+        if not self.record_date:
+            if self.appointment_id:
+                apt = getattr(self, 'appointment', None)
+                if apt is None:
+                    from appointments.models import Appointment
+                    apt = Appointment.objects.filter(pk=self.appointment_id).only('date').first()
+                if apt is not None:
+                    self.record_date = apt.date
+            if not self.record_date:
+                self.record_date = timezone.localdate()
         self.status = self.compute_status_value()
         update_fields = kwargs.get('update_fields')
         if update_fields is not None:
             u = set(update_fields)
             u.update({'status', 'updated_at'})
+            if self.record_date:
+                u.add('record_date')
+            if self.visit_snapshot:
+                u.add('visit_snapshot')
             kwargs['update_fields'] = list(u)
         super().save(*args, **kwargs)
 
@@ -151,4 +268,4 @@ class MedicalRecord(models.Model):
         name = f"{self.patient.first_name} {self.patient.last_name}".strip()
         if not name:
             name = self.patient.email or self.patient.username
-        return f"{name} - {self.created_at.date()}"
+        return f"{name} - {self.effective_record_date}"

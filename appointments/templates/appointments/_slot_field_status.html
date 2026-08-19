@@ -1,0 +1,19 @@
+{# Instant availability status under a date or time field. status_prefix: date|time #}
+<p x-show="{{ status_prefix }}StatusKind === 'loading'"
+   class="mt-1.5 flex items-center gap-1.5 text-sm text-gray-600"
+   x-cloak>
+  <i class="fas fa-spinner fa-spin text-primary-500 flex-shrink-0" aria-hidden="true"></i>
+  <span x-text="{{ status_prefix }}StatusMessage"></span>
+</p>
+<p x-show="{{ status_prefix }}StatusKind === 'error'"
+   class="mt-1.5 flex items-center gap-1.5 text-sm text-danger-600"
+   x-cloak>
+  <i class="fas fa-circle-exclamation flex-shrink-0" aria-hidden="true"></i>
+  <span x-text="{{ status_prefix }}StatusMessage"></span>
+</p>
+<p x-show="{{ status_prefix }}StatusKind === 'ok'"
+   class="mt-1.5 flex items-center gap-1.5 text-sm text-success-600"
+   x-cloak>
+  <i class="fas fa-circle-check flex-shrink-0" aria-hidden="true"></i>
+  <span x-text="{{ status_prefix }}StatusMessage"></span>
+</p>

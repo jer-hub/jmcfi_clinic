@@ -8,6 +8,26 @@ from core.settings_service import get_appointment_interval_minutes as clinic_int
 
 from .models import Appointment
 
+# Clinic booking grid shown on schedule forms (skips lunch 12:00–1:00).
+CLINIC_TIME_SLOT_VALUES = (
+    '08:00',
+    '08:30',
+    '09:00',
+    '09:30',
+    '10:00',
+    '10:30',
+    '11:00',
+    '11:30',
+    '13:00',
+    '13:30',
+    '14:00',
+    '14:30',
+    '15:00',
+    '15:30',
+    '16:00',
+    '16:30',
+)
+
 
 def get_appointment_interval_minutes():
     """Get configured appointment buffer interval in minutes."""
@@ -91,6 +111,52 @@ def get_conflicting_appointments(doctor, date, time, appointment_id=None, exclud
     conflicts = conflicts.filter(time_query)
     
     return conflicts
+
+
+def classify_clinic_time_slots(doctor, date, patient=None):
+    """
+    Split clinic grid slots into available vs occupied for a doctor (and optional patient).
+    Occupied reasons: 'past', 'booked', or 'patient'.
+    """
+    from django.utils import timezone
+
+    now = timezone.localtime()
+    available = []
+    occupied = []
+    reasons = {}
+
+    for value in CLINIC_TIME_SLOT_VALUES:
+        slot_time = datetime.strptime(value, '%H:%M').time()
+        if date < now.date() or (date == now.date() and slot_time <= now.time()):
+            occupied.append(value)
+            reasons[value] = 'past'
+            continue
+
+        is_free, _conflicts = check_appointment_availability(doctor, date, slot_time)
+        if not is_free:
+            occupied.append(value)
+            reasons[value] = 'booked'
+            continue
+
+        if patient is not None:
+            patient_taken = Appointment.objects.filter(
+                patient=patient,
+                date=date,
+                time=slot_time,
+                status__in=['pending', 'confirmed'],
+            ).exists()
+            if patient_taken:
+                occupied.append(value)
+                reasons[value] = 'patient'
+                continue
+
+        available.append(value)
+
+    return {
+        'available': available,
+        'occupied': occupied,
+        'reasons': reasons,
+    }
 
 
 def check_appointment_availability(doctor, date, time, appointment_id=None):

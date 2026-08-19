@@ -41,6 +41,24 @@
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
+  function syncAcademicInstitutionalFromDom() {
+    const roots = document.querySelectorAll('[data-academic-fieldset]');
+    roots.forEach((root) => {
+      if (!window.Alpine || typeof window.Alpine.$data !== 'function') {
+        return;
+      }
+      let data;
+      try {
+        data = window.Alpine.$data(root);
+      } catch (_) {
+        return;
+      }
+      if (data && typeof data.syncFromExternalPrefill === 'function') {
+        data.syncFromExternalPrefill();
+      }
+    });
+  }
+
   function hfPatientPickerFactory(config) {
     config = config || {};
     return {
@@ -50,11 +68,11 @@
       searchSeq: 0,
       activeSearch: 0,
       selectedPatient: config.initialSelected || null,
-      walkInRegisterOpen: false,
+      guestRegisterOpen: false,
 
-      onWalkInToggled(detail) {
-        this.walkInRegisterOpen = !!(detail && detail.open);
-        if (this.walkInRegisterOpen) {
+      onGuestToggled(detail) {
+        this.guestRegisterOpen = !!(detail && detail.open);
+        if (this.guestRegisterOpen) {
           this.clearSelected();
         }
       },
@@ -132,6 +150,7 @@
               Object.entries(mappings).forEach(([fieldName, key]) => {
                 applyPrefillValue(fieldName, profile[key]);
               });
+              syncAcademicInstitutionalFromDom();
             };
             applyAll();
             if (window.Alpine && typeof window.Alpine.nextTick === 'function') {
@@ -147,7 +166,7 @@
         }
       },
 
-      onWalkInCreated(patient) {
+      onGuestCreated(patient) {
         if (!patient || !patient.id) {
           return;
         }
@@ -163,6 +182,7 @@
 
   window.hfPatientPicker = hfPatientPickerFactory;
   window.hfApplyPrefillValue = applyPrefillValue;
+  window.hfSyncAcademicInstitutionalFromDom = syncAcademicInstitutionalFromDom;
 
   document.addEventListener('alpine:init', () => {
     window.Alpine.data('hfPatientPicker', hfPatientPickerFactory);

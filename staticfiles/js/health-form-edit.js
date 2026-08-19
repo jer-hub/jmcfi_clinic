@@ -41,22 +41,8 @@
 
   function hasUnsavedChanges() {
     if (!initialSnapshotReady) return false;
-    if (Object.keys(dirty).some(function (key) { return dirty[key]; })) {
-      return true;
-    }
-    // Also compare live form values to boot/save snapshots (catches programmatic
-    // updates that never fired input/change, and stale dirty flags).
-    var found = false;
-    document.querySelectorAll('form[data-section]').forEach(function (form) {
-      if (found || isReadOnlySectionForm(form)) return;
-      var key = form.getAttribute('data-section');
-      if (key && sectionDiffersFromSnapshot(key)) {
-        dirty[key] = true;
-        setTabStatus(key, 'unsaved');
-        found = true;
-      }
-    });
-    return found;
+    reconcileAllDirtyFlags();
+    return Object.keys(dirty).some(function (key) { return dirty[key]; });
   }
 
   function fieldStatesEqual(a, b) {
@@ -111,8 +97,8 @@
   }
 
   function markDirty(section) {
-    // Ignore Alpine/phone/catalog init mutations that fire before the baseline snapshot.
     if (suppressDirty || !section || !initialSnapshotReady) return;
+    if (!sectionDiffersFromSnapshot(section)) return;
     dirty[section] = true;
     setTabStatus(section, 'unsaved');
   }
@@ -147,6 +133,9 @@
     var url = new URL(window.location.href);
     url.searchParams.set('section', targetKey);
     window.history.replaceState({}, '', url);
+    window.requestAnimationFrame(function () {
+      reconcileAllDirtyFlags();
+    });
     return true;
   }
 
@@ -354,6 +343,35 @@
     Object.assign(target, alpineSnap.flags);
   }
 
+  function pickPrimaryFieldNode(nodes) {
+    if (!nodes.length) return null;
+    for (var i = 0; i < nodes.length; i++) {
+      if (!nodes[i].disabled) return nodes[i];
+    }
+    return nodes[0];
+  }
+
+  function reconcileSectionDirty(section) {
+    if (!section || !initialSnapshotReady) return;
+    var form = getFormForSection(section);
+    if (!form || isReadOnlySectionForm(form)) return;
+    if (sectionDiffersFromSnapshot(section)) {
+      dirty[section] = true;
+      setTabStatus(section, 'unsaved');
+    } else {
+      dirty[section] = false;
+      setTabStatus(section, 'none');
+    }
+  }
+
+  function reconcileAllDirtyFlags() {
+    if (!initialSnapshotReady) return;
+    document.querySelectorAll('form[data-section]').forEach(function (form) {
+      var key = form.getAttribute('data-section');
+      if (key) reconcileSectionDirty(key);
+    });
+  }
+
   function captureFieldState(form, name) {
     var nodes = form.querySelectorAll('[name="' + escapeFieldName(name) + '"]');
     if (!nodes.length) return null;
@@ -376,14 +394,16 @@
       return { type: 'radio', value: selected };
     }
     if (first.tagName === 'SELECT' && first.multiple) {
+      var multiSelect = pickPrimaryFieldNode(nodes) || first;
       return {
         type: 'multi',
-        values: Array.from(first.selectedOptions).map(function (option) {
+        values: Array.from(multiSelect.selectedOptions).map(function (option) {
           return option.value;
         }),
       };
     }
-    return { type: 'value', value: first.value };
+    var primary = pickPrimaryFieldNode(nodes) || first;
+    return { type: 'value', value: primary.value };
   }
 
   function applyFieldState(form, name, state) {
@@ -408,12 +428,19 @@
       return;
     }
     if (state.type === 'multi') {
-      Array.from(nodes[0].options).forEach(function (option) {
+      var multiSelect = pickPrimaryFieldNode(nodes) || nodes[0];
+      Array.from(multiSelect.options).forEach(function (option) {
         option.selected = state.values.indexOf(option.value) !== -1;
       });
       return;
     }
-    nodes[0].value = state.value != null ? state.value : '';
+    var value = state.value != null ? state.value : '';
+    Array.prototype.forEach.call(nodes, function (node) {
+      if (!node.disabled) node.value = value;
+    });
+    if (!Array.prototype.some.call(nodes, function (node) { return !node.disabled; })) {
+      nodes[0].value = value;
+    }
   }
 
   function saveSectionSnapshot(section) {
@@ -657,6 +684,7 @@
       tab.addEventListener('click', function (e) {
         var targetKey = tab.getAttribute('data-tab');
         var active = getActiveSection();
+        if (active) reconcileSectionDirty(active);
         if (active && dirty[active] && targetKey !== active) {
           e.preventDefault();
           promptLeave({ type: 'tab', target: targetKey });
@@ -812,21 +840,51 @@
     initialSnapshotReady = true;
   }
 
+  function waitForAcademicFieldsetsReady(callback) {
+    var fieldsets = document.querySelectorAll('[data-academic-fieldset]');
+    if (!fieldsets.length) {
+      callback();
+      return;
+    }
+    var pending = fieldsets.length;
+    var done = false;
+    function finish() {
+      pending -= 1;
+      if (!done && pending <= 0) {
+        done = true;
+        callback();
+      }
+    }
+    fieldsets.forEach(function (el) {
+      if (el.dataset.academicReady === '1') {
+        finish();
+        return;
+      }
+      el.addEventListener('jmcfi:academic-institutional-ready', finish, { once: true });
+    });
+    window.setTimeout(function () {
+      if (!done) {
+        done = true;
+        callback();
+      }
+    }, 500);
+  }
+
   function scheduleInitialSnapshot() {
     var finished = false;
     function run() {
       if (finished) return;
       finished = true;
-      // Alpine institutional init uses $nextTick; wait two frames after that flush.
-      window.requestAnimationFrame(function () {
+      waitForAcademicFieldsetsReady(function () {
         window.requestAnimationFrame(function () {
-          finalizeInitialSnapshot();
+          window.requestAnimationFrame(function () {
+            finalizeInitialSnapshot();
+          });
         });
       });
     }
 
     document.addEventListener('alpine:initialized', run, { once: true });
-    // Fallback if Alpine is absent or already finished before we subscribed.
     window.setTimeout(run, 250);
   }
 

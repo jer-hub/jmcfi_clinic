@@ -67,34 +67,33 @@
           <div class="space-y-3">
             <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
               <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</dt>
-              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ record.patient.get_full_name }}</dd>
+              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ record.display_patient_name }}</dd>
             </div>
             <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
               <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</dt>
-              <dd class="mt-1 text-sm text-gray-900">{% if record.patient.patient_profile %}{{ record.patient.patient_profile.patient_id }}{% else %}<span class="text-gray-400">—</span>{% endif %}</dd>
+              <dd class="mt-1 text-sm text-gray-900">{% if record.display_patient_id %}{{ record.display_patient_id }}{% else %}<span class="text-gray-400">—</span>{% endif %}</dd>
             </div>
             <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
               <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Email</dt>
-              <dd class="mt-1 text-sm text-gray-900 break-all">{{ record.patient.email }}</dd>
+              <dd class="mt-1 text-sm text-gray-900 break-all">{{ record.display_patient_email }}</dd>
             </div>
-            {% if record.patient.patient_profile %}
+            {% if record.display_patient_course or record.display_patient_department %}
             <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
               <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Course / department</dt>
-              <dd class="mt-1 text-sm text-gray-900">{{ record.patient.patient_profile.course|default:"—" }} — {{ record.patient.patient_profile.department|default:"—" }}</dd>
+              <dd class="mt-1 text-sm text-gray-900">{{ record.display_patient_course|default:"—" }} — {{ record.display_patient_department|default:"—" }}</dd>
             </div>
             {% endif %}
           </div>
           <div class="space-y-3">
             <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
               <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Record date</dt>
-              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ record.created_at|date:"F j, Y" }}</dd>
-              <dd class="text-xs text-gray-500 mt-0.5">{{ record.created_at|time:"g:i A" }}</dd>
+              <dd class="mt-1 text-sm font-semibold text-gray-900">{{ record.effective_record_date|date:"F j, Y" }}</dd>
             </div>
             <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100">
               <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Attending physician</dt>
-              <dd class="mt-1 text-sm font-semibold text-gray-900">Dr. {{ record.doctor.get_full_name }}</dd>
-              {% if record.doctor.staff_profile %}
-              <dd class="text-xs text-gray-500 mt-1">{{ record.doctor.staff_profile.department|default:"" }}{% if record.doctor.staff_profile.specialization %} · {{ record.doctor.staff_profile.specialization }}{% endif %}</dd>
+              <dd class="mt-1 text-sm font-semibold text-gray-900">Dr. {{ record.display_doctor_name }}</dd>
+              {% if record.display_doctor_department or record.display_doctor_specialization %}
+              <dd class="text-xs text-gray-500 mt-1">{{ record.display_doctor_department|default:"" }}{% if record.display_doctor_specialization %} · {{ record.display_doctor_specialization }}{% endif %}</dd>
               {% endif %}
             </div>
             {% if record.appointment %}
@@ -220,9 +219,9 @@
           </div>
           <div class="p-3.5 bg-gray-50 rounded-lg border border-gray-100 md:col-span-2">
             <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Physician</dt>
-            <dd class="mt-1 text-sm font-semibold text-gray-900">Dr. {{ record.doctor.get_full_name }}</dd>
-            {% if record.doctor.staff_profile %}
-            <dd class="text-xs text-gray-500 mt-1">{{ record.doctor.staff_profile.department|default:"" }}{% if record.doctor.staff_profile.specialization %} · {{ record.doctor.staff_profile.specialization }}{% endif %}</dd>
+            <dd class="mt-1 text-sm font-semibold text-gray-900">Dr. {{ record.display_doctor_name }}</dd>
+            {% if record.display_doctor_department or record.display_doctor_specialization %}
+            <dd class="text-xs text-gray-500 mt-1">{{ record.display_doctor_department|default:"" }}{% if record.display_doctor_specialization %} · {{ record.display_doctor_specialization }}{% endif %}</dd>
             {% endif %}
           </div>
         </div>

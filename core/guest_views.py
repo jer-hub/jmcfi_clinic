@@ -136,7 +136,21 @@ def guest_appointment(request, token):
             notification_type='appointment',
             transaction_type='appointment_cancelled',
             related_id=appointment.id,
+            send_email=False,
         )
+        try:
+            from core.guest_emails import email_doctor_appointment_cancelled
+
+            email_doctor_appointment_cancelled(
+                request,
+                appointment,
+                cancelled_by=access.user,
+            )
+        except Exception:
+            logger.warning(
+                'Doctor appointment cancelled email failed',
+                exc_info=True,
+            )
         revoke_guest_token(access)
         messages.success(request, 'Your appointment has been cancelled.')
         return _render_guest_appointment(

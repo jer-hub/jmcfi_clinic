@@ -1,0 +1,25 @@
+{% autoescape off %}Hello Dr. {{ doctor_name }},
+
+A patient has requested a new appointment at {{ clinic_name }}.
+
+Patient: {{ patient_name }}
+Date: {{ appointment.date|date:"F d, Y" }}
+Time: {{ appointment.time|time:"g:i A" }}
+Type: {{ appointment.get_appointment_type_display }}
+Status: {{ appointment.get_status_display }}
+
+Reason:
+{{ appointment.reason }}
+{% if appointment.notes %}
+
+Notes:
+{{ appointment.notes }}
+{% endif %}
+
+View appointment details:
+{{ access_url }}
+
+Sign in with your clinic account to review or update this appointment.
+
+— {{ clinic_name }}
+{% endautoescape %}

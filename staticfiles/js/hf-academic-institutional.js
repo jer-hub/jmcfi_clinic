@@ -10,6 +10,7 @@ function hfAcademicInstitutionalSection(initial = {}) {
     yearLevel: initial.yearLevel || '',
     designation: (initial.designation || 'student').toLowerCase(),
     isEmployee: !!initial.isEmployee,
+    othersMode: !!initial.othersMode,
     departmentQuery: '',
     departmentOpen: false,
     departmentHighlight: 0,
@@ -82,22 +83,27 @@ function hfAcademicInstitutionalSection(initial = {}) {
         || ''
       ).trim();
       this.department = this.normalizeDepartment(deptRaw);
-      if (deptInput) deptInput.value = this.department;
 
-      this.course = (
-        this.course
-        || courseSelect?.dataset?.prefillValue
-        || courseSelect?.value
-        || ''
-      ).trim();
-      this.yearLevel = (
-        this.yearLevel
-        || yearSelect?.dataset?.prefillValue
-        || yearSelect?.value
-        || ''
-      ).trim();
+      if (this.othersMode) {
+        this.course = (this.course || '').trim();
+        this.yearLevel = (this.yearLevel || '').trim();
+      } else {
+        this.course = (
+          this.course
+          || courseSelect?.dataset?.prefillValue
+          || courseSelect?.value
+          || ''
+        ).trim();
+        this.yearLevel = (
+          this.yearLevel
+          || yearSelect?.dataset?.prefillValue
+          || yearSelect?.value
+          || ''
+        ).trim();
+        if (deptInput) deptInput.value = this.department;
+      }
 
-      this.departmentQuery = this.department;
+      this.departmentQuery = this.othersMode ? '' : this.department;
       this._suppressDeptWatch = false;
       this.$watch('department', () => {
         if (this._suppressDeptWatch) return;
@@ -112,6 +118,8 @@ function hfAcademicInstitutionalSection(initial = {}) {
         this.refreshDependentSelects({ clearInvalid: false });
         this.syncDesignationHidden();
         this.updateInstitutionDescription();
+        this.$root.dataset.academicReady = '1';
+        this.$root.dispatchEvent(new CustomEvent('jmcfi:academic-institutional-ready', { bubbles: true }));
       });
     },
 
@@ -295,6 +303,7 @@ function hfAcademicInstitutionalSection(initial = {}) {
     },
 
     refreshDependentSelects({ clearInvalid = false } = {}) {
+      if (this.othersMode) return;
       if (clearInvalid) {
         if (this.course && !this.filteredCourseOptions.includes(this.course)) {
           this.course = '';
@@ -305,8 +314,12 @@ function hfAcademicInstitutionalSection(initial = {}) {
       }
       this.populateSelect(this.$refs.courseSelect, 'Select course/program', this.filteredCourseOptions, this.course);
       this.populateSelect(this.$refs.yearLevelSelect, 'Select year level', this.filteredYearLevelOptions, this.yearLevel);
-      this.course = this.$refs.courseSelect ? this.$refs.courseSelect.value : this.course;
-      this.yearLevel = this.$refs.yearLevelSelect ? this.$refs.yearLevelSelect.value : this.yearLevel;
+      if (this.$refs.courseSelect) {
+        this.course = this.$refs.courseSelect.value;
+      }
+      if (this.$refs.yearLevelSelect) {
+        this.yearLevel = this.$refs.yearLevelSelect.value;
+      }
     },
 
     onDepartmentChange() {
@@ -323,6 +336,16 @@ function hfAcademicInstitutionalSection(initial = {}) {
       this.syncDesignationHidden();
       this.updateInstitutionDescription();
       this.$nextTick(() => this.refreshDependentSelects({ clearInvalid: false }));
+    },
+
+    onOthersModeChange() {
+      if (this.othersMode) {
+        this.departmentQuery = '';
+        this.departmentOpen = false;
+      } else {
+        this.departmentQuery = this.department || '';
+        this.$nextTick(() => this.refreshDependentSelects({ clearInvalid: false }));
+      }
     },
   };
 }

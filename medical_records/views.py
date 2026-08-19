@@ -693,17 +693,17 @@ def medical_record_detail(request, record_id):
             <div>
                 <h4 class="font-medium text-gray-900 mb-2">Patient Information</h4>
                 <div class="bg-gray-50 p-3 rounded-md space-y-1">
-                    <p><span class="font-medium">Name:</span> {record.patient.get_full_name()}</p>
-                    <p><span class="font-medium">Patient ID:</span> {getattr(record.patient, 'patient_profile', None) and record.patient.patient_profile.patient_id or 'N/A'}</p>
-                    <p><span class="font-medium">Date:</span> {record.created_at.strftime('%B %d, %Y at %I:%M %p')}</p>
+                    <p><span class="font-medium">Name:</span> {record.display_patient_name}</p>
+                    <p><span class="font-medium">Patient ID:</span> {record.display_patient_id or 'N/A'}</p>
+                    <p><span class="font-medium">Date:</span> {record.effective_record_date.strftime('%B %d, %Y')}</p>
                 </div>
             </div>
             <div>
                 <h4 class="font-medium text-gray-900 mb-2">Doctor Information</h4>
                 <div class="bg-gray-50 p-3 rounded-md space-y-1">
-                    <p><span class="font-medium">Doctor:</span> Dr. {record.doctor.get_full_name()}</p>
-                    <p><span class="font-medium">Department:</span> {getattr(record.doctor, 'staff_profile', None) and record.doctor.staff_profile.department or 'N/A'}</p>
-                    {f'<p><span class="font-medium">Specialization:</span> {record.doctor.staff_profile.specialization}</p>' if getattr(record.doctor, 'staff_profile', None) and record.doctor.staff_profile.specialization else ''}
+                    <p><span class="font-medium">Doctor:</span> Dr. {record.display_doctor_name}</p>
+                    <p><span class="font-medium">Department:</span> {record.display_doctor_department or 'N/A'}</p>
+                    {f'<p><span class="font-medium">Specialization:</span> {record.display_doctor_specialization}</p>' if record.display_doctor_specialization else ''}
                 </div>
             </div>
         </div>

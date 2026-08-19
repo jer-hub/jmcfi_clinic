@@ -1,0 +1,213 @@
+<script>
+/**
+ * Instant date/time occupancy checks for appointment schedule forms.
+ * Applied onto Alpine component data via jmcfiAppointmentSlots.apply(data, { url }).
+ */
+(function () {
+  if (window.jmcfiAppointmentSlots) return;
+
+  const OCCUPANCY_MESSAGES = {
+    past: 'This time has already passed.',
+    booked: 'This time slot is already booked.',
+    patient: 'This patient already has an appointment at this time.',
+  };
+
+  function apply(data, config) {
+    config = config || {};
+    data.slotAvailabilityUrl = config.url || '';
+    data.occupiedSlots = [];
+    data.occupiedReasons = {};
+    data.slotCheckLoading = false;
+    data.slotCheckReady = false;
+    data.slotCheckError = '';
+    data.availableSlots = [];
+    data.resolvedDoctorId = '';
+    data.canCheckSlots = false;
+    data.dateTimeValid = false;
+    data.dateStatusKind = '';
+    data.dateStatusMessage = '';
+    data.timeStatusKind = '';
+    data.timeStatusMessage = '';
+    data._slotFetchToken = 0;
+    data._slotTimer = null;
+    if (data.selectedPatientId === undefined) data.selectedPatientId = '';
+    if (data.currentDoctorId === undefined) data.currentDoctorId = '';
+    if (data.dateError === undefined) data.dateError = '';
+
+    data.isSlotOccupied = function (value) {
+      return this.occupiedSlots.indexOf(value) !== -1;
+    };
+
+    data.slotOptionLabel = function (value, label) {
+      return this.isSlotOccupied(value) ? label + ' (occupied)' : label;
+    };
+
+    data.occupancyMessage = function (value) {
+      const reason = this.occupiedReasons[value];
+      return OCCUPANCY_MESSAGES[reason] || 'This time slot is not available.';
+    };
+
+    data.syncSlotFlags = function () {
+      let doctorId = '';
+      if (this.staffPicksDoctor) {
+        doctorId = String(this.selectedDoctor || '').trim();
+      } else {
+        const implicit = String(this.currentDoctorId || '').trim();
+        doctorId = implicit || String(this.selectedDoctor || '').trim();
+      }
+      this.resolvedDoctorId = doctorId;
+      this.canCheckSlots = Boolean(this.selectedDate && doctorId && !this.dateError);
+      this.dateTimeValid = Boolean(
+        this.canCheckSlots &&
+        this.selectedTime &&
+        !this.slotCheckLoading &&
+        this.slotCheckReady &&
+        !this.slotCheckError &&
+        !this.isSlotOccupied(this.selectedTime)
+      );
+      this.syncFieldMessages();
+    };
+
+    data.syncFieldMessages = function () {
+      const dateErrorText = this.dateError || (this.errors && this.errors.date) || '';
+      if (this.canCheckSlots && this.slotCheckLoading) {
+        this.dateStatusKind = 'loading';
+        this.dateStatusMessage = 'Checking this date…';
+      } else if (dateErrorText) {
+        this.dateStatusKind = 'error';
+        this.dateStatusMessage = dateErrorText;
+      } else if (this.slotCheckError) {
+        this.dateStatusKind = 'error';
+        this.dateStatusMessage = this.slotCheckError;
+      } else if (this.slotCheckReady && this.availableSlots.length === 0) {
+        this.dateStatusKind = 'error';
+        this.dateStatusMessage = 'No open times on this date. Please choose another day.';
+      } else if (this.slotCheckReady) {
+        this.dateStatusKind = 'ok';
+        this.dateStatusMessage = 'This date has open times.';
+      } else {
+        this.dateStatusKind = '';
+        this.dateStatusMessage = '';
+      }
+
+      const timeErrorText = (this.errors && this.errors.time) || '';
+      if (this.canCheckSlots && this.slotCheckLoading) {
+        this.timeStatusKind = 'loading';
+        this.timeStatusMessage = this.selectedTime ? 'Checking this time…' : 'Checking open times…';
+      } else if (timeErrorText) {
+        this.timeStatusKind = 'error';
+        this.timeStatusMessage = timeErrorText;
+      } else if (this.dateTimeValid) {
+        this.timeStatusKind = 'ok';
+        this.timeStatusMessage = 'This time is available.';
+      } else {
+        this.timeStatusKind = '';
+        this.timeStatusMessage = '';
+      }
+    };
+
+    data.bindSlotAvailability = function () {
+      this.syncSlotFlags();
+      this.$watch('selectedDate', () => this.queueSlotAvailability());
+      this.$watch('selectedDoctor', () => this.queueSlotAvailability());
+      this.$watch('selectedPatientId', () => this.queueSlotAvailability());
+      this.$watch('selectedTime', () => {
+        this.applySelectedTimeOccupancy();
+        this.syncSlotFlags();
+      });
+      this.queueSlotAvailability();
+    };
+
+    data.queueSlotAvailability = function () {
+      this.syncSlotFlags();
+      clearTimeout(this._slotTimer);
+      this.slotCheckReady = false;
+      this.dateTimeValid = false;
+      if (this.canCheckSlots) {
+        this.slotCheckLoading = true;
+        this.slotCheckError = '';
+        this.syncFieldMessages();
+      }
+      this._slotTimer = setTimeout(() => this.fetchSlotAvailability(), 150);
+    };
+
+    data.resetSlotAvailability = function () {
+      this.occupiedSlots = [];
+      this.occupiedReasons = {};
+      this.availableSlots = [];
+      this.slotCheckReady = false;
+      this.slotCheckError = '';
+      this.slotCheckLoading = false;
+      this.syncSlotFlags();
+    };
+
+    data.applySelectedTimeOccupancy = function () {
+      if (!this.errors) this.errors = {};
+      if (!this.selectedTime || !this.slotCheckReady) return;
+      if (this.isSlotOccupied(this.selectedTime)) {
+        this.errors.time = this.occupancyMessage(this.selectedTime);
+      } else if (this.errors.time) {
+        delete this.errors.time;
+      }
+      this.syncFieldMessages();
+    };
+
+    data.fetchSlotAvailability = async function () {
+      this.syncSlotFlags();
+      const date = this.selectedDate;
+      const doctorId = this.resolvedDoctorId;
+      const token = ++this._slotFetchToken;
+
+      if (!date || this.dateError || !doctorId || !this.slotAvailabilityUrl) {
+        this.resetSlotAvailability();
+        return;
+      }
+
+      this.slotCheckLoading = true;
+      this.slotCheckError = '';
+      this.dateTimeValid = false;
+      const params = new URLSearchParams({ date: date, doctor: doctorId });
+      const patientId = String(this.selectedPatientId || '').trim();
+      if (patientId) params.set('patient', patientId);
+
+      try {
+        const resp = await fetch(this.slotAvailabilityUrl + '?' + params.toString(), {
+          headers: { Accept: 'application/json' },
+        });
+        const payload = await resp.json();
+        if (token !== this._slotFetchToken) return;
+
+        this.occupiedSlots = payload.occupied || [];
+        this.occupiedReasons = payload.reasons || {};
+        this.availableSlots = payload.available || [];
+
+        if (!payload.ok) {
+          this.slotCheckError = payload.error || 'Could not check availability.';
+          this.slotCheckReady = false;
+          if (payload.error) {
+            this.dateError = this.dateError || payload.error;
+            if (this.errors) this.errors.date = this.errors.date || payload.error;
+          }
+        } else {
+          this.slotCheckError = '';
+          this.slotCheckReady = true;
+          this.applySelectedTimeOccupancy();
+        }
+      } catch (_err) {
+        if (token !== this._slotFetchToken) return;
+        this.slotCheckError = 'Could not check availability. Please try again.';
+        this.slotCheckReady = false;
+      }
+
+      if (token === this._slotFetchToken) {
+        this.slotCheckLoading = false;
+        this.syncSlotFlags();
+      }
+    };
+
+    return data;
+  }
+
+  window.jmcfiAppointmentSlots = { apply: apply };
+})();
+</script>

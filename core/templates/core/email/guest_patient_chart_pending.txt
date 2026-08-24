@@ -1,0 +1,11 @@
+{% autoescape off %}Hello {{ patient_name }},
+
+{{ clinic_name }} started a patient chart for you. Some personal details still need to be completed.
+
+Open this link to complete your chart:
+{{ access_url }}
+
+This link expires in a few days. Clinic staff will add consultation notes after you submit.
+
+— {{ clinic_name }}
+{% endautoescape %}

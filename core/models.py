@@ -513,6 +513,7 @@ class GuestAccessToken(models.Model):
         MEDICAL_RECORD = 'medical_record', 'Medical Record'
         DENTAL_INTAKE = 'dental_intake', 'Dental Intake'
         DENTAL_RECORD = 'dental_record', 'Dental Record'
+        PATIENT_CHART = 'patient_chart', 'Patient Chart'
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='guest_access_tokens')
     purpose = models.CharField(max_length=32, choices=Purpose.choices)

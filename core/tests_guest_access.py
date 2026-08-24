@@ -252,8 +252,12 @@ class GuestViewsAndEmailHooksTests(TestCase):
 		self.assertEqual(get_resp.status_code, 200)
 		self.assertContains(get_resp, 'Complete your health profile')
 		self.assertContains(get_resp, 'Cancel draft')
+		self.assertContains(get_resp, 'Move to next tab')
+		self.assertContains(get_resp, 'age-from-dob')
+		self.assertNotContains(get_resp, 'Save section')
+		self.assertNotContains(get_resp, 'Submit for clinic review')
 
-		submit = self.client.post(url, {'action': 'submit', 'section': 'personal'})
+		submit = self.client.post(url, {'action': 'submit', 'section': 'medical'})
 		self.assertEqual(submit.status_code, 200)
 		health_form.refresh_from_db()
 		self.assertEqual(health_form.status, HealthProfileForm.Status.PENDING)

@@ -484,7 +484,6 @@ def health_forms_services_subnav(context):
                     vn,
                     'health_forms_services:patient_chart_list',
                     'health_forms_services:patient_chart_detail',
-                    'health_forms_services:create_patient_chart',
                     'health_forms_services:edit_patient_chart',
                 ),
             ),
@@ -521,29 +520,6 @@ def health_forms_services_subnav(context):
         ),
     ]
     items = [item for key, item in candidates if has_clinical_module(user, key)]
-    if has_clinical_module(user, MODULE_HEALTH_PROFILE_FORMS):
-        insert_at = next(
-            (i + 1 for i, item in enumerate(items) if item.get('label') == 'Health Forms'),
-            len(items),
-        )
-        items.insert(
-            insert_at,
-            nav_item(
-                'Invite Guest',
-                'health_forms_services:invite_guest_health_profile',
-                icon='fa-envelope-open-text',
-                active=is_active(vn, 'health_forms_services:invite_guest_health_profile'),
-            ),
-        )
-        items.insert(
-            insert_at + 1,
-            nav_item(
-                'New Health Form',
-                'health_forms_services:manual_entry',
-                icon='fa-plus',
-                active=is_active(vn, 'health_forms_services:manual_entry'),
-            ),
-        )
     return enrich_subnav(items, always_show_nav=True)
 
 

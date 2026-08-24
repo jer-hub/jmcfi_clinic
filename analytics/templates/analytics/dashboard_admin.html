@@ -6,7 +6,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    {% include "analytics/_period_export_bar.html" with export_variant="admin" %}
+    {% include "analytics/_analytics_filter_bar.html" with export_variant="admin" %}
 
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
       {% include "components/stat_card.html" with label="Patients" value=total_patients icon="fa-user-graduate" variant="primary" hint="Registered" %}
@@ -27,9 +27,13 @@
         </h2>
         <a href="{% url 'analytics:resource_utilization' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Resources →</a>
       </div>
+      {% if appointment_volume %}
       <div class="h-56 sm:h-64">
         <canvas id="appointmentVolumeChart" role="img" aria-label="Appointment volume over time"></canvas>
       </div>
+      {% else %}
+      {% include "components/empty_state.html" with icon="fa-chart-line" title="No appointment volume" description="No appointments in this period." %}
+      {% endif %}
     </section>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
@@ -39,9 +43,13 @@
             <i class="fas fa-chart-pie text-primary-500"></i>Appointment types
           </h2>
         </div>
+        {% if appointment_by_type %}
         <div class="h-52 sm:h-56 flex items-center justify-center">
           <canvas id="appointmentTypeChart" role="img" aria-label="Appointment types distribution"></canvas>
         </div>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-chart-pie" title="No appointment types" description="No appointments in this period." %}
+        {% endif %}
       </section>
 
       <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="chart-hours-heading">
@@ -51,9 +59,13 @@
           </h2>
           <a href="{% url 'analytics:predictive_analytics' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Predictive →</a>
         </div>
+        {% if appointment_by_hour %}
         <div class="h-52 sm:h-56">
           <canvas id="peakHoursChart" role="img" aria-label="Appointments by hour"></canvas>
         </div>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-clock" title="No peak-hour data" description="No appointments in this period." %}
+        {% endif %}
       </section>
     </div>
 
@@ -80,7 +92,7 @@
           {% endfor %}
         </ul>
         {% else %}
-        <p class="text-sm text-gray-500 py-6 text-center">No diagnosis data for this period.</p>
+        {% include "components/empty_state.html" with icon="fa-stethoscope" title="No diagnosis data" description="No diagnoses in this period." %}
         {% endif %}
       </section>
 
@@ -109,6 +121,22 @@
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="chart-dept-heading">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <h2 id="chart-dept-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+            <i class="fas fa-building text-primary-500"></i>Patients by department
+          </h2>
+          <a href="{% url 'analytics:population_health' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Population →</a>
+        </div>
+        {% if demographics.department %}
+        <div class="h-52 sm:h-56">
+          <canvas id="departmentChart" role="img" aria-label="Patients by department"></canvas>
+        </div>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-building" title="No department data" description="No patient department breakdown for this filter." %}
+        {% endif %}
+      </section>
+
       <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="chart-course-heading">
         <div class="flex items-center justify-between gap-3 mb-3">
           <h2 id="chart-course-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
@@ -116,9 +144,13 @@
           </h2>
           <a href="{% url 'analytics:academic_correlation' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Academic →</a>
         </div>
+        {% if demographics.course %}
         <div class="h-52 sm:h-56">
           <canvas id="courseChart" role="img" aria-label="Patients by course"></canvas>
         </div>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-graduation-cap" title="No course data" description="No patient course breakdown for this filter." %}
+        {% endif %}
       </section>
 
       <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="chart-weekday-heading">
@@ -128,9 +160,13 @@
           </h2>
           <a href="{% url 'analytics:population_health' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">Population →</a>
         </div>
+        {% if appointment_by_weekday %}
         <div class="h-52 sm:h-56">
           <canvas id="weekdayChart" role="img" aria-label="Appointments by weekday"></canvas>
         </div>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-calendar-week" title="No weekday data" description="No appointments in this period." %}
+        {% endif %}
       </section>
     </div>
 </div>
@@ -197,6 +233,20 @@ if (hourLabels.length) {
   });
 }
 
+const deptLabels = [{% for item in demographics.department %}"{{ item.department }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const deptData = [{% for item in demographics.department %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
+if (deptLabels.length) {
+  mountChart('departmentChart', {
+    type: 'bar',
+    data: { labels: deptLabels, datasets: [{ label: 'Patients', data: deptData, backgroundColor: '#60a5fa', borderRadius: 4 }] },
+    options: {
+      ...chartDefaults,
+      indexAxis: 'y',
+      scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
+    },
+  });
+}
+
 const courseLabels = [{% for item in demographics.course %}"{{ item.course }}"{% if not forloop.last %},{% endif %}{% endfor %}];
 const courseData = [{% for item in demographics.course %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
 if (courseLabels.length) {
@@ -221,10 +271,12 @@ for (let i = 1; i <= 7; i++) {
   wdLabels.push(dayNames[i - 1]);
   wdData.push(rawWeekday[i] || 0);
 }
-mountChart('weekdayChart', {
-  type: 'bar',
-  data: { labels: wdLabels, datasets: [{ label: 'Appointments', data: wdData, backgroundColor: '#34d399', borderRadius: 4 }] },
-  options: { ...chartDefaults, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
-});
+if (wdData.some(function (n) { return n > 0; })) {
+  mountChart('weekdayChart', {
+    type: 'bar',
+    data: { labels: wdLabels, datasets: [{ label: 'Appointments', data: wdData, backgroundColor: '#34d399', borderRadius: 4 }] },
+    options: { ...chartDefaults, scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } },
+  });
+}
 </script>
 {% endblock %}

@@ -3,7 +3,7 @@
 
   Context:
     export_variant – staff | admin | health_trends | demographics | …
-    export_query – optional extra query string (e.g. "&term=2025|1&illness_category=uti")
+    export_query – optional extra query string (e.g. academic filters, illness_category)
 {% endcomment %}
 <div class="relative shrink-0" x-data="{ exportOpen: false }" @keydown.escape.window="exportOpen = false">
   <button type="button"
@@ -28,7 +28,7 @@
 
     {% if export_variant == 'staff' %}
     <a role="menuitem"
-       href="{% url 'analytics:export_report' %}?report=staff_dashboard&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       href="{% url 'analytics:export_report' %}?report=staff_dashboard&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
        class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
       <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-table-cells"></i></span>
       <span class="min-w-0">
@@ -37,7 +37,7 @@
       </span>
     </a>
     <a role="menuitem"
-       href="{% url 'analytics:export_report' %}?report=my_appointments&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       href="{% url 'analytics:export_report' %}?report=my_appointments&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
        class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
       <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-success-50 text-success-600"><i class="fas fa-calendar-check"></i></span>
       <span class="min-w-0">
@@ -47,7 +47,7 @@
     </a>
     {% elif export_variant == 'admin' %}
     <a role="menuitem"
-       href="{% url 'analytics:export_report' %}?report=admin_dashboard&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       href="{% url 'analytics:export_report' %}?report=admin_dashboard&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
        class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
       <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-table-cells"></i></span>
       <span class="min-w-0">
@@ -56,7 +56,7 @@
       </span>
     </a>
     <a role="menuitem"
-       href="{% url 'analytics:export_report' %}?report=appointments&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       href="{% url 'analytics:export_report' %}?report=appointments&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
        class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
       <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-info-50 text-info-600"><i class="fas fa-calendar-days"></i></span>
       <span class="min-w-0">
@@ -65,7 +65,7 @@
       </span>
     </a>
     <a role="menuitem"
-       href="{% url 'analytics:export_report' %}?report=medical_records&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+       href="{% url 'analytics:export_report' %}?report=medical_records&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}"
        class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
       <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-warning-50 text-warning-600"><i class="fas fa-file-medical"></i></span>
       <span class="min-w-0">
@@ -202,6 +202,35 @@
       <span class="min-w-0">
         <span class="block text-sm font-medium text-gray-900">Live diagnoses</span>
         <span class="block text-xs text-gray-500">Cases from records in date range</span>
+      </span>
+    </a>
+    {% elif export_variant == 'predictive' %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=predictive_insights&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}{{ extra_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-lightbulb"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Saved insights</span>
+        <span class="block text-xs text-gray-500">Generated forecasts and alerts</span>
+      </span>
+    </a>
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=predictive_hourly&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}{{ extra_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-info-50 text-info-600"><i class="fas fa-clock"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Hourly &amp; weekday</span>
+        <span class="block text-xs text-gray-500">Volume summary for this period</span>
+      </span>
+    </a>
+    {% elif export_variant == 'compliance' %}
+    <a role="menuitem"
+       href="{% url 'analytics:export_report' %}?report=compliance_index&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ export_query|default:'' }}{{ extra_query|default:'' }}"
+       class="flex gap-3 px-3 py-2.5 hover:bg-primary-50 transition-colors">
+      <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary-50 text-primary-600"><i class="fas fa-shield-halved"></i></span>
+      <span class="min-w-0">
+        <span class="block text-sm font-medium text-gray-900">Report index</span>
+        <span class="block text-xs text-gray-500">Metadata for generated reports</span>
       </span>
     </a>
     {% else %}

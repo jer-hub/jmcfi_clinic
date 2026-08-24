@@ -1,0 +1,28 @@
+{% extends 'core/guest/base_guest.html' %}
+
+{% block title %}Patient chart status - JMCFI Clinic{% endblock %}
+{% block header_width %}max-w-lg{% endblock %}
+{% block main_width %}max-w-lg{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden text-center">
+  <div class="px-6 py-8 sm:px-8">
+    {% if just_submitted %}
+    <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 mb-4">
+      <i class="fas fa-circle-check text-lg" aria-hidden="true"></i>
+    </div>
+    <h1 class="text-xl font-bold text-gray-900">Submitted for clinic</h1>
+    <p class="mt-2 text-sm text-gray-600">Thank you. The clinic will review your details and add consultation notes as needed.</p>
+    {% else %}
+    <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 text-primary-600 mb-4">
+      <i class="fas fa-clipboard-user text-lg" aria-hidden="true"></i>
+    </div>
+    <h1 class="text-xl font-bold text-gray-900">Chart status: {{ patient_chart.get_status_display }}</h1>
+    <p class="mt-2 text-sm text-gray-600">
+      This patient chart is no longer open for guest editing.
+      {% if patient_chart.status == 'pending' %}The clinic can now add consultation entries.{% endif %}
+    </p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

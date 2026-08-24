@@ -379,7 +379,11 @@ class PatientChartListView(BaseFormListView):
     template_name = 'health_forms_services/patient_chart_list.html'
     detail_url_name = 'health_forms_services:patient_chart_detail'
     edit_url_name = 'health_forms_services:edit_patient_chart'
-    create_url_name = 'health_forms_services:create_patient_chart'
+    # Match Health Forms list: Invite Guest (primary) + New … (secondary outline)
+    create_url_name = 'health_forms_services:invite_guest_patient_chart'
+    create_label = 'Invite Guest'
+    secondary_create_url_name = 'health_forms_services:create_patient_chart'
+    secondary_create_label = 'New Patient Charts'
     form_type_label = 'Patient Charts'
     search_fields = ['last_name', 'first_name', 'user__email']
     status_choices = PatientChart.Status
@@ -442,7 +446,9 @@ class PatientChartDetailView(BaseFormDetailView):
 
     def get_context_data(self, obj):
         from django.utils import timezone
+        from core.guest_auth import is_guest_user
         from ..forms import PatientChartEntryForm
+        from ..services import is_clinician
 
         ctx = super().get_context_data(obj)
         ctx['chart_entries'] = list(obj.entries.all())
@@ -450,6 +456,15 @@ class PatientChartDetailView(BaseFormDetailView):
         ctx['entry_default_datetime'] = timezone.localtime(timezone.now()).strftime('%Y-%m-%dT%H:%M')
         ctx['can_manage_entries'] = self.request.user.role in ('staff', 'doctor', 'admin')
         ctx['add_entry_url'] = reverse('health_forms_services:add_chart_entry', kwargs={'pk': obj.pk})
+        ctx['can_resend_guest_link'] = (
+            is_clinician(self.request.user)
+            and is_guest_user(obj.user)
+            and obj.status == PatientChart.Status.INCOMPLETE
+        )
+        if ctx['can_resend_guest_link']:
+            ctx['resend_guest_link_url'] = reverse(
+                'health_forms_services:resend_guest_patient_chart_link', kwargs={'pk': obj.pk}
+            )
         return ctx
 
 
@@ -466,6 +481,24 @@ class PatientChartEditView(BaseFormEditView):
     tabs = [
         {'key': 'personal', 'label': 'Personal Info', 'short_label': 'Personal', 'icon': 'fa-user'},
     ]
+
+    def get_edit_context(self, obj, *, active_section, form_instances):
+        from core.guest_auth import is_guest_user
+        from ..services import is_clinician
+
+        ctx = super().get_edit_context(
+            obj, active_section=active_section, form_instances=form_instances
+        )
+        ctx['can_resend_guest_link'] = (
+            is_clinician(self.request.user)
+            and is_guest_user(obj.user)
+            and obj.status == PatientChart.Status.INCOMPLETE
+        )
+        if ctx['can_resend_guest_link']:
+            ctx['resend_guest_link_url'] = reverse(
+                'health_forms_services:resend_guest_patient_chart_link', kwargs={'pk': obj.pk}
+            )
+        return ctx
 
 
 # ═══════════════════════════════════════════════════════════════════════════

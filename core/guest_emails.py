@@ -507,6 +507,34 @@ def email_guest_health_form_pending(request, health_form, *, created_by=None) ->
     )
 
 
+def email_guest_patient_chart_pending(request, patient_chart, *, created_by=None) -> bool:
+    """Issue magic link and email guest patient to complete an incomplete patient chart."""
+    patient = patient_chart.user
+    if not is_guest_user(patient):
+        return False
+    if not resolve_patient_contact_email(patient):
+        return False
+
+    _, raw = issue_guest_access_token(
+        patient,
+        GuestAccessToken.Purpose.PATIENT_CHART,
+        patient_chart.pk,
+        created_by=created_by,
+    )
+    link = build_guest_url(request, GuestAccessToken.Purpose.PATIENT_CHART, raw)
+    return send_templated_email(
+        patient,
+        'Complete your patient chart',
+        'core/email/guest_patient_chart_pending',
+        {
+            'patient_chart': patient_chart,
+            'access_url': link,
+            'patient_name': patient.get_full_name() or 'Patient',
+        },
+        raise_on_error=True,
+    )
+
+
 def email_guest_dental_intake_pending(request, dental_record, *, created_by=None) -> bool:
     """Issue magic link and email guest to complete dental demographics + consent."""
     patient = dental_record.patient

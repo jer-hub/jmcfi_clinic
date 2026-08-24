@@ -170,6 +170,11 @@
     },
     {
       "college": "College of Teacher Education",
+      "name": "BS Education",
+      "is_active": true
+    },
+    {
+      "college": "College of Teacher Education",
       "name": "Bachelor of Early Childhood Education",
       "is_active": true
     },
@@ -186,11 +191,6 @@
     {
       "college": "College of Teacher Education",
       "name": "Bachelor of Technical-Vocational Teacher Education",
-      "is_active": true
-    },
-    {
-      "college": "College of Teacher Education",
-      "name": "BS Education",
       "is_active": true
     },
     {
@@ -494,12 +494,6 @@
     },
     {
       "college": "IBED",
-      "name": "Grade 8",
-      "sort_order": 0,
-      "is_active": true
-    },
-    {
-      "college": "IBED",
       "name": "Kinder 1",
       "sort_order": 0,
       "is_active": true
@@ -550,6 +544,12 @@
       "college": "IBED",
       "name": "Grade 7",
       "sort_order": 7,
+      "is_active": true
+    },
+    {
+      "college": "IBED",
+      "name": "Grade 8",
+      "sort_order": 8,
       "is_active": true
     },
     {

@@ -55,6 +55,9 @@ class BaseFormListView(View):
     list_columns = None
     search_fields = None
     create_url_name = None
+    create_label = None
+    secondary_create_url_name = None
+    secondary_create_label = None
     detail_url_name = None
     edit_url_name = None
     bulk_action_url_name = None
@@ -103,6 +106,9 @@ class BaseFormListView(View):
         page_obj = paginator.get_page(page_number)
 
         create_url = reverse(self.create_url_name) if self.create_url_name else None
+        secondary_create_url = (
+            reverse(self.secondary_create_url_name) if self.secondary_create_url_name else None
+        )
         status_choices = self.status_choices or getattr(self.model, 'Status', None)
         if status_choices:
             status_choices = status_choices.choices
@@ -113,6 +119,9 @@ class BaseFormListView(View):
             'status_filter': status_filter,
             'status_choices': status_choices,
             'create_url': create_url,
+            'create_label': self.create_label,
+            'secondary_create_url': secondary_create_url,
+            'secondary_create_label': self.secondary_create_label or '',
             'detail_url_name': self.detail_url_name,
             'edit_url_name': self.edit_url_name,
             'bulk_action_url_name': self.bulk_action_url_name,

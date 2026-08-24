@@ -6,41 +6,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    <div class="mb-5 rounded-card border border-gray-200 bg-white shadow-sm p-3 sm:p-4">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="min-w-0">
-          <p class="text-sm font-medium text-gray-900">Analysis period</p>
-          <p class="mt-0.5 text-xs text-gray-500 truncate">
-            {{ date_from|date:"M j, Y" }} – {{ date_to|date:"M j, Y" }}
-            <span class="text-gray-400">· clinic appointments</span>
-          </p>
-        </div>
-        <div class="flex flex-wrap gap-1.5" role="group" aria-label="Quick ranges">
-          {% for preset in period_presets %}
-          <a href="?date_from={{ preset.date_from|date:'Y-m-d' }}&amp;date_to={{ preset.date_to|date:'Y-m-d' }}"
-            class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors {% if preset.active %}bg-primary-100 text-primary-700 ring-1 ring-primary-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">
-            {{ preset.label }}
-          </a>
-          {% endfor %}
-        </div>
-      </div>
-      <form method="get" class="mt-3 pt-3 border-t border-gray-100 flex w-full flex-wrap items-end justify-end gap-2 sm:gap-3">
-        <div>
-          <label for="academic-date-from" class="block text-xs font-medium text-gray-500 mb-1">From</label>
-          <input type="date" id="academic-date-from" name="date_from" value="{{ date_from|date:'Y-m-d' }}"
-            class="form-input form-input--compact w-full min-w-[9.5rem]">
-        </div>
-        <div>
-          <label for="academic-date-to" class="block text-xs font-medium text-gray-500 mb-1">To</label>
-          <input type="date" id="academic-date-to" name="date_to" value="{{ date_to|date:'Y-m-d' }}"
-            class="form-input form-input--compact w-full min-w-[9.5rem]">
-        </div>
-        <button type="submit" class="form-btn--compact form-btn--compact-primary shrink-0">
-          <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
-        </button>
-        {% include "analytics/_export_dropdown.html" with export_variant="academic" %}
-      </form>
-    </div>
+    {% include "analytics/_analytics_filter_bar.html" with export_variant="academic" export_query=academic_query %}
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
       {% include "components/stat_card.html" with label="Total visits" value=total_visits icon="fa-calendar-check" variant="primary" hint=period_hint %}
@@ -56,7 +22,7 @@
           </h2>
           <p class="mt-0.5 text-xs text-gray-500">Top patients by appointment count — may indicate health-related absenteeism</p>
         </div>
-        <a href="{% url 'analytics:population_health' %}?date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+        <a href="{% url 'analytics:population_health' %}?date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ academic_query }}"
           class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap shrink-0">Population →</a>
       </div>
 
@@ -67,6 +33,7 @@
             <tr class="border-b border-gray-200">
               <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Patient</th>
               <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500 hidden md:table-cell">Email</th>
+              <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Department</th>
               <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Course</th>
               <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Year</th>
               <th scope="col" class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Visits</th>
@@ -79,6 +46,7 @@
                 {{ v.patient__first_name }} {{ v.patient__last_name }}
               </td>
               <td class="px-3 py-2.5 text-gray-500 hidden md:table-cell truncate max-w-[12rem]">{{ v.patient__email }}</td>
+              <td class="px-3 py-2.5 text-gray-700">{{ v.patient__patient_profile__department|default:"—" }}</td>
               <td class="px-3 py-2.5 text-gray-700">{{ v.patient__patient_profile__course|default:"—" }}</td>
               <td class="px-3 py-2.5 text-gray-700 whitespace-nowrap">{{ v.patient__patient_profile__year_level|default:"—" }}</td>
               <td class="px-3 py-2.5 text-right">
@@ -92,14 +60,70 @@
         </table>
       </div>
       {% else %}
-      <div class="flex flex-col items-center justify-center text-center py-10 px-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
-        <p class="text-sm font-medium text-gray-700">No appointments in this period</p>
-        <p class="mt-0.5 text-xs text-gray-500">Widen the date range or check appointment data.</p>
-      </div>
+      {% include "components/empty_state.html" with icon="fa-user-clock" title="No appointments in this period" description="Widen the date range or check appointment data." %}
       {% endif %}
     </section>
 
-    <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 mb-6" aria-labelledby="emergency-heading">
+    {% if visits_by_department or visits_by_course %}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[16rem]" aria-labelledby="visits-dept-chart-heading">
+        <h2 id="visits-dept-chart-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <i class="fas fa-building text-primary-500"></i>Visits by department
+        </h2>
+        {% if visits_by_department %}
+        <div class="relative flex-1 min-h-[12rem]">
+          <canvas id="visitsDeptChart" class="max-h-56" role="img" aria-label="Visits by department"></canvas>
+        </div>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-building" title="No department visits" description="No appointments in this period." %}
+        {% endif %}
+      </section>
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[16rem]" aria-labelledby="visits-course-chart-heading">
+        <h2 id="visits-course-chart-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+          <i class="fas fa-graduation-cap text-primary-500"></i>Visits by course
+        </h2>
+        {% if visits_by_course %}
+        <div class="relative flex-1 min-h-[12rem]">
+          <canvas id="visitsCourseChart" class="max-h-56" role="img" aria-label="Visits by course"></canvas>
+        </div>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-graduation-cap" title="No course visits" description="No appointments in this period." %}
+        {% endif %}
+      </section>
+    </div>
+    {% endif %}
+
+    {% if visits_by_department %}
+    <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 mb-6" aria-labelledby="visits-dept-heading">
+      <h2 id="visits-dept-heading" class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <i class="fas fa-building text-primary-500"></i>Visits by department (top 5)
+      </h2>
+      <ol class="space-y-2.5">
+        {% for item in visits_by_department %}
+        <li class="flex items-center justify-between gap-3 text-sm">
+          <span class="text-gray-800 truncate">{{ item.patient__patient_profile__department|default:"Unknown" }}</span>
+          {% include "components/status_badge.html" with label=item.count variant="info" %}
+        </li>
+        {% endfor %}
+      </ol>
+    </section>
+    {% endif %}
+
+    <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 mb-6 flex flex-col min-h-[16rem]" aria-labelledby="emergency-chart-heading">
+      <h2 id="emergency-chart-heading" class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+        <i class="fas fa-truck-medical text-danger-500"></i>Emergency visits by course
+      </h2>
+      {% if emergency_visits %}
+      <div class="relative flex-1 min-h-[12rem]">
+        <canvas id="emergencyCourseChart" class="max-h-56" role="img" aria-label="Emergency visits by course"></canvas>
+      </div>
+      {% else %}
+      {% include "components/empty_state.html" with icon="fa-truck-medical" title="No emergency visits" description="No emergency appointments in this period." %}
+      {% endif %}
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
+    <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="emergency-heading">
       <h2 id="emergency-heading" class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
         <i class="fas fa-truck-medical text-danger-500"></i>Emergency visits by course
       </h2>
@@ -113,8 +137,91 @@
         {% endfor %}
       </ol>
       {% else %}
-      <p class="text-sm text-gray-500 py-4 text-center">No emergency visits in this period.</p>
+      {% include "components/empty_state.html" with icon="fa-truck-medical" title="No emergency visits" description="No emergency appointments in this period." %}
       {% endif %}
     </section>
+
+    <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="emergency-dept-heading">
+      <h2 id="emergency-dept-heading" class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <i class="fas fa-building text-danger-500"></i>Emergency by department
+      </h2>
+      {% if emergency_by_department %}
+      <ol class="space-y-2.5">
+        {% for item in emergency_by_department %}
+        <li class="flex items-center justify-between gap-3 text-sm">
+          <span class="text-gray-800 truncate">{{ item.patient__patient_profile__department|default:"Unknown" }}</span>
+          {% include "components/status_badge.html" with label=item.count variant="danger" %}
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      {% include "components/empty_state.html" with icon="fa-building" title="No emergency visits" description="No emergency appointments in this period." %}
+      {% endif %}
+    </section>
+
+    <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="emergency-year-heading">
+      <h2 id="emergency-year-heading" class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+        <i class="fas fa-layer-group text-danger-500"></i>Emergency by year level
+      </h2>
+      {% if emergency_by_year %}
+      <ol class="space-y-2.5">
+        {% for item in emergency_by_year %}
+        <li class="flex items-center justify-between gap-3 text-sm">
+          <span class="text-gray-800 truncate">{{ item.patient__patient_profile__year_level|default:"Unknown" }}</span>
+          {% include "components/status_badge.html" with label=item.count variant="danger" %}
+        </li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      {% include "components/empty_state.html" with icon="fa-layer-group" title="No emergency visits" description="No emergency appointments in this period." %}
+      {% endif %}
+    </section>
+    </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<script>
+const COLORS = ['#a855f7','#3b82f6','#10b981','#f59e0b','#ef4444','#ec4899','#6366f1','#14b8a6'];
+const barOpts = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+};
+
+{% if visits_by_department %}
+new Chart(document.getElementById('visitsDeptChart'), {
+  type: 'bar',
+  data: {
+    labels: [{% for item in visits_by_department %}"{{ item.patient__patient_profile__department|default:'Unknown'|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+    datasets: [{ label: 'Visits', data: [{% for item in visits_by_department %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: '#60a5fa', borderRadius: 4 }],
+  },
+  options: barOpts,
+});
+{% endif %}
+
+{% if visits_by_course %}
+new Chart(document.getElementById('visitsCourseChart'), {
+  type: 'bar',
+  data: {
+    labels: [{% for item in visits_by_course %}"{{ item.patient__patient_profile__course|default:'Unknown'|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+    datasets: [{ label: 'Visits', data: [{% for item in visits_by_course %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: '#a855f7', borderRadius: 4 }],
+  },
+  options: barOpts,
+});
+{% endif %}
+
+{% if emergency_visits %}
+new Chart(document.getElementById('emergencyCourseChart'), {
+  type: 'bar',
+  data: {
+    labels: [{% for item in emergency_visits %}"{{ item.patient__patient_profile__course|default:'Unknown'|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}],
+    datasets: [{ label: 'Emergency visits', data: [{% for item in emergency_visits %}{{ item.count }}{% if not forloop.last %},{% endif %}{% endfor %}], backgroundColor: '#ef4444', borderRadius: 4 }],
+  },
+  options: barOpts,
+});
+{% endif %}
+</script>
 {% endblock %}

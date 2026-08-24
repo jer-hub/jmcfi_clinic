@@ -219,7 +219,7 @@ class HealthFormsPatientSubnavTests(SimpleTestCase):
 
 
 class HealthFormsStaffSubnavTests(TestCase):
-    def test_subnav_includes_new_health_form_tab(self):
+    def _doctor_with_health_profile_forms(self):
         from core.doctor_access import MODULE_HEALTH_PROFILE_FORMS
         from core.models import User
         from health_forms_services.tests import _complete_staff_like_profile
@@ -235,49 +235,91 @@ class HealthFormsStaffSubnavTests(TestCase):
         profile = doctor_user.staff_profile
         profile.allowed_clinical_modules = [MODULE_HEALTH_PROFILE_FORMS]
         profile.save(update_fields=['allowed_clinical_modules'])
+        return doctor_user
 
-        request = RequestFactory().get('/health-forms/new/')
+    def _subnav_for(self, user, view_name='health_forms_services:forms_list'):
+        request = RequestFactory().get('/health-forms/')
         request.resolver_match = type(
             'M',
             (),
-            {'view_name': 'health_forms_services:manual_entry', 'kwargs': {}},
+            {'view_name': view_name, 'kwargs': {}},
         )()
-        request.user = doctor_user
-        ctx = health_forms_services_subnav(Context({'request': request}))
-        labels = [item['label'] for item in ctx['items']]
-        self.assertEqual(labels, ['Health Forms', 'Invite Guest', 'New Health Form'])
-        self.assertTrue(ctx['items'][2]['active'])
-        self.assertFalse(ctx['items'][0]['active'])
-        self.assertFalse(ctx['items'][1]['active'])
+        request.user = user
+        return health_forms_services_subnav(Context({'request': request}))
 
-    def test_invite_guest_tab_is_only_active_item(self):
-        from core.doctor_access import MODULE_HEALTH_PROFILE_FORMS
+    def test_subnav_excludes_invite_and_new_health_form_tabs(self):
+        doctor_user = self._doctor_with_health_profile_forms()
+        ctx = self._subnav_for(doctor_user)
+        labels = [item['label'] for item in ctx['items']]
+        self.assertEqual(labels, ['Health Forms'])
+        self.assertNotIn('Invite Guest', labels)
+        self.assertNotIn('New Health Form', labels)
+        self.assertTrue(ctx['items'][0]['active'])
+
+    def test_create_invite_pages_do_not_add_subnav_tabs(self):
+        doctor_user = self._doctor_with_health_profile_forms()
+        for vn in (
+            'health_forms_services:manual_entry',
+            'health_forms_services:invite_guest_health_profile',
+        ):
+            ctx = self._subnav_for(doctor_user, vn)
+            labels = [item['label'] for item in ctx['items']]
+            self.assertEqual(labels, ['Health Forms'], vn)
+            self.assertNotIn('Invite Guest', labels)
+            self.assertNotIn('New Health Form', labels)
+            self.assertFalse(ctx['items'][0]['active'], vn)
+
+
+class PatientChartsStaffSubnavTests(TestCase):
+    def _doctor_with_patient_charts(self):
+        from core.doctor_access import MODULE_PATIENT_CHARTS
         from core.models import User
         from health_forms_services.tests import _complete_staff_like_profile
 
         doctor_user = User.objects.create_user(
-            email='subnav-hf-invite@test.com',
+            email='subnav-pc-doc@test.com',
             password='x',
             role='doctor',
             is_staff=True,
             is_active=True,
         )
-        _complete_staff_like_profile(doctor_user, 'DOC-SN-INV')
+        _complete_staff_like_profile(doctor_user, 'DOC-SN-PC')
         profile = doctor_user.staff_profile
-        profile.allowed_clinical_modules = [MODULE_HEALTH_PROFILE_FORMS]
+        profile.allowed_clinical_modules = [MODULE_PATIENT_CHARTS]
         profile.save(update_fields=['allowed_clinical_modules'])
+        return doctor_user
 
-        request = RequestFactory().get('/health-forms/invite-guest/')
+    def _subnav_for(self, user, view_name='health_forms_services:patient_chart_list'):
+        request = RequestFactory().get('/health-forms/patient-chart/')
         request.resolver_match = type(
             'M',
             (),
-            {'view_name': 'health_forms_services:invite_guest_health_profile', 'kwargs': {}},
+            {'view_name': view_name, 'kwargs': {}},
         )()
-        request.user = doctor_user
-        ctx = health_forms_services_subnav(Context({'request': request}))
-        self.assertTrue(ctx['items'][1]['active'])
-        self.assertFalse(ctx['items'][0]['active'])
-        self.assertFalse(ctx['items'][2]['active'])
+        request.user = user
+        return health_forms_services_subnav(Context({'request': request}))
+
+    def test_subnav_excludes_invite_and_new_patient_chart_tabs(self):
+        doctor_user = self._doctor_with_patient_charts()
+        ctx = self._subnav_for(doctor_user)
+        labels = [item['label'] for item in ctx['items']]
+        self.assertEqual(labels, ['Patient Charts'])
+        self.assertNotIn('Invite Guest', labels)
+        self.assertNotIn('New Patient Chart', labels)
+        self.assertTrue(ctx['items'][0]['active'])
+
+    def test_create_invite_pages_do_not_add_subnav_tabs(self):
+        doctor_user = self._doctor_with_patient_charts()
+        for vn in (
+            'health_forms_services:create_patient_chart',
+            'health_forms_services:invite_guest_patient_chart',
+        ):
+            ctx = self._subnav_for(doctor_user, vn)
+            labels = [item['label'] for item in ctx['items']]
+            self.assertEqual(labels, ['Patient Charts'], vn)
+            self.assertNotIn('Invite Guest', labels)
+            self.assertNotIn('New Patient Chart', labels)
+            self.assertFalse(ctx['items'][0]['active'], vn)
 
 
 class MedicalRecordsSubnavTemplateTests(SimpleTestCase):

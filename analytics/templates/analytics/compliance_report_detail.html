@@ -26,39 +26,32 @@
     </div>
     {% endif %}
 
+    {% if stored_academic_labels %}
+    <div class="flex flex-wrap gap-1.5 mb-4">
+      {% for label in stored_academic_labels %}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-800 border border-primary-100">{{ label }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6 mb-6">
       <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2"><i class="fas fa-chart-pie text-primary-500"></i>Report Summary</h3>
       {% if report.data_json %}
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
         {% if report.data_json.total_patients is not None or report.data_json.total_students is not None %}
-        <div class="border rounded-lg p-4">
-          <p class="text-sm text-gray-500">Total Patients</p>
-          <p class="text-xl font-bold text-gray-900">{{ report.data_json.total_patients|default:report.data_json.total_students }}</p>
-        </div>
+        {% include "components/stat_card.html" with label="Total patients" value=report.data_json.total_patients|default:report.data_json.total_students icon="fa-user-graduate" variant="primary" %}
         {% endif %}
         {% if report.data_json.total_staff is not None %}
-        <div class="border rounded-lg p-4">
-          <p class="text-sm text-gray-500">Total Staff</p>
-          <p class="text-xl font-bold text-gray-900">{{ report.data_json.total_staff }}</p>
-        </div>
+        {% include "components/stat_card.html" with label="Total staff" value=report.data_json.total_staff icon="fa-user-doctor" variant="success" %}
         {% endif %}
         {% if report.data_json.total_appointments is not None %}
-        <div class="border rounded-lg p-4">
-          <p class="text-sm text-gray-500">Total Appointments</p>
-          <p class="text-xl font-bold text-gray-900">{{ report.data_json.total_appointments }}</p>
-        </div>
+        {% include "components/stat_card.html" with label="Appointments" value=report.data_json.total_appointments icon="fa-calendar-days" variant="info" %}
         {% endif %}
         {% if report.data_json.completed_appointments is not None %}
-        <div class="border rounded-lg p-4">
-          <p class="text-sm text-gray-500">Completed Appointments</p>
-          <p class="text-xl font-bold text-gray-900">{{ report.data_json.completed_appointments }}</p>
-        </div>
+        {% include "components/stat_card.html" with label="Completed" value=report.data_json.completed_appointments icon="fa-circle-check" variant="success" %}
         {% endif %}
         {% if report.data_json.total_records is not None %}
-        <div class="border rounded-lg p-4">
-          <p class="text-sm text-gray-500">Medical Records</p>
-          <p class="text-xl font-bold text-gray-900">{{ report.data_json.total_records }}</p>
-        </div>
+        {% include "components/stat_card.html" with label="Medical records" value=report.data_json.total_records icon="fa-file-medical" variant="warning" %}
         {% endif %}
       </div>
 
@@ -76,7 +69,7 @@
 
       <p class="text-xs text-gray-400">Generated: {{ report.data_json.generated_at|default:"N/A" }}</p>
       {% else %}
-      <p class="text-sm text-gray-500">No data payload attached to this report.</p>
+      {% include "components/empty_state.html" with icon="fa-chart-pie" title="No data payload" description="This report has no attached summary data." %}
       {% endif %}
     </div>
 

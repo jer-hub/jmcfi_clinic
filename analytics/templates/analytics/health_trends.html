@@ -6,69 +6,26 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    <div class="mb-5 bg-white border border-gray-200 rounded-card shadow-sm p-3 sm:p-4">
-      <form method="get" class="flex flex-col gap-3">
-        {% if period_presets %}
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="text-xs font-medium uppercase tracking-wider text-gray-500 mr-1">Quick range</span>
-          {% for preset in period_presets %}
-          <a href="?date_from={{ preset.date_from|date:'Y-m-d' }}&amp;date_to={{ preset.date_to|date:'Y-m-d' }}{% if request.GET.term %}&amp;term={{ request.GET.term|urlencode }}{% endif %}{% if illness_filter %}&amp;illness_category={{ illness_filter|urlencode }}{% endif %}"
-             class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border transition-colors
-                    {% if preset.active %}bg-primary-100 text-primary-800 border-primary-200{% else %}bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-200 hover:text-primary-700{% endif %}">
-            {{ preset.label }}
-          </a>
-          {% endfor %}
-        </div>
-        {% endif %}
-        <div class="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
-          <div class="flex flex-wrap items-end gap-2 sm:gap-3 flex-1 min-w-0">
-            <div class="min-w-[10rem] max-w-[11rem] flex-1 sm:flex-none">
-              <label for="{{ form.term.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.term.label }}</label>
-              {{ form.term }}
-            </div>
-            <div class="min-w-[9rem] flex-1 max-w-[14rem]">
-              <label for="{{ form.illness_category.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.illness_category.label }}</label>
-              {{ form.illness_category }}
-            </div>
-            <div>
-              <label for="{{ form.date_from.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.date_from.label }}</label>
-              <input type="date" id="{{ form.date_from.id_for_label }}" name="date_from"
-                value="{{ date_from|date:'Y-m-d' }}" class="form-input form-input--compact w-full min-w-[9.5rem]">
-            </div>
-            <div>
-              <label for="{{ form.date_to.id_for_label }}" class="block text-xs font-medium text-gray-500 mb-1">{{ form.date_to.label }}</label>
-              <input type="date" id="{{ form.date_to.id_for_label }}" name="date_to"
-                value="{{ date_to|date:'Y-m-d' }}" class="form-input form-input--compact w-full min-w-[9.5rem]">
-            </div>
-            <button type="submit" class="form-btn--compact form-btn--compact-primary w-full sm:w-auto shrink-0">
-              <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
-            </button>
-          </div>
-          {% include "analytics/_export_dropdown.html" with export_variant="health_trends" %}
-        </div>
-      </form>
-    </div>
+    {% include "analytics/_analytics_filter_bar.html" with export_variant="health_trends" show_illness_filter=True illness_filter_form=illness_filter_form extra_query=extra_query export_query=export_query %}
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
-      {% include "components/stat_card.html" with label="Trend records" value=trends_count icon="fa-table" variant="primary" hint="Semester aggregates" %}
-      {% include "components/stat_card.html" with label="Diagnosis types" value=live_illness_stats|length icon="fa-stethoscope" variant="info" hint="In live stats period" %}
-      {% include "components/stat_card.html" with label="Cases in period" value=live_cases_total icon="fa-notes-medical" variant="warning" hint="Records in range" %}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      {% include "components/stat_card.html" with label="Trend records" value=trends_count icon="fa-table" variant="primary" hint=trends_scope_hint %}
+      {% include "components/stat_card.html" with label="Diagnosis types" value=live_illness_stats|length icon="fa-stethoscope" variant="info" hint=live_scope_hint %}
+      {% include "components/stat_card.html" with label="Medical cases" value=live_medical_cases icon="fa-notes-medical" variant="warning" hint=live_scope_hint %}
+      {% include "components/stat_card.html" with label="Dental cases" value=live_dental_cases icon="fa-tooth" variant="success" hint=live_scope_hint %}
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
       <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[20rem]"
         aria-labelledby="trends-table-heading">
-        <div class="flex items-center justify-between gap-3 mb-4">
-          <h2 id="trends-table-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2 min-w-0">
-            <i class="fas fa-table text-primary-500"></i>Semester trend records
-          </h2>
-          {% if trends_count %}
-          <span class="text-xs font-medium text-gray-500 tabular-nums shrink-0">{{ trends_count }} row{{ trends_count|pluralize }}</span>
-          {% endif %}
-        </div>
-
+        <h2 id="trends-table-heading" class="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+          <i class="fas fa-table text-primary-500"></i>Semester trend records
+        </h2>
+        {% if trends_scope_hint %}
+        <p class="text-xs text-gray-500 mb-4">{{ trends_scope_hint }}{% if illness_filter %} · illness filter applied{% endif %}</p>
+        {% endif %}
         {% if trends %}
-        <div class="overflow-x-auto -mx-1 flex-1">
+        <div class="overflow-x-auto flex-1 -mx-1">
           <table class="min-w-full text-sm">
             <thead>
               <tr class="border-b border-gray-200">
@@ -81,84 +38,45 @@
             <tbody class="divide-y divide-gray-100">
               {% for t in trends %}
               <tr class="hover:bg-gray-50/80">
-                <td class="px-3 py-2.5 text-gray-700 whitespace-nowrap">{{ t.academic_year }}</td>
-                <td class="px-3 py-2.5 text-gray-700 whitespace-nowrap">{{ t.get_semester_display }}</td>
-                <td class="px-3 py-2.5 text-gray-900">{{ t.illness_category }}</td>
-                <td class="px-3 py-2.5 text-right font-semibold text-gray-900 tabular-nums">{{ t.case_count }}</td>
+                <td class="px-3 py-2 text-gray-700">{{ t.academic_year }}</td>
+                <td class="px-3 py-2 text-gray-700">{{ t.get_semester_display }}</td>
+                <td class="px-3 py-2 text-gray-900">{{ t.illness_category }}</td>
+                <td class="px-3 py-2 text-right font-semibold text-gray-900 tabular-nums">{{ t.case_count }}</td>
               </tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
         {% else %}
-        <div class="flex-1 flex flex-col items-center justify-center text-center py-10 px-4">
-          <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gray-100 text-gray-400 mb-3">
-            <i class="fas fa-chart-line text-lg"></i>
-          </span>
-          <p class="text-sm font-medium text-gray-700">No trend records{% if illness_filter %} matching &ldquo;{{ illness_filter }}&rdquo;{% endif %}</p>
-          <p class="mt-1 text-xs text-gray-500 max-w-xs">Add records in the admin panel, or clear filters to see all rows.</p>
-        </div>
+        {% include "components/empty_state.html" with icon="fa-table" title="No trend records yet" description="Historical semester aggregates will appear here. The illness filter applies to this clinic-wide table." %}
         {% endif %}
       </section>
 
-      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5"
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[20rem]"
         aria-labelledby="live-stats-heading">
-        <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 mb-4">
-          <div class="min-w-0">
-            <h2 id="live-stats-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
-              <i class="fas fa-stethoscope text-primary-500"></i>Live diagnoses
-            </h2>
-            <p class="mt-1.5 inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-gray-600">
-              <i class="fas fa-calendar-days text-gray-400 text-[10px]" aria-hidden="true"></i>
-              {{ date_from|date:"M j, Y" }} – {{ date_to|date:"M j, Y" }}
-              {% if illness_filter %}
-              <span class="text-gray-400">·</span>
-              <span class="text-primary-700 font-medium">contains &ldquo;{{ illness_filter }}&rdquo;</span>
-              {% endif %}
-            </p>
-          </div>
-          <div class="flex items-center gap-2 shrink-0">
-            {% if live_cases_total %}
-            <span class="inline-flex items-center rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-semibold text-primary-700 tabular-nums">
-              {{ live_cases_total }} case{{ live_cases_total|pluralize }}
-            </span>
-            {% endif %}
-            <a href="{% analytics_home_url %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap">
-              Overview →
-            </a>
-          </div>
-        </div>
-
+        <h2 id="live-stats-heading" class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <i class="fas fa-stethoscope text-primary-500"></i>Live diagnoses
+          <span class="text-xs font-normal text-gray-400">({{ date_from|date:"M j" }} – {{ date_to|date:"M j, Y" }})</span>
+        </h2>
+        {% if live_scope_hint %}
+        <p class="text-xs text-gray-500 mb-4">{{ live_scope_hint }}</p>
+        {% endif %}
         {% if live_illness_stats %}
-        <ol class="space-y-3">
+        <ul class="space-y-2 flex-1 overflow-y-auto max-h-80">
           {% for item in live_illness_stats %}
-          <li>
-            <div class="flex items-baseline justify-between gap-2 mb-1">
-              <span class="text-sm font-medium text-gray-800 truncate min-w-0" title="{{ item.diagnosis }}">
-                <span class="text-gray-400 font-normal tabular-nums mr-1.5">{{ forloop.counter }}.</span>{{ item.diagnosis }}
-              </span>
-              <span class="text-sm font-bold text-gray-900 tabular-nums shrink-0">{{ item.count }}</span>
+          <li class="flex items-center gap-3 text-sm">
+            <span class="text-gray-700 truncate flex-1 min-w-0" title="{{ item.diagnosis }}">{{ item.diagnosis }}</span>
+            <div class="flex items-center gap-2 flex-shrink-0 w-28">
+              <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-primary-500 h-1.5 rounded-full" style="width: {% widthratio item.count live_illness_stats.0.count 100 %}%"></div>
+              </div>
+              <span class="font-semibold text-gray-600 text-xs tabular-nums w-6 text-right">{{ item.count }}</span>
             </div>
-            <div class="h-2 bg-gray-100 rounded-full overflow-hidden" role="presentation">
-              <div class="h-full rounded-full bg-gradient-to-r from-primary-400 to-primary-600"
-                style="width: {% if live_cases_total %}{% widthratio item.count live_cases_total 100 %}{% else %}0{% endif %}%"></div>
-            </div>
-            {% if live_cases_total %}
-            <p class="mt-0.5 text-[10px] text-gray-400 text-right tabular-nums">
-              {% widthratio item.count live_cases_total 100 %}% of period
-            </p>
-            {% endif %}
           </li>
           {% endfor %}
-        </ol>
+        </ul>
         {% else %}
-        <div class="flex flex-col items-center justify-center text-center py-8 px-4 rounded-lg border border-dashed border-gray-200 bg-gray-50/50">
-          <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-white border border-gray-200 text-gray-400 mb-2">
-            <i class="fas fa-notes-medical"></i>
-          </span>
-          <p class="text-sm font-medium text-gray-700">No diagnoses in this period{% if illness_filter %} matching &ldquo;{{ illness_filter }}&rdquo;{% endif %}</p>
-          <p class="mt-0.5 text-xs text-gray-500">Widen the date range or clear the illness filter.</p>
-        </div>
+        {% include "components/empty_state.html" with icon="fa-stethoscope" title="No diagnosis data" description="No medical or dental cases match this date range and academic filter." %}
         {% endif %}
       </section>
     </div>

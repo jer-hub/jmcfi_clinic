@@ -49,10 +49,12 @@ urlpatterns = [
     # Patient Charts (class-based views for list/detail/edit)
     path('patient-chart/', PatientChartListView.as_view(), name='patient_chart_list'),
     path('patient-chart/new/', views.create_patient_chart, name='create_patient_chart'),
+    path('patient-chart/invite-guest/', views.invite_guest_patient_chart, name='invite_guest_patient_chart'),
     path('patient-chart/<int:pk>/', PatientChartDetailView.as_view(), name='patient_chart_detail'),
     path('patient-chart/<int:pk>/edit/', PatientChartEditView.as_view(), name='edit_patient_chart'),
     path('patient-chart/<int:pk>/review/', views.review_patient_chart, name='review_patient_chart'),
     path('patient-chart/<int:pk>/delete/', views.delete_patient_chart, name='delete_patient_chart'),
+    path('patient-chart/<int:pk>/resend-guest-link/', views.resend_guest_patient_chart_link, name='resend_guest_patient_chart_link'),
     path('patient-chart/<int:pk>/export/docx/', views.export_patient_chart_docx, name='export_patient_chart_docx'),
     path('patient-chart/<int:pk>/entry/add/', views.add_chart_entry, name='add_chart_entry'),
     path('patient-chart/<int:pk>/entry/<int:entry_id>/update/', views.update_chart_entry, name='update_chart_entry'),

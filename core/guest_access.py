@@ -92,6 +92,8 @@ def guest_url_name_for_purpose(purpose: str) -> str:
         return 'core:guest_dental_intake'
     if purpose == GuestAccessToken.Purpose.DENTAL_RECORD:
         return 'core:guest_dental_record'
+    if purpose == GuestAccessToken.Purpose.PATIENT_CHART:
+        return 'core:guest_patient_chart'
     raise ValueError(f'Unknown guest purpose: {purpose}')
 
 

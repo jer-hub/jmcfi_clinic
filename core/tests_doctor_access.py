@@ -92,6 +92,24 @@ class DoctorAccessUrlTests(TestCase):
         denied_med = self.client.get(reverse('medical_records:medical_records'), follow=True)
         self.assertContains(denied_med, 'Not enabled for your account')
 
+    def test_health_profile_forms_grant_allows_create_and_invite(self):
+        profile = self.doctor.staff_profile
+        profile.allowed_clinical_modules = [MODULE_HEALTH_PROFILE_FORMS]
+        profile.save(update_fields=['allowed_clinical_modules'])
+
+        create = self.client.get(reverse('health_forms_services:manual_entry'))
+        self.assertEqual(create.status_code, 200)
+        self.assertNotContains(create, 'Not enabled for your account')
+
+        invite = self.client.get(reverse('health_forms_services:invite_guest_health_profile'))
+        self.assertEqual(invite.status_code, 200)
+        self.assertNotContains(invite, 'Not enabled for your account')
+
+        forms_list = self.client.get(reverse('health_forms_services:forms_list'))
+        self.assertEqual(forms_list.status_code, 200)
+        self.assertContains(forms_list, 'Invite Guest')
+        self.assertContains(forms_list, 'New Health Form')
+
     def test_nav_context_empty_when_no_grants(self):
         request = self.client.get(reverse('core:dashboard')).wsgi_request
         request.user = self.doctor

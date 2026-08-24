@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block title %}Generate Compliance Report{% endblock %}
 
 {% block content %}
@@ -39,6 +40,57 @@
           </div>
         </div>
 
+        <script>
+        window.__jmcfiAnalyticsFilterCatalog = {
+          config: {{ cascade_config_json|safe }},
+          coursesByCollege: {{ course_options_by_college_json|safe }},
+          yearLevelsByCollege: {{ year_level_options_by_college_json|safe }},
+        };
+        </script>
+        <div class="border-t border-gray-100 pt-5 mb-6"
+             x-data="academicCascadeFields()">
+          <p class="text-sm font-semibold text-gray-900 mb-3">Optional patient segment filters</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="form-group">
+              <label for="id_department" class="block text-sm font-semibold text-gray-700 mb-1.5">{{ form.department.label }}</label>
+              <select id="id_department"
+                      name="department"
+                      x-ref="departmentSelect"
+                      @change="onDepartmentChange()"
+                      class="form-select w-full">
+                <option value="">All departments</option>
+                {% for name in college_options %}
+                <option value="{{ name }}"{% if form.department.value == name %} selected{% endif %}>{{ name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="id_course" class="block text-sm font-semibold text-gray-700 mb-1.5">{{ form.course.label }}</label>
+              <select id="id_course"
+                      name="course"
+                      x-ref="courseSelect"
+                      @change="onCourseChange()"
+                      :disabled="!department"
+                      class="form-select w-full disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                <option value="">{% if form.department.value %}All programs{% else %}Select college first{% endif %}</option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500" x-show="!department" x-cloak>Pick a college to filter programs</p>
+            </div>
+            <div class="form-group">
+              <label for="id_year_level" class="block text-sm font-semibold text-gray-700 mb-1.5">{{ form.year_level.label }}</label>
+              <select id="id_year_level"
+                      name="year_level"
+                      x-ref="yearLevelSelect"
+                      @change="onYearLevelChange()"
+                      :disabled="!department"
+                      class="form-select w-full disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+                <option value="">{% if form.department.value %}All year levels{% else %}Select college first{% endif %}</option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500" x-show="!department" x-cloak>Pick a college to filter year levels</p>
+            </div>
+          </div>
+        </div>
+
         <div class="flex justify-end gap-3">
           <a href="{% url 'analytics:compliance_reports' %}" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
             <i class="fas fa-xmark"></i>Cancel
@@ -50,4 +102,9 @@
       </form>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script src="{% static 'js/analytics_filter_bar.js' %}"></script>
 {% endblock %}

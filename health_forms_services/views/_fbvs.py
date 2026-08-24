@@ -37,6 +37,7 @@ from ..forms import (
     DentalServicesPersonalInfoForm,
     DentalServicesReviewForm,
     GuestHealthFormInviteForm,
+    GuestPatientChartInviteForm,
     HealthFormReviewForm,
     HealthProfileClinicalSummaryForm,
     HealthProfileDiagnosticTestsForm,
@@ -1226,6 +1227,119 @@ def create_patient_chart(request):
         'personal_form': form,
         **_patient_picker_create_context(request, 'patient_chart', selected_patient),
     })
+
+
+@login_required
+@role_required('staff', 'doctor')
+def invite_guest_patient_chart(request):
+    """Invite a guest by name + contact email to complete a patient chart online."""
+    if request.method == 'POST':
+        form = GuestPatientChartInviteForm(request.POST)
+        if form.is_valid():
+            first_name = form.cleaned_data['first_name'].strip()
+            last_name = form.cleaned_data['last_name'].strip()
+            contact_email = form.cleaned_data['contact_email']
+            mobile = (form.cleaned_data.get('mobile_number') or '').strip() or None
+
+            guest, _created = get_or_create_guest_for_invite(
+                first_name=first_name,
+                last_name=last_name,
+                contact_email=contact_email,
+                phone=mobile,
+            )
+
+            chart = PatientChart(
+                user=guest,
+                status=PatientChart.Status.INCOMPLETE,
+                designation=PatientChart.Designation.GUEST,
+                first_name=first_name,
+                last_name=last_name,
+                email_address=contact_email,
+                contact_number=mobile or '',
+            )
+            chart.save()
+
+            from core.guest_emails import email_guest_patient_chart_pending
+            from core.guest_auth import resolve_patient_contact_email
+            from core.notification_delivery import format_email_send_error
+
+            emailed = False
+            email_error = ''
+            contact = resolve_patient_contact_email(guest)
+            try:
+                emailed = email_guest_patient_chart_pending(
+                    request, chart, created_by=request.user
+                )
+            except Exception as email_exc:
+                email_error = format_email_send_error(email_exc)
+                emailed = False
+
+            if not contact:
+                messages.warning(
+                    request,
+                    'Draft created, but this guest has no contact email — they were not emailed.',
+                )
+            elif emailed:
+                messages.success(request, f'Patient-chart link emailed to {contact}.')
+            else:
+                detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+                messages.warning(
+                    request,
+                    f'Draft created, but the email was not sent ({detail}).',
+                )
+
+            messages.success(
+                request,
+                'Guest patient chart draft created. They can complete personal details online.',
+            )
+            return redirect('health_forms_services:patient_chart_detail', pk=chart.pk)
+    else:
+        form = GuestPatientChartInviteForm()
+
+    return render(request, 'health_forms_services/invite_guest_patient_chart.html', {
+        'form': form,
+    })
+
+
+@login_required
+@role_required('staff', 'doctor')
+@require_POST
+def resend_guest_patient_chart_link(request, pk):
+    """Re-issue magic link email for an incomplete guest patient chart draft."""
+    chart = get_form_or_404(
+        PatientChart, pk, request.user, select_related_fields=['user', 'user__patient_profile']
+    )
+    if not is_guest_user(chart.user):
+        messages.error(request, 'Resend link is only available for guest patients.')
+        return redirect('health_forms_services:patient_chart_detail', pk=pk)
+    if chart.status != PatientChart.Status.INCOMPLETE:
+        messages.error(request, 'Resend link is only available while the chart is still a draft.')
+        return redirect('health_forms_services:patient_chart_detail', pk=pk)
+
+    from core.guest_emails import email_guest_patient_chart_pending
+    from core.guest_auth import resolve_patient_contact_email
+    from core.notification_delivery import format_email_send_error
+
+    contact = resolve_patient_contact_email(chart.user)
+    emailed = False
+    email_error = ''
+    try:
+        emailed = email_guest_patient_chart_pending(
+            request, chart, created_by=request.user
+        )
+    except Exception as email_exc:
+        email_error = format_email_send_error(email_exc)
+        emailed = False
+
+    if not contact:
+        messages.warning(request, 'This guest has no contact email — link was not sent.')
+    elif emailed:
+        messages.success(request, f'Patient-chart link emailed to {contact}.')
+    else:
+        detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+        messages.warning(request, f'Email was not sent ({detail}).')
+
+    return redirect('health_forms_services:patient_chart_detail', pk=pk)
 
 
 @login_required

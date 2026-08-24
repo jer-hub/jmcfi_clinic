@@ -451,7 +451,14 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             'place_of_birth': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'City/Municipality, Province'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date'}),
             'citizenship': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Filipino'}),
-            'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
+            'age': forms.NumberInput(attrs={
+                'class': 'form-input bg-gray-50 text-gray-700',
+                'placeholder': '18',
+                'min': '0',
+                'max': '150',
+                'readonly': True,
+                'title': 'Age is calculated from Date of Birth',
+            }),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'email_address': forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'juan@example.com'}),
             'mobile_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
@@ -492,12 +499,17 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
 
         # Mark essential identifiers as required
         required_fields = [
-            'last_name', 'first_name', 'date_of_birth', 'gender',
-            'designation', 'department_college_office', 'mobile_number', 'email_address'
+            'last_name', 'first_name', 'date_of_birth', 'place_of_birth',
+            'age', 'gender', 'civil_status', 'religion', 'citizenship',
+            'permanent_address', 'zip_code', 'current_address',
+            'designation', 'department_college_office', 'mobile_number', 'email_address',
+            'guardian_name', 'guardian_contact',
         ]
         for name in required_fields:
             if name in self.fields:
                 self.fields[name].required = True
+                attrs = {**self.fields[name].widget.attrs, 'required': True}
+                self.fields[name].widget.attrs = attrs
 
         _configure_badge_phone_fields(self)
 
@@ -556,6 +568,9 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
             year_field='year_level',
         )
         self._init_is_employee_field()
+
+        if 'age' in self.fields:
+            self.fields['age'].help_text = 'Calculated automatically from Date of Birth.'
 
         if readonly:
             for field in self.fields.values():
@@ -651,6 +666,13 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        from core.utils import age_from_date_of_birth
+
+        dob = cleaned.get('date_of_birth')
+        if dob and 'age' in self.fields:
+            cleaned['age'] = age_from_date_of_birth(dob)
+            self._errors.pop('age', None)
+
         designation = (cleaned.get('designation') or '').strip().lower()
         if designation == GUEST_DESIGNATION_VALUE:
             for field_name in GUEST_INSTITUTIONAL_FIELDS:
@@ -695,7 +717,7 @@ class HealthProfilePersonalInfoForm(forms.ModelForm):
         return clean_badge_ph_number(self.cleaned_data.get('telephone_number'), required=False)
 
     def clean_guardian_contact(self):
-        return clean_badge_ph_number(self.cleaned_data.get('guardian_contact'), required=False)
+        return clean_badge_ph_number(self.cleaned_data.get('guardian_contact'), required=True)
 
 
 class HealthProfileMedicalHistoryForm(forms.ModelForm):
@@ -1067,7 +1089,14 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
             'last_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Dela Cruz'}),
             'first_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Juan'}),
             'middle_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Santos'}),
-            'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
+            'age': forms.NumberInput(attrs={
+                'class': 'form-input bg-gray-50 text-gray-700',
+                'placeholder': '18',
+                'min': '0',
+                'max': '150',
+                'readonly': True,
+                'title': 'Age is calculated from Date of Birth',
+            }),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
             'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'House/Unit No., Street, Barangay, City/Municipality, Province'}),
@@ -1092,6 +1121,8 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
         for name in required_fields:
             if name in self.fields:
                 self.fields[name].required = True
+        if 'age' in self.fields:
+            self.fields['age'].help_text = 'Calculated automatically from Date of Birth.'
         _configure_badge_phone_fields(self)
         if 'designation' in self.fields:
             self.fields['designation'].choices = designation_choices_with_guest(
@@ -1147,6 +1178,12 @@ class DentalHealthPersonalInfoForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
+        from core.utils import age_from_date_of_birth
+
+        dob = cleaned.get('date_of_birth')
+        if dob and 'age' in self.fields:
+            cleaned['age'] = age_from_date_of_birth(dob)
+            self._errors.pop('age', None)
         if (cleaned.get('designation') or '').strip().lower() == GUEST_DESIGNATION_VALUE:
             cleaned['department_college_office'] = ''
         return cleaned
@@ -1428,8 +1465,11 @@ PATIENT_CHART_PERSONAL_SECTIONS: tuple[dict[str, object], ...] = (
         'icon': 'fa-user',
         'icon_bg': 'bg-primary-50',
         'icon_color': 'text-primary-600',
-        'description': 'Legal name, age, gender, and civil status (F-HSS-20-0002).',
-        'fields': ('last_name', 'first_name', 'middle_name', 'age', 'gender', 'civil_status'),
+        'description': 'Legal name and demographic details (F-HSS-20-0002).',
+        'fields': (
+            'last_name', 'first_name', 'middle_name',
+            'age', 'gender', 'civil_status', 'religion', 'citizenship',
+        ),
     },
     {
         'key': 'address_birth',
@@ -1437,8 +1477,11 @@ PATIENT_CHART_PERSONAL_SECTIONS: tuple[dict[str, object], ...] = (
         'icon': 'fa-location-dot',
         'icon_bg': 'bg-amber-50',
         'icon_color': 'text-amber-600',
-        'description': 'Residential address, date of birth, and place of birth.',
-        'fields': ('address', 'date_of_birth', 'place_of_birth'),
+        'description': 'Residence, date of birth, and place of birth.',
+        'fields': (
+            'address', 'zip_code', 'current_address',
+            'date_of_birth', 'place_of_birth',
+        ),
     },
     {
         'label': 'Contact Information',
@@ -1474,8 +1517,9 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
         model = PatientChart
         fields = [
             'last_name', 'first_name', 'middle_name',
-            'address', 'date_of_birth', 'place_of_birth',
-            'age', 'gender', 'civil_status',
+            'address', 'zip_code', 'current_address',
+            'date_of_birth', 'place_of_birth',
+            'age', 'gender', 'civil_status', 'religion', 'citizenship',
             'email_address', 'contact_number', 'telephone_number',
             'designation', 'department_college_office',
             'guardian_name', 'guardian_contact',
@@ -1489,11 +1533,26 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
                 'rows': 3,
                 'placeholder': 'House/Unit No., Street, Barangay, City/Municipality, Province',
             }),
+            'zip_code': forms.TextInput(attrs={'class': 'form-input', 'placeholder': '1000'}),
+            'current_address': forms.Textarea(attrs={
+                'class': 'form-textarea w-full',
+                'rows': 3,
+                'placeholder': 'Same as permanent or current residence',
+            }),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date', 'placeholder': 'mm/dd/yyyy'}),
             'place_of_birth': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'City/Municipality, Province'}),
-            'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
+            'age': forms.NumberInput(attrs={
+                'class': 'form-input bg-gray-50 text-gray-700',
+                'placeholder': '18',
+                'min': '0',
+                'max': '150',
+                'readonly': True,
+                'title': 'Age is calculated from Date of Birth',
+            }),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'civil_status': forms.Select(attrs={'class': 'form-select'}),
+            'religion': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g., Roman Catholic'}),
+            'citizenship': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Filipino'}),
             'email_address': forms.EmailInput(attrs={'class': 'form-input', 'placeholder': 'juan@example.com'}),
             'contact_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
             'telephone_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
@@ -1511,12 +1570,16 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
             'last_name': 'Last Name',
             'first_name': 'First Name',
             'middle_name': 'Middle Name',
-            'address': 'Address',
+            'address': 'Permanent Address',
+            'zip_code': 'Zip Code',
+            'current_address': 'Current Address',
             'date_of_birth': 'Date of Birth',
             'place_of_birth': 'Place of Birth',
             'age': 'Age',
             'gender': 'Gender',
             'civil_status': 'Civil Status',
+            'religion': 'Religion',
+            'citizenship': 'Citizenship',
             'email_address': 'Email Address',
             'contact_number': 'Contact No.',
             'telephone_number': 'Telephone No.',
@@ -1528,32 +1591,48 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
         for name, label in label_map.items():
             if name in self.fields:
                 self.fields[name].label = label
-        _configure_badge_phone_fields(self)
         field_help = {
             'last_name': 'As it appears on official records or school ID.',
             'first_name': 'Given name as it appears on official records.',
             'middle_name': 'Optional — leave blank if not applicable.',
-            'age': 'Patient age in years.',
+            'age': 'Calculated automatically from Date of Birth.',
             'gender': 'Select the patient’s gender.',
             'civil_status': 'Select the patient’s civil status.',
+            'religion': 'Religious affiliation.',
+            'citizenship': 'Citizenship as it appears on official records.',
             'address': 'Include house or unit number, street, barangay, city or municipality, and province.',
+            'zip_code': 'Postal / ZIP code for the permanent address.',
+            'current_address': 'Where the patient currently resides.',
             'date_of_birth': 'As it appears on official records or school ID.',
             'place_of_birth': 'City or municipality and province where the patient was born.',
         }
         for name, help_text in field_help.items():
             if name in self.fields:
                 self.fields[name].help_text = help_text
+        required_fields = (
+            'age', 'gender', 'civil_status', 'religion', 'citizenship',
+            'address', 'zip_code', 'current_address',
+            'date_of_birth', 'place_of_birth',
+            'email_address', 'contact_number',
+            'guardian_name', 'guardian_contact',
+        )
+        for name in required_fields:
+            if name in self.fields:
+                self.fields[name].required = True
+                attrs = {**self.fields[name].widget.attrs, 'required': True}
+                self.fields[name].widget.attrs = attrs
+        _configure_badge_phone_fields(self)
         if 'gender' in self.fields:
             gender_choices = PatientChart.Gender.choices
             self.fields['gender'].widget = forms.Select(
                 choices=[('', 'Select gender'), *gender_choices],
-                attrs={'class': 'form-select'},
+                attrs={'class': 'form-select', 'required': True},
             )
         if 'civil_status' in self.fields:
             civil_choices = PatientChart.CivilStatus.choices
             self.fields['civil_status'].widget = forms.Select(
                 choices=[('', 'Select civil status'), *civil_choices],
-                attrs={'class': 'form-select'},
+                attrs={'class': 'form-select', 'required': True},
             )
         if 'designation' in self.fields:
             choices = designation_choices_with_guest(PatientChart.Designation.choices)
@@ -1607,19 +1686,25 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
         return sections
 
     def clean(self):
+        from core.utils import age_from_date_of_birth
+
         cleaned = super().clean()
+        dob = cleaned.get('date_of_birth')
+        if dob and 'age' in self.fields:
+            cleaned['age'] = age_from_date_of_birth(dob)
+            self._errors.pop('age', None)
         if (cleaned.get('designation') or '').strip().lower() == GUEST_DESIGNATION_VALUE:
             cleaned['department_college_office'] = ''
         return cleaned
 
     def clean_contact_number(self):
-        return clean_badge_ph_number(self.cleaned_data.get('contact_number'), required=False)
+        return clean_badge_ph_number(self.cleaned_data.get('contact_number'), required=True)
 
     def clean_telephone_number(self):
         return clean_badge_ph_number(self.cleaned_data.get('telephone_number'), required=False)
 
     def clean_guardian_contact(self):
-        return clean_badge_ph_number(self.cleaned_data.get('guardian_contact'), required=False)
+        return clean_badge_ph_number(self.cleaned_data.get('guardian_contact'), required=True)
 
 
 class PatientChartEntryForm(forms.ModelForm):
@@ -1895,7 +1980,14 @@ class DentalServicesPersonalInfoForm(forms.ModelForm):
             'first_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Juan'}),
             'middle_name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'Santos'}),
             'address': forms.Textarea(attrs={'class': 'form-textarea', 'rows': 2, 'placeholder': 'House/Unit No., Street, Barangay, City/Municipality, Province'}),
-            'age': forms.NumberInput(attrs={'class': 'form-input', 'placeholder': '18'}),
+            'age': forms.NumberInput(attrs={
+                'class': 'form-input bg-gray-50 text-gray-700',
+                'placeholder': '18',
+                'min': '0',
+                'max': '150',
+                'readonly': True,
+                'title': 'Age is calculated from Date of Birth',
+            }),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'date_of_birth': forms.DateInput(attrs={'class': 'form-input', 'type': 'date', 'placeholder': 'mm/dd/yyyy'}),
             'contact_number': forms.TextInput(attrs=PHONE_BADGE_WIDGET_ATTRS),
@@ -1910,6 +2002,8 @@ class DentalServicesPersonalInfoForm(forms.ModelForm):
         for name in ['last_name', 'first_name']:
             if name in self.fields:
                 self.fields[name].required = True
+        if 'age' in self.fields:
+            self.fields['age'].help_text = 'Calculated automatically from Date of Birth.'
         label_map = {
             'last_name': 'Last name',
             'first_name': 'First name',
@@ -1927,6 +2021,16 @@ class DentalServicesPersonalInfoForm(forms.ModelForm):
         _configure_badge_phone_fields(self)
         _apply_patient_profile_academic_initials(self)
         _apply_academic_select_widgets(self, department_field='department')
+
+    def clean(self):
+        cleaned = super().clean()
+        from core.utils import age_from_date_of_birth
+
+        dob = cleaned.get('date_of_birth')
+        if dob and 'age' in self.fields:
+            cleaned['age'] = age_from_date_of_birth(dob)
+            self._errors.pop('age', None)
+        return cleaned
 
     def clean_contact_number(self):
         return clean_badge_ph_number(self.cleaned_data.get('contact_number'), required=False)
@@ -2392,5 +2496,9 @@ class GuestHealthFormInviteForm(forms.Form):
 
     def clean_mobile_number(self):
         return clean_badge_ph_number(self.cleaned_data.get('mobile_number'), required=False)
+
+
+class GuestPatientChartInviteForm(GuestHealthFormInviteForm):
+    """Reuse health-form invite fields for patient chart guest invites."""
 
 

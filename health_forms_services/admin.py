@@ -250,8 +250,9 @@ class PatientChartAdmin(BlockAdminRoleMixin, admin.ModelAdmin):
         ('Personal Information', {
             'fields': (
                 'last_name', 'first_name', 'middle_name',
-                'address', 'date_of_birth', 'place_of_birth',
-                'age', 'gender', 'civil_status',
+                'address', 'zip_code', 'current_address',
+                'date_of_birth', 'place_of_birth',
+                'age', 'gender', 'civil_status', 'religion', 'citizenship',
                 'email_address', 'contact_number', 'telephone_number',
                 'designation', 'department_college_office',
             )

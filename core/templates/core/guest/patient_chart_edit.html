@@ -1,0 +1,84 @@
+{% extends 'core/guest/base_guest.html' %}
+{% load static %}
+
+{% block title %}Patient chart - JMCFI Clinic{% endblock %}
+{% block header_width %}max-w-5xl{% endblock %}
+{% block main_width %}max-w-5xl{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <div class="flex items-start gap-3">
+    <span class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+      <i class="fas fa-clipboard-user" aria-hidden="true"></i>
+    </span>
+    <div class="min-w-0">
+      <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Complete your patient chart</h1>
+      <p class="mt-1 text-sm text-gray-500">
+        Hi {{ patient.get_full_name|default:"Patient" }} — fill in your personal details, then submit for the clinic.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden mb-4">
+  <div class="p-4 sm:p-6">
+    <form method="post" class="space-y-6" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors or form.errors %}
+      <div class="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg flex items-start gap-3" role="alert">
+        <svg class="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+        </svg>
+        <div>
+          <p class="text-sm font-medium text-red-800">Please correct the highlighted fields below.</p>
+          {% if form.non_field_errors %}
+          <ul class="mt-1.5 text-sm text-red-700 list-disc list-inside space-y-0.5">
+            {% for error in form.non_field_errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="mb-2 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+        <i class="fas fa-circle-info text-amber-500 mt-0.5 flex-shrink-0" aria-hidden="true"></i>
+        <div class="text-sm text-amber-800">
+          <p class="font-semibold">Please fill in your personal information.</p>
+          <p class="mt-1">
+            Clinic staff will add consultation findings and doctor&apos;s orders later.
+            <strong>Once submitted, you will not be able to edit this form.</strong>
+          </p>
+        </div>
+      </div>
+
+      {% include 'health_forms_services/partials/_section_groups_tab.html' with sections=form.personal_info_sections %}
+
+      <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-gray-100">
+        <button type="submit"
+                name="action"
+                value="save"
+                class="inline-flex justify-center items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+          <i class="fas fa-floppy-disk" aria-hidden="true"></i>
+          Save draft
+        </button>
+        <button type="submit"
+                name="action"
+                value="submit"
+                class="inline-flex justify-center items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700">
+          <i class="fas fa-paper-plane" aria-hidden="true"></i>
+          Submit for clinic
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script src="{% static 'js/age-from-dob.js' %}?v=1"></script>
+<script src="{% static 'js/phone-input.js' %}"></script>
+{% endblock %}

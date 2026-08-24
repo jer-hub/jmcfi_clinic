@@ -17,8 +17,9 @@ from appointments.models import Appointment
 from health_forms_services.forms import (
     HealthProfileMedicalHistoryForm,
     HealthProfilePersonalInfoForm,
+    PatientChartPersonalInfoForm,
 )
-from health_forms_services.models import HealthProfileForm
+from health_forms_services.models import HealthProfileForm, PatientChart
 from health_forms_services.services import PATIENT_HISTORY_SECTIONS, validate_submit_for_review
 
 from .guest_access import mark_guest_token_used, revoke_guest_token, validate_guest_token
@@ -209,11 +210,19 @@ def guest_health_form(request, token):
     active_section = request.GET.get('section') or request.POST.get('section') or 'personal'
     if active_section not in PATIENT_HISTORY_SECTIONS:
         active_section = 'personal'
+    tab_keys = [tab['key'] for tab in tabs]
+    try:
+        section_index = tab_keys.index(active_section)
+    except ValueError:
+        section_index = 0
+        active_section = tab_keys[0]
+    next_section = tab_keys[section_index + 1] if section_index + 1 < len(tab_keys) else None
+    is_last_section = next_section is None
 
     guest_path = reverse('core:guest_health_form', kwargs={'token': token})
 
     if request.method == 'POST':
-        action = (request.POST.get('action') or 'save').strip()
+        action = (request.POST.get('action') or 'next').strip()
         if action == 'cancel':
             health_form.status = HealthProfileForm.Status.CANCELLED
             health_form.save(update_fields=['status', 'updated_at'])
@@ -229,6 +238,52 @@ def guest_health_form(request, token):
                 },
             )
         if action == 'submit':
+            if not is_last_section:
+                messages.error(request, 'Please complete all sections before submitting.')
+                return redirect(f'{guest_path}?section={active_section}')
+            form_class = form_map.get(active_section)
+            if form_class:
+                section_form = _build_guest_section_form(
+                    form_class, instance=health_form, user=access.user, data=request.POST
+                )
+                if section_form.is_valid():
+                    saved = section_form.save(commit=False)
+                    saved.save()
+                    if active_section == 'personal':
+                        email = (section_form.cleaned_data.get('email_address') or '').strip()
+                        profile = getattr(access.user, 'patient_profile', None)
+                        if email and profile and profile.contact_email != email:
+                            profile.contact_email = email
+                            profile.save(update_fields=['contact_email'])
+                else:
+                    form_instances = {
+                        key: (
+                            section_form
+                            if key == active_section
+                            else _build_guest_section_form(
+                                form_class_inner, instance=health_form, user=access.user
+                            )
+                        )
+                        for key, form_class_inner in form_map.items()
+                    }
+                    return render(
+                        request,
+                        'core/guest/health_form_edit.html',
+                        {
+                            'health_form': health_form,
+                            'patient': access.user,
+                            'guest_token': token,
+                            'tabs': tabs,
+                            'active_section': active_section,
+                            'form_instances': form_instances,
+                            'active_form': section_form,
+                            'guest_path': guest_path,
+                            'can_submit_for_review': is_last_section,
+                            'can_cancel': True,
+                            'next_section': next_section,
+                            **patient_catalog_context(),
+                        },
+                    )
             errors = validate_submit_for_review(health_form)
             if errors:
                 for err in errors:
@@ -263,6 +318,9 @@ def guest_health_form(request, token):
                 if email and profile and profile.contact_email != email:
                     profile.contact_email = email
                     profile.save(update_fields=['contact_email'])
+            if action == 'next' and next_section:
+                messages.success(request, f'{active_section.capitalize()} section saved.')
+                return redirect(f'{guest_path}?section={next_section}')
             messages.success(request, f'{active_section.capitalize()} section saved.')
             return redirect(f'{guest_path}?section={active_section}')
         form_instances = {
@@ -292,8 +350,9 @@ def guest_health_form(request, token):
             'form_instances': form_instances,
             'active_form': section_form if request.method == 'POST' else form_instances[active_section],
             'guest_path': guest_path,
-            'can_submit_for_review': True,
+            'can_submit_for_review': is_last_section,
             'can_cancel': True,
+            'next_section': next_section,
             **patient_catalog_context(),
         },
     )
@@ -578,5 +637,125 @@ def guest_dental_intake(request, token):
             'guest_token': token,
             'form': form,
             'guest_path': guest_path,
+        },
+    )
+
+
+def _notify_clinic_guest_patient_chart_submitted(patient_chart, access_token):
+    """Ping creating clinician, or patient-charts module holders, when a guest submits."""
+    from core.doctor_access import MODULE_PATIENT_CHARTS, has_clinical_module
+
+    created_by = getattr(access_token, 'created_by', None)
+    patient_name = (
+        patient_chart.get_full_name()
+        or getattr(patient_chart.user, 'get_full_name', lambda: '')()
+        or 'Guest'
+    )
+    title = 'Guest patient chart submitted'
+    message = (
+        f'{patient_name} submitted personal details for a patient chart. '
+        'Consultation entries can now be added.'
+    )
+
+    if created_by and getattr(created_by, 'is_active', False) and not getattr(created_by, 'is_deleted', False):
+        notify_user(
+            created_by,
+            title=title,
+            message=message,
+            notification_type='general',
+            transaction_type='general_announcement',
+            related_id=patient_chart.pk,
+            send_email=False,
+        )
+        return
+
+    candidates = User.objects.filter(
+        role__in=('staff', 'doctor', 'admin'),
+        is_active=True,
+        is_deleted=False,
+    )
+    for recipient in candidates:
+        if has_clinical_module(recipient, MODULE_PATIENT_CHARTS):
+            notify_user(
+                recipient,
+                title=title,
+                message=message,
+                notification_type='general',
+                transaction_type='general_announcement',
+                related_id=patient_chart.pk,
+                send_email=False,
+            )
+
+
+@csrf_protect
+@require_http_methods(['GET', 'POST'])
+def guest_patient_chart(request, token):
+    """Magic-link guest patient chart demographics completion."""
+    access = _require_guest_token(token, GuestAccessToken.Purpose.PATIENT_CHART)
+    patient_chart = get_object_or_404(
+        PatientChart.objects.select_related('user', 'user__patient_profile'),
+        pk=access.object_id,
+        user_id=access.user_id,
+    )
+    if patient_chart.status != PatientChart.Status.INCOMPLETE:
+        return render(
+            request,
+            'core/guest/patient_chart_closed.html',
+            {
+                'patient_chart': patient_chart,
+                'patient': access.user,
+            },
+        )
+
+    mark_guest_token_used(access)
+    guest_path = reverse('core:guest_patient_chart', kwargs={'token': token})
+
+    if request.method == 'POST':
+        action = (request.POST.get('action') or 'save').strip()
+        form = PatientChartPersonalInfoForm(request.POST, instance=patient_chart)
+        if form.is_valid():
+            saved = form.save(commit=False)
+            saved.user = patient_chart.user
+            saved.designation = PatientChart.Designation.GUEST
+            saved.department_college_office = ''
+            if action == 'submit':
+                saved.status = PatientChart.Status.PENDING
+                saved.save()
+                _notify_clinic_guest_patient_chart_submitted(saved, access)
+                messages.success(
+                    request,
+                    'Your patient chart was submitted. The clinic will add consultation notes.',
+                )
+                return render(
+                    request,
+                    'core/guest/patient_chart_closed.html',
+                    {
+                        'patient_chart': saved,
+                        'patient': access.user,
+                        'just_submitted': True,
+                    },
+                )
+            saved.status = PatientChart.Status.INCOMPLETE
+            saved.save()
+            email = (form.cleaned_data.get('email_address') or '').strip()
+            profile = getattr(access.user, 'patient_profile', None)
+            if email and profile and profile.contact_email != email:
+                profile.contact_email = email
+                profile.save(update_fields=['contact_email'])
+            messages.success(request, 'Your details were saved. Submit when you are ready.')
+            return redirect(guest_path)
+    else:
+        form = PatientChartPersonalInfoForm(instance=patient_chart)
+
+    return render(
+        request,
+        'core/guest/patient_chart_edit.html',
+        {
+            'patient_chart': patient_chart,
+            'patient': access.user,
+            'guest_token': token,
+            'form': form,
+            'guest_path': guest_path,
+            **patient_catalog_context(),
         },
     )

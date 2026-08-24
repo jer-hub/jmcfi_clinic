@@ -68,6 +68,7 @@ urlpatterns = [
     path('guest/medical-record/<str:token>/', guest_views.guest_medical_record, name='guest_medical_record'),
     path('guest/dental-intake/<str:token>/', guest_views.guest_dental_intake, name='guest_dental_intake'),
     path('guest/dental-record/<str:token>/', guest_views.guest_dental_record, name='guest_dental_record'),
+    path('guest/patient-chart/<str:token>/', guest_views.guest_patient_chart, name='guest_patient_chart'),
 
     # System settings (admin)
     path('settings/', settings_views.settings_hub, name='settings_hub'),

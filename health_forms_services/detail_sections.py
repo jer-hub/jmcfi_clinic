@@ -20,10 +20,14 @@ BASE_PERSONAL_FIELD_LABELS = {
     'age': 'Age',
     'gender': 'Gender',
     'civil_status': 'Civil Status',
+    'religion': 'Religion',
+    'citizenship': 'Citizenship',
     'email_address': 'Email Address',
     'contact_number': 'Contact No.',
     'telephone_number': 'Telephone No.',
-    'address': 'Address',
+    'address': 'Permanent Address',
+    'zip_code': 'Zip Code',
+    'current_address': 'Current Address',
     'designation': 'Designation',
     'department_college_office': 'Department / College / Office',
     'guardian_name': 'Name of Guardian',
@@ -43,10 +47,14 @@ def base_personal_value_map(obj):
         'age': obj.age,
         'gender': obj.get_gender_display() if obj.gender else '',
         'civil_status': obj.get_civil_status_display() if obj.civil_status else '',
+        'religion': getattr(obj, 'religion', '') or '',
+        'citizenship': getattr(obj, 'citizenship', '') or '',
         'email_address': email,
         'contact_number': obj.contact_number,
         'telephone_number': obj.telephone_number,
         'address': obj.address,
+        'zip_code': getattr(obj, 'zip_code', '') or '',
+        'current_address': getattr(obj, 'current_address', '') or '',
         'designation': obj.get_designation_display() if obj.designation else '',
         'department_college_office': obj.department_college_office,
         'guardian_name': obj.guardian_name,
@@ -67,7 +75,7 @@ def build_personal_info_groups(
         'label': 'Name',
         'fields': [text_field('Full Name', obj.get_full_name(), span='full')],
     }]
-    full_width_fields = frozenset({'address'})
+    full_width_fields = frozenset({'address', 'current_address'})
 
     for spec in section_specs:
         if spec['label'] == 'Full Name':

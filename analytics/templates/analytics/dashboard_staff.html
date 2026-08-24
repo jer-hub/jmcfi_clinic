@@ -5,7 +5,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
     {% include 'analytics/_subnav.html' %}
 
-    {% include "analytics/_period_export_bar.html" with export_variant="staff" %}
+    {% include "analytics/_analytics_filter_bar.html" with export_variant="staff" %}
 
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
       {% include "components/stat_card.html" with label="Unique Patients" value=total_patients icon="fa-users" variant="primary" %}
@@ -14,25 +14,6 @@
     </div>
 
     {% include "analytics/_pharmacy_summary.html" %}
-
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-      <a href="{% url 'analytics:health_trends' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-primary-200 transition text-center">
-        <div class="bg-primary-50 text-primary-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center"><i class="fas fa-chart-line text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700">Health Trends</p>
-      </a>
-      <a href="{% url 'analytics:predictive_analytics' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-info-200 transition text-center">
-        <div class="bg-info-50 text-info-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center"><i class="fas fa-lightbulb text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700">Predictions</p>
-      </a>
-      <a href="{% url 'analytics:resource_utilization' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-success-200 transition text-center">
-        <div class="bg-success-50 text-success-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center"><i class="fas fa-chart-column text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700">Resources</p>
-      </a>
-      <a href="{% url 'analytics:population_health' %}" class="bg-white rounded-card border border-gray-200 shadow-sm p-4 hover:shadow-md hover:border-info-200 transition text-center">
-        <div class="bg-info-50 text-info-600 rounded-lg w-12 h-12 mx-auto mb-2 flex items-center justify-center"><i class="fas fa-people-group text-lg"></i></div>
-        <p class="text-sm font-medium text-gray-700">Population</p>
-      </a>
-    </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-start">
       <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5" aria-labelledby="trend-chart-heading">
@@ -44,7 +25,7 @@
           <canvas id="trendChart" role="img" aria-label="Appointment trend over time"></canvas>
         </div>
         {% else %}
-        <p class="text-sm text-gray-500 py-8 text-center">No appointment data for this period.</p>
+        {% include "components/empty_state.html" with icon="fa-chart-line" title="No appointment data" description="No appointments in this period." %}
         {% endif %}
       </section>
 

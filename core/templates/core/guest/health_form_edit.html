@@ -87,23 +87,23 @@
           {% endif %}
         </div>
         <div class="flex flex-wrap items-center gap-2 sm:justify-end">
-          {% if can_submit_for_review %}
+          {% if next_section %}
+          <button type="submit"
+                  name="action"
+                  value="next"
+                  class="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors">
+            Move to next tab
+            <i class="fas fa-arrow-right" aria-hidden="true"></i>
+          </button>
+          {% elif can_submit_for_review %}
           <button type="submit"
                   name="action"
                   value="submit"
-                  formnovalidate
-                  class="inline-flex items-center justify-center gap-2 px-3.5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
+                  class="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors">
             <i class="fas fa-paper-plane" aria-hidden="true"></i>
             Submit for clinic review
           </button>
           {% endif %}
-          <button type="submit"
-                  name="action"
-                  value="save"
-                  class="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 shadow-sm transition-colors">
-            <i class="fas fa-floppy-disk" aria-hidden="true"></i>
-            Save section
-          </button>
         </div>
       </div>
     </form>
@@ -133,4 +133,5 @@ function immunizationMedicalForm(initialFlags) {
 </script>
 <script src="{% static 'js/student-list-field.js' %}?v=2"></script>
 <script src="{% static 'js/phone-input.js' %}"></script>
+<script src="{% static 'js/age-from-dob.js' %}?v=1"></script>
 {% endblock %}

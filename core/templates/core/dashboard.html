@@ -14,7 +14,7 @@
   {% elif user.role == 'doctor' %}
     {% include 'core/dashboard_doctor.html' %}
   {% elif user.role == 'admin' %}
-    {% include 'core/dashboard_admin.html' %}
+    {% comment %}Admin home is analytics/dashboard_admin.html, rendered from core.views.dashboard.{% endcomment %}
   {% endif %}
 </div>
 {% endblock content %}

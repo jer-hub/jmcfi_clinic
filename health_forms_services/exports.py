@@ -509,9 +509,13 @@ def generate_patient_chart(chart):
         ("Age", chart.age),
         ("Gender", chart.get_gender_display() if chart.gender else ""),
         ("Civil Status", chart.get_civil_status_display() if chart.civil_status else ""),
+        ("Religion", chart.religion),
+        ("Citizenship", chart.citizenship),
     ], cols=3)
     _add_data_grid(doc, [
-        ("Address", chart.address),
+        ("Permanent Address", chart.address),
+        ("Zip Code", chart.zip_code),
+        ("Current Address", chart.current_address),
         ("Date of Birth", chart.date_of_birth),
         ("Place of Birth", chart.place_of_birth),
     ], cols=3)

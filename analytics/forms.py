@@ -1,27 +1,14 @@
 from django import forms
 
-from .models import FinancialRecord, ComplianceReport, HealthTrendRecord
+from core.academic_catalog import patient_catalog_context
+from core.models import YearLevelOption
+
+from .models import FinancialRecord, ComplianceReport
 
 
-def health_trend_term_choices():
-    """School-term options from stored trend records only."""
-    sem_labels = dict(HealthTrendRecord.SEMESTER_CHOICES)
-    pairs = HealthTrendRecord.objects.values_list('academic_year', 'semester').distinct()
-    return [
-        (
-            f'{academic_year}|{semester}',
-            f'{academic_year} · {sem_labels.get(semester, semester)}',
-        )
-        for academic_year, semester in sorted(pairs, reverse=True)
-    ]
-
-
-def split_health_trend_term(term_value):
-    """Return (academic_year, semester) from a combined term value, or ('', '')."""
-    if not term_value or '|' not in term_value:
-        return '', ''
-    academic_year, semester = term_value.split('|', 1)
-    return academic_year.strip(), semester.strip()
+def _year_level_choices():
+    names = YearLevelOption.objects.filter(is_active=True).values_list('name', flat=True).distinct()
+    return sorted(set(names))
 
 # Standard Tailwind widget classes matching the rest of the project
 INPUT_CSS = (
@@ -31,6 +18,7 @@ INPUT_CSS = (
 )
 SELECT_CSS = INPUT_CSS
 TEXTAREA_CSS = INPUT_CSS + ' resize-y'
+COMPACT_SELECT = 'form-select'
 
 
 class DateRangeFilterForm(forms.Form):
@@ -44,20 +32,24 @@ class DateRangeFilterForm(forms.Form):
     )
 
 
-class HealthTrendFilterForm(forms.Form):
-    term = forms.ChoiceField(
+class AcademicAnalyticsFilterForm(forms.Form):
+    department = forms.ChoiceField(
         required=False,
-        label='School term',
+        label='Department',
         choices=[],
-        widget=forms.Select(attrs={'class': 'form-input form-input--compact'}),
+        widget=forms.Select(attrs={'class': COMPACT_SELECT}),
     )
-    illness_category = forms.CharField(
+    course = forms.ChoiceField(
         required=False,
-        label='Illness category',
-        widget=forms.TextInput(attrs={
-            'class': 'form-input form-input--compact',
-            'placeholder': 'Filter diagnoses…',
-        }),
+        label='Program',
+        choices=[],
+        widget=forms.Select(attrs={'class': COMPACT_SELECT}),
+    )
+    year_level = forms.ChoiceField(
+        required=False,
+        label='Year level',
+        choices=[],
+        widget=forms.Select(attrs={'class': COMPACT_SELECT}),
     )
     date_from = forms.DateField(
         required=False,
@@ -77,16 +69,31 @@ class HealthTrendFilterForm(forms.Form):
     )
 
     def __init__(self, *args, **kwargs):
-        data = args[0] if args else None
-        if data is not None and not data.get('term'):
-            legacy_year = (data.get('academic_year') or '').strip()
-            legacy_sem = (data.get('semester') or '').strip()
-            if legacy_year and legacy_sem:
-                data = data.copy()
-                data['term'] = f'{legacy_year}|{legacy_sem}'
-                args = (data,) + args[1:]
         super().__init__(*args, **kwargs)
-        self.fields['term'].choices = [('', 'All terms')] + health_trend_term_choices()
+        catalog = patient_catalog_context()
+        dept_choices = [('', 'All departments')] + [
+            (name, name) for name in catalog['college_options']
+        ]
+        course_choices = [('', 'All programs')] + [
+            (name, name) for name in catalog['course_options']
+        ]
+        year_choices = [('', 'All year levels')] + [
+            (name, name) for name in _year_level_choices()
+        ]
+        self.fields['department'].choices = dept_choices
+        self.fields['course'].choices = course_choices
+        self.fields['year_level'].choices = year_choices
+
+
+class HealthTrendFilterForm(forms.Form):
+    illness_category = forms.CharField(
+        required=False,
+        label='Illness category',
+        widget=forms.TextInput(attrs={
+            'class': 'form-input',
+            'placeholder': 'Filter diagnoses…',
+        }),
+    )
 
 
 class FinancialRecordForm(forms.ModelForm):
@@ -108,17 +115,56 @@ class FinancialRecordForm(forms.ModelForm):
 
 
 class ComplianceReportForm(forms.ModelForm):
+    department = forms.ChoiceField(
+        required=False,
+        label='Department filter',
+        choices=[],
+        widget=forms.Select(attrs={'class': COMPACT_SELECT}),
+    )
+    course = forms.ChoiceField(
+        required=False,
+        label='Program filter',
+        choices=[],
+        widget=forms.Select(attrs={'class': COMPACT_SELECT}),
+    )
+    year_level = forms.ChoiceField(
+        required=False,
+        label='Year level filter',
+        choices=[],
+        widget=forms.Select(attrs={'class': COMPACT_SELECT}),
+    )
+
     class Meta:
         model = ComplianceReport
         fields = ['report_type', 'title', 'description', 'period_start', 'period_end', 'status']
         widgets = {
-            'report_type': forms.Select(attrs={'class': SELECT_CSS}),
+            'report_type': forms.Select(attrs={'class': COMPACT_SELECT}),
             'title': forms.TextInput(attrs={'class': INPUT_CSS}),
             'description': forms.Textarea(attrs={'class': TEXTAREA_CSS, 'rows': 3}),
             'period_start': forms.DateInput(attrs={'type': 'date', 'class': INPUT_CSS}),
             'period_end': forms.DateInput(attrs={'type': 'date', 'class': INPUT_CSS}),
-            'status': forms.Select(attrs={'class': SELECT_CSS}),
+            'status': forms.Select(attrs={'class': COMPACT_SELECT}),
         }
+
+    def clean(self):
+        cleaned = super().clean()
+        if not cleaned.get('department'):
+            cleaned['course'] = ''
+            cleaned['year_level'] = ''
+        return cleaned
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        catalog = patient_catalog_context()
+        self.fields['department'].choices = [('', 'All departments')] + [
+            (n, n) for n in catalog['college_options']
+        ]
+        self.fields['course'].choices = [('', 'All programs')] + [
+            (n, n) for n in catalog['course_options']
+        ]
+        self.fields['year_level'].choices = [('', 'All year levels')] + [
+            (n, n) for n in _year_level_choices()
+        ]
 
 
 class ExportForm(forms.Form):

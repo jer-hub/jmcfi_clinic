@@ -1,0 +1,45 @@
+{% comment %}
+  Compact windowed pagination for analytics pages.
+  Context:
+    page_obj – Django Page object (required)
+    query    – extra query fragment with leading & (pagination_query)
+    page_window – optional list of ints with None for ellipsis
+{% endcomment %}
+{% if page_obj.has_other_pages %}
+<nav class="flex items-center justify-center gap-1 mt-6 pt-4 border-t border-gray-100" aria-label="Pagination">
+  {% if page_obj.has_previous %}
+  <a href="?page={{ page_obj.previous_page_number }}{{ query|default:pagination_query|default:'' }}"
+    class="inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-primary-50 transition-colors"
+    aria-label="Previous page"><i class="fas fa-chevron-left text-xs"></i></a>
+  {% else %}
+  <span class="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed" aria-hidden="true">
+    <i class="fas fa-chevron-left text-xs"></i>
+  </span>
+  {% endif %}
+
+  <div class="flex items-center gap-1">
+    {% with window=page_window|default:page_obj.paginator.page_range %}
+    {% for num in window %}
+      {% if not num %}
+      <span class="px-1 text-xs text-gray-400">…</span>
+      {% elif num == page_obj.number %}
+      <span class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-semibold rounded-lg text-white bg-primary-600">{{ num }}</span>
+      {% else %}
+      <a href="?page={{ num }}{{ query|default:pagination_query|default:'' }}"
+        class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-primary-50 transition-colors">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% endwith %}
+  </div>
+
+  {% if page_obj.has_next %}
+  <a href="?page={{ page_obj.next_page_number }}{{ query|default:pagination_query|default:'' }}"
+    class="inline-flex items-center justify-center w-9 h-9 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-primary-50 transition-colors"
+    aria-label="Next page"><i class="fas fa-chevron-right text-xs"></i></a>
+  {% else %}
+  <span class="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed" aria-hidden="true">
+    <i class="fas fa-chevron-right text-xs"></i>
+  </span>
+  {% endif %}
+</nav>
+{% endif %}

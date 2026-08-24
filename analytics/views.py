@@ -23,8 +23,21 @@ from django.contrib.auth import get_user_model
 
 from core.decorators import role_required, admin_required
 from core.roles import PATIENT_ROLE_VALUES, is_patient_role
-from core.utils import paginate_queryset, parse_date, apply_date_filters
+from core.utils import paginate_queryset, parse_date
 
+from .academic_filters import (
+    get_academic_filters,
+    apply_academic_filters,
+    apply_dental_academic_filters,
+    academic_filter_query_string,
+    analytics_filter_context,
+    period_presets as _period_presets,
+    write_academic_filter_csv_rows,
+    filtered_clinical_counts,
+    academic_filters_active,
+    active_filter_labels,
+    page_window_numbers,
+)
 from .models import (
     HealthTrendRecord, PredictiveInsight, ResourceUtilization,
     ComplianceReport, FinancialRecord, ExportLog,
@@ -34,6 +47,11 @@ from .forms import (
     DateRangeFilterForm, ExportForm,
 )
 
+
+def _filters_from_request(request):
+    return get_academic_filters(request)
+
+
 User = get_user_model()
 
 
@@ -42,9 +60,10 @@ User = get_user_model()
 # =====================================================================
 
 def _get_date_range(request):
-    """Extract date_from / date_to from GET params with sensible defaults."""
-    date_from = parse_date(request.GET.get('date_from'))
-    date_to = parse_date(request.GET.get('date_to'))
+    """Extract date_from / date_to from GET/POST params with sensible defaults."""
+    params = request.POST if request.method == 'POST' and request.POST else request.GET
+    date_from = parse_date(params.get('date_from'))
+    date_to = parse_date(params.get('date_to'))
     if not date_to:
         date_to = timezone.now().date()
     if not date_from:
@@ -52,19 +71,8 @@ def _get_date_range(request):
     return date_from, date_to
 
 
-def _period_presets(date_from, date_to):
-    """Quick date-range shortcuts for analytics filter bars."""
-    today = timezone.localdate()
-    presets = []
-    for label, days in (('30 days', 30), ('90 days', 90), ('6 months', 180)):
-        preset_from = today - timedelta(days=days)
-        presets.append({
-            'label': label,
-            'date_from': preset_from,
-            'date_to': today,
-            'active': date_from == preset_from and date_to == today,
-        })
-    return presets
+def _period_presets_for_request(request, date_from, date_to):
+    return _period_presets(date_from, date_to, request)
 
 
 def _friendly_diagnosis_label(value):
@@ -135,15 +143,12 @@ def _student_visit_history(user, months=6):
     ]
 
 
-def _illness_stats(date_from, date_to, doctor=None, diagnosis_query=None):
-    """Aggregate diagnosis signals from medical records plus dental encounters.
-
-    Optional `doctor` scope limits results to records handled by that clinician.
-    Optional `diagnosis_query` filters medical records and ranked results (icontains).
-    """
+def _illness_stats(date_from, date_to, doctor=None, diagnosis_query=None, filters=None):
+    """Aggregate diagnosis signals from medical records plus dental encounters."""
     from medical_records.models import MedicalRecord
     from dental_records.models import DentalRecord
 
+    filters = filters or {}
     medical_qs = MedicalRecord.objects.filter(
         created_at__date__gte=date_from,
         created_at__date__lte=date_to,
@@ -160,6 +165,9 @@ def _illness_stats(date_from, date_to, doctor=None, diagnosis_query=None):
     if doctor is not None:
         medical_qs = medical_qs.filter(doctor=doctor)
         dental_qs = dental_qs.filter(examined_by=doctor)
+
+    medical_qs = apply_academic_filters(medical_qs, filters)
+    dental_qs = apply_dental_academic_filters(dental_qs, filters)
 
     aggregated = defaultdict(int)
     display_names = {}
@@ -188,32 +196,59 @@ def _illness_stats(date_from, date_to, doctor=None, diagnosis_query=None):
     return results
 
 
-def _appointment_volume(date_from, date_to):
+def _illness_source_counts(date_from, date_to, diagnosis_query=None, filters=None):
+    """Medical vs dental case counts matching live diagnosis filters."""
+    from medical_records.models import MedicalRecord
+    from dental_records.models import DentalRecord
+
+    filters = filters or {}
+    medical_qs = MedicalRecord.objects.filter(
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to,
+    ).exclude(diagnosis='')
+    dental_qs = DentalRecord.objects.filter(
+        date_of_examination__gte=date_from,
+        date_of_examination__lte=date_to,
+    )
+    if diagnosis_query:
+        medical_qs = medical_qs.filter(diagnosis__icontains=diagnosis_query)
+    medical_qs = apply_academic_filters(medical_qs, filters)
+    dental_qs = apply_dental_academic_filters(dental_qs, filters)
+    dental_count = dental_qs.count()
+    if diagnosis_query and 'dental' not in diagnosis_query.lower():
+        dental_count = 0
+    return medical_qs.count(), dental_count
+
+
+def _appointment_volume(date_from, date_to, filters=None):
     """Appointment counts grouped by date."""
     from appointments.models import Appointment
+    qs = Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
+    qs = apply_academic_filters(qs, filters or {})
     return list(
-        Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
-        .values(day=F('date'))
+        qs.values(day=F('date'))
         .annotate(count=Count('id'))
         .order_by('day')
     )
 
 
-def _appointment_by_type(date_from, date_to):
+def _appointment_by_type(date_from, date_to, filters=None):
     from appointments.models import Appointment
+    qs = Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
+    qs = apply_academic_filters(qs, filters or {})
     return list(
-        Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
-        .values('appointment_type')
+        qs.values('appointment_type')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
 
 
-def _appointment_by_hour(date_from, date_to, doctor=None):
+def _appointment_by_hour(date_from, date_to, doctor=None, filters=None):
     from appointments.models import Appointment
     qs = Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
     if doctor is not None:
         qs = qs.filter(doctor=doctor)
+    qs = apply_academic_filters(qs, filters or {})
     return list(
         qs.annotate(hour=ExtractHour('time'))
         .values('hour')
@@ -238,33 +273,53 @@ def _hourly_chart_series(hourly_rows):
     return series, peak if has_data else None, has_data
 
 
-def _appointment_by_weekday(date_from, date_to):
+def _appointment_by_weekday(date_from, date_to, filters=None):
     from appointments.models import Appointment
+    qs = Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
+    qs = apply_academic_filters(qs, filters or {})
     return list(
-        Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
-        .annotate(weekday=ExtractWeekDay('date'))
+        qs.annotate(weekday=ExtractWeekDay('date'))
         .values('weekday')
         .annotate(count=Count('id'))
         .order_by('weekday')
     )
 
 
-def _student_demographics():
-    """Demographics breakdown from StudentProfile."""
+def _student_demographics(filters=None):
+    """Demographics breakdown from PatientProfile."""
     from core.models import PatientProfile
+
+    profile_qs = PatientProfile.objects.all()
+    filters = filters or {}
+    if filters.get('department'):
+        profile_qs = profile_qs.filter(department=filters['department'])
+    if filters.get('course'):
+        profile_qs = profile_qs.filter(course=filters['course'])
+    if filters.get('year_level'):
+        profile_qs = profile_qs.filter(year_level=filters['year_level'])
+
     course = list(
-        PatientProfile.objects.exclude(course='').values('course')
+        profile_qs.exclude(course='').values('course')
         .annotate(count=Count('id')).order_by('-count')
     )
     year_level = list(
-        PatientProfile.objects.exclude(year_level='').values('year_level')
+        profile_qs.exclude(year_level='').values('year_level')
         .annotate(count=Count('id')).order_by('year_level')
     )
     gender = list(
-        PatientProfile.objects.exclude(gender='').values('gender')
+        profile_qs.exclude(gender='').values('gender')
         .annotate(count=Count('id')).order_by('-count')
     )
-    return {'course': course, 'year_level': year_level, 'gender': gender}
+    department = list(
+        profile_qs.exclude(department='').values('department')
+        .annotate(count=Count('id')).order_by('-count')
+    )
+    return {
+        'course': course,
+        'year_level': year_level,
+        'gender': gender,
+        'department': department,
+    }
 
 
 def _financial_summary(date_from, date_to):
@@ -313,14 +368,17 @@ def analytics_dashboard(request):
 def render_analytics_dashboard(request):
     """Render analytics hub (admin home is served at / via core.dashboard)."""
     date_from, date_to = _get_date_range(request)
+    filters = _filters_from_request(request)
     user = request.user
 
-    # Shared context
     context = {
         'date_from': date_from,
         'date_to': date_to,
         'filter_form': DateRangeFilterForm(initial={'date_from': date_from, 'date_to': date_to}),
     }
+    context.update(analytics_filter_context(request, date_from, date_to))
+    context['period_presets'] = _period_presets_for_request(request, date_from, date_to)
+    context['export_variant'] = 'admin' if user.role == 'admin' else 'staff'
 
     if is_patient_role(user.role):
         # Personal health summary
@@ -380,11 +438,14 @@ def render_analytics_dashboard(request):
         from appointments.models import Appointment
         from medical_records.models import MedicalRecord
 
-        my_appointments = Appointment.objects.filter(doctor=user, date__gte=date_from, date__lte=date_to)
-        hourly_series, hourly_peak, hourly_has_data = _hourly_chart_series(
-            _appointment_by_hour(date_from, date_to, doctor=user),
+        my_appointments = apply_academic_filters(
+            Appointment.objects.filter(doctor=user, date__gte=date_from, date__lte=date_to),
+            filters,
         )
-        top_diagnoses = _illness_stats(date_from, date_to, doctor=user)[:10]
+        hourly_series, hourly_peak, hourly_has_data = _hourly_chart_series(
+            _appointment_by_hour(date_from, date_to, doctor=user, filters=filters),
+        )
+        top_diagnoses = _illness_stats(date_from, date_to, doctor=user, filters=filters)[:10]
         context.update({
             'total_patients': my_appointments.values('patient').distinct().count(),
             'total_consultations': my_appointments.filter(status='completed').count(),
@@ -398,7 +459,6 @@ def render_analytics_dashboard(request):
             'hourly_distribution': hourly_series,
             'hourly_peak': hourly_peak,
             'hourly_has_data': hourly_has_data,
-            'period_presets': _period_presets(date_from, date_to),
         })
         if user.role == 'staff':
             from pharmacy.services.reports import build_pharmacy_analytics_summary
@@ -414,8 +474,16 @@ def render_analytics_dashboard(request):
 
         total_patients = User.objects.filter(role__in=PATIENT_ROLE_VALUES).count()
         total_staff = User.objects.filter(role__in=['staff', 'doctor']).count()
-        total_appointments = Appointment.objects.filter(date__gte=date_from, date__lte=date_to).count()
-        total_records = MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to).count()
+        total_appointments = apply_academic_filters(
+            Appointment.objects.filter(date__gte=date_from, date__lte=date_to),
+            filters,
+        ).count()
+        total_records = apply_academic_filters(
+            MedicalRecord.objects.filter(
+                created_at__date__gte=date_from, created_at__date__lte=date_to,
+            ),
+            filters,
+        ).count()
         avg_feedback = Feedback.objects.aggregate(avg=Avg('rating'))['avg'] or 0
 
         from appointments.calendar_service import build_admin_calendar_context
@@ -440,12 +508,12 @@ def render_analytics_dashboard(request):
             'total_appointments': total_appointments,
             'total_records': total_records,
             'avg_feedback': round(avg_feedback, 1),
-            'illness_stats': _illness_stats(date_from, date_to)[:15],
-            'appointment_volume': _appointment_volume(date_from, date_to),
-            'appointment_by_type': _appointment_by_type(date_from, date_to),
-            'appointment_by_hour': _appointment_by_hour(date_from, date_to),
-            'appointment_by_weekday': _appointment_by_weekday(date_from, date_to),
-            'demographics': _student_demographics(),
+            'illness_stats': _illness_stats(date_from, date_to, filters=filters)[:15],
+            'appointment_volume': _appointment_volume(date_from, date_to, filters=filters),
+            'appointment_by_type': _appointment_by_type(date_from, date_to, filters=filters),
+            'appointment_by_hour': _appointment_by_hour(date_from, date_to, filters=filters),
+            'appointment_by_weekday': _appointment_by_weekday(date_from, date_to, filters=filters),
+            'demographics': _student_demographics(filters=filters),
             'financial_summary': _financial_summary(date_from, date_to),
             'pharmacy_analytics': build_pharmacy_analytics_summary(date_from, date_to),
         })
@@ -455,7 +523,7 @@ def render_analytics_dashboard(request):
             selected_date=cal_selected,
             user=user,
         ))
-        context['period_presets'] = _period_presets(date_from, date_to)
+        context['period_presets'] = _period_presets_for_request(request, date_from, date_to)
         return render(request, 'analytics/dashboard_admin.html', context)
 
 
@@ -465,18 +533,8 @@ def render_analytics_dashboard(request):
 
 def _filtered_health_trend_records(request):
     """Return HealthTrendRecord queryset matching health-trends page filters."""
-    from .forms import split_health_trend_term
-
     trends = HealthTrendRecord.objects.all()
-    if not request.GET:
-        return trends
     illness_q = (request.GET.get('illness_category') or '').strip()
-    term_val = (request.GET.get('term') or '').strip()
-    academic_year, semester = split_health_trend_term(term_val)
-    if academic_year:
-        trends = trends.filter(academic_year=academic_year)
-    if semester:
-        trends = trends.filter(semester=semester)
     if illness_q:
         trends = trends.filter(illness_category__icontains=illness_q)
     return trends
@@ -487,43 +545,59 @@ def _health_trends_export_query(request):
     from urllib.parse import quote
 
     parts = []
-    term_val = (request.GET.get('term') or '').strip()
     illness_q = (request.GET.get('illness_category') or '').strip()
-    if term_val:
-        parts.append(f'term={quote(term_val)}')
     if illness_q:
         parts.append(f'illness_category={quote(illness_q)}')
+    academic_q = academic_filter_query_string(_filters_from_request(request))
+    if academic_q:
+        parts.append(academic_q.lstrip('&'))
     return f'&{"&".join(parts)}' if parts else ''
 
 
+@login_required
+@role_required('staff', 'doctor', 'admin')
 def health_trends(request):
     """Student health trend analysis across semesters."""
     date_from, date_to = _get_date_range(request)
-    form = HealthTrendFilterForm(
-        request.GET or None,
-        initial={'date_from': date_from, 'date_to': date_to},
-    )
+    filters = _filters_from_request(request)
+    illness_form = HealthTrendFilterForm(request.GET or None)
     trends = _filtered_health_trend_records(request)
     illness_q = (request.GET.get('illness_category') or '').strip() if request.GET else ''
 
     live_illness = _illness_stats(
         date_from, date_to,
         diagnosis_query=illness_q or None,
+        filters=filters,
     )
 
     live_illness_stats = live_illness[:20]
+    live_medical_cases, live_dental_cases = _illness_source_counts(
+        date_from, date_to, diagnosis_query=illness_q or None, filters=filters,
+    )
     context = {
-        'form': form,
+        'illness_filter_form': illness_form,
         'trends': trends,
         'trends_count': trends.count(),
         'live_illness_stats': live_illness_stats,
         'live_cases_total': sum(item['count'] for item in live_illness_stats),
+        'live_medical_cases': live_medical_cases,
+        'live_dental_cases': live_dental_cases,
         'illness_filter': illness_q,
         'date_from': date_from,
         'date_to': date_to,
-        'period_presets': _period_presets(date_from, date_to),
-        'export_query': _health_trends_export_query(request),
+        'show_illness_filter': True,
+        'export_variant': 'health_trends',
+        'trends_scope_hint': 'Clinic-wide historical aggregates',
+        'live_scope_hint': 'Filtered by date and academic segment',
     }
+    context.update(analytics_filter_context(request, date_from, date_to))
+    context['period_presets'] = _period_presets_for_request(request, date_from, date_to)
+    illness_extra = ''
+    if illness_q:
+        from urllib.parse import quote
+        illness_extra = f'&illness_category={quote(illness_q)}'
+    context['extra_query'] = illness_extra
+    context['export_query'] = context['academic_query'] + illness_extra
     return render(request, 'analytics/health_trends.html', context)
 
 
@@ -543,8 +617,9 @@ def predictive_analytics(request):
 
     # Generate on-the-fly predictions
     date_from, date_to = _get_date_range(request)
-    hourly = _appointment_by_hour(date_from, date_to)
-    weekday = _appointment_by_weekday(date_from, date_to)
+    filters = _filters_from_request(request)
+    hourly = _appointment_by_hour(date_from, date_to, filters=filters)
+    weekday = _appointment_by_weekday(date_from, date_to, filters=filters)
 
     # Simple peak hour prediction
     peak_hour = max(hourly, key=lambda x: x['count'])['hour'] if hourly else None
@@ -553,21 +628,28 @@ def predictive_analytics(request):
     day_names = {1: 'Sunday', 2: 'Monday', 3: 'Tuesday', 4: 'Wednesday',
                  5: 'Thursday', 6: 'Friday', 7: 'Saturday'}
 
+    insights_page = paginate_queryset(insights, request, per_page=10)
     context = {
-        'insights': paginate_queryset(insights, request, per_page=10),
+        'insights': insights_page,
+        'page_window': page_window_numbers(insights_page),
         'insight_types': PredictiveInsight.INSIGHT_TYPES,
         'selected_type': insight_filter,
         'peak_hour': peak_hour,
         'peak_hour_display': f'{peak_hour:02d}:00' if peak_hour is not None else 'N/A',
         'busiest_day': day_names.get(busiest_day, 'N/A'),
         'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
-        'period_presets': _period_presets(date_from, date_to),
         'hourly_data': hourly,
         'weekday_data': weekday,
         'day_names': day_names,
         'date_from': date_from,
         'date_to': date_to,
+        'export_variant': 'predictive',
     }
+    context.update(analytics_filter_context(request, date_from, date_to))
+    context['period_presets'] = _period_presets_for_request(request, date_from, date_to)
+    if insight_filter:
+        from urllib.parse import quote
+        context['extra_query'] = f'&type={quote(insight_filter)}'
     return render(request, 'analytics/predictive_analytics.html', context)
 
 
@@ -580,6 +662,7 @@ def generate_predictive_insight(request):
 
     insight_type = request.POST.get('insight_type', 'peak_hours')
     date_from, date_to = _get_date_range(request)
+    filters = _filters_from_request(request)
 
     data = {}
     title = ''
@@ -587,34 +670,39 @@ def generate_predictive_insight(request):
     risk_level = 'low'
 
     if insight_type == 'peak_hours':
-        hourly = _appointment_by_hour(date_from, date_to)
+        hourly = _appointment_by_hour(date_from, date_to, filters=filters)
         peak = max(hourly, key=lambda x: x['count']) if hourly else {'hour': 0, 'count': 0}
         title = f"Peak Hours Analysis ({date_from} to {date_to})"
         description = f"Highest appointment volume at {peak['hour']}:00 with {peak['count']} appointments."
-        data = {'hourly': hourly, 'peak': peak}
+        data = {'hourly': hourly, 'peak': peak, 'academic_filters': filters}
 
     elif insight_type == 'medicine_demand':
-        illness = _illness_stats(date_from, date_to)
+        illness = _illness_stats(date_from, date_to, filters=filters)
         title = f"Medicine Demand Forecast ({date_from} to {date_to})"
         top = illness[:5] if illness else []
         top_names = ', '.join([i['diagnosis'] for i in top]) if top else 'None'
         description = f"Top diagnoses driving demand: {top_names}. Plan supplies accordingly."
-        data = {'top_diagnoses': illness[:10]}
+        data = {'top_diagnoses': illness[:10], 'academic_filters': filters}
 
     elif insight_type == 'staff_workload':
         from appointments.models import Appointment
         staff_load = list(
-            Appointment.objects.filter(date__gte=date_from, date__lte=date_to, status='completed')
+            apply_academic_filters(
+                Appointment.objects.filter(
+                    date__gte=date_from, date__lte=date_to, status='completed',
+                ),
+                filters,
+            )
             .values('doctor__first_name', 'doctor__last_name')
             .annotate(count=Count('id'))
             .order_by('-count')[:10]
         )
         title = f"Staff Workload ({date_from} to {date_to})"
         description = f"Workload distribution across {len(staff_load)} clinicians."
-        data = {'staff_load': staff_load}
+        data = {'staff_load': staff_load, 'academic_filters': filters}
 
     elif insight_type == 'outbreak_risk':
-        illness = _illness_stats(date_from, date_to)
+        illness = _illness_stats(date_from, date_to, filters=filters)
         total = sum(i['count'] for i in illness)
         top = illness[0] if illness else None
         if top and total:
@@ -625,7 +713,7 @@ def generate_predictive_insight(request):
         else:
             title = "Outbreak Risk Assessment"
             description = "Insufficient data to assess outbreak risk."
-        data = {'illness_stats': illness[:10], 'total_cases': total}
+        data = {'illness_stats': illness[:10], 'total_cases': total, 'academic_filters': filters}
 
     PredictiveInsight.objects.create(
         insight_type=insight_type,
@@ -638,7 +726,11 @@ def generate_predictive_insight(request):
         generated_by=request.user,
     )
     messages.success(request, f'Predictive insight "{title}" generated successfully.')
-    return redirect('analytics:predictive_analytics')
+    query = f'date_from={date_from.isoformat()}&date_to={date_to.isoformat()}'
+    academic_q = academic_filter_query_string(filters)
+    if academic_q:
+        query += academic_q
+    return redirect(f"{reverse('analytics:predictive_analytics')}?{query}")
 
 
 # =====================================================================
@@ -649,13 +741,14 @@ def _utilization_records_qs(date_from, date_to):
     return ResourceUtilization.objects.filter(date__gte=date_from, date__lte=date_to)
 
 
-def _resource_utilization_staff_stats(date_from, date_to):
+def _resource_utilization_staff_stats(date_from, date_to, filters=None):
     from appointments.models import Appointment
+    qs = Appointment.objects.filter(
+        date__gte=date_from, date__lte=date_to, status='completed',
+    )
+    qs = apply_academic_filters(qs, filters or {})
     return list(
-        Appointment.objects.filter(
-            date__gte=date_from, date__lte=date_to, status='completed',
-        )
-        .values('doctor__first_name', 'doctor__last_name')
+        qs.values('doctor__first_name', 'doctor__last_name')
         .annotate(total=Count('id'))
         .order_by('-total')
     )
@@ -668,16 +761,17 @@ def _resource_utilization_kpis(records):
     return round(avg_consultation, 1), total_throughput, round(avg_throughput, 1)
 
 
-def _write_resource_utilization_csv(writer, date_from, date_to):
+def _write_resource_utilization_csv(writer, date_from, date_to, filters=None):
+    filters = filters or {}
     records = _utilization_records_qs(date_from, date_to)
     avg_consultation, total_throughput, avg_throughput = _resource_utilization_kpis(records)
-    staff_stats = _resource_utilization_staff_stats(date_from, date_to)
+    staff_stats = _resource_utilization_staff_stats(date_from, date_to, filters=filters)
     staff_total = sum(s['total'] for s in staff_stats)
 
     writer.writerow(['Resource Utilization'])
     writer.writerow(['Period from', date_from])
     writer.writerow(['Period to', date_to])
-    writer.writerow([])
+    write_academic_filter_csv_rows(writer, filters)
     writer.writerow(['Summary KPIs'])
     writer.writerow(['Metric', 'Value'])
     writer.writerow(['Avg consultation (minutes)', avg_consultation])
@@ -709,24 +803,31 @@ def _write_resource_utilization_csv(writer, date_from, date_to):
 def resource_utilization(request):
     """Resource utilization overview."""
     date_from, date_to = _get_date_range(request)
+    filters = _filters_from_request(request)
     records = _utilization_records_qs(date_from, date_to)
     avg_consultation, total_throughput, avg_throughput = _resource_utilization_kpis(records)
-    staff_stats = _resource_utilization_staff_stats(date_from, date_to)
+    staff_stats = _resource_utilization_staff_stats(date_from, date_to, filters=filters)
     staff_total_completed = sum(s['total'] for s in staff_stats)
 
+    records_page = paginate_queryset(records, request, per_page=15)
     context = {
-        'records': paginate_queryset(records, request, per_page=15),
+        'records': records_page,
+        'page_window': page_window_numbers(records_page),
         'avg_consultation': avg_consultation,
         'avg_consultation_display': f'{avg_consultation} min',
         'total_throughput': total_throughput,
         'avg_throughput': avg_throughput,
         'staff_stats': staff_stats,
         'staff_total_completed': staff_total_completed,
-        'period_presets': _period_presets(date_from, date_to),
         'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
         'date_from': date_from,
         'date_to': date_to,
+        'export_variant': 'resources',
+        'clinic_wide_hint': 'Clinic-wide daily log (not academic-filtered)',
+        'staff_scope_hint': 'Filtered by selected academic segment',
     }
+    context.update(analytics_filter_context(request, date_from, date_to))
+    context['period_presets'] = _period_presets_for_request(request, date_from, date_to)
     return render(request, 'analytics/resource_utilization.html', context)
 
 
@@ -734,18 +835,113 @@ def resource_utilization(request):
 # 5. Compliance & Accreditation Reporting
 # =====================================================================
 
-@login_required
-@admin_required
-def compliance_reports(request):
-    """List and manage compliance reports."""
+def _filtered_compliance_reports(request):
     reports_qs = ComplianceReport.objects.all()
     report_filter = request.GET.get('type', '')
     if report_filter:
         reports_qs = reports_qs.filter(report_type=report_filter)
+    filters = _filters_from_request(request)
+    if academic_filters_active(filters):
+        if filters.get('department'):
+            reports_qs = reports_qs.filter(
+                data_json__academic_filters__department=filters['department'],
+            )
+        if filters.get('course'):
+            reports_qs = reports_qs.filter(
+                data_json__academic_filters__course=filters['course'],
+            )
+        if filters.get('year_level'):
+            reports_qs = reports_qs.filter(
+                data_json__academic_filters__year_level=filters['year_level'],
+            )
+    return reports_qs, report_filter, filters
 
+
+def _write_compliance_index_csv(writer, request, date_from, date_to, filters):
+    reports_qs, report_filter, _filters = _filtered_compliance_reports(request)
+    writer.writerow(['Compliance reports index'])
+    writer.writerow(['Period from', date_from])
+    writer.writerow(['Period to', date_to])
+    write_academic_filter_csv_rows(writer, filters or {})
+    if report_filter:
+        writer.writerow(['Report type', report_filter])
+        writer.writerow([])
+    writer.writerow([
+        'Title', 'Type', 'Status', 'Period start', 'Period end',
+        'Department', 'Program', 'Year level', 'Created',
+    ])
+    for report in reports_qs.order_by('-created_at'):
+        stored = (report.data_json or {}).get('academic_filters') or {}
+        writer.writerow([
+            report.title,
+            report.get_report_type_display(),
+            report.get_status_display(),
+            report.period_start,
+            report.period_end,
+            stored.get('department') or '',
+            stored.get('course') or '',
+            stored.get('year_level') or '',
+            report.created_at.strftime('%Y-%m-%d %H:%M'),
+        ])
+
+
+def _write_predictive_csv(writer, request, date_from, date_to, filters, report_type):
+    insight_filter = (request.GET.get('type') or '').strip()
+    write_academic_filter_csv_rows(writer, filters or {})
+    if report_type == 'predictive_insights':
+        insights = PredictiveInsight.objects.all()
+        if insight_filter:
+            insights = insights.filter(insight_type=insight_filter)
+        writer.writerow(['Predictive insights'])
+        writer.writerow(['Period from', date_from])
+        writer.writerow(['Period to', date_to])
+        if insight_filter:
+            writer.writerow(['Insight type', insight_filter])
+        writer.writerow([])
+        writer.writerow(['Title', 'Type', 'Risk', 'Period start', 'Period end', 'Description'])
+        for insight in insights.order_by('-created_at'):
+            writer.writerow([
+                insight.title,
+                insight.get_insight_type_display(),
+                insight.get_risk_level_display(),
+                insight.period_start,
+                insight.period_end,
+                insight.description,
+            ])
+        return
+
+    hourly = _appointment_by_hour(date_from, date_to, filters=filters)
+    weekday = _appointment_by_weekday(date_from, date_to, filters=filters)
+    day_names = {
+        1: 'Sunday', 2: 'Monday', 3: 'Tuesday', 4: 'Wednesday',
+        5: 'Thursday', 6: 'Friday', 7: 'Saturday',
+    }
+    writer.writerow(['Predictive hourly and weekday summary'])
+    writer.writerow(['Period from', date_from])
+    writer.writerow(['Period to', date_to])
+    writer.writerow([])
+    writer.writerow(['Hourly distribution'])
+    writer.writerow(['Hour', 'Appointments'])
+    for row in hourly:
+        writer.writerow([f"{row['hour']:02d}:00", row['count']])
+    writer.writerow([])
+    writer.writerow(['Day of week'])
+    writer.writerow(['Weekday', 'Appointments'])
+    for row in weekday:
+        writer.writerow([day_names.get(row['weekday'], row['weekday']), row['count']])
+
+
+@login_required
+@admin_required
+def compliance_reports(request):
+    """List and manage compliance reports."""
+    date_from, date_to = _get_date_range(request)
+    reports_qs, report_filter, _filters = _filtered_compliance_reports(request)
     type_labels = dict(ComplianceReport.REPORT_TYPES)
+    reports_page = paginate_queryset(reports_qs, request, per_page=10)
     context = {
-        'reports': paginate_queryset(reports_qs, request, per_page=10),
+        'reports': reports_page,
+        'page_window': page_window_numbers(reports_page),
         'report_types': ComplianceReport.REPORT_TYPES,
         'selected_type': report_filter,
         'filter_label': type_labels.get(report_filter, 'All types'),
@@ -753,7 +949,15 @@ def compliance_reports(request):
         'reports_draft': reports_qs.filter(status='draft').count(),
         'reports_final': reports_qs.filter(status='final').count(),
         'reports_submitted': reports_qs.filter(status='submitted').count(),
+        'date_from': date_from,
+        'date_to': date_to,
+        'export_variant': 'compliance',
     }
+    context.update(analytics_filter_context(request, date_from, date_to))
+    context['period_presets'] = _period_presets_for_request(request, date_from, date_to)
+    if report_filter:
+        from urllib.parse import quote
+        context['extra_query'] = f'&type={quote(report_filter)}'
     return render(request, 'analytics/compliance_reports.html', context)
 
 
@@ -773,19 +977,33 @@ def generate_compliance_report(request):
             from appointments.models import Appointment
             from medical_records.models import MedicalRecord
 
+            filters = {
+                'department': form.cleaned_data.get('department') or '',
+                'course': form.cleaned_data.get('course') or '',
+                'year_level': form.cleaned_data.get('year_level') or '',
+            }
+            if not filters['department']:
+                filters['course'] = ''
+                filters['year_level'] = ''
+            appt_qs = apply_academic_filters(
+                Appointment.objects.filter(date__gte=date_from, date__lte=date_to),
+                filters,
+            )
+            mr_qs = apply_academic_filters(
+                MedicalRecord.objects.filter(
+                    created_at__date__gte=date_from, created_at__date__lte=date_to,
+                ),
+                filters,
+            )
+
             data = {
-                'total_appointments': Appointment.objects.filter(
-                    date__gte=date_from, date__lte=date_to
-                ).count(),
-                'completed_appointments': Appointment.objects.filter(
-                    date__gte=date_from, date__lte=date_to, status='completed'
-                ).count(),
-                'total_records': MedicalRecord.objects.filter(
-                    created_at__date__gte=date_from, created_at__date__lte=date_to
-                ).count(),
+                'academic_filters': filters,
+                'total_appointments': appt_qs.count(),
+                'completed_appointments': appt_qs.filter(status='completed').count(),
+                'total_records': mr_qs.count(),
                 'total_patients': User.objects.filter(role__in=PATIENT_ROLE_VALUES).count(),
                 'total_staff': User.objects.filter(role__in=['staff', 'doctor']).count(),
-                'top_diagnoses': _illness_stats(date_from, date_to)[:10],
+                'top_diagnoses': _illness_stats(date_from, date_to, filters=filters)[:10],
                 'generated_at': timezone.now().isoformat(),
             }
             report.data_json = data
@@ -795,7 +1013,24 @@ def generate_compliance_report(request):
     else:
         form = ComplianceReportForm()
 
-    return render(request, 'analytics/compliance_report_form.html', {'form': form})
+    from core.academic_catalog import patient_catalog_context
+    import json
+
+    catalog = patient_catalog_context()
+    dept = (form['department'].value() or '').strip()
+    course = (form['course'].value() or '').strip() if dept else ''
+    year = (form['year_level'].value() or '').strip() if dept else ''
+    return render(request, 'analytics/compliance_report_form.html', {
+        'form': form,
+        'college_options': catalog['college_options'],
+        'course_options_by_college_json': catalog['course_options_by_college_json'],
+        'year_level_options_by_college_json': catalog['year_level_options_by_college_json'],
+        'cascade_config_json': json.dumps({
+            'department': dept,
+            'course': course,
+            'year_level': year,
+        }),
+    })
 
 
 @login_required
@@ -803,55 +1038,96 @@ def generate_compliance_report(request):
 def compliance_report_detail(request, pk):
     """View compliance report details."""
     report = get_object_or_404(ComplianceReport, pk=pk)
-    return render(request, 'analytics/compliance_report_detail.html', {'report': report})
+    stored_filters = (report.data_json or {}).get('academic_filters') or {}
+    return render(request, 'analytics/compliance_report_detail.html', {
+        'report': report,
+        'stored_academic_labels': active_filter_labels(stored_filters),
+    })
 
 
 # =====================================================================
 # 6. Population Health Dashboard
 # =====================================================================
 
-def _population_health_data(date_from, date_to):
+def _population_health_data(date_from, date_to, filters=None):
     """Shared aggregates for population health view and exports."""
     from core.models import PatientProfile
     from medical_records.models import MedicalRecord
     from appointments.models import Appointment
 
-    demographics = _student_demographics()
+    filters = filters or {}
+    demographics = _student_demographics(filters=filters)
+
+    mr_qs = apply_academic_filters(
+        MedicalRecord.objects.filter(
+            created_at__date__gte=date_from, created_at__date__lte=date_to,
+        ),
+        filters,
+    )
+    appt_qs = apply_academic_filters(
+        Appointment.objects.filter(date__gte=date_from, date__lte=date_to),
+        filters,
+    )
+
+    health_by_department = list(
+        mr_qs.values('patient__patient_profile__department')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
     health_by_course = list(
-        MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to)
-        .values('patient__patient_profile__course')
+        mr_qs.values('patient__patient_profile__course')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
     health_by_year = list(
-        MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to)
-        .values('patient__patient_profile__year_level')
+        mr_qs.values('patient__patient_profile__year_level')
         .annotate(count=Count('id'))
         .order_by('patient__patient_profile__year_level')
     )
-    appt_by_course = list(
-        Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
-        .values('patient__patient_profile__course')
+    appt_by_department = list(
+        appt_qs.values('patient__patient_profile__department')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
+    appt_by_course = list(
+        appt_qs.values('patient__patient_profile__course')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    appt_by_year = list(
+        appt_qs.values('patient__patient_profile__year_level')
+        .annotate(count=Count('id'))
+        .order_by('patient__patient_profile__year_level')
+    )
+
+    profile_qs = PatientProfile.objects.all()
+    if filters.get('department'):
+        profile_qs = profile_qs.filter(department=filters['department'])
+    if filters.get('course'):
+        profile_qs = profile_qs.filter(course=filters['course'])
+    if filters.get('year_level'):
+        profile_qs = profile_qs.filter(year_level=filters['year_level'])
+
     blood_types = list(
-        PatientProfile.objects.exclude(blood_type='')
+        profile_qs.exclude(blood_type='')
         .values('blood_type')
         .annotate(count=Count('id'))
         .order_by('-count')
     )
-    records_in_period = sum(item['count'] for item in health_by_course)
-    appt_in_period = sum(item['count'] for item in appt_by_course)
-    total_patients = sum(g['count'] for g in demographics['gender']) or PatientProfile.objects.count()
+    records_in_period = mr_qs.count()
+    appt_in_period = appt_qs.count()
+    total_patients = profile_qs.count() or sum(g['count'] for g in demographics['gender'])
 
     return {
         'demographics': demographics,
+        'health_by_department': health_by_department,
         'health_by_course': health_by_course,
         'health_by_year': health_by_year,
         'health_by_course_total': records_in_period,
         'health_by_year_total': sum(item['count'] for item in health_by_year),
+        'appt_by_department': appt_by_department,
         'appt_by_course': appt_by_course,
+        'appt_by_year': appt_by_year,
         'blood_types': blood_types,
         'total_patients': total_patients,
         'records_in_period': records_in_period,
@@ -859,14 +1135,14 @@ def _population_health_data(date_from, date_to):
     }
 
 
-def _write_population_summary_csv(writer, date_from, date_to):
-    data = _population_health_data(date_from, date_to)
+def _write_population_summary_csv(writer, date_from, date_to, filters=None):
+    data = _population_health_data(date_from, date_to, filters=filters)
     demo = data['demographics']
 
     writer.writerow(['Population Health'])
     writer.writerow(['Period from', date_from])
     writer.writerow(['Period to', date_to])
-    writer.writerow([])
+    write_academic_filter_csv_rows(writer, filters or {})
     writer.writerow(['Summary KPIs'])
     writer.writerow(['Metric', 'Value'])
     writer.writerow(['Registered patients', data['total_patients']])
@@ -882,9 +1158,21 @@ def _write_population_summary_csv(writer, date_from, date_to):
         writer.writerow([])
 
     _write_distribution('Gender distribution', demo['gender'], 'gender')
+    _write_distribution('Department distribution', demo['department'], 'department')
     _write_distribution('Year level distribution', demo['year_level'], 'year_level')
     _write_distribution('Course distribution', demo['course'], 'course')
     _write_distribution('Blood type distribution', data['blood_types'], 'blood_type')
+    _write_distribution(
+        'Medical records by department (period)',
+        [
+            {
+                'department': item['patient__patient_profile__department'] or 'Unknown',
+                'count': item['count'],
+            }
+            for item in data['health_by_department']
+        ],
+        'department',
+    )
     _write_distribution(
         'Medical records by course (period)',
         [
@@ -908,6 +1196,17 @@ def _write_population_summary_csv(writer, date_from, date_to):
         'year_level',
     )
     _write_distribution(
+        'Appointments by department (period)',
+        [
+            {
+                'department': item['patient__patient_profile__department'] or 'Unknown',
+                'count': item['count'],
+            }
+            for item in data['appt_by_department']
+        ],
+        'department',
+    )
+    _write_distribution(
         'Appointments by course (period)',
         [
             {
@@ -918,13 +1217,32 @@ def _write_population_summary_csv(writer, date_from, date_to):
         ],
         'course',
     )
+    _write_distribution(
+        'Appointments by year level (period)',
+        [
+            {
+                'year_level': item['patient__patient_profile__year_level'] or 'Unknown',
+                'count': item['count'],
+            }
+            for item in data['appt_by_year']
+        ],
+        'year_level',
+    )
 
 
-def _write_population_period_csv(writer, date_from, date_to):
-    data = _population_health_data(date_from, date_to)
+def _write_population_period_csv(writer, date_from, date_to, filters=None):
+    data = _population_health_data(date_from, date_to, filters=filters)
     writer.writerow(['Population period activity'])
     writer.writerow(['Period from', date_from])
     writer.writerow(['Period to', date_to])
+    write_academic_filter_csv_rows(writer, filters or {})
+    writer.writerow(['Medical records by department'])
+    writer.writerow(['Department', 'Count'])
+    for item in data['health_by_department']:
+        writer.writerow([
+            item['patient__patient_profile__department'] or 'Unknown',
+            item['count'],
+        ])
     writer.writerow([])
     writer.writerow(['Medical records by course'])
     writer.writerow(['Course', 'Count'])
@@ -949,6 +1267,14 @@ def _write_population_period_csv(writer, date_from, date_to):
             item['patient__patient_profile__course'] or 'Unknown',
             item['count'],
         ])
+    writer.writerow([])
+    writer.writerow(['Appointments by year level'])
+    writer.writerow(['Year level', 'Count'])
+    for item in data['appt_by_year']:
+        writer.writerow([
+            item['patient__patient_profile__year_level'] or 'Unknown',
+            item['count'],
+        ])
 
 
 @login_required
@@ -956,13 +1282,16 @@ def _write_population_period_csv(writer, date_from, date_to):
 def population_health(request):
     """Population health dashboard by demographics."""
     date_from, date_to = _get_date_range(request)
-    context = _population_health_data(date_from, date_to)
+    filters = _filters_from_request(request)
+    context = _population_health_data(date_from, date_to, filters=filters)
     context.update({
-        'period_presets': _period_presets(date_from, date_to),
         'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
         'date_from': date_from,
         'date_to': date_to,
+        'export_variant': 'population',
     })
+    context.update(analytics_filter_context(request, date_from, date_to))
+    context['period_presets'] = _period_presets_for_request(request, date_from, date_to)
     return render(request, 'analytics/population_health.html', context)
 
 
@@ -981,24 +1310,32 @@ def _fmt_peso(amount):
 def financial_overview(request):
     """Financial overview dashboard."""
     date_from, date_to = _get_date_range(request)
+    filters = _filters_from_request(request)
     summary = _financial_summary(date_from, date_to)
+    clinical = filtered_clinical_counts(date_from, date_to, filters)
     records_qs = FinancialRecord.objects.filter(
         date__gte=date_from, date__lte=date_to,
     ).order_by('-date', '-id')
+    records_page = paginate_queryset(records_qs, request, per_page=15)
 
     context = {
         'summary': summary,
-        'records': paginate_queryset(records_qs, request, per_page=15),
+        'records': records_page,
+        'page_window': page_window_numbers(records_page),
         'records_count': records_qs.count(),
         'date_from': date_from,
         'date_to': date_to,
-        'period_presets': _period_presets(date_from, date_to),
         'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
         'expenses_display': _fmt_peso(summary['total_expenses']),
         'income_display': _fmt_peso(summary['total_income']),
         'net_display': _fmt_peso(summary['net']),
         'net_variant': 'success' if summary['net'] >= 0 else 'danger',
+        'filtered_appointments': clinical['filtered_appointments'],
+        'filtered_medical_records': clinical['filtered_medical_records'],
+        'export_variant': 'financial',
     }
+    context.update(analytics_filter_context(request, date_from, date_to))
+    context['period_presets'] = _period_presets_for_request(request, date_from, date_to)
     return render(request, 'analytics/financial_overview.html', context)
 
 
@@ -1023,25 +1360,50 @@ def financial_record_create(request):
 # 8. Academic Integration
 # =====================================================================
 
-def _academic_correlation_data(date_from, date_to):
+def _academic_correlation_data(date_from, date_to, filters=None):
     """Shared aggregates for academic correlation view and exports."""
     from appointments.models import Appointment
 
-    appt_qs = Appointment.objects.filter(date__gte=date_from, date__lte=date_to)
+    filters = filters or {}
+    appt_qs = apply_academic_filters(
+        Appointment.objects.filter(date__gte=date_from, date__lte=date_to),
+        filters,
+    )
     frequent_visitors = list(
         appt_qs.values(
             'patient__id', 'patient__first_name', 'patient__last_name',
-            'patient__email', 'patient__patient_profile__course',
+            'patient__email', 'patient__patient_profile__department',
+            'patient__patient_profile__course',
             'patient__patient_profile__year_level',
         )
         .annotate(visit_count=Count('id'))
         .order_by('-visit_count')[:20]
     )
+    emergency_qs = appt_qs.filter(appointment_type='emergency')
     emergency_visits = list(
-        appt_qs.filter(appointment_type='emergency')
-        .values('patient__patient_profile__course')
+        emergency_qs.values('patient__patient_profile__course')
         .annotate(count=Count('id'))
         .order_by('-count')
+    )
+    emergency_by_department = list(
+        emergency_qs.values('patient__patient_profile__department')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    emergency_by_year = list(
+        emergency_qs.values('patient__patient_profile__year_level')
+        .annotate(count=Count('id'))
+        .order_by('patient__patient_profile__year_level')
+    )
+    visits_by_department = list(
+        appt_qs.values('patient__patient_profile__department')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:5]
+    )
+    visits_by_course = list(
+        appt_qs.values('patient__patient_profile__course')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:8]
     )
     high_visit_patients = (
         appt_qs.values('patient')
@@ -1052,34 +1414,71 @@ def _academic_correlation_data(date_from, date_to):
     return {
         'frequent_visitors': frequent_visitors,
         'emergency_visits': emergency_visits,
+        'emergency_by_department': emergency_by_department,
+        'emergency_by_year': emergency_by_year,
+        'visits_by_department': visits_by_department,
+        'visits_by_course': visits_by_course,
         'total_visits': appt_qs.count(),
         'high_visit_patients': high_visit_patients,
         'emergency_total': sum(item['count'] for item in emergency_visits),
     }
 
 
-def _write_academic_summary_csv(writer, date_from, date_to):
-    data = _academic_correlation_data(date_from, date_to)
+def _write_academic_summary_csv(writer, date_from, date_to, filters=None):
+    data = _academic_correlation_data(date_from, date_to, filters=filters)
     writer.writerow(['Academic Correlation'])
     writer.writerow(['Period from', date_from])
     writer.writerow(['Period to', date_to])
-    writer.writerow([])
+    write_academic_filter_csv_rows(writer, filters or {})
     writer.writerow(['Summary KPIs'])
     writer.writerow(['Metric', 'Value'])
     writer.writerow(['Total visits', data['total_visits']])
     writer.writerow(['Patients with 5+ visits', data['high_visit_patients']])
     writer.writerow(['Emergency visits', data['emergency_total']])
     writer.writerow([])
+    writer.writerow(['Visits by department (top 5)'])
+    writer.writerow(['Department', 'Visits'])
+    for row in data['visits_by_department']:
+        writer.writerow([
+            row['patient__patient_profile__department'] or 'Unknown',
+            row['count'],
+        ])
+    writer.writerow([])
+    writer.writerow(['Visits by course'])
+    writer.writerow(['Course', 'Visits'])
+    for row in data['visits_by_course']:
+        writer.writerow([
+            row['patient__patient_profile__course'] or 'Unknown',
+            row['count'],
+        ])
+    writer.writerow([])
     writer.writerow(['Frequent clinic visitors'])
-    writer.writerow(['Patient', 'Email', 'Course', 'Year level', 'Visits'])
+    writer.writerow(['Patient', 'Email', 'Department', 'Course', 'Year level', 'Visits'])
     for row in data['frequent_visitors']:
         name = f"{row['patient__first_name']} {row['patient__last_name']}".strip()
         writer.writerow([
             name,
             row['patient__email'],
+            row['patient__patient_profile__department'] or '',
             row['patient__patient_profile__course'] or '',
             row['patient__patient_profile__year_level'] or '',
             row['visit_count'],
+        ])
+    writer.writerow([])
+    writer.writerow(['Emergency visits by department'])
+    writer.writerow(['Department', 'Count'])
+    for row in data['emergency_by_department']:
+        writer.writerow([
+            row['patient__patient_profile__department'] or 'Unknown',
+            row['count'],
+        ])
+    writer.writerow([])
+    writer.writerow(['Emergency visits by year level'])
+    writer.writerow(['Year level', 'Count'])
+    for row in data['emergency_by_year']:
+        writer.writerow([
+            row['patient__patient_profile__year_level'] or 'Unknown',
+            row['count'],
         ])
     writer.writerow([])
     writer.writerow(['Emergency visits by course'])
@@ -1091,17 +1490,19 @@ def _write_academic_summary_csv(writer, date_from, date_to):
         ])
 
 
-def _write_academic_visitors_csv(writer, date_from, date_to):
-    data = _academic_correlation_data(date_from, date_to)
+def _write_academic_visitors_csv(writer, date_from, date_to, filters=None):
+    data = _academic_correlation_data(date_from, date_to, filters=filters)
     writer.writerow(['Frequent clinic visitors'])
     writer.writerow(['Period from', date_from])
     writer.writerow(['Period to', date_to])
-    writer.writerow(['Patient', 'Email', 'Course', 'Year level', 'Visits'])
+    write_academic_filter_csv_rows(writer, filters or {})
+    writer.writerow(['Patient', 'Email', 'Department', 'Course', 'Year level', 'Visits'])
     for row in data['frequent_visitors']:
         name = f"{row['patient__first_name']} {row['patient__last_name']}".strip()
         writer.writerow([
             name,
             row['patient__email'],
+            row['patient__patient_profile__department'] or '',
             row['patient__patient_profile__course'] or '',
             row['patient__patient_profile__year_level'] or '',
             row['visit_count'],
@@ -1113,13 +1514,16 @@ def _write_academic_visitors_csv(writer, date_from, date_to):
 def academic_correlation(request):
     """Correlate health data with academic indicators (absenteeism)."""
     date_from, date_to = _get_date_range(request)
-    context = _academic_correlation_data(date_from, date_to)
+    filters = _filters_from_request(request)
+    context = _academic_correlation_data(date_from, date_to, filters=filters)
     context.update({
-        'period_presets': _period_presets(date_from, date_to),
         'period_hint': f'{date_from.strftime("%b %d")} – {date_to.strftime("%b %d")}',
         'date_from': date_from,
         'date_to': date_to,
+        'export_variant': 'academic',
     })
+    context.update(analytics_filter_context(request, date_from, date_to))
+    context['period_presets'] = _period_presets_for_request(request, date_from, date_to)
     return render(request, 'analytics/academic_correlation.html', context)
 
 
@@ -1127,26 +1531,28 @@ def academic_correlation(request):
 # Export helpers
 # =====================================================================
 
-def _write_staff_dashboard_csv(writer, user, date_from, date_to):
+def _write_staff_dashboard_csv(writer, user, date_from, date_to, filters=None):
     from appointments.models import Appointment
 
-    my_appointments = Appointment.objects.filter(
-        doctor=user, date__gte=date_from, date__lte=date_to,
+    filters = filters or {}
+    my_appointments = apply_academic_filters(
+        Appointment.objects.filter(doctor=user, date__gte=date_from, date__lte=date_to),
+        filters,
     )
     trend = list(
         my_appointments.values(day=F('date'))
         .annotate(count=Count('id')).order_by('day')
     )
-    diagnoses = _illness_stats(date_from, date_to, doctor=user)[:10]
+    diagnoses = _illness_stats(date_from, date_to, doctor=user, filters=filters)[:10]
     hourly_series, hourly_peak, _hourly_has_data = _hourly_chart_series(
-        _appointment_by_hour(date_from, date_to, doctor=user),
+        _appointment_by_hour(date_from, date_to, doctor=user, filters=filters),
     )
 
     writer.writerow(['Staff Analytics Dashboard'])
     writer.writerow(['Exported by', user.get_full_name() or user.email])
     writer.writerow(['Period from', date_from])
     writer.writerow(['Period to', date_to])
-    writer.writerow([])
+    write_academic_filter_csv_rows(writer, filters)
     writer.writerow(['Summary KPIs'])
     writer.writerow(['Metric', 'Value'])
     writer.writerow(['Unique patients', my_appointments.values('patient').distinct().count()])
@@ -1172,9 +1578,11 @@ def _write_staff_dashboard_csv(writer, user, date_from, date_to):
 def _write_health_trends_csv(writer, request, date_from, date_to):
     trends = _filtered_health_trend_records(request)
     illness_q = (request.GET.get('illness_category') or '').strip()
+    filters = _filters_from_request(request)
     live_stats = _illness_stats(
         date_from, date_to,
         diagnosis_query=illness_q or None,
+        filters=filters,
     )
 
     writer.writerow(['Health Trends'])
@@ -1182,10 +1590,7 @@ def _write_health_trends_csv(writer, request, date_from, date_to):
     writer.writerow(['Period to', date_to])
     if illness_q:
         writer.writerow(['Illness filter', illness_q])
-    term_val = (request.GET.get('term') or '').strip()
-    if term_val:
-        writer.writerow(['School term filter', term_val])
-    writer.writerow([])
+    write_academic_filter_csv_rows(writer, filters)
     writer.writerow(['Summary'])
     writer.writerow(['Metric', 'Value'])
     writer.writerow(['Trend records', trends.count()])
@@ -1206,28 +1611,34 @@ def _write_health_trends_csv(writer, request, date_from, date_to):
         writer.writerow([row['diagnosis'], row['count']])
 
 
-def _write_admin_dashboard_csv(writer, date_from, date_to):
+def _write_admin_dashboard_csv(writer, date_from, date_to, filters=None):
     from appointments.models import Appointment
     from medical_records.models import MedicalRecord
     from feedback.models import Feedback
 
+    filters = filters or {}
     total_patients = User.objects.filter(role__in=PATIENT_ROLE_VALUES).count()
     total_staff = User.objects.filter(role__in=['staff', 'doctor']).count()
-    total_appointments = Appointment.objects.filter(
-        date__gte=date_from, date__lte=date_to,
+    total_appointments = apply_academic_filters(
+        Appointment.objects.filter(date__gte=date_from, date__lte=date_to),
+        filters,
     ).count()
-    total_records = MedicalRecord.objects.filter(
-        created_at__date__gte=date_from, created_at__date__lte=date_to,
+    total_records = apply_academic_filters(
+        MedicalRecord.objects.filter(
+            created_at__date__gte=date_from, created_at__date__lte=date_to,
+        ),
+        filters,
     ).count()
     avg_feedback = Feedback.objects.aggregate(avg=Avg('rating'))['avg'] or 0
-    volume = _appointment_volume(date_from, date_to)
-    by_type = _appointment_by_type(date_from, date_to)
-    diagnoses = _illness_stats(date_from, date_to)[:15]
+    volume = _appointment_volume(date_from, date_to, filters=filters)
+    by_type = _appointment_by_type(date_from, date_to, filters=filters)
+    diagnoses = _illness_stats(date_from, date_to, filters=filters)[:15]
+    demo = _student_demographics(filters=filters)
 
     writer.writerow(['Clinic Analytics Dashboard'])
     writer.writerow(['Period from', date_from])
     writer.writerow(['Period to', date_to])
-    writer.writerow([])
+    write_academic_filter_csv_rows(writer, filters)
     writer.writerow(['Summary KPIs'])
     writer.writerow(['Metric', 'Value'])
     writer.writerow(['Registered patients', total_patients])
@@ -1250,6 +1661,11 @@ def _write_admin_dashboard_csv(writer, date_from, date_to):
     writer.writerow(['Diagnosis', 'Count'])
     for row in diagnoses:
         writer.writerow([row['diagnosis'], row['count']])
+    writer.writerow([])
+    writer.writerow(['Patients by department'])
+    writer.writerow(['Department', 'Count'])
+    for row in demo['department']:
+        writer.writerow([row['department'] or 'Unknown', row['count']])
 
 
 def _financial_category_label(category_key):
@@ -1319,6 +1735,8 @@ def export_report(request):
     """Export analytics data as CSV or Excel-compatible CSV."""
     report_type = request.GET.get('report', 'appointments')
     date_from, date_to = _get_date_range(request)
+    filters = _filters_from_request(request)
+    illness_q = (request.GET.get('illness_category') or '').strip()
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = (
@@ -1329,22 +1747,26 @@ def export_report(request):
     if report_type == 'staff_dashboard':
         if request.user.role not in ('staff', 'doctor'):
             return HttpResponseForbidden()
-        _write_staff_dashboard_csv(writer, request.user, date_from, date_to)
+        _write_staff_dashboard_csv(writer, request.user, date_from, date_to, filters=filters)
 
     elif report_type == 'admin_dashboard':
         if request.user.role != 'admin':
             return HttpResponseForbidden()
-        _write_admin_dashboard_csv(writer, date_from, date_to)
+        _write_admin_dashboard_csv(writer, date_from, date_to, filters=filters)
 
     elif report_type == 'my_appointments':
         if request.user.role not in ('staff', 'doctor'):
             return HttpResponseForbidden()
         from appointments.models import Appointment
+        write_academic_filter_csv_rows(writer, filters)
         writer.writerow(['Date', 'Time', 'Patient', 'Type', 'Status', 'Notes'])
-        qs = Appointment.objects.filter(
-            doctor=request.user,
-            date__gte=date_from,
-            date__lte=date_to,
+        qs = apply_academic_filters(
+            Appointment.objects.filter(
+                doctor=request.user,
+                date__gte=date_from,
+                date__lte=date_to,
+            ),
+            filters,
         ).select_related('patient').order_by('date', 'time')
         for a in qs:
             writer.writerow([
@@ -1357,8 +1779,13 @@ def export_report(request):
 
     elif report_type == 'appointments':
         from appointments.models import Appointment
+        write_academic_filter_csv_rows(writer, filters)
         writer.writerow(['Date', 'Time', 'Patient', 'Doctor', 'Type', 'Status'])
-        for a in Appointment.objects.filter(date__gte=date_from, date__lte=date_to).select_related('patient', 'doctor').order_by('date', 'time'):
+        qs = apply_academic_filters(
+            Appointment.objects.filter(date__gte=date_from, date__lte=date_to),
+            filters,
+        ).select_related('patient', 'doctor').order_by('date', 'time')
+        for a in qs:
             writer.writerow([
                 a.date, a.time,
                 a.patient.get_full_name() if a.patient else '',
@@ -1369,8 +1796,15 @@ def export_report(request):
 
     elif report_type == 'medical_records':
         from medical_records.models import MedicalRecord
+        write_academic_filter_csv_rows(writer, filters)
         writer.writerow(['Date', 'Patient', 'Doctor', 'Diagnosis', 'Treatment'])
-        for r in MedicalRecord.objects.filter(created_at__date__gte=date_from, created_at__date__lte=date_to).select_related('patient', 'doctor').order_by('-created_at'):
+        qs = apply_academic_filters(
+            MedicalRecord.objects.filter(
+                created_at__date__gte=date_from, created_at__date__lte=date_to,
+            ),
+            filters,
+        ).select_related('patient', 'doctor').order_by('-created_at')
+        for r in qs:
             writer.writerow([
                 r.created_at.strftime('%Y-%m-%d'),
                 r.patient.get_full_name() if r.patient else '',
@@ -1405,11 +1839,15 @@ def export_report(request):
             ])
 
     elif report_type == 'health_trends_live':
-        illness_q = (request.GET.get('illness_category') or '').strip()
+        write_academic_filter_csv_rows(writer, filters)
+        if illness_q:
+            writer.writerow(['Illness filter', illness_q])
+            writer.writerow([])
         writer.writerow(['Diagnosis', 'Count'])
         for row in _illness_stats(
             date_from, date_to,
             diagnosis_query=illness_q or None,
+            filters=filters,
         ):
             writer.writerow([row['diagnosis'], row['count']])
 
@@ -1417,7 +1855,7 @@ def export_report(request):
         _write_health_trends_csv(writer, request, date_from, date_to)
 
     elif report_type == 'resource_utilization_summary':
-        _write_resource_utilization_csv(writer, date_from, date_to)
+        _write_resource_utilization_csv(writer, date_from, date_to, filters=filters)
 
     elif report_type == 'resource_utilization_daily':
         writer.writerow([
@@ -1432,40 +1870,78 @@ def export_report(request):
             ])
 
     elif report_type == 'resource_utilization_staff':
+        write_academic_filter_csv_rows(writer, filters)
         writer.writerow(['Staff member', 'Completed appointments'])
-        for row in _resource_utilization_staff_stats(date_from, date_to):
+        for row in _resource_utilization_staff_stats(date_from, date_to, filters=filters):
             name = f"{row['doctor__first_name']} {row['doctor__last_name']}".strip()
             writer.writerow([name, row['total']])
 
     elif report_type == 'population_summary':
-        _write_population_summary_csv(writer, date_from, date_to)
+        _write_population_summary_csv(writer, date_from, date_to, filters=filters)
 
     elif report_type == 'population_period':
-        _write_population_period_csv(writer, date_from, date_to)
+        _write_population_period_csv(writer, date_from, date_to, filters=filters)
 
     elif report_type == 'academic_summary':
-        _write_academic_summary_csv(writer, date_from, date_to)
+        _write_academic_summary_csv(writer, date_from, date_to, filters=filters)
 
     elif report_type == 'academic_visitors':
-        _write_academic_visitors_csv(writer, date_from, date_to)
+        _write_academic_visitors_csv(writer, date_from, date_to, filters=filters)
 
     elif report_type == 'academic_emergency':
+        data = _academic_correlation_data(date_from, date_to, filters=filters)
         writer.writerow(['Emergency visits by course'])
         writer.writerow(['Period from', date_from])
         writer.writerow(['Period to', date_to])
+        write_academic_filter_csv_rows(writer, filters)
         writer.writerow(['Course', 'Count'])
-        for row in _academic_correlation_data(date_from, date_to)['emergency_visits']:
+        for row in data['emergency_visits']:
             writer.writerow([
                 row['patient__patient_profile__course'] or 'Unknown',
                 row['count'],
             ])
+        writer.writerow([])
+        writer.writerow(['Emergency visits by department'])
+        writer.writerow(['Department', 'Count'])
+        for row in data['emergency_by_department']:
+            writer.writerow([
+                row['patient__patient_profile__department'] or 'Unknown',
+                row['count'],
+            ])
+        writer.writerow([])
+        writer.writerow(['Emergency visits by year level'])
+        writer.writerow(['Year level', 'Count'])
+        for row in data['emergency_by_year']:
+            writer.writerow([
+                row['patient__patient_profile__year_level'] or 'Unknown',
+                row['count'],
+            ])
+
+    elif report_type in ('predictive_insights', 'predictive_hourly'):
+        _write_predictive_csv(
+            writer, request, date_from, date_to, filters,
+            report_type=report_type,
+        )
+
+    elif report_type == 'compliance_index':
+        if request.user.role != 'admin':
+            return HttpResponseForbidden()
+        _write_compliance_index_csv(writer, request, date_from, date_to, filters)
 
     elif report_type == 'demographics':
         from core.models import PatientProfile
-        writer.writerow(['Patient ID', 'Course', 'Year Level', 'Gender', 'Blood Type'])
-        for p in PatientProfile.objects.select_related('user').order_by('patient_id'):
+        write_academic_filter_csv_rows(writer, filters)
+        writer.writerow(['Patient ID', 'Department', 'Course', 'Year Level', 'Gender', 'Blood Type'])
+        profile_qs = PatientProfile.objects.select_related('user').order_by('patient_id')
+        if filters.get('department'):
+            profile_qs = profile_qs.filter(department=filters['department'])
+        if filters.get('course'):
+            profile_qs = profile_qs.filter(course=filters['course'])
+        if filters.get('year_level'):
+            profile_qs = profile_qs.filter(year_level=filters['year_level'])
+        for p in profile_qs:
             writer.writerow([
-                p.patient_id, p.course, p.year_level, p.gender, p.blood_type,
+                p.patient_id, p.department, p.course, p.year_level, p.gender, p.blood_type,
             ])
 
     # Log the export
@@ -1510,53 +1986,95 @@ def admin_calendar_month_api(request):
 
 
 @login_required
+@role_required('staff', 'doctor', 'admin')
 def chart_data_api(request):
     """Return JSON chart data for AJAX requests on the dashboard."""
     chart = request.GET.get('chart', '')
     date_from, date_to = _get_date_range(request)
+    filters = _filters_from_request(request)
 
     data = {}
 
     if chart == 'appointment_volume':
-        raw = _appointment_volume(date_from, date_to)
+        raw = _appointment_volume(date_from, date_to, filters=filters)
         data = {
             'labels': [r['day'].strftime('%Y-%m-%d') for r in raw],
             'values': [r['count'] for r in raw],
         }
 
     elif chart == 'appointment_by_type':
-        raw = _appointment_by_type(date_from, date_to)
+        raw = _appointment_by_type(date_from, date_to, filters=filters)
         data = {
             'labels': [r['appointment_type'] for r in raw],
             'values': [r['count'] for r in raw],
         }
 
     elif chart == 'hourly_distribution':
-        raw = _appointment_by_hour(date_from, date_to)
+        raw = _appointment_by_hour(date_from, date_to, filters=filters)
         data = {
             'labels': [f"{r['hour']}:00" for r in raw],
             'values': [r['count'] for r in raw],
         }
 
     elif chart == 'illness_stats':
-        raw = _illness_stats(date_from, date_to)[:15]
+        raw = _illness_stats(date_from, date_to, filters=filters)[:15]
         data = {
             'labels': [r['diagnosis'] for r in raw],
             'values': [r['count'] for r in raw],
         }
 
     elif chart == 'demographics_course':
-        demo = _student_demographics()
+        demo = _student_demographics(filters=filters)
         data = {
             'labels': [r['course'] for r in demo['course']],
             'values': [r['count'] for r in demo['course']],
         }
 
+    elif chart == 'demographics_department':
+        demo = _student_demographics(filters=filters)
+        data = {
+            'labels': [r['department'] for r in demo['department']],
+            'values': [r['count'] for r in demo['department']],
+        }
+
     elif chart == 'demographics_year':
-        demo = _student_demographics()
+        demo = _student_demographics(filters=filters)
         data = {
             'labels': [r['year_level'] for r in demo['year_level']],
             'values': [r['count'] for r in demo['year_level']],
+        }
+
+    elif chart == 'population_health_by_department':
+        pop = _population_health_data(date_from, date_to, filters=filters)
+        raw = pop['health_by_department']
+        data = {
+            'labels': [
+                r['patient__patient_profile__department'] or 'Unknown'
+                for r in raw
+            ],
+            'values': [r['count'] for r in raw],
+        }
+
+    elif chart == 'appointments_by_department':
+        pop = _population_health_data(date_from, date_to, filters=filters)
+        raw = pop['appt_by_department']
+        data = {
+            'labels': [
+                r['patient__patient_profile__department'] or 'Unknown'
+                for r in raw
+            ],
+            'values': [r['count'] for r in raw],
+        }
+
+    elif chart == 'appointments_by_year':
+        pop = _population_health_data(date_from, date_to, filters=filters)
+        raw = pop['appt_by_year']
+        data = {
+            'labels': [
+                r['patient__patient_profile__year_level'] or 'Unknown'
+                for r in raw
+            ],
+            'values': [r['count'] for r in raw],
         }
 
     elif chart == 'financial_category':
@@ -1564,6 +2082,39 @@ def chart_data_api(request):
         data = {
             'labels': [r['category'] for r in raw],
             'values': [float(r['total']) for r in raw],
+        }
+
+    elif chart == 'academic_visits_by_department':
+        acad = _academic_correlation_data(date_from, date_to, filters=filters)
+        raw = acad['visits_by_department']
+        data = {
+            'labels': [
+                r['patient__patient_profile__department'] or 'Unknown'
+                for r in raw
+            ],
+            'values': [r['count'] for r in raw],
+        }
+
+    elif chart == 'academic_visits_by_course':
+        acad = _academic_correlation_data(date_from, date_to, filters=filters)
+        raw = acad['visits_by_course']
+        data = {
+            'labels': [
+                r['patient__patient_profile__course'] or 'Unknown'
+                for r in raw
+            ],
+            'values': [r['count'] for r in raw],
+        }
+
+    elif chart == 'academic_emergency_by_course':
+        acad = _academic_correlation_data(date_from, date_to, filters=filters)
+        raw = acad['emergency_visits']
+        data = {
+            'labels': [
+                r['patient__patient_profile__course'] or 'Unknown'
+                for r in raw
+            ],
+            'values': [r['count'] for r in raw],
         }
 
     return JsonResponse(data)

@@ -6,6 +6,8 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
+    {% include "analytics/_analytics_filter_bar.html" %}
+
     <div class="mb-5 rounded-card border border-gray-200 bg-white shadow-sm p-3 sm:p-4">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div class="min-w-0">
@@ -13,7 +15,7 @@
             <i class="fas fa-shield-halved text-primary-500 text-xs" aria-hidden="true"></i>
             Compliance &amp; accreditation
           </p>
-          <p class="mt-0.5 text-xs text-gray-500">CHED, DOH, and university reporting</p>
+          <p class="mt-0.5 text-xs text-gray-500">CHED, DOH, and university reporting. Saved reports are historical snapshots.</p>
         </div>
         <a href="{% url 'analytics:generate_compliance_report' %}"
           class="form-btn--compact form-btn--compact-primary shrink-0 self-start lg:self-center">
@@ -21,10 +23,10 @@
         </a>
       </div>
       <div class="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-1.5" role="group" aria-label="Report type">
-        <a href="{% url 'analytics:compliance_reports' %}"
+        <a href="{% url 'analytics:compliance_reports' %}?date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ academic_query }}"
           class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors {% if not selected_type %}bg-primary-100 text-primary-700 ring-1 ring-primary-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">All</a>
         {% for value, label in report_types %}
-        <a href="?type={{ value }}"
+        <a href="?type={{ value|urlencode }}&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}{{ academic_query }}"
           class="px-2.5 py-1 text-xs font-medium rounded-full transition-colors {% if selected_type == value %}bg-primary-100 text-primary-700 ring-1 ring-primary-200{% else %}bg-gray-100 text-gray-600 hover:bg-gray-200{% endif %}">{{ label }}</a>
         {% endfor %}
       </div>
@@ -75,55 +77,9 @@
         {% endfor %}
       </ul>
 
-      {% if reports.has_other_pages %}
-      <div class="flex items-center justify-center gap-1 mt-6 pt-4 border-t border-gray-100">
-        {% if reports.has_previous %}
-        <a href="?page={{ reports.previous_page_number }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
-          class="inline-flex items-center justify-center w-9 h-9 border border-gray-300 text-sm rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 transition-colors"
-          aria-label="Previous page">
-          <i class="fas fa-chevron-left text-xs"></i>
-        </a>
-        {% else %}
-        <span class="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed" aria-hidden="true">
-          <i class="fas fa-chevron-left text-xs"></i>
-        </span>
+        {% if reports.has_other_pages %}
+        {% include "analytics/_pagination_bar.html" with page_obj=reports query=pagination_query %}
         {% endif %}
-
-        <div class="flex items-center gap-1">
-          {% for num in reports.paginator.page_range %}
-            {% if num == reports.number %}
-            <span class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-semibold rounded-lg text-white bg-primary-600">{{ num }}</span>
-            {% elif num|add:"0" <= 2 %}
-            <a href="?page={{ num }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
-              class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-primary-50 transition-colors">{{ num }}</a>
-            {% elif num|add:"0" >= reports.paginator.num_pages|add:"-1" %}
-            {% if num|add:"0" == reports.paginator.num_pages|add:"-1" and reports.number not in reports.paginator.page_range|slice:"-3:" %}
-            <span class="px-1 text-xs text-gray-400">…</span>
-            {% endif %}
-            <a href="?page={{ num }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
-              class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-primary-50 transition-colors">{{ num }}</a>
-            {% elif num|add:"0" >= reports.number|add:"-1" and num|add:"0" <= reports.number|add:"1" %}
-            <a href="?page={{ num }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
-              class="inline-flex items-center justify-center min-w-[2.25rem] h-9 px-2 text-xs font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-primary-50 transition-colors">{{ num }}</a>
-            {% elif num|add:"0" == 3 and reports.number > 4 %}
-            <span class="px-1 text-xs text-gray-400">…</span>
-            {% endif %}
-          {% endfor %}
-        </div>
-
-        {% if reports.has_next %}
-        <a href="?page={{ reports.next_page_number }}{% if selected_type %}&amp;type={{ selected_type }}{% endif %}"
-          class="inline-flex items-center justify-center w-9 h-9 border border-gray-300 text-sm rounded-lg text-gray-700 bg-white hover:bg-primary-50 hover:border-primary-300 transition-colors"
-          aria-label="Next page">
-          <i class="fas fa-chevron-right text-xs"></i>
-        </a>
-        {% else %}
-        <span class="inline-flex items-center justify-center w-9 h-9 border border-gray-200 rounded-lg text-gray-400 bg-gray-100 cursor-not-allowed" aria-hidden="true">
-          <i class="fas fa-chevron-right text-xs"></i>
-        </span>
-        {% endif %}
-      </div>
-      {% endif %}
 
       {% else %}
       <div class="rounded-lg border border-dashed border-gray-200 bg-gray-50/50 py-10 px-4 text-center">

@@ -296,16 +296,20 @@ class HealthFormsPatientPickerTests(TestCase):
 				'first_name': 'Ana',
 				'middle_name': 'M',
 				'address': '123 Main St',
-				'date_of_birth': '',
-				'place_of_birth': '',
+				'zip_code': '1000',
+				'current_address': '123 Main St',
+				'date_of_birth': '2000-01-15',
+				'place_of_birth': 'Manila',
 				'age': '21',
 				'gender': 'female',
 				'civil_status': 'single',
+				'religion': 'Roman Catholic',
+				'citizenship': 'Filipino',
 				'email_address': 'patient-picker@test.com',
 				'contact_number': '09171234567',
-				'telephone_number': '0281234567',
+				'telephone_number': '',
 				'designation': 'student',
-				'department_college_office': 'BSN - College of Nursing',
+				'department_college_office': 'College of Nursing',
 				'guardian_name': 'Parent Name',
 				'guardian_contact': '+639179876543',
 			},
@@ -413,30 +417,36 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertContains(response, 'Please select a valid patient from the search results.')
 		self.assertFalse(DentalServicesRequest.objects.exists())
 
-	def test_no_selected_user_keeps_creator_assignment(self):
-		self.client.post(
+	def test_no_selected_user_requires_patient_or_guest(self):
+		before = PatientChart.objects.count()
+		response = self.client.post(
 			reverse('health_forms_services:create_patient_chart'),
 			{
 				'last_name': 'Doctor',
 				'first_name': 'Picker',
 				'middle_name': '',
-				'address': '',
-				'date_of_birth': '',
-				'place_of_birth': '',
-				'age': '',
-				'gender': '',
-				'civil_status': '',
-				'email_address': '',
-				'contact_number': '',
+				'address': '123 Main St',
+				'zip_code': '1000',
+				'current_address': '123 Main St',
+				'date_of_birth': '1995-06-01',
+				'place_of_birth': 'Davao',
+				'age': '30',
+				'gender': 'male',
+				'civil_status': 'single',
+				'religion': 'Roman Catholic',
+				'citizenship': 'Filipino',
+				'email_address': 'picker@test.com',
+				'contact_number': '09171234567',
 				'telephone_number': '',
 				'designation': '',
 				'department_college_office': '',
-				'guardian_name': '',
-				'guardian_contact': '',
+				'guardian_name': 'Guardian Name',
+				'guardian_contact': '+639171234567',
 			},
 		)
-		created = PatientChart.objects.latest('created_at')
-		self.assertEqual(created.user_id, self.doctor.id)
+		self.assertEqual(response.status_code, 200)
+		self.assertEqual(PatientChart.objects.count(), before)
+		self.assertContains(response, 'Please search for a patient or check Register guest patient.')
 
 	def test_create_health_profile_uses_selected_patient_user(self):
 		response = self.client.post(
@@ -790,15 +800,15 @@ class HealthFormSectionSaveTests(TestCase):
 			'last_name': 'Doe',
 			'first_name': 'Jane',
 			'middle_name': '',
-			'permanent_address': '',
-			'zip_code': '',
-			'current_address': '',
-			'religion': '',
-			'civil_status': '',
-			'place_of_birth': '',
+			'permanent_address': '123 Main St, Barangay, City',
+			'zip_code': '1000',
+			'current_address': '123 Main St, Barangay, City',
+			'religion': 'Roman Catholic',
+			'civil_status': 'single',
+			'place_of_birth': 'Manila',
 			'date_of_birth': '2000-01-15',
-			'citizenship': '',
-			'age': '',
+			'citizenship': 'Filipino',
+			'age': '26',
 			'gender': 'female',
 			'email_address': 'patient-save@test.com',
 			'mobile_number': '+639171234567',
@@ -814,8 +824,8 @@ class HealthFormSectionSaveTests(TestCase):
 			'ptr_no': '',
 			'blood_type': '',
 			'medical_conditions': '',
-			'guardian_name': '',
-			'guardian_contact': '',
+			'guardian_name': 'Parent Name',
+			'guardian_contact': '+639171234567',
 		}
 		data.update(overrides)
 		return data
@@ -1676,6 +1686,8 @@ class DentalHealthFormProcessFlowTests(TestCase):
 )
 class PatientChartProcessFlowTests(TestCase):
 	def setUp(self):
+		from core.doctor_access import ALL_MODULE_KEYS
+
 		self.doctor = User.objects.create_user(
 			email='doctor-chart@test.com',
 			password='DoctorPass123!',
@@ -1686,6 +1698,9 @@ class PatientChartProcessFlowTests(TestCase):
 			last_name='Doctor',
 		)
 		_complete_staff_like_profile(self.doctor, 'DOC-CHART-001')
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
 		self.patient = User.objects.create_user(
 			email='patient-chart@test.com',
 			password='PatientPass123!',
@@ -1714,11 +1729,15 @@ class PatientChartProcessFlowTests(TestCase):
 			'first_name': 'Maria',
 			'middle_name': '',
 			'address': '123 Campus Ave',
-			'date_of_birth': '',
-			'place_of_birth': '',
+			'zip_code': '9506',
+			'current_address': '123 Campus Ave',
+			'date_of_birth': '2005-03-12',
+			'place_of_birth': 'Koronadal City',
 			'age': '20',
 			'gender': 'female',
 			'civil_status': 'single',
+			'religion': 'Roman Catholic',
+			'citizenship': 'Filipino',
 			'email_address': 'patient-chart@test.com',
 			'contact_number': '09171234567',
 			'telephone_number': '',
@@ -1750,6 +1769,27 @@ class PatientChartProcessFlowTests(TestCase):
 		self.assertContains(response, 'Guest')
 		self.assertNotContains(response, '>Patient</option>')
 
+	def test_patient_chart_list_shows_invite_guest_and_new_buttons(self):
+		response = self.client.get(reverse('health_forms_services:patient_chart_list'))
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Invite Guest')
+		self.assertContains(response, 'New Patient Charts')
+		self.assertContains(
+			response,
+			reverse('health_forms_services:invite_guest_patient_chart'),
+		)
+		self.assertContains(
+			response,
+			reverse('health_forms_services:create_patient_chart'),
+		)
+		# Invite is primary (envelope); New is secondary outline — same order as health forms
+		content = response.content.decode()
+		new_pos = content.find('New Patient Charts')
+		invite_pos = content.find('Invite Guest')
+		self.assertGreater(invite_pos, -1)
+		self.assertGreater(new_pos, -1)
+		self.assertLess(new_pos, invite_pos)
+
 	def test_edit_personal_saves(self):
 		response = self.client.post(
 			self.edit_url,
@@ -1769,9 +1809,9 @@ class PatientChartProcessFlowTests(TestCase):
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, 'Consultation Log')
 		self.assertContains(response, 'patient-chart-entry-form')
-		self.assertContains(response, 'patient-chart-entries.js')
+		self.assertContains(response, 'patient-chart-entries')
 		self.assertContains(response, 'Download .docx')
-		self.assertContains(response, 'Patient Chart (F-HSS-20-0002)')
+		self.assertContains(response, 'F-HSS-20-0002')
 		self.assertContains(response, 'No consultation entries yet')
 
 	def test_add_chart_entry(self):
@@ -2056,11 +2096,21 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 			'last_name': 'Guest',
 			'first_name': 'User',
 			'date_of_birth': '2000-01-01',
+			'place_of_birth': 'Manila',
+			'age': '26',
 			'gender': 'female',
+			'civil_status': 'single',
+			'religion': 'Roman Catholic',
+			'citizenship': 'Filipino',
+			'permanent_address': '123 Main St',
+			'zip_code': '1000',
+			'current_address': '123 Main St',
 			'designation': 'guest',
 			'department_college_office': 'College of Nursing',
 			'mobile_number': '+639171234567',
 			'email_address': 'guest@example.com',
+			'guardian_name': 'Parent Name',
+			'guardian_contact': '+639171234567',
 			'institution_id': '24-0001',
 			'course': 'BSN',
 			'year_level': '4th Year',
@@ -2083,6 +2133,73 @@ class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
 		form = HealthProfilePersonalInfoForm(readonly=True)
 		for name, field in form.fields.items():
 			self.assertTrue(field.disabled, msg=name)
+
+	def test_birth_demographics_fields_are_required(self):
+		form = HealthProfilePersonalInfoForm()
+		for name in (
+			'place_of_birth', 'age', 'civil_status', 'religion', 'citizenship',
+			'permanent_address', 'zip_code', 'current_address',
+			'guardian_name', 'guardian_contact',
+		):
+			self.assertTrue(form.fields[name].required, msg=name)
+			self.assertEqual(form.fields[name].widget.attrs.get('required'), True)
+
+		missing = HealthProfilePersonalInfoForm(data={
+			'last_name': 'Guest',
+			'first_name': 'User',
+			'date_of_birth': '2000-01-01',
+			'place_of_birth': '',
+			'age': '',
+			'gender': 'female',
+			'civil_status': '',
+			'religion': '',
+			'citizenship': '',
+			'permanent_address': '',
+			'zip_code': '',
+			'current_address': '',
+			'guardian_name': '',
+			'guardian_contact': '',
+			'designation': 'guest',
+			'mobile_number': '+639171234567',
+			'email_address': 'guest@example.com',
+		})
+		self.assertFalse(missing.is_valid())
+		for name in (
+			'place_of_birth', 'civil_status', 'religion', 'citizenship',
+			'permanent_address', 'zip_code', 'current_address',
+			'guardian_name', 'guardian_contact',
+		):
+			self.assertIn(name, missing.errors)
+
+	def test_health_profile_computes_age_from_date_of_birth(self):
+		from datetime import date
+
+		from core.utils import age_from_date_of_birth
+
+		dob = date(2000, 1, 15)
+		expected = age_from_date_of_birth(dob)
+		form = HealthProfilePersonalInfoForm(data={
+			'last_name': 'Guest',
+			'first_name': 'User',
+			'date_of_birth': dob.isoformat(),
+			'place_of_birth': 'Manila',
+			'age': '1',
+			'gender': 'female',
+			'civil_status': 'single',
+			'religion': 'Roman Catholic',
+			'citizenship': 'Filipino',
+			'permanent_address': '123 Main St',
+			'zip_code': '1000',
+			'current_address': '123 Main St',
+			'designation': 'guest',
+			'mobile_number': '+639171234567',
+			'email_address': 'guest@example.com',
+			'guardian_name': 'Parent Name',
+			'guardian_contact': '+639171234567',
+		})
+		self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+		self.assertEqual(form.cleaned_data['age'], expected)
+		self.assertTrue(form.fields['age'].widget.attrs.get('readonly'))
 
 
 class DentalAndChartGuestDesignationTests(TestCase):
@@ -2110,15 +2227,97 @@ class DentalAndChartGuestDesignationTests(TestCase):
 		field_names = [item['name'] for item in designation_section['fields']]
 		self.assertEqual(field_names, ['designation'])
 
+	def test_patient_chart_email_and_contact_are_required(self):
+		form = PatientChartPersonalInfoForm()
+		self.assertTrue(form.fields['email_address'].required)
+		self.assertTrue(form.fields['contact_number'].required)
+		self.assertEqual(form.fields['email_address'].widget.attrs.get('required'), True)
+		self.assertEqual(form.fields['contact_number'].widget.attrs.get('required'), True)
+
+		missing = PatientChartPersonalInfoForm(data={
+			'last_name': 'Chart',
+			'first_name': 'Guest',
+			'address': '123 Main St',
+			'zip_code': '1000',
+			'current_address': '123 Main St',
+			'date_of_birth': '2000-01-15',
+			'place_of_birth': 'Manila',
+			'age': '22',
+			'gender': 'female',
+			'civil_status': 'single',
+			'religion': 'Roman Catholic',
+			'citizenship': 'Filipino',
+			'email_address': '',
+			'contact_number': '',
+			'designation': 'student',
+			'department_college_office': 'College of Nursing',
+			'guardian_name': 'Guardian Name',
+			'guardian_contact': '+639171234567',
+		})
+		self.assertFalse(missing.is_valid())
+		self.assertIn('email_address', missing.errors)
+		self.assertIn('contact_number', missing.errors)
+
 	def test_patient_chart_clean_clears_department_for_guest(self):
 		form = PatientChartPersonalInfoForm(data={
 			'last_name': 'Chart',
 			'first_name': 'Guest',
+			'address': '123 Main St',
+			'zip_code': '1000',
+			'current_address': '123 Main St',
+			'date_of_birth': '2000-01-15',
+			'place_of_birth': 'Manila',
+			'age': '22',
+			'gender': 'female',
+			'civil_status': 'single',
+			'religion': 'Roman Catholic',
+			'citizenship': 'Filipino',
+			'email_address': 'guest-chart@test.com',
+			'contact_number': '09171234567',
 			'designation': 'guest',
 			'department_college_office': 'College of Nursing',
+			'guardian_name': 'Guardian Name',
+			'guardian_contact': '+639171234567',
 		})
 		self.assertTrue(form.is_valid(), msg=form.errors.as_text())
 		self.assertEqual(form.cleaned_data['department_college_office'], '')
+
+	def test_patient_chart_computes_age_from_date_of_birth(self):
+		from datetime import date
+
+		from core.utils import age_from_date_of_birth
+
+		dob = date(2000, 1, 15)
+		expected = age_from_date_of_birth(dob)
+		form = PatientChartPersonalInfoForm(data={
+			'last_name': 'Chart',
+			'first_name': 'Guest',
+			'address': '123 Main St',
+			'zip_code': '1000',
+			'current_address': '123 Main St',
+			'date_of_birth': dob.isoformat(),
+			'place_of_birth': 'Manila',
+			'age': '1',
+			'gender': 'female',
+			'civil_status': 'single',
+			'religion': 'Roman Catholic',
+			'citizenship': 'Filipino',
+			'email_address': 'guest-chart@test.com',
+			'contact_number': '09171234567',
+			'designation': 'student',
+			'department_college_office': 'College of Nursing',
+			'guardian_name': 'Guardian Name',
+			'guardian_contact': '+639171234567',
+		})
+		self.assertTrue(form.is_valid(), msg=form.errors.as_text())
+		self.assertEqual(form.cleaned_data['age'], expected)
+		self.assertTrue(form.fields['age'].widget.attrs.get('readonly'))
+		for name in (
+			'place_of_birth', 'age', 'civil_status', 'religion', 'citizenship',
+			'address', 'zip_code', 'current_address', 'guardian_name', 'guardian_contact',
+		):
+			self.assertTrue(form.fields[name].required, msg=name)
+
 
 
 @override_settings(
@@ -2181,7 +2380,7 @@ class PrescriptionBodyFormatTests(TestCase):
 			{
 				'medication_name': 'Amoxicillin',
 				'dosage': '500 mg',
-				'frequency': '3× daily',
+				'frequency': '3Ã— daily',
 				'duration': '7 days',
 				'quantity': '#21',
 				'instructions': 'Take after meals',
@@ -2790,6 +2989,77 @@ class HealthProfilePatientWorkflowTests(TestCase):
 		self.assertEqual(len(mail.outbox), 1)
 		self.assertEqual(mail.outbox[0].to, ['invite-guest@test.com'])
 		self.assertIn('/guest/health-form/', mail.outbox[0].body)
+
+	def test_invite_guest_patient_chart_page_reachable_by_doctor_and_staff(self):
+		from core.doctor_access import ALL_MODULE_KEYS, MODULE_PATIENT_CHARTS
+
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
+
+		staff = User.objects.create_user(
+			email='staff-pc-invite@test.com',
+			password='StaffPass123!',
+			role='staff',
+			is_staff=True,
+			is_active=True,
+			first_name='Staff',
+			last_name='Invite',
+		)
+		_complete_staff_like_profile(staff, 'STF-PC-INV-001')
+		staff.staff_profile.allowed_clinical_modules = [MODULE_PATIENT_CHARTS]
+		staff.staff_profile.save(update_fields=['allowed_clinical_modules'])
+
+		url = reverse('health_forms_services:invite_guest_patient_chart')
+		self._login_doctor()
+		doctor_resp = self.client.get(url)
+		self.assertEqual(doctor_resp.status_code, 200)
+		self.assertContains(doctor_resp, 'Invite Guest to Complete Chart')
+
+		self.client.force_login(staff)
+		staff_resp = self.client.get(url)
+		self.assertEqual(staff_resp.status_code, 200)
+		self.assertContains(staff_resp, 'Invite Guest to Complete Chart')
+
+	def test_invite_guest_patient_chart_creates_draft_and_emails_link(self):
+		from django.core import mail
+		from core.doctor_access import ALL_MODULE_KEYS
+		from core.guest_auth import is_guest_user
+		from core.models import ClinicSettings
+		from core.settings_service import invalidate_settings_cache
+
+		ClinicSettings.load()
+		ClinicSettings.objects.filter(pk=ClinicSettings.SINGLETON_PK).update(
+			enable_email_notifications=True,
+		)
+		invalidate_settings_cache()
+
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
+
+		self._login_doctor()
+		response = self.client.post(
+			reverse('health_forms_services:invite_guest_patient_chart'),
+			{
+				'first_name': 'Chart',
+				'last_name': 'Guest',
+				'contact_email': 'invite-chart-guest@test.com',
+				'mobile_number': '+639171234568',
+			},
+		)
+		self.assertEqual(response.status_code, 302, msg=getattr(response, 'url', None))
+		created = PatientChart.objects.latest('created_at')
+		self.assertTrue(is_guest_user(created.user))
+		self.assertEqual(created.status, PatientChart.Status.INCOMPLETE)
+		self.assertEqual(created.designation, 'guest')
+		self.assertEqual(created.email_address, 'invite-chart-guest@test.com')
+		self.assertEqual(created.first_name, 'Chart')
+		self.assertEqual(created.contact_number, '+639171234568')
+		self.assertFalse(created.department_college_office)
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['invite-chart-guest@test.com'])
+		self.assertIn('/guest/patient-chart/', mail.outbox[0].body)
 
 	def test_resend_guest_health_form_link(self):
 		from django.core import mail

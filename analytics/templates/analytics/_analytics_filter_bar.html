@@ -1,0 +1,133 @@
+{% comment %}
+  Shared analytics filter bar: academic filters + date range + export slot.
+  Apply button submits filters; department/course/year cascade from live catalog.
+{% endcomment %}
+{% load static %}
+<script src="{% static 'js/analytics_filter_bar.js' %}"></script>
+<script>
+window.__jmcfiAnalyticsFilterCatalog = {
+  config: {{ filter_bar_config_json|safe }},
+  colleges: {{ college_options_json|safe }},
+  coursesByCollege: {{ course_options_by_college_json|safe }},
+  yearLevelsByCollege: {{ year_level_options_by_college_json|safe }},
+};
+</script>
+<div class="mb-4 bg-white border border-gray-200 rounded-card shadow-sm px-3 py-2 sm:px-4 sm:py-2.5"
+     x-data="analyticsFilterBar()">
+  <form method="get"
+        class="flex flex-col gap-1.5"
+        @submit.prevent="applyFilters()"
+        x-ref="filterForm">
+    <template x-if="selectedType">
+      <input type="hidden" name="type" :value="selectedType">
+    </template>
+
+    {% if period_presets %}
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-[10px] font-medium uppercase tracking-wider text-gray-500 mr-1">Quick range</span>
+      {% for preset in period_presets %}
+      <a href="?date_from={{ preset.date_from|date:'Y-m-d' }}&amp;date_to={{ preset.date_to|date:'Y-m-d' }}{{ preset.query_suffix|default:academic_query|default:'' }}{% if show_illness_filter and illness_filter %}&amp;illness_category={{ illness_filter|urlencode }}{% endif %}{% if selected_type %}&amp;type={{ selected_type|urlencode }}{% endif %}"
+         class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border transition-colors
+                {% if preset.active %}bg-primary-100 text-primary-800 border-primary-200{% else %}bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-200 hover:text-primary-700{% endif %}">
+        {{ preset.label }}
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if has_academic_filters %}
+    <div class="flex flex-wrap gap-1">
+      {% for label in active_filter_labels %}
+      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-primary-50 text-primary-800 border border-primary-100">{{ label }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {# No .form-group here — that class adds 1rem bottom margin and inflated Y gaps. #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-x-4 gap-y-1.5 items-end">
+      <div class="sm:col-span-2 lg:col-span-1">
+        <label for="analytics-filter-department" class="block text-xs font-semibold text-gray-700 mb-0.5">College / Department</label>
+        <select id="analytics-filter-department"
+                name="department"
+                x-ref="departmentSelect"
+                @change="onDepartmentChange()"
+                class="form-select form-select--compact w-full">
+          <option value="">All departments</option>
+          {% for name in college_options %}
+          <option value="{{ name }}"{% if academic_filters.department == name %} selected{% endif %}>{{ name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="sm:col-span-2 lg:col-span-1">
+        <label for="analytics-filter-course" class="block text-xs font-semibold text-gray-700 mb-0.5">Course / Program</label>
+        <select id="analytics-filter-course"
+                name="course"
+                x-ref="courseSelect"
+                @change="onCourseChange()"
+                :disabled="!department"
+                class="form-select form-select--compact w-full disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+          <option value="">{% if academic_filters.department %}All programs{% else %}Select college first{% endif %}</option>
+        </select>
+      </div>
+
+      <div class="sm:col-span-2 lg:col-span-1">
+        <label for="analytics-filter-year-level" class="block text-xs font-semibold text-gray-700 mb-0.5">Year level</label>
+        <select id="analytics-filter-year-level"
+                name="year_level"
+                x-ref="yearLevelSelect"
+                @change="onYearLevelChange()"
+                :disabled="!department"
+                class="form-select form-select--compact w-full disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed">
+          <option value="">{% if academic_filters.department %}All year levels{% else %}Select college first{% endif %}</option>
+        </select>
+      </div>
+
+      {% if show_illness_filter %}
+      <div class="sm:col-span-2 lg:col-span-1">
+        <label for="analytics-filter-illness" class="block text-xs font-semibold text-gray-700 mb-0.5">Illness category</label>
+        <input type="text"
+               id="analytics-filter-illness"
+               name="illness_category"
+               x-model="illnessCategory"
+               placeholder="Filter diagnoses…"
+               class="form-input form-input--compact w-full"
+               autocomplete="off">
+      </div>
+      {% endif %}
+
+      <div>
+        <label for="analytics-date-from" class="block text-xs font-semibold text-gray-700 mb-0.5">From</label>
+        <input type="date"
+               id="analytics-date-from"
+               name="date_from"
+               x-model="dateFrom"
+               class="form-input form-input--compact w-full">
+      </div>
+
+      <div>
+        <label for="analytics-date-to" class="block text-xs font-semibold text-gray-700 mb-0.5">To</label>
+        <input type="date"
+               id="analytics-date-to"
+               name="date_to"
+               x-model="dateTo"
+               class="form-input form-input--compact w-full">
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 pt-0.5 sm:col-span-2 lg:col-span-1">
+        <button type="submit" class="form-btn--compact form-btn--compact-primary">
+          <i class="fas fa-filter text-[10px]" aria-hidden="true"></i>Apply
+        </button>
+        {% if has_clearable_filters and clear_filters_href %}
+        <a href="{{ clear_filters_href }}"
+           class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+          <i class="fas fa-xmark text-[10px]" aria-hidden="true"></i>Clear filters
+        </a>
+        {% endif %}
+        {% if export_variant %}
+        {% include "analytics/_export_dropdown.html" with export_query=export_query|default:academic_query extra_query=extra_query %}
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</div>

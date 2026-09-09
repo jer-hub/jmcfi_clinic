@@ -5,6 +5,9 @@
     "build:css": "tailwindcss -i ./frontend/css/input.css -o ./staticfiles/css/app.css --minify",
     "watch:css": "tailwindcss -i ./frontend/css/input.css -o ./staticfiles/css/app.css --watch"
   },
+  "dependencies": {
+    "@vercel/speed-insights": "^2.0.0"
+  },
   "devDependencies": {
     "@tailwindcss/cli": "^4.1.11",
     "tailwindcss": "^4.1.11"

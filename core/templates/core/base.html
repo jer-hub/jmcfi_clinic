@@ -26,6 +26,12 @@
 
     {% block head %}
     {% endblock %}
+
+    <!-- Vercel Speed Insights -->
+    <script type="module">
+      import { injectSpeedInsights } from '{% static 'js/speed-insights.js' %}';
+      injectSpeedInsights();
+    </script>
   </head>
   <body class="bg-gray-50{% if user_compact_nav %} compact-nav{% endif %}" data-authenticated="{% if user.is_authenticated %}true{% endif %}">
     {% if user.is_authenticated %}

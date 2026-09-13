@@ -1,5 +1,9 @@
-from django.test import TestCase, override_settings
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
+from django.template import Context, Template
+
+from health_tips.templatetags.markdown_extras import markdown_format
 
 
 STRIPPED_MIDDLEWARE = [
@@ -43,3 +47,30 @@ class HealthTipsRoleAccessTests(TestCase):
 		self.client.force_login(self.admin_role)
 		response = self.client.post(reverse('health_tips:upload_image'))
 		self.assertEqual(response.status_code, 403)
+
+	def test_upload_rejects_non_image_payload(self):
+		self.client.force_login(self.staff)
+		fake = SimpleUploadedFile('evil.png', b'not-an-image', content_type='image/png')
+		response = self.client.post(
+			reverse('health_tips:upload_image'),
+			{'image': fake},
+		)
+		self.assertEqual(response.status_code, 400)
+
+
+class MarkdownSanitizeTests(SimpleTestCase):
+	def test_strips_script_tags(self):
+		html = markdown_format('Hello <script>alert(1)</script>')
+		self.assertNotIn('<script', str(html).lower())
+		self.assertIn('Hello', str(html))
+
+	def test_strips_onclick_handlers(self):
+		html = markdown_format('<a href="https://example.com" onclick="alert(1)">x</a>')
+		self.assertNotIn('onclick', str(html).lower())
+		self.assertIn('href=', str(html))
+
+	def test_template_filter_renders_safe_markdown(self):
+		tpl = Template('{% load markdown_extras %}{{ body|markdown }}')
+		out = tpl.render(Context({'body': '**bold**'}))
+		self.assertIn('<strong>', out)
+		self.assertIn('bold', out)

@@ -5,11 +5,12 @@ from django.http import JsonResponse
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.views.decorators.http import require_POST
+from django.core.exceptions import ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-import os
 import uuid
 from core.decorators import role_required
+from core.upload_validation import verify_image_upload
 from .models import HealthTip
 
 
@@ -20,22 +21,15 @@ def upload_image(request):
     """Handle image upload for markdown editor"""
     if 'image' not in request.FILES:
         return JsonResponse({'error': 'No image provided'}, status=400)
-    
+
     image = request.FILES['image']
-    
-    # Validate file type
-    allowed_types = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
-    if image.content_type not in allowed_types:
-        return JsonResponse({'error': 'Invalid file type. Allowed: JPEG, PNG, GIF, WebP'}, status=400)
-    
-    # Validate file size (max 5MB)
-    if image.size > 5 * 1024 * 1024:
-        return JsonResponse({'error': 'File too large. Maximum size is 5MB'}, status=400)
-    
-    # Generate unique filename
-    ext = os.path.splitext(image.name)[1].lower()
+    try:
+        ext, _content_type = verify_image_upload(image, max_bytes=5 * 1024 * 1024)
+    except ValidationError as exc:
+        message = '; '.join(exc.messages) if hasattr(exc, 'messages') else str(exc)
+        return JsonResponse({'error': message}, status=400)
+
     filename = f"health_tips/{uuid.uuid4().hex}{ext}"
-    
     saved_name = default_storage.save(filename, ContentFile(image.read()))
     image_url = default_storage.url(saved_name)
     return JsonResponse({'data': {'filePath': image_url}})

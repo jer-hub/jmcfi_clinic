@@ -17,7 +17,7 @@ MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 ALLOWED_EXTENSIONS = frozenset({
     '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
     '.txt', '.csv', '.rtf', '.odt', '.ods',
-    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.svg',
+    '.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp',
     '.zip', '.7z', '.rar',
     '.mp3', '.mp4', '.wav', '.webm',
 })
@@ -40,7 +40,6 @@ ALLOWED_CONTENT_TYPES = frozenset({
     'image/gif',
     'image/webp',
     'image/bmp',
-    'image/svg+xml',
     'application/zip',
     'application/x-7z-compressed',
     'application/x-rar-compressed',
@@ -129,6 +128,14 @@ def validate_upload(uploaded_file):
 
     if content_type == 'application/octet-stream' and ext not in ALLOWED_EXTENSIONS:
         raise ValidationError('Unrecognized binary file type.')
+
+    if ext in {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'} or content_type.startswith('image/'):
+        from core.upload_validation import IMAGE_EXTENSIONS, verify_image_upload
+
+        if ext not in IMAGE_EXTENSIONS and ext != '.bmp':
+            raise ValidationError(f'File type "{ext or "unknown"}" is not allowed.')
+        if ext != '.bmp':
+            verify_image_upload(uploaded_file, max_bytes=MAX_UPLOAD_BYTES)
 
     display_name = os.path.basename(name).strip() or f'upload{ext}'
     return display_name, content_type

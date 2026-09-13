@@ -652,3 +652,27 @@ class AcademicAnalyticsFilterTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'No appointment volume')
 
+
+@override_settings(
+    MIDDLEWARE=[
+        m for m in settings.MIDDLEWARE
+        if m != 'core.middleware.ProfileCompleteMiddleware'
+    ],
+)
+class AnalyticsAccessSmokeTests(TestCase):
+    def test_patient_cannot_open_analytics_dashboard(self):
+        patient = User.objects.create_user(
+            email='patient-analytics@test.com',
+            password='pass',
+            role='patient',
+            first_name='Pat',
+            last_name='Analytic',
+        )
+        self.client.force_login(patient)
+        response = self.client.get(reverse('analytics:dashboard'))
+        self.assertIn(response.status_code, (302, 403))
+        if response.status_code == 302:
+            self.assertTrue(
+                'restricted' in response.url or 'login' in response.url.lower()
+            )
+

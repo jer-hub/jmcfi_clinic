@@ -10,10 +10,10 @@ from django.utils import timezone
 from urllib.parse import urlparse
 
 from core.htmx_utils import is_htmx_request
+from core.list_utils import paginate_queryset
 from core.roles import PATIENT_ROLE_VALUES, is_patient_role
 from core.utils import student_display_name
 from django.utils.dateparse import parse_date
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db import transaction
 from django.db.models import Q
 
@@ -409,21 +409,6 @@ def _save_prescription_for_medical_record(request, prescription_form, medical_re
             )
 
     return prescription_obj
-
-
-def paginate_queryset(queryset, request, per_page=10):
-    """Helper function for pagination"""
-    page = request.GET.get('page', 1)
-    paginator = Paginator(queryset, per_page)
-    
-    try:
-        paginated_items = paginator.page(page)
-    except PageNotAnInteger:
-        paginated_items = paginator.page(1)
-    except EmptyPage:
-        paginated_items = paginator.page(paginator.num_pages)
-    
-    return paginated_items
 
 
 def _effective_medical_list_get_params(request):

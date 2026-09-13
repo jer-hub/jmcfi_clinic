@@ -9,9 +9,8 @@ from decouple import config, Csv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config(
-    "SECRET_KEY", default="d^6mjh@m%#+j#5n07@8e9tcvmh_%-)z)j1k_z%xqrt0%4p99a^"
-)
+_DEFAULT_INSECURE_SECRET = "d^6mjh@m%#+j#5n07@8e9tcvmh_%-)z)j1k_z%xqrt0%4p99a^"
+SECRET_KEY = config("SECRET_KEY", default=_DEFAULT_INSECURE_SECRET)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config("DEBUG", default=True, cast=bool)
@@ -32,6 +31,23 @@ ALLOWED_HOSTS = [_normalize_allowed_host(h) for h in ALLOWED_HOSTS if h and h.st
 
 _do_app_domain = _normalize_allowed_host(os.environ.get("APP_DOMAIN", "").strip())
 _custom_domain = _normalize_allowed_host(config("CUSTOM_DOMAIN", default="").strip())
+_is_public_deploy = bool(_do_app_domain or _custom_domain)
+
+# Fail closed: never boot with the insecure default secret or DEBUG on a public host.
+from django.core.exceptions import ImproperlyConfigured
+
+if DEBUG and _is_public_deploy:
+    raise ImproperlyConfigured(
+        "DEBUG must be False when APP_DOMAIN or CUSTOM_DOMAIN is set."
+    )
+if (not DEBUG or _is_public_deploy) and (
+    not SECRET_KEY or SECRET_KEY == _DEFAULT_INSECURE_SECRET
+):
+    raise ImproperlyConfigured(
+        "Set SECRET_KEY to a strong unique value when DEBUG=False "
+        "or APP_DOMAIN/CUSTOM_DOMAIN is set."
+    )
+
 for _host in (_do_app_domain, _custom_domain):
     if _host and _host not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(_host)
@@ -159,7 +175,7 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']  # Required signu
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # No username field
 ACCOUNT_AUTHENTICATED_LOGIN_REDIRECTS = True  # Logged-in users cannot access login page
 SOCIALACCOUNT_AUTO_SIGNUP = True  # Skip the signup form if possible
-SOCIALACCOUNT_LOGIN_ON_GET = True  # Skip the intermediate page on login
+SOCIALACCOUNT_LOGIN_ON_GET = False  # Require POST to start OAuth (CSRF-safe)
 ACCOUNT_LOGOUT_ON_GET = False  # Require POST logout to avoid CSRF/logout-forcing
 SOCIALACCOUNT_QUERY_EMAIL = True  # Request email from provider
 ACCOUNT_ADAPTER = 'core.adapters.NoPasswordAdapter'  # Disable password login
@@ -251,18 +267,23 @@ elif _use_test_db_url:
         _db["DISABLE_SERVER_SIDE_CURSORS"] = True
     DATABASES = {"default": _db}
 elif DATABASE_URL:
-    _local_supabase = DATABASE_URL.startswith(
-        "postgresql://postgres:postgres@127.0.0.1"
-    ) or DATABASE_URL.startswith("postgresql://postgres:postgres@localhost")
-    _db = dj_database_url.parse(
-        DATABASE_URL,
-        conn_max_age=600,
-        conn_health_checks=True,
-        ssl_require=not _local_supabase,
-    )
-    if _db.get("ENGINE", "").endswith("postgresql"):
-        _db["DISABLE_SERVER_SIDE_CURSORS"] = True
-    DATABASES = {"default": _db}
+    # Empty or sqlite URLs should use the built-in SQLite config — not dj_database_url + SSL.
+    _db_url = DATABASE_URL.strip()
+    if not _db_url or _db_url.startswith("sqlite:"):
+        DATABASES = _SQLITE_DATABASE
+    else:
+        _local_supabase = _db_url.startswith(
+            "postgresql://postgres:postgres@127.0.0.1"
+        ) or _db_url.startswith("postgresql://postgres:postgres@localhost")
+        _db = dj_database_url.parse(
+            _db_url,
+            conn_max_age=600,
+            conn_health_checks=True,
+            ssl_require=not _local_supabase,
+        )
+        if _db.get("ENGINE", "").endswith("postgresql"):
+            _db["DISABLE_SERVER_SIDE_CURSORS"] = True
+        DATABASES = {"default": _db}
 else:
     DATABASES = _SQLITE_DATABASE
 

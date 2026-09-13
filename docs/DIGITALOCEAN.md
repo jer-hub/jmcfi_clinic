@@ -35,12 +35,15 @@ If App Platform still detects a Python buildpack, upload [`.do/app.yaml`](../.do
 Set these in the App Platform web service:
 
 - `DEBUG=False`
-- `SECRET_KEY=<strong-random-secret>`
+- `SECRET_KEY=<strong-random-secret>` (required — boot fails if missing or still the insecure local default)
 - `ALLOWED_HOSTS=<your-app-xxxxxx>.ondigitalocean.app` (full hostname; optional `.ondigitalocean.app` for all DO subdomains — never `*.ondigitalocean.app`)
 - `CSRF_TRUSTED_ORIGINS=https://<your-app-xxxxxx>.ondigitalocean.app,https://<custom-domain-if-any>`
 - `APP_DOMAIN=<your-app-xxxxxx>.ondigitalocean.app` (concrete hostname from the DO app URL, not a wildcard)
 - `CUSTOM_DOMAIN=<custom-domain-if-any>`
-- `ACCOUNT_DEFAULT_HTTP_PROTOCOL=https` (optional safety; auto-enabled when `APP_DOMAIN` is set)
+
+- `ACCOUNT_DEFAULT_HTTP_PROTOCOL=https` (optional safety; auto-enabled when `APP_DOMAIN` is set or `DEBUG=False`)
+
+Boot refuses `DEBUG=True` when `APP_DOMAIN` or `CUSTOM_DOMAIN` is set, and refuses the hardcoded local `SECRET_KEY` default whenever `DEBUG=False` or a public domain is configured.
 - `DATABASE_URL=<supabase-postgres-url>`
 - `USE_SUPABASE_STORAGE=True`
 - `SUPABASE_URL=<https://project-ref.supabase.co>`
@@ -140,7 +143,7 @@ redirect_uri=http://seal-app-22qre.ondigitalocean.app/accounts/google/login/call
 
 (note **http**, not https) the app built the wrong scheme behind App Platform’s TLS proxy.
 
-Usually `DEBUG` is still `True` (settings default) or `APP_DOMAIN` is unset, so allauth keeps `http://` callbacks.
+Usually `DEBUG` is still `True` (settings default) or `APP_DOMAIN` is unset, so allauth keeps `http://` callbacks. Note: the app will refuse to boot with `DEBUG=True` once `APP_DOMAIN` is set — set both `DEBUG=False` and a strong `SECRET_KEY`.
 
 Fix:
 

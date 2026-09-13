@@ -23,12 +23,13 @@ COPY staticfiles/js ./staticfiles/js
 RUN mkdir -p staticfiles/css && npm run build:css
 
 
-FROM python:3.13-slim
+FROM python:3.13-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     UV_LINK_MODE=copy \
-    UV_SYSTEM_PYTHON=1
+    UV_SYSTEM_PYTHON=1 \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
@@ -44,11 +45,13 @@ COPY . .
 COPY --from=frontend /app/staticfiles/css/app.css ./staticfiles/css/app.css
 
 ENV DJANGO_SETTINGS_MODULE=backend.settings \
-    SECRET_KEY=build-time-only-not-for-production
+    SECRET_KEY=build-time-only-not-for-production \
+    DEBUG=True
 
 RUN python manage.py collectstatic --noinput
 
-RUN chmod +x scripts/start.sh \
+RUN sed -i 's/\r$//' scripts/start.sh \
+    && chmod +x scripts/start.sh \
     && adduser --disabled-password --gecos "" app \
     && chown -R app:app /app
 USER app

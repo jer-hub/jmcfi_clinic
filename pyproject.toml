@@ -14,6 +14,7 @@ dependencies = [
     "django-allauth[google,socialaccount]==65.10.0",
     "pyjwt[crypto]==2.10.1", # required by allauth socialaccount with crypto support
     "markdown==3.10.1", # health_tips templatetags
+    "nh3>=0.2.21", # sanitize markdown HTML
     "pillow==12.1.0",
     "psycopg2-binary==2.9.10",
     "dj-database-url==2.3.0",

@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Avg, Count, F
 from django.shortcuts import redirect, render
 from django.urls import reverse
+from urllib.parse import urlencode
 from django.utils import timezone
 
 from core.roles import PATIENT_ROLE_VALUES, is_patient_role
@@ -26,6 +27,7 @@ from analytics.services import (
     diagnosis_display_name,
     financial_summary,
     hourly_chart_series,
+    concern_kpis,
     illness_stats,
     student_demographics,
     student_visit_history,
@@ -37,6 +39,18 @@ from analytics.views.helpers import (
 )
 
 User = get_user_model()
+
+
+def _concerns_analysis_href(date_from, date_to, academic_query=''):
+    base = reverse('analytics:concerns_analysis')
+    qs = urlencode({
+        'date_from': date_from.isoformat(),
+        'date_to': date_to.isoformat(),
+    })
+    suffix = (academic_query or '').lstrip('&')
+    if suffix:
+        return f'{base}?{qs}&{suffix}'
+    return f'{base}?{qs}'
 
 
 @login_required
@@ -149,6 +163,13 @@ def render_analytics_dashboard(request):
             from pharmacy.services.reports import build_pharmacy_analytics_summary
 
             context['pharmacy_analytics'] = build_pharmacy_analytics_summary(date_from, date_to)
+        concern_stats = concern_kpis(date_from, date_to, filters=filters)
+        context.update({
+            'total_concerns': concern_stats['total_records'],
+            'concerns_analysis_href': _concerns_analysis_href(
+                date_from, date_to, context.get('academic_query', ''),
+            ),
+        })
         return render(request, 'analytics/dashboard_staff.html', context)
 
     else:
@@ -186,11 +207,16 @@ def render_analytics_dashboard(request):
 
         from pharmacy.services.reports import build_pharmacy_analytics_summary
 
+        concern_stats = concern_kpis(date_from, date_to, filters=filters)
         context.update({
             'total_patients': total_patients,
             'total_staff': total_staff,
             'total_appointments': total_appointments,
             'total_records': total_records,
+            'total_concerns': concern_stats['total_records'],
+            'concerns_analysis_href': _concerns_analysis_href(
+                date_from, date_to, context.get('academic_query', ''),
+            ),
             'avg_feedback': round(avg_feedback, 1),
             'illness_stats': illness_stats(date_from, date_to, filters=filters)[:15],
             'appointment_volume': appointment_volume(date_from, date_to, filters=filters),

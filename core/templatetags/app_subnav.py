@@ -547,6 +547,12 @@ def analytics_subnav(context):
                     active=vn == 'analytics:health_trends',
                 ),
                 nav_item(
+                    'Concerns',
+                    'analytics:concerns_analysis',
+                    icon='fa-clipboard-list',
+                    active=vn == 'analytics:concerns_analysis',
+                ),
+                nav_item(
                     'Predictive',
                     'analytics:predictive_analytics',
                     icon='fa-lightbulb',

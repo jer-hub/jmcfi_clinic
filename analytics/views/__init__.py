@@ -2,6 +2,7 @@
 
 from analytics.views.academic import academic_correlation
 from analytics.views.api import admin_calendar_month_api, chart_data_api
+from analytics.views.concerns import concerns_analysis
 from analytics.views.compliance import (
     compliance_report_detail,
     compliance_reports,
@@ -22,6 +23,7 @@ __all__ = [
     'chart_data_api',
     'compliance_report_detail',
     'compliance_reports',
+    'concerns_analysis',
     'export_report',
     'financial_overview',
     'financial_record_create',

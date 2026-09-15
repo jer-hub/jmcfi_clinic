@@ -15,6 +15,7 @@ from core.utils import parse_date
 
 from analytics.academic_filters import (
     apply_academic_filters,
+    apply_concern_academic_filters,
     apply_dental_academic_filters,
     academic_filters_active,
     get_academic_filters,
@@ -561,3 +562,106 @@ def academic_correlation_data(date_from, date_to, filters=None):
         'high_visit_patients': high_visit_patients,
         'emergency_total': sum(item['count'] for item in emergency_visits),
     }
+
+
+def filtered_concern_records(date_from, date_to, filters=None, search=None):
+    """Concern logs in range with optional academic and text search filters."""
+    from manage_concern.models import ConcernRecord
+
+    qs = ConcernRecord.objects.filter(
+        date__gte=date_from,
+        date__lte=date_to,
+    ).select_related(
+        'college_department',
+        'course_program',
+        'year_level',
+        'patient_user',
+        'created_by',
+    )
+    if filters:
+        qs = apply_concern_academic_filters(qs, filters)
+    q = (search or '').strip()
+    if q:
+        from django.db.models import Q
+
+        qs = qs.filter(
+            Q(concerns__icontains=q)
+            | Q(management_treatment__icontains=q)
+            | Q(disposition__icontains=q)
+            | Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(department_other__icontains=q)
+        )
+    return qs
+
+
+def concern_kpis(date_from, date_to, filters=None, search=None):
+    from manage_concern.models import ConcernRecord
+
+    qs = filtered_concern_records(date_from, date_to, filters=filters, search=search)
+    total = qs.count()
+    unique_patients = qs.exclude(patient_user__isnull=True).values('patient_user').distinct().count()
+    catalog_count = qs.filter(affiliation_type=ConcernRecord.AffiliationType.CATALOG).count()
+    non_catalog_count = total - catalog_count
+    departments_touched = len(
+        concern_by_department(date_from, date_to, filters=filters, search=search, limit=500)
+    )
+    return {
+        'total_records': total,
+        'unique_patients': unique_patients,
+        'catalog_count': catalog_count,
+        'non_catalog_count': non_catalog_count,
+        'departments_touched': departments_touched,
+    }
+
+
+def concern_volume_by_day(date_from, date_to, filters=None, search=None):
+    qs = filtered_concern_records(date_from, date_to, filters=filters, search=search)
+    return list(
+        qs.values(day=F('date'))
+        .annotate(count=Count('id'))
+        .order_by('day')
+    )
+
+
+def concern_by_affiliation(date_from, date_to, filters=None, search=None, limit=10):
+    from manage_concern.models import ConcernRecord
+
+    qs = filtered_concern_records(date_from, date_to, filters=filters, search=search)
+    rows = (
+        qs.values('affiliation_type')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    label_map = dict(ConcernRecord.AffiliationType.choices)
+    return [
+        {
+            'label': label_map.get(row['affiliation_type'], row['affiliation_type'] or 'Unknown'),
+            'count': row['count'],
+        }
+        for row in rows[:limit]
+    ]
+
+
+def concern_by_department(date_from, date_to, filters=None, search=None, limit=15):
+    qs = filtered_concern_records(date_from, date_to, filters=filters, search=search)
+    by_college = (
+        qs.exclude(college_department__isnull=True)
+        .values('college_department__name')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    by_other = (
+        qs.filter(college_department__isnull=True)
+        .exclude(department_other='')
+        .values('department_other')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    merged = defaultdict(int)
+    for row in by_college:
+        merged[row['college_department__name'] or 'Unknown'] += row['count']
+    for row in by_other:
+        merged[row['department_other'] or 'Unknown'] += row['count']
+    ranked = sorted(merged.items(), key=lambda item: item[1], reverse=True)
+    return [{'label': label, 'count': count} for label, count in ranked[:limit]]

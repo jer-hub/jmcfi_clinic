@@ -71,6 +71,21 @@ def apply_dental_academic_filters(qs, filters):
     return qs.filter(q)
 
 
+def apply_concern_academic_filters(qs, filters):
+    """Filter ConcernRecord queryset on catalog FK names (analytics filter bar)."""
+    if not academic_filters_active(filters):
+        return qs
+    q = Q()
+    dept = filters.get('department')
+    if dept:
+        q &= Q(college_department__name=dept) | Q(department_other=dept)
+    if filters.get('course'):
+        q &= Q(course_program__name=filters['course'])
+    if filters.get('year_level'):
+        q &= Q(year_level__name=filters['year_level'])
+    return qs.filter(q)
+
+
 def academic_filter_query_string(filters, *, extra=None):
     """Serialize filters for URL query strings."""
     parts = list(extra or [])
@@ -120,6 +135,7 @@ def analytics_filter_context(request, date_from, date_to):
     catalog = patient_catalog_context()
     params = _request_params(request) if request else None
     illness_q = (params.get('illness_category') or '').strip() if params else ''
+    concern_q = (params.get('q') or '').strip() if params else ''
     selected_type = (params.get('type') or '').strip() if params else ''
 
     return {
@@ -145,15 +161,19 @@ def analytics_filter_context(request, date_from, date_to):
             'course': filters['course'] if filters['department'] else '',
             'year_level': filters['year_level'] if filters['department'] else '',
             'illness_category': illness_q,
+            'concern_search': concern_q,
             'date_from': date_from.isoformat() if date_from else '',
             'date_to': date_to.isoformat() if date_to else '',
             'selected_type': selected_type,
         }),
         'selected_type': selected_type,
         'illness_filter': illness_q,
+        'concern_filter': concern_q,
         'pagination_query': build_pagination_query(date_from, date_to, request),
         'clear_filters_href': clear_filters_href(request),
-        'has_clearable_filters': _has_clearable_filters(request, date_from, date_to, filters, illness_q),
+        'has_clearable_filters': _has_clearable_filters(
+            request, date_from, date_to, filters, illness_q, concern_q,
+        ),
     }
 
 
@@ -213,12 +233,12 @@ def clear_filters_href(request=None):
     return f'?{"&".join(parts)}'
 
 
-def _has_clearable_filters(request, date_from, date_to, filters, illness_q):
+def _has_clearable_filters(request, date_from, date_to, filters, illness_q, concern_q=''):
     from django.utils import timezone
 
     today = timezone.localdate()
     default_from = today - timedelta(days=90)
-    if academic_filters_active(filters) or illness_q:
+    if academic_filters_active(filters) or illness_q or concern_q:
         return True
     return date_from != default_from or date_to != today
 

@@ -676,3 +676,132 @@ class AnalyticsAccessSmokeTests(TestCase):
                 'restricted' in response.url or 'login' in response.url.lower()
             )
 
+
+@override_settings(
+    MIDDLEWARE=[
+        m for m in settings.MIDDLEWARE
+        if m != 'core.middleware.ProfileCompleteMiddleware'
+    ],
+    STORAGES={
+        **settings.STORAGES,
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    },
+)
+class ConcernsAnalyticsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from datetime import date, time
+
+        from core.models import CollegeDepartment, CourseProgram, YearLevelOption
+        from manage_concern.models import ConcernRecord
+
+        cls.college = CollegeDepartment.objects.create(name='College of Nursing Analytics')
+        cls.program = CourseProgram.objects.create(
+            college_department=cls.college,
+            name='BS Nursing Analytics',
+        )
+        cls.year = YearLevelOption.objects.create(
+            college_department=cls.college,
+            name='2nd Year',
+            sort_order=2,
+        )
+        cls.other_college = CollegeDepartment.objects.create(name='College of Engineering Analytics')
+
+        cls.staff = User.objects.create_user(
+            email='staff-concerns-analytics@test.com',
+            password='pass',
+            role='staff',
+            is_staff=True,
+            is_active=True,
+            first_name='Concern',
+            last_name='Staff',
+        )
+        _staff_profile(cls.staff, 'STAFF-CON-AN-01')
+
+        cls.patient = User.objects.create_user(
+            email='patient-concerns-analytics@test.com',
+            password='pass',
+            role='patient',
+            is_active=True,
+            first_name='Pat',
+            last_name='Concern',
+        )
+
+        cls.record = ConcernRecord.objects.create(
+            date=date(2026, 3, 15),
+            time=time(10, 30),
+            first_name='Ana',
+            last_name='Reyes',
+            affiliation_type=ConcernRecord.AffiliationType.CATALOG,
+            college_department=cls.college,
+            course_program=cls.program,
+            year_level=cls.year,
+            concerns='Headache and fever',
+            management_treatment='Paracetamol and rest',
+            disposition='Sent home',
+        )
+        ConcernRecord.objects.create(
+            date=date(2026, 3, 16),
+            time=time(14, 0),
+            first_name='Ben',
+            last_name='Cruz',
+            affiliation_type=ConcernRecord.AffiliationType.CATALOG,
+            college_department=cls.other_college,
+            concerns='Minor cut',
+            management_treatment='Wound care',
+            disposition='Returned to class',
+        )
+
+    def test_staff_can_open_concerns_analysis(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('analytics:concerns_analysis'), {
+            'date_from': '2026-03-01',
+            'date_to': '2026-03-31',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Total concerns')
+        self.assertContains(response, 'Headache and fever')
+        self.assertContains(response, 'Ben Cruz')
+
+    def test_patient_denied_concerns_analysis(self):
+        self.client.force_login(self.patient)
+        response = self.client.get(reverse('analytics:concerns_analysis'))
+        self.assertIn(response.status_code, (302, 403))
+
+    def test_department_filter_reduces_concern_count(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('analytics:concerns_analysis'), {
+            'date_from': '2026-03-01',
+            'date_to': '2026-03-31',
+            'department': self.college.name,
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, '1')
+        self.assertNotContains(response, 'Ben Cruz')
+
+    def test_concerns_csv_export_headers(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('analytics:export_report'), {
+            'report': 'concerns',
+            'date_from': '2026-03-01',
+            'date_to': '2026-03-31',
+        })
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn('Concerns', body)
+        self.assertIn('Management/treatment', body)
+        self.assertIn('Disposition', body)
+        self.assertIn('Headache and fever', body)
+
+    def test_staff_dashboard_includes_concern_count(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('analytics:dashboard'), {
+            'date_from': '2026-03-01',
+            'date_to': '2026-03-31',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Concerns')
+        self.assertContains(response, reverse('analytics:concerns_analysis'))
+

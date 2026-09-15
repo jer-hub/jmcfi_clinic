@@ -7,10 +7,11 @@
 
     {% include "analytics/_analytics_filter_bar.html" with export_variant="staff" %}
 
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8">
       {% include "components/stat_card.html" with label="Unique Patients" value=total_patients icon="fa-users" variant="primary" %}
       {% include "components/stat_card.html" with label="Consultations" value=total_consultations icon="fa-stethoscope" variant="success" %}
       {% include "components/stat_card.html" with label="Pending" value=pending_appointments icon="fa-clock" variant="warning" %}
+      {% include "components/stat_card.html" with label="Concerns" value=total_concerns icon="fa-clipboard-list" variant="info" hint="In period" href=concerns_analysis_href %}
     </div>
 
     {% include "analytics/_pharmacy_summary.html" %}

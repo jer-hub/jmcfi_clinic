@@ -1,0 +1,140 @@
+{% extends "core/base.html" %}
+{% load app_subnav %}
+{% block title %}Concerns - Analytics - JMCFI Clinic{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+    {% include 'analytics/_subnav.html' %}
+
+    {% include "analytics/_analytics_filter_bar.html" with export_variant="concerns" show_concern_search=True extra_query=extra_query export_query=export_query %}
+
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+      {% include "components/stat_card.html" with label="Total concerns" value=kpis.total_records icon="fa-clipboard-list" variant="primary" hint=scope_hint %}
+      {% include "components/stat_card.html" with label="Unique patients" value=kpis.unique_patients icon="fa-users" variant="info" hint=scope_hint %}
+      {% include "components/stat_card.html" with label="Employee / others" value=kpis.non_catalog_count icon="fa-id-badge" variant="warning" hint="Non-catalog affiliation" %}
+      {% include "components/stat_card.html" with label="Departments" value=kpis.departments_touched icon="fa-building" variant="success" hint="Distinct departments in range" %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[18rem]"
+        aria-labelledby="affiliation-heading">
+        <h2 id="affiliation-heading" class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <i class="fas fa-layer-group text-primary-500"></i>By affiliation
+        </h2>
+        {% if by_affiliation %}
+        <ul class="space-y-2 flex-1 overflow-y-auto max-h-80">
+          {% for item in by_affiliation %}
+          <li class="flex items-center gap-3 text-sm">
+            <span class="text-gray-700 truncate flex-1 min-w-0" title="{{ item.label }}">{{ item.label }}</span>
+            <div class="flex items-center gap-2 flex-shrink-0 w-28">
+              <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-primary-500 h-1.5 rounded-full" style="width: {% if affiliation_max %}{% widthratio item.count affiliation_max 100 %}{% else %}0{% endif %}%"></div>
+              </div>
+              <span class="font-semibold text-gray-600 text-xs tabular-nums w-6 text-right">{{ item.count }}</span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-layer-group" title="No affiliation data" description="No concern records match this period and filters." %}
+        {% endif %}
+      </section>
+
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[18rem]"
+        aria-labelledby="department-heading">
+        <h2 id="department-heading" class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <i class="fas fa-building text-primary-500"></i>By department
+        </h2>
+        {% if by_department %}
+        <ul class="space-y-2 flex-1 overflow-y-auto max-h-80">
+          {% for item in by_department %}
+          <li class="flex items-center gap-3 text-sm">
+            <span class="text-gray-700 truncate flex-1 min-w-0" title="{{ item.label }}">{{ item.label }}</span>
+            <div class="flex items-center gap-2 flex-shrink-0 w-28">
+              <div class="flex-1 bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-info-500 h-1.5 rounded-full" style="width: {% if department_max %}{% widthratio item.count department_max 100 %}{% else %}0{% endif %}%"></div>
+              </div>
+              <span class="font-semibold text-gray-600 text-xs tabular-nums w-6 text-right">{{ item.count }}</span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-building" title="No department data" description="No concern records match this period and filters." %}
+        {% endif %}
+      </section>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[16rem]"
+        aria-labelledby="volume-heading">
+        <h2 id="volume-heading" class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <i class="fas fa-calendar-day text-primary-500"></i>Daily volume
+          <span class="text-xs font-normal text-gray-400">({{ date_from|date:"M j" }} – {{ date_to|date:"M j, Y" }})</span>
+        </h2>
+        {% if volume_by_day %}
+        <div class="overflow-x-auto flex-1 -mx-1">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200">
+                <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
+                <th scope="col" class="px-3 py-2 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">Records</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for row in volume_by_day %}
+              <tr class="hover:bg-gray-50/80">
+                <td class="px-3 py-2 text-gray-700">{{ row.day|date:"M j, Y" }}</td>
+                <td class="px-3 py-2 text-right font-semibold text-gray-900 tabular-nums">{{ row.count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-calendar-day" title="No volume data" description="No concern records in this date range." %}
+        {% endif %}
+      </section>
+
+      <section class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-5 flex flex-col min-h-[16rem]"
+        aria-labelledby="recent-heading">
+        <div class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 mb-4">
+          <div class="min-w-0">
+            <h2 id="recent-heading" class="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <i class="fas fa-list text-primary-500"></i>Recent concerns
+            </h2>
+            <p class="mt-0.5 text-xs text-gray-500">Latest records in this period (up to 25)</p>
+          </div>
+          <a href="{% url 'manage_concern:concern_list' %}"
+             class="text-xs font-medium text-primary-600 hover:text-primary-700 whitespace-nowrap shrink-0">Manage concerns →</a>
+        </div>
+        {% if recent_records %}
+        <div class="overflow-x-auto flex-1 -mx-1">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200">
+                <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Date</th>
+                <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Name</th>
+                <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Academic</th>
+                <th scope="col" class="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">Concerns</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              {% for record in recent_records %}
+              <tr class="hover:bg-gray-50/80">
+                <td class="px-3 py-2 text-gray-700 whitespace-nowrap">{{ record.date|date:"M j, Y" }}</td>
+                <td class="px-3 py-2 text-gray-900">{{ record.display_name }}</td>
+                <td class="px-3 py-2 text-gray-600 text-xs max-w-[10rem] truncate" title="{{ record.academic_label }}">{{ record.academic_label|default:"—" }}</td>
+                <td class="px-3 py-2 text-gray-700 max-w-xs truncate" title="{{ record.concerns }}">{{ record.concerns|truncatechars:80 }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        {% include "components/empty_state.html" with icon="fa-clipboard-list" title="No recent records" description="No concern records match this period and filters." %}
+        {% endif %}
+      </section>
+    </div>
+</div>
+{% endblock %}

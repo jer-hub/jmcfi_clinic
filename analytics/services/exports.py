@@ -9,6 +9,7 @@ from analytics.academic_filters import (
     apply_academic_filters,
     write_academic_filter_csv_rows,
 )
+from manage_concern.models import ConcernRecord
 from analytics.models import FinancialRecord, PredictiveInsight
 from analytics.services.aggregations import (
     academic_correlation_data,
@@ -16,7 +17,12 @@ from analytics.services.aggregations import (
     appointment_by_type,
     appointment_by_weekday,
     appointment_volume,
+    concern_by_affiliation,
+    concern_by_department,
+    concern_kpis,
+    concern_volume_by_day,
     filtered_compliance_reports,
+    filtered_concern_records,
     filtered_health_trend_records,
     filters_from_request,
     financial_category_label,
@@ -414,6 +420,66 @@ def write_staff_dashboard_csv(writer, user, date_from, date_to, filters=None):
     writer.writerow(['Hour', 'Appointments'])
     for row in hourly_series:
         writer.writerow([row['label'], row['count']])
+
+
+def write_concerns_csv(writer, date_from, date_to, filters=None, search=None):
+    filters = filters or {}
+    label_map = dict(ConcernRecord.AffiliationType.choices)
+    writer.writerow([
+        'Date', 'Time', 'Name', 'Affiliation', 'Department', 'Program', 'Year level',
+        'Concerns', 'Management/treatment', 'Disposition',
+    ])
+    qs = filtered_concern_records(date_from, date_to, filters=filters, search=search)
+    for record in qs.order_by('-date', '-time', '-id'):
+        writer.writerow([
+            record.date,
+            record.time,
+            record.display_name,
+            label_map.get(record.affiliation_type, record.affiliation_type),
+            record.department_display,
+            record.course_program.name if record.course_program_id else '',
+            record.year_level.name if record.year_level_id else '',
+            record.concerns,
+            record.management_treatment,
+            record.disposition,
+        ])
+
+
+def write_concerns_summary_csv(writer, date_from, date_to, filters=None, search=None):
+    filters = filters or {}
+    kpis = concern_kpis(date_from, date_to, filters=filters, search=search)
+    by_affiliation = concern_by_affiliation(date_from, date_to, filters=filters, search=search, limit=50)
+    by_department = concern_by_department(date_from, date_to, filters=filters, search=search, limit=50)
+    volume = concern_volume_by_day(date_from, date_to, filters=filters, search=search)
+
+    writer.writerow(['Concerns analysis'])
+    writer.writerow(['Period from', date_from])
+    writer.writerow(['Period to', date_to])
+    if search:
+        writer.writerow(['Search', search])
+    write_academic_filter_csv_rows(writer, filters)
+    writer.writerow(['Summary KPIs'])
+    writer.writerow(['Metric', 'Value'])
+    writer.writerow(['Total concerns', kpis['total_records']])
+    writer.writerow(['Unique patients', kpis['unique_patients']])
+    writer.writerow(['Catalog affiliation', kpis['catalog_count']])
+    writer.writerow(['Employee / others', kpis['non_catalog_count']])
+    writer.writerow(['Departments touched', kpis['departments_touched']])
+    writer.writerow([])
+    writer.writerow(['By affiliation'])
+    writer.writerow(['Affiliation', 'Count'])
+    for row in by_affiliation:
+        writer.writerow([row['label'], row['count']])
+    writer.writerow([])
+    writer.writerow(['By department'])
+    writer.writerow(['Department', 'Count'])
+    for row in by_department:
+        writer.writerow([row['label'], row['count']])
+    writer.writerow([])
+    writer.writerow(['Daily volume'])
+    writer.writerow(['Date', 'Count'])
+    for row in volume:
+        writer.writerow([row['day'], row['count']])
 
 
 def write_health_trends_csv(writer, request, date_from, date_to):

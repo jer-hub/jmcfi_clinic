@@ -19,6 +19,8 @@ from analytics.services import (
     write_academic_visitors_csv,
     write_admin_dashboard_csv,
     write_compliance_index_csv,
+    write_concerns_csv,
+    write_concerns_summary_csv,
     write_financial_summary_csv,
     write_health_trends_csv,
     write_population_period_csv,
@@ -38,6 +40,7 @@ def export_report(request):
     date_from, date_to = _get_date_range(request)
     filters = _filters_from_request(request)
     illness_q = (request.GET.get('illness_category') or '').strip()
+    concern_q = (request.GET.get('q') or '').strip()
 
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = (
@@ -128,6 +131,14 @@ def export_report(request):
                     f.amount, 'Expense' if f.is_expense else 'Income',
                     f.reference_number,
                 ])
+
+    elif report_type == 'concerns':
+        write_concerns_csv(writer, date_from, date_to, filters=filters, search=concern_q or None)
+
+    elif report_type == 'concerns_summary':
+        write_concerns_summary_csv(
+            writer, date_from, date_to, filters=filters, search=concern_q or None,
+        )
 
     elif report_type == 'health_trends':
         writer.writerow(['Academic Year', 'Semester', 'Illness', 'Cases', 'Notes'])

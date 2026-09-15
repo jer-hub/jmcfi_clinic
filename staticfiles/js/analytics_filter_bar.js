@@ -153,6 +153,7 @@ function registerAnalyticsAlpineComponents() {
     const cascade = buildAcademicCascade(config, coursesByCollege, yearLevelsByCollege);
     return Object.assign(cascade, {
       illnessCategory: config.illness_category || '',
+      concernSearch: config.concern_search || '',
       dateFrom: config.date_from || '',
       dateTo: config.date_to || '',
       selectedType: config.selected_type || '',
@@ -183,7 +184,7 @@ function registerAnalyticsAlpineComponents() {
 
         const params = new URLSearchParams(window.location.search);
         const filterKeys = [
-          'date_from', 'date_to', 'department', 'course', 'year_level', 'illness_category', 'type',
+          'date_from', 'date_to', 'department', 'course', 'year_level', 'illness_category', 'q', 'type',
         ];
 
         filterKeys.forEach((key) => params.delete(key));
@@ -201,6 +202,7 @@ function registerAnalyticsAlpineComponents() {
           setIf('year_level', this.yearLevel);
         }
         setIf('illness_category', this.illnessCategory);
+        setIf('q', this.concernSearch);
         setIf('type', this.selectedType);
 
         const qs = params.toString();

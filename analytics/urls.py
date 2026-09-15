@@ -9,6 +9,7 @@ urlpatterns = [
 
     # 1. Health Trend Analysis
     path('health-trends/', views.health_trends, name='health_trends'),
+    path('concerns/', views.concerns_analysis, name='concerns_analysis'),
 
     # 2. Predictive Analytics
     path('predictive/', views.predictive_analytics, name='predictive_analytics'),

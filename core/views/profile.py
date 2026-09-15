@@ -33,8 +33,36 @@ from dental_records.models import DentalRecord
 def profile_required(request):
     """View to show profile completion required page – access to all services is blocked."""
     missing = get_missing_profile_fields(request.user)
+    required_fields = get_profile_required_fields(request.user.role)
+    if role_matches(request.user.role, ROLE_PATIENT):
+        from core.guest_auth import GUEST_INSTITUTIONAL_FIELDS, is_guest_user
+        profile = get_user_profile(request.user)
+        if is_guest_user(request.user):
+            required_fields = [
+                f for f in required_fields
+                if f not in GUEST_INSTITUTIONAL_FIELDS
+            ]
+        elif profile and getattr(profile, 'is_employee', False):
+            required_fields = [
+                f for f in required_fields
+                if f not in {'course', 'year_level'}
+            ]
+
+    required_count = len(required_fields) if required_fields else 0
+    missing_count = len(missing)
+    filled_count = max(required_count - missing_count, 0)
+    completion_percentage = (
+        int(round((filled_count / required_count) * 100))
+        if required_count
+        else 100
+    )
+
     return render(request, 'core/profile_required.html', {
         'missing_fields': missing,
+        'missing_count': missing_count,
+        'required_count': required_count,
+        'filled_count': filled_count,
+        'completion_percentage': completion_percentage,
     })
 
 

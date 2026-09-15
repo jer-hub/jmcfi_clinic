@@ -48,5 +48,7 @@ node_modules/
 .DS_Store
 
 .cursorrules
+.cursor/skills/
 
+# Local SQLite dev database (never commit)
 db.sqlite3

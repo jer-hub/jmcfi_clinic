@@ -288,7 +288,6 @@ def serialize_appointment(appt: Appointment, viewer_role: str) -> dict[str, Any]
 
 def serialize_document_request(doc_req, viewer_role: str) -> dict[str, Any]:
     """Pending document request for calendar (submitted date)."""
-    from document_request.models import DocumentRequest
 
     submitted = timezone.localtime(doc_req.created_at).date()
     type_label = doc_req.get_document_type_display()

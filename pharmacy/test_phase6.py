@@ -1,7 +1,6 @@
 """Phase 6: stock cache, alerts command, analytics integration."""
 
 import datetime
-from decimal import Decimal
 from io import StringIO
 
 from django.core.management import call_command
@@ -12,7 +11,6 @@ from pharmacy.models import Batch, Medicine
 from pharmacy.services.alerts import run_inventory_alerts
 from pharmacy.services.stock_snapshot import (
     compute_non_expired_stock,
-    refresh_all_medicine_stock_caches,
     refresh_medicine_stock_cache,
 )
 from pharmacy.test_helpers import make_user

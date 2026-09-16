@@ -1,8 +1,7 @@
 from django.contrib import admin
 from core.admin_mixins import BlockAdminRoleMixin
 from .models import (
-    HealthProfileForm, DentalHealthForm, DentalFormTooth, DentalFormToothSurface,
-    DentalServicesRequest, PatientChart, PatientChartEntry,
+    HealthProfileForm, DentalHealthForm, DentalFormTooth, DentalServicesRequest, PatientChart, PatientChartEntry,
     Prescription, PrescriptionItem,
 )
 

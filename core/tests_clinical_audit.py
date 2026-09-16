@@ -6,7 +6,6 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
-from django.utils import timezone
 
 from appointments.models import Appointment
 from core.clinical_audit import log_clinical_access

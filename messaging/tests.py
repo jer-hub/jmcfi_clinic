@@ -10,7 +10,7 @@ from django.urls import reverse
 
 
 
-from core.models import Notification, PatientProfile, StaffProfile
+from core.models import Notification, StaffProfile
 
 
 

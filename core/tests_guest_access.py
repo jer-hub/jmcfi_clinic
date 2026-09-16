@@ -998,7 +998,6 @@ class GuestDentalIntakeTests(TestCase):
 
 	def test_guest_dental_intake_save_and_submit(self):
 		from core.models import Notification
-		from dental_records.models import DentalRecord
 
 		record = self._make_awaiting_record()
 		_, raw = issue_guest_access_token(

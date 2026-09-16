@@ -3,7 +3,6 @@ from datetime import date, time
 from django.template.loader import render_to_string
 from django.test import TestCase
 from django.urls import reverse
-from django.utils import timezone
 from django.test.utils import override_settings
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile

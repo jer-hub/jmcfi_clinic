@@ -234,7 +234,7 @@ def deleted_user_permanent_delete(request, user_id):
     user_email = user.email
     try:
         _hard_delete_user(user)
-    except (IntegrityError, Exception) as exc:
+    except (IntegrityError, Exception):
         logger = logging.getLogger(__name__)
         logger.exception('Failed to permanently delete user %s', user_email)
         message = f'Could not permanently delete "{user_email}".'

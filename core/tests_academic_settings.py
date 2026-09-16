@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from core.models import CollegeDepartment, CourseProgram, SettingsChangeLog, YearLevelOption, StaffProfile
+from core.models import CollegeDepartment, CourseProgram, SettingsChangeLog, YearLevelOption
 from core.tests import _complete_staff_like_profile
 
 User = get_user_model()

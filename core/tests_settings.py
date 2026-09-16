@@ -5,7 +5,6 @@ from django.test import TestCase, override_settings
 from core.models import ClinicSettings, RoleSettings
 from core.settings_service import (
     CLINIC_SETTINGS_CACHE_KEY,
-    ROLE_SETTINGS_CACHE_KEY,
     get_appointment_interval_minutes,
     get_clinic_settings,
     get_effective_session_timeout,

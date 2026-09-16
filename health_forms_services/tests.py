@@ -2622,7 +2622,6 @@ class HealthProfilePatientWorkflowTests(TestCase):
 		self.assertEqual(forms[0].pk, own.pk)
 
 	def test_patient_navbar_shows_health_profile_without_module_grant(self):
-		from django.template import Context, Template
 		from django.template.loader import render_to_string
 
 		self._login_patient()

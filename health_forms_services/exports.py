@@ -6,12 +6,11 @@ Each ``generate_*`` function accepts a model instance and returns a
 ``python-docx`` ``Document`` ready to be saved or streamed as a response.
 """
 
-import os
 from io import BytesIO
 from pathlib import Path
 
 from docx import Document
-from docx.shared import Inches, Pt, Cm, Emu, RGBColor
+from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.section import WD_ORIENT

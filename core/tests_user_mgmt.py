@@ -8,13 +8,10 @@ Comprehensive tests for user management improvements:
 - Stale user cleanup
 - Last activity tracking
 """
-import csv
 import json
 from datetime import timedelta
 
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import CommonPasswordValidator
-from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -25,7 +22,6 @@ from .models import (
     Notification,
     StaffProfile,
     StudentProfile,
-    UserInvite,
 )
 
 User = get_user_model()
@@ -1194,7 +1190,7 @@ class AdminUserExportCSVTests(TestCase):
         _complete_staff_like_profile(self.admin_user, 'ADM-EXPT-001')
 
         for i in range(3):
-            user = User.objects.create_user(
+            User.objects.create_user(
                 email=f'export-user-{i}@test.com',
                 password='TestPass123!',
                 role='patient' if i % 2 == 0 else 'staff',

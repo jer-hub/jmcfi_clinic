@@ -147,8 +147,7 @@ def create_health_tip(request):
                 'category': category,
             })
         
-        # Create health tip
-        health_tip = HealthTip.objects.create(
+        HealthTip.objects.create(
             title=title,
             content=content,
             category=category,

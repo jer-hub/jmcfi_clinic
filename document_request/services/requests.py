@@ -25,7 +25,7 @@ from .notifications import (
 )
 from .pdf import generate_and_store_certificate_pdf
 from .policies import CLINICAL_INITIATOR_ROLES, assert_can_approve, assert_can_reject
-from core.roles import PATIENT_ROLE_VALUES, is_patient_role
+from core.roles import is_patient_role
 
 from .selectors import get_assigned_doctors_for_student
 from .signatures import apply_signature_to_certificate, mark_certificate_reviewed

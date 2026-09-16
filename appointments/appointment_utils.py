@@ -191,7 +191,6 @@ def get_available_time_slots(doctor, date, start_hour=8, end_hour=17, slot_durat
     Returns:
         List of available times: [(HH:MM, label), ...]
     """
-    interval = get_appointment_interval_minutes()
     available_slots = []
     
     # Generate all possible slots

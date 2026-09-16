@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from django.db import transaction
-from django.utils import timezone
 
 from document_request.models import MedicalCertificate
 

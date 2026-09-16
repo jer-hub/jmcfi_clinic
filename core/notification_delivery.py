@@ -141,7 +141,7 @@ def send_templated_email(
         msg.attach_alternative(html_body, 'text/html')
         msg.send(fail_silently=False)
         return True
-    except Exception as exc:
+    except Exception:
         logger.exception('Failed to send templated email to %s', to_email)
         if raise_on_error:
             raise

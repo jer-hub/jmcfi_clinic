@@ -1,6 +1,5 @@
 from django import forms
 
-from .models import DriveItem
 
 
 class CreateFolderForm(forms.Form):

@@ -5,7 +5,6 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from core.models import StudentProfile
 from core.tests import _complete_staff_like_profile
 
 from appointments.calendar_service import (
@@ -13,7 +12,6 @@ from appointments.calendar_service import (
     CalendarFilters,
     build_admin_calendar_context,
     build_calendar_body_context,
-    build_calendar_context,
     build_calendar_day_context,
     build_calendar_filters_context,
     build_calendar_month_context,
@@ -23,9 +21,7 @@ from appointments.calendar_service import (
     build_ics_calendar,
     calendar_queryset,
     get_combined_events_by_date,
-    get_events_by_date,
     month_bounds,
-    parse_calendar_filters,
     schedule_appointment_url_for_date,
     statuses_for_filter,
     week_bounds,

@@ -1,6 +1,5 @@
 """Procurement UX tests — suppliers and purchase orders."""
 
-import datetime
 from decimal import Decimal
 
 from django.test import TestCase

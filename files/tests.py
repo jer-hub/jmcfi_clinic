@@ -311,7 +311,6 @@ class ClinicFilesTests(TestCase):
 
     def test_folder_upload_file_blocks_folder_segment(self):
         self._login_staff()
-        blocker = SimpleUploadedFile('Reports', b'not-a-folder', content_type='text/plain')
         # Force a file named Reports (no extension) — allow .txt instead and name collision via create
         file_item = services.create_file(
             owner=self.staff,

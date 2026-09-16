@@ -389,7 +389,7 @@ def user_toggle_status(request, user_id):
             return htmx_add_toast(response, 'Cannot deactivate your own account.', 'error')
         return redirect('core:user_detail', user_id=user.id)
     
-    was_pending = toggle_user_status(request=request, actor=request.user, target_user=user)
+    toggle_user_status(request=request, actor=request.user, target_user=user)
 
     from django.template.loader import render_to_string
     status_html = render_to_string(

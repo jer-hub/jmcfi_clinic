@@ -10,7 +10,7 @@ alwaysApply: false
 
 **HTMX for server communication. Alpine.js for local state. Zero vanilla JavaScript.**
 
-The only exception is `staticfiles/js/dental_chart.js` (canvas-based charting).
+Canvas dental charting lives inline in `dental_records/templates/.../interactive_dental_chart.html` (acceptable exception).
 
 ## HTMX Patterns
 

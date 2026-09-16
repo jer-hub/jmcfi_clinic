@@ -7,7 +7,6 @@ and handling hypermedia-driven interactions.
 
 import json
 from django.http import HttpResponse
-from django.utils.decorators import decorator_from_middleware
 from typing import Optional, Dict, Any
 
 

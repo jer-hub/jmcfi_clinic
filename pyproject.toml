@@ -30,10 +30,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "django-extensions==4.1",
     "pydot==4.0.1",    # ERD generation via manage.py graph_models
     "ruff==0.11.5",
-    "uv==0.6.14",
 ]
 
 [build-system]

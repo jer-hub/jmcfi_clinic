@@ -5,7 +5,6 @@ These views are separated from core/views.py to keep the main views file managea
 They are imported and registered in core/urls.py.
 """
 import csv
-import json
 import logging
 
 from django.contrib.auth.decorators import login_required
@@ -22,7 +21,6 @@ from .user_management_services import restore_user
 from .forms import BulkUserActionForm, UserExportForm
 from .models import (
     AccountProvisioningAudit,
-    Notification,
     User,
 )
 from .notification_delivery import notify_user

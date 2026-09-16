@@ -8,7 +8,7 @@ from .access_control import AccessReason, access_denied_response
 from .htmx_utils import is_htmx_request
 from .roles import role_matches
 from .settings_service import admin_blocks_clinical_namespaces
-from .utils import is_profile_complete, role_home_url_name
+from .utils import is_profile_complete
 
 CLINICAL_ADMIN_BLOCKED_NAMESPACES = {
     'health_forms_services',

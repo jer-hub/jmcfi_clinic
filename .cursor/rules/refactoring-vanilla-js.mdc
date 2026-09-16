@@ -30,9 +30,8 @@ For each feature being refactored:
 
 ## Key Files with Remaining Violations
 
-- `staticfiles/js/dental_chart.js` (canvas — keep as-is)
+- `dental_records/templates/dental_records/partials/interactive_dental_chart.html` (canvas — keep as-is)
 - `dental_records/templates/dental_records/dental_record_edit.html`
-- `core/templates/core/dental/dental_record_edit.html`
 
 ## Quick Reference: Before → After
 

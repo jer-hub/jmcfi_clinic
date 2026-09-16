@@ -36,6 +36,13 @@ static/fonts/
 static/logo/
 static/favicon/
 static/img/
+# Vendor/package static copied into STATIC_ROOT by collectstatic
+static/admin/
+static/django_extensions/
+static/account/
+
+# One-off audit script output (do not commit)
+audit_results.json
 
 .agents
 .github

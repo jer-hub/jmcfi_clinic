@@ -11,25 +11,31 @@
         <p class="text-xs text-gray-500">F-HSS-20-0002 — Date and Time, Findings, and Doctor's Orders.</p>
       </div>
     </div>
-    <span class="text-xs text-gray-400 tabular-nums" id="entries-count-label">
+    <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600 tabular-nums" id="entries-count-label">
       {{ chart_entries|length }} entr{{ chart_entries|length|pluralize:"y,ies" }}
     </span>
   </div>
 
   {% if can_manage_entries %}
-  <div class="px-4 sm:px-5 py-4 border-b border-gray-100 bg-gray-50/40">
+  <div class="px-4 sm:px-5 py-4 border-b border-gray-100 bg-slate-50/70" id="patient-chart-entry-composer">
     {% include 'health_forms_services/partials/_patient_chart_entry_form.html' %}
   </div>
   {% endif %}
 
   <div class="px-4 sm:px-5 py-4 min-w-0">
-    <div id="entries-empty-state" class="{% if chart_entries %}hidden{% endif %} rounded-xl border border-dashed border-gray-200 bg-gray-50/80 px-6 py-10 text-center">
-      <span class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white border border-gray-200 text-gray-300">
+    <div id="entries-empty-state" class="{% if chart_entries %}hidden{% endif %} rounded-xl border border-dashed border-indigo-200 bg-indigo-50/40 px-6 py-10 text-center">
+      <span class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white border border-indigo-100 text-indigo-400">
         <i class="fas fa-clipboard-list text-xl" aria-hidden="true"></i>
       </span>
-      <p class="text-sm font-medium text-gray-600">No consultation entries yet</p>
+      <p class="text-sm font-semibold text-gray-800">No consultation entries yet</p>
       {% if can_manage_entries %}
-      <p class="mt-1 text-xs text-gray-400">Record findings and doctor's orders using the form above.</p>
+      <p class="mt-1 text-xs text-gray-500 max-w-sm mx-auto">Add the first findings and doctor's orders for this visit using the form above.</p>
+      <button type="button"
+              id="patient-chart-focus-composer"
+              class="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
+        <i class="fas fa-plus" aria-hidden="true"></i>
+        <span>Add first entry</span>
+      </button>
       {% endif %}
     </div>
 
@@ -38,7 +44,7 @@
 </section>
 
 {% if can_manage_entries %}
-<script src="{% static 'js/patient-chart-entries.js' %}"></script>
+<script src="{% static 'js/patient-chart-entries.js' %}?v=5"></script>
 <script>
   if (window.initPatientChartEntries) {
     initPatientChartEntries({
@@ -56,6 +62,8 @@
       emptyStateId: 'entries-empty-state',
       tableWrapId: 'entries-table-wrap',
       countLabelId: 'entries-count-label',
+      focusComposerId: 'patient-chart-focus-composer',
+      composerId: 'patient-chart-entry-composer',
     });
   }
 </script>

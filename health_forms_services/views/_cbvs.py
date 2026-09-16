@@ -381,9 +381,9 @@ class PatientChartListView(BaseFormListView):
     edit_url_name = 'health_forms_services:edit_patient_chart'
     # Match Health Forms list: Invite Guest (primary) + New … (secondary outline)
     create_url_name = 'health_forms_services:invite_guest_patient_chart'
-    create_label = 'Invite Guest'
+    create_label = 'Invite guest (email)'
     secondary_create_url_name = 'health_forms_services:create_patient_chart'
-    secondary_create_label = 'New Patient Charts'
+    secondary_create_label = 'New chart (in clinic)'
     form_type_label = 'Patient Charts'
     search_fields = ['last_name', 'first_name', 'user__email']
     status_choices = PatientChart.Status
@@ -427,6 +427,7 @@ class PatientChartDetailView(BaseFormDetailView):
             'icon_bg': 'bg-primary-50',
             'icon_color': 'text-primary-600',
             'description': 'Patient demographics and contact details.',
+            'open': False,
             'groups': self._personal_groups(obj),
         }]
 

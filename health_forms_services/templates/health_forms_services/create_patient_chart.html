@@ -4,6 +4,13 @@
 {% block back_url %}{% url 'health_forms_services:patient_chart_list' %}{% endblock %}
 {% block back_label %}Back to Patient Charts{% endblock %}
 {% block page_title %}New Patient Chart{% endblock %}
+{% block page_subtitle %}
+<p class="mt-1 text-sm text-gray-500">
+  Create a chart for a clinic visit.
+  Prefer to email the guest instead?
+  <a href="{% url 'health_forms_services:invite_guest_patient_chart' %}" class="font-medium text-primary-600 hover:text-primary-700 underline">Invite guest (email)</a>
+</p>
+{% endblock %}
 {% block section_title %}Personal Information{% endblock %}
 {% block submit_label %}Create Patient Chart{% endblock %}
 
@@ -27,14 +34,14 @@
 
 {% block form_fields %}
   {% include 'health_forms_services/partials/_patient_picker_shell_open.html' %}
-  {% include 'health_forms_services/partials/_patient_picker_panel.html' %}
+  {% include 'health_forms_services/partials/_patient_picker_panel.html' with guest_checkbox_label="Walk-in guest (staff enters details)" guest_defer_help="Fill demographics below (including email). The walk-in guest account is created when you submit this form." %}
 
-  {% include 'health_forms_services/partials/_section_groups_tab.html' with sections=personal_form.personal_info_sections %}
+  {% include 'health_forms_services/partials/_section_groups_tab.html' with sections=personal_form.personal_info_sections progressive_reveal=True %}
   </div>
 {% endblock %}
 
 {% block info_note %}
-  <div class="mt-4 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg flex items-start gap-3" role="alert">
+  <div class="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg flex items-start gap-3" role="alert">
     <svg class="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
       <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
     </svg>

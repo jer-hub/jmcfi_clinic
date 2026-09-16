@@ -1,10 +1,12 @@
 {# ── Generic grouped sections tab (personal info, dental personal, etc.) ── #}
+{# Optional: progressive_reveal — wrap sections so Alpine can hide until patient/guest chosen #}
 
-<div class="space-y-8">
+<div class="space-y-4 sm:space-y-6"{% if progressive_reveal %} x-show="selectedPatient || guestRegisterOpen" x-cloak{% endif %}>
 
   {% for section in sections %}
 
-  <section data-section-key="{{ section.key|default:'' }}">
+  <section data-section-key="{{ section.key|default:'' }}"
+           class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
 
     {% if section.key == 'medical_background' %}
 
@@ -135,4 +137,3 @@
   {% endfor %}
 
 </div>
-

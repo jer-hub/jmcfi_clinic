@@ -23,6 +23,9 @@ from analytics.services import (
     write_concerns_summary_csv,
     write_financial_summary_csv,
     write_health_trends_csv,
+    write_patient_chart_entries_csv,
+    write_patient_charts_csv,
+    write_patient_charts_summary_csv,
     write_population_period_csv,
     write_population_summary_csv,
     write_predictive_csv,
@@ -137,6 +140,21 @@ def export_report(request):
 
     elif report_type == 'concerns_summary':
         write_concerns_summary_csv(
+            writer, date_from, date_to, filters=filters, search=concern_q or None,
+        )
+
+    elif report_type == 'patient_charts':
+        write_patient_charts_csv(
+            writer, date_from, date_to, filters=filters, search=concern_q or None,
+        )
+
+    elif report_type == 'patient_chart_entries':
+        write_patient_chart_entries_csv(
+            writer, date_from, date_to, filters=filters, search=concern_q or None,
+        )
+
+    elif report_type == 'patient_charts_summary':
+        write_patient_charts_summary_csv(
             writer, date_from, date_to, filters=filters, search=concern_q or None,
         )
 

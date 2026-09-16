@@ -10,6 +10,7 @@ from core.subnav_helpers import (
     enrich_subnav,
     is_active,
     nav_dropdown,
+    nav_group,
     nav_item,
     view_name,
 )
@@ -529,16 +530,23 @@ def analytics_subnav(context):
     user = request.user
     vn = view_name(request)
     home_url_name = analytics_home_url_name(user)
-    items = [
+
+    if role_matches(user.role, ROLE_PATIENT):
+        return enrich_subnav([])
+
+    overview = [
         nav_item(
             'Dashboard',
             home_url_name,
             icon='fa-gauge-high',
             active=vn == home_url_name,
-        )
+        ),
     ]
+    insights = []
+    admin_items = []
+
     if user.role in ('staff', 'doctor', 'admin'):
-        items.extend(
+        overview.extend(
             [
                 nav_item(
                     'Health Trends',
@@ -553,56 +561,72 @@ def analytics_subnav(context):
                     active=vn == 'analytics:concerns_analysis',
                 ),
                 nav_item(
-                    'Predictive',
-                    'analytics:predictive_analytics',
-                    icon='fa-lightbulb',
-                    active=is_active(vn, 'analytics:predictive_analytics', 'analytics:generate_insight'),
-                ),
-                nav_item(
-                    'Resources',
-                    'analytics:resource_utilization',
-                    icon='fa-chart-column',
-                    active=vn == 'analytics:resource_utilization',
-                ),
-                nav_item(
-                    'Population',
-                    'analytics:population_health',
-                    icon='fa-people-group',
-                    active=vn == 'analytics:population_health',
-                ),
-                nav_item(
-                    'Academic',
-                    'analytics:academic_correlation',
-                    icon='fa-graduation-cap',
-                    active=vn == 'analytics:academic_correlation',
+                    'Patient Charts',
+                    'analytics:patient_charts_analysis',
+                    icon='fa-notes-medical',
+                    active=vn == 'analytics:patient_charts_analysis',
                 ),
             ]
         )
+        insights = [
+            nav_item(
+                'Predictive',
+                'analytics:predictive_analytics',
+                icon='fa-lightbulb',
+                active=is_active(vn, 'analytics:predictive_analytics', 'analytics:generate_insight'),
+            ),
+            nav_item(
+                'Resources',
+                'analytics:resource_utilization',
+                icon='fa-chart-column',
+                active=vn == 'analytics:resource_utilization',
+            ),
+            nav_item(
+                'Population',
+                'analytics:population_health',
+                icon='fa-people-group',
+                active=vn == 'analytics:population_health',
+            ),
+            nav_item(
+                'Academic',
+                'analytics:academic_correlation',
+                icon='fa-graduation-cap',
+                active=vn == 'analytics:academic_correlation',
+            ),
+        ]
+
     if user.role == 'admin':
-        items.extend(
-            [
-                nav_item(
-                    'Compliance',
+        admin_items = [
+            nav_item(
+                'Compliance',
+                'analytics:compliance_reports',
+                icon='fa-shield-halved',
+                active=is_active(
+                    vn,
                     'analytics:compliance_reports',
-                    icon='fa-shield-halved',
-                    active=is_active(
-                        vn,
-                        'analytics:compliance_reports',
-                        'analytics:compliance_report_detail',
-                        'analytics:generate_compliance_report',
-                    ),
+                    'analytics:compliance_report_detail',
+                    'analytics:generate_compliance_report',
                 ),
-                nav_item(
-                    'Financial',
-                    'analytics:financial_overview',
-                    icon='fa-coins',
-                    active=is_active(vn, 'analytics:financial_overview', 'analytics:financial_record_create'),
-                ),
-            ]
-        )
-    if role_matches(user.role, ROLE_PATIENT):
-        return enrich_subnav([])
-    return enrich_subnav(items, always_show_nav=True)
+            ),
+            nav_item(
+                'Financial',
+                'analytics:financial_overview',
+                icon='fa-coins',
+                active=is_active(vn, 'analytics:financial_overview', 'analytics:financial_record_create'),
+            ),
+        ]
+
+    groups = [nav_group('Overview', overview)]
+    if insights:
+        groups.append(nav_group('Insights', insights))
+    if admin_items:
+        groups.append(nav_group('Admin', admin_items))
+
+    return enrich_subnav(
+        groups=groups,
+        always_show_nav=True,
+        nav_aria_label='Analytics sections',
+    )
 
 
 @register.inclusion_tag('components/sub_nav.html', takes_context=True)

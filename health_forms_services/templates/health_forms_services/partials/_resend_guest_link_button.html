@@ -1,0 +1,69 @@
+<form method="post"
+      action="{{ resend_guest_link_url }}"
+      class="inline-flex flex-row items-center gap-2 min-w-0 max-w-full"
+      data-guest-resend-form
+      x-data="{
+        loading: false,
+        status: '',
+        message: '',
+        async onResend(event) {
+          event.preventDefault();
+          if (this.loading) return;
+          this.loading = true;
+          this.status = '';
+          this.message = '';
+          const form = event.target;
+          const tokenInput = form.querySelector('[name=csrfmiddlewaretoken]');
+          try {
+            const response = await fetch(form.action, {
+              method: 'POST',
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': tokenInput ? tokenInput.value : '',
+              },
+              body: new FormData(form),
+            });
+            let data = {};
+            try { data = await response.json(); } catch (e) { data = {}; }
+            this.status = data.status || (response.ok && data.success ? 'success' : 'error');
+            this.message = data.message || (this.status === 'success'
+              ? 'Link sent successfully.'
+              : 'Could not resend the link. Try again.');
+          } catch (err) {
+            this.status = 'error';
+            this.message = 'Network error. Please try again.';
+          } finally {
+            this.loading = false;
+          }
+        }
+      }"
+      @submit="onResend">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next_path|default:request.path }}">
+  <button type="submit"
+          id="guest-resend-link-btn"
+          :disabled="loading"
+          :aria-busy="loading.toString()"
+          :class="{
+            'text-emerald-700 bg-emerald-50 hover:bg-emerald-50': !loading && status === 'success',
+            'text-red-700 bg-red-50 hover:bg-red-50': !loading && (status === 'error' || status === 'warning'),
+            'text-gray-600 hover:text-primary-700 hover:bg-primary-50': !loading && !status,
+            'opacity-70 cursor-wait': loading
+          }"
+          class="{{ button_class|default:'inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors shrink-0' }}"
+          title="Email a new magic link to the guest">
+    <i class="fas fa-spinner fa-spin" x-show="loading" x-cloak aria-hidden="true"></i>
+    <i class="fas fa-circle-check" x-show="!loading && status === 'success'" x-cloak aria-hidden="true"></i>
+    <i class="fas fa-circle-exclamation" x-show="!loading && (status === 'error' || status === 'warning')" x-cloak aria-hidden="true"></i>
+    <i class="fas fa-envelope" x-show="!loading && !status" aria-hidden="true"></i>
+    <span x-text="loading ? 'Sending…' : (status === 'success' ? 'Link sent' : (status === 'error' || status === 'warning' ? 'Send failed' : 'Resend link'))">Resend link</span>
+  </button>
+  <p class="text-xs leading-snug truncate min-w-0 max-w-[14rem] sm:max-w-[18rem]"
+     x-show="message && !loading"
+     x-cloak
+     :class="status === 'success' ? 'text-emerald-600' : (status === 'warning' ? 'text-amber-600' : 'text-red-600')"
+     :title="message"
+     x-text="message"
+     role="status"
+     aria-live="polite"></p>
+</form>

@@ -125,7 +125,13 @@ class HealthFormsAdminAccessTests(TestCase):
 		middleware
 		for middleware in settings.MIDDLEWARE
 		if middleware != 'core.middleware.ProfileCompleteMiddleware'
-	]
+	],
+	STORAGES={
+		**settings.STORAGES,
+		'staticfiles': {
+			'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+		},
+	},
 )
 class HealthFormsPatientPickerTests(TestCase):
 	def setUp(self):
@@ -286,6 +292,19 @@ class HealthFormsPatientPickerTests(TestCase):
 		self.assertContains(response, 'Address &amp; Birth')
 		self.assertContains(response, 'Designation')
 		self.assertContains(response, 'In Case of Emergency')
+		self.assertContains(response, 'hf-academic-institutional.js')
+		self.assertContains(response, 'Walk-in guest (staff enters details)')
+		self.assertContains(response, 'Invite guest (email)')
+		self.assertContains(response, 'x-show="selectedPatient || guestRegisterOpen"')
+		# Age is derived from DOB — not HTML-required
+		self.assertNotRegex(
+			response.content.decode(),
+			r'id="id_age"[^>]*\srequired',
+		)
+		self.assertRegex(
+			response.content.decode(),
+			r'name="last_name"[^>]*\srequired|id="id_last_name"[^>]*\srequired',
+		)
 
 	def test_create_patient_chart_uses_selected_patient_user(self):
 		response = self.client.post(
@@ -446,7 +465,7 @@ class HealthFormsPatientPickerTests(TestCase):
 		)
 		self.assertEqual(response.status_code, 200)
 		self.assertEqual(PatientChart.objects.count(), before)
-		self.assertContains(response, 'Please search for a patient or check Register guest patient.')
+		self.assertContains(response, 'Please search for a patient or check Walk-in guest')
 
 	def test_create_health_profile_uses_selected_patient_user(self):
 		response = self.client.post(
@@ -1682,7 +1701,13 @@ class DentalHealthFormProcessFlowTests(TestCase):
 		middleware
 		for middleware in settings.MIDDLEWARE
 		if middleware != 'core.middleware.ProfileCompleteMiddleware'
-	]
+	],
+	STORAGES={
+		**settings.STORAGES,
+		'staticfiles': {
+			'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+		},
+	},
 )
 class PatientChartProcessFlowTests(TestCase):
 	def setUp(self):
@@ -1769,11 +1794,46 @@ class PatientChartProcessFlowTests(TestCase):
 		self.assertContains(response, 'Guest')
 		self.assertNotContains(response, '>Patient</option>')
 
+	def test_register_guest_create_forces_guest_designation(self):
+		before = PatientChart.objects.count()
+		response = self.client.post(
+			reverse('health_forms_services:create_patient_chart'),
+			{
+				'register_guest': '1',
+				'last_name': 'Walkin',
+				'first_name': 'Guest',
+				'middle_name': '',
+				'address': '1 Guest St',
+				'zip_code': '1000',
+				'current_address': '1 Guest St',
+				'date_of_birth': '2001-05-01',
+				'place_of_birth': 'Manila',
+				'age': '24',
+				'gender': 'female',
+				'civil_status': 'single',
+				'religion': 'Roman Catholic',
+				'citizenship': 'Filipino',
+				'email_address': 'walkin-guest-chart@test.com',
+				'contact_number': '09171234567',
+				'telephone_number': '',
+				'designation': 'student',
+				'department_college_office': 'College of Nursing',
+				'guardian_name': 'Parent Name',
+				'guardian_contact': '09179876543',
+			},
+		)
+		self.assertEqual(response.status_code, 302)
+		self.assertEqual(PatientChart.objects.count(), before + 1)
+		chart = PatientChart.objects.latest('created_at')
+		self.assertEqual(chart.designation, PatientChart.Designation.GUEST)
+		self.assertEqual(chart.department_college_office, '')
+		self.assertEqual(chart.email_address, 'walkin-guest-chart@test.com')
+
 	def test_patient_chart_list_shows_invite_guest_and_new_buttons(self):
 		response = self.client.get(reverse('health_forms_services:patient_chart_list'))
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, 'Invite Guest')
-		self.assertContains(response, 'New Patient Charts')
+		self.assertContains(response, 'Invite guest (email)')
+		self.assertContains(response, 'New chart (in clinic)')
 		self.assertContains(
 			response,
 			reverse('health_forms_services:invite_guest_patient_chart'),
@@ -1784,8 +1844,8 @@ class PatientChartProcessFlowTests(TestCase):
 		)
 		# Invite is primary (envelope); New is secondary outline — same order as health forms
 		content = response.content.decode()
-		new_pos = content.find('New Patient Charts')
-		invite_pos = content.find('Invite Guest')
+		new_pos = content.find('New chart (in clinic)')
+		invite_pos = content.find('Invite guest (email)')
 		self.assertGreater(invite_pos, -1)
 		self.assertGreater(new_pos, -1)
 		self.assertLess(new_pos, invite_pos)
@@ -1930,8 +1990,45 @@ class PatientChartProcessFlowTests(TestCase):
 		self.assertContains(response, 'Continue meds')
 		self.assertContains(response, 'id="entries-table-wrap"')
 
+	def test_detail_leads_with_consultation_log_and_collapsed_personal(self):
+		response = self.client.get(self.detail_url)
+		self.assertEqual(response.status_code, 200)
+		content = response.content.decode()
+		log_pos = content.find('id="patient-chart-entries-panel"')
+		personal_pos = content.find('Personal Information')
+		self.assertGreater(log_pos, -1)
+		self.assertGreater(personal_pos, -1)
+		self.assertLess(log_pos, personal_pos)
+		self.assertContains(response, 'Add first entry')
+		self.assertContains(response, 'lg:sticky lg:top-24')
+		self.assertContains(response, 'id="hf-detail-layout-controls"')
+		self.assertContains(response, 'Widen content')
+		self.assertContains(response, 'Side panel')
+		self.assertContains(response, 'jmcfi-hf-detail-sidebar')
+		# Personal Information accordion should start collapsed (no open attr on that details).
+		self.assertRegex(
+			content,
+			r'<details[^>]*class="[^"]*rounded-card[^"]*"[^>]*>\s*<summary[^>]*>[\s\S]*?Personal Information',
+		)
+		personal_details = content[
+			content.find('Personal Information') - 400 : content.find('Personal Information') + 80
+		]
+		self.assertNotIn(' open', personal_details.split('<summary')[0])
 
-class HealthProfilePersonalInfoInstitutionalSectionTests(TestCase):
+	def test_detail_long_entry_offers_show_more(self):
+		long_findings = 'Clinical observation note. ' * 12
+		PatientChartEntry.objects.create(
+			patient_chart=self.chart,
+			findings=long_findings,
+			doctors_orders='Short order',
+			recorded_by=self.doctor,
+		)
+		response = self.client.get(self.detail_url)
+		self.assertEqual(response.status_code, 200)
+		self.assertContains(response, 'Show more')
+		self.assertContains(response, 'entry-clamp-toggle')
+		self.assertContains(response, 'is-clamped')
+
 	def _institutional_field_names(self, form):
 		sections = form.personal_info_sections()
 		institutional = next(s for s in sections if s.get('key') == 'institutional_details')
@@ -3061,6 +3158,57 @@ class HealthProfilePatientWorkflowTests(TestCase):
 		self.assertEqual(mail.outbox[0].to, ['invite-chart-guest@test.com'])
 		self.assertIn('/guest/patient-chart/', mail.outbox[0].body)
 
+	def test_resend_guest_patient_chart_link_ajax(self):
+		from django.core import mail
+		from core.doctor_access import ALL_MODULE_KEYS
+		from core.guest_auth import create_guest_user
+		from core.models import ClinicSettings
+		from core.settings_service import invalidate_settings_cache
+
+		ClinicSettings.load()
+		ClinicSettings.objects.filter(pk=ClinicSettings.SINGLETON_PK).update(
+			enable_email_notifications=True,
+		)
+		invalidate_settings_cache()
+
+		doc_profile = self.doctor.staff_profile
+		doc_profile.allowed_clinical_modules = list(ALL_MODULE_KEYS)
+		doc_profile.save(update_fields=['allowed_clinical_modules'])
+
+		guest = create_guest_user(
+			first_name='Resend',
+			last_name='Chart',
+			contact_email='resend-chart-guest@test.com',
+		)
+		chart = PatientChart.objects.create(
+			user=guest,
+			status=PatientChart.Status.INCOMPLETE,
+			designation='guest',
+			first_name='Resend',
+			last_name='Chart',
+			email_address='resend-chart-guest@test.com',
+		)
+
+		self._login_doctor()
+		detail = self.client.get(
+			reverse('health_forms_services:patient_chart_detail', args=[chart.pk])
+		)
+		self.assertEqual(detail.status_code, 200)
+		self.assertContains(detail, 'data-guest-resend-form')
+		self.assertContains(detail, 'Sending')
+
+		ajax = self.client.post(
+			reverse('health_forms_services:resend_guest_patient_chart_link', args=[chart.pk]),
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(ajax.status_code, 200)
+		payload = ajax.json()
+		self.assertTrue(payload['success'])
+		self.assertEqual(payload['status'], 'success')
+		self.assertIn('emailed to', payload['message'])
+		self.assertEqual(len(mail.outbox), 1)
+		self.assertEqual(mail.outbox[0].to, ['resend-chart-guest@test.com'])
+
 	def test_resend_guest_health_form_link(self):
 		from django.core import mail
 		from core.doctor_access import ALL_MODULE_KEYS
@@ -3104,6 +3252,18 @@ class HealthProfilePatientWorkflowTests(TestCase):
 		detail = self.client.get(reverse('health_forms_services:form_detail', args=[health_form.pk]))
 		self.assertEqual(detail.status_code, 200)
 		self.assertContains(detail, 'Resend link')
+		self.assertContains(detail, 'data-guest-resend-form')
+
+		ajax = self.client.post(
+			reverse('health_forms_services:resend_guest_health_form_link', args=[health_form.pk]),
+			HTTP_X_REQUESTED_WITH='XMLHttpRequest',
+		)
+		self.assertEqual(ajax.status_code, 200)
+		payload = ajax.json()
+		self.assertTrue(payload['success'])
+		self.assertEqual(payload['status'], 'success')
+		self.assertIn('resent to', payload['message'])
+		self.assertEqual(len(mail.outbox), 2)
 
 	def test_patient_dashboard_lists_incomplete_health_forms(self):
 		HealthProfileForm.objects.filter(user=self.patient).delete()

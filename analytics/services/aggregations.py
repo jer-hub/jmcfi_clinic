@@ -17,6 +17,7 @@ from analytics.academic_filters import (
     apply_academic_filters,
     apply_concern_academic_filters,
     apply_dental_academic_filters,
+    apply_patient_chart_academic_filters,
     academic_filters_active,
     get_academic_filters,
     period_presets as _period_presets,
@@ -665,3 +666,156 @@ def concern_by_department(date_from, date_to, filters=None, search=None, limit=1
         merged[row['department_other'] or 'Unknown'] += row['count']
     ranked = sorted(merged.items(), key=lambda item: item[1], reverse=True)
     return [{'label': label, 'count': count} for label, count in ranked[:limit]]
+
+
+def filtered_patient_charts(date_from, date_to, filters=None, search=None, status=None):
+    """Patient charts created in range with optional academic/status/search filters."""
+    from health_forms_services.models import PatientChart
+
+    qs = PatientChart.objects.filter(
+        created_at__date__gte=date_from,
+        created_at__date__lte=date_to,
+    ).select_related('user', 'user__patient_profile', 'reviewed_by')
+    if filters:
+        qs = apply_patient_chart_academic_filters(qs, filters)
+    if status:
+        qs = qs.filter(status=status)
+    q = (search or '').strip()
+    if q:
+        from django.db.models import Q
+
+        qs = qs.filter(
+            Q(first_name__icontains=q)
+            | Q(last_name__icontains=q)
+            | Q(middle_name__icontains=q)
+            | Q(department_college_office__icontains=q)
+            | Q(entries__findings__icontains=q)
+            | Q(entries__doctors_orders__icontains=q)
+        ).distinct()
+    return qs
+
+
+def filtered_patient_chart_entries(date_from, date_to, filters=None, search=None, status=None):
+    """Consultation entries in range (by date_and_time) with chart-level filters."""
+    from health_forms_services.models import PatientChartEntry
+
+    qs = PatientChartEntry.objects.filter(
+        date_and_time__date__gte=date_from,
+        date_and_time__date__lte=date_to,
+    ).select_related(
+        'patient_chart',
+        'patient_chart__user',
+        'patient_chart__user__patient_profile',
+        'recorded_by',
+    )
+    if filters:
+        qs = apply_patient_chart_academic_filters(qs, filters, prefix='patient_chart__')
+    if status:
+        qs = qs.filter(patient_chart__status=status)
+    q = (search or '').strip()
+    if q:
+        from django.db.models import Q
+
+        qs = qs.filter(
+            Q(findings__icontains=q)
+            | Q(doctors_orders__icontains=q)
+            | Q(patient_chart__first_name__icontains=q)
+            | Q(patient_chart__last_name__icontains=q)
+            | Q(patient_chart__department_college_office__icontains=q)
+        )
+    return qs
+
+
+def patient_chart_kpis(date_from, date_to, filters=None, search=None, status=None):
+    from health_forms_services.models import PatientChart
+
+    qs = filtered_patient_charts(
+        date_from, date_to, filters=filters, search=search, status=status,
+    )
+    total = qs.count()
+    unique_patients = qs.values('user').distinct().count()
+    pending_count = qs.filter(status=PatientChart.Status.PENDING).count()
+    completed_count = qs.filter(status=PatientChart.Status.COMPLETED).count()
+    entry_count = filtered_patient_chart_entries(
+        date_from, date_to, filters=filters, search=search, status=status,
+    ).count()
+    departments_touched = len(
+        patient_chart_by_department(
+            date_from, date_to, filters=filters, search=search, status=status, limit=500,
+        )
+    )
+    return {
+        'total_charts': total,
+        'unique_patients': unique_patients,
+        'pending_count': pending_count,
+        'completed_count': completed_count,
+        'entry_count': entry_count,
+        'departments_touched': departments_touched,
+    }
+
+
+def patient_chart_by_status(date_from, date_to, filters=None, search=None, status=None, limit=10):
+    from health_forms_services.models import PatientChart
+
+    qs = filtered_patient_charts(
+        date_from, date_to, filters=filters, search=search, status=status,
+    )
+    rows = qs.values('status').annotate(count=Count('id')).order_by('-count')
+    label_map = dict(PatientChart.Status.choices)
+    return [
+        {
+            'label': label_map.get(row['status'], row['status'] or 'Unknown'),
+            'count': row['count'],
+        }
+        for row in rows[:limit]
+    ]
+
+
+def patient_chart_by_designation(date_from, date_to, filters=None, search=None, status=None, limit=10):
+    from health_forms_services.models import PatientChart
+
+    qs = filtered_patient_charts(
+        date_from, date_to, filters=filters, search=search, status=status,
+    )
+    rows = qs.values('designation').annotate(count=Count('id')).order_by('-count')
+    label_map = dict(PatientChart.Designation.choices)
+    return [
+        {
+            'label': label_map.get(row['designation'], row['designation'] or 'Unknown'),
+            'count': row['count'],
+        }
+        for row in rows[:limit]
+    ]
+
+
+def patient_chart_by_department(date_from, date_to, filters=None, search=None, status=None, limit=15):
+    qs = filtered_patient_charts(
+        date_from, date_to, filters=filters, search=search, status=status,
+    )
+    rows = (
+        qs.exclude(department_college_office='')
+        .values('department_college_office')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:limit]
+    )
+    return [
+        {
+            'label': row['department_college_office'] or 'Unknown',
+            'count': row['count'],
+        }
+        for row in rows
+    ]
+
+
+def patient_chart_entry_volume_by_day(date_from, date_to, filters=None, search=None, status=None):
+    from django.db.models.functions import TruncDate
+
+    qs = filtered_patient_chart_entries(
+        date_from, date_to, filters=filters, search=search, status=status,
+    )
+    return list(
+        qs.annotate(day=TruncDate('date_and_time'))
+        .values('day')
+        .annotate(count=Count('id'))
+        .order_by('day')
+    )

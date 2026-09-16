@@ -7,29 +7,45 @@
 {% block title %}{{ form_obj.get_full_name|default:form_obj.user.get_full_name }} - JMCFI Clinic{% endblock %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6" x-data="{}">
+<div
+  class="mx-auto px-4 sm:px-6 lg:px-8 py-6"
+  :class="sidebarLayout === 'below' ? 'max-w-[90rem]' : 'max-w-7xl'"
+  x-data="{
+    sidebarLayout: (function () {
+      try {
+        var stored = localStorage.getItem('jmcfi-hf-detail-sidebar');
+        return stored === 'below' || stored === 'side' ? stored : 'side';
+      } catch (e) {
+        return 'side';
+      }
+    })(),
+    setSidebarLayout(mode) {
+      if (mode !== 'side' && mode !== 'below') return;
+      this.sidebarLayout = mode;
+      try { localStorage.setItem('jmcfi-hf-detail-sidebar', mode); } catch (e) {}
+    }
+  }"
+>
     {% include 'health_forms_services/_subnav.html' %}
 
     {% include "components/page_header.html" with title=form_obj.get_full_name|default:form_obj.user.get_full_name|default:"Form" icon="fa-file-medical" %}
 
 
 
-    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div class="min-w-0">
-        <div class="flex flex-wrap items-center gap-2">
-          {% if form_obj.status == 'completed' %}
-            {% include "components/status_badge.html" with label=form_obj.get_status_display variant="success" icon="fa-circle-check" %}
-          {% elif form_obj.status == 'rejected' %}
-            {% include "components/status_badge.html" with label=form_obj.get_status_display variant="danger" icon="fa-ban" %}
-          {% elif form_obj.status == 'incomplete' %}
-            {% include "components/status_badge.html" with label="Draft" variant="muted" icon="fa-pen" %}
-          {% elif form_obj.status == 'pending' %}
-            {% include "components/status_badge.html" with label="Pending Review" variant="warning" icon="fa-clock" %}
-          {% else %}
-            {% include "components/status_badge.html" with label=form_obj.get_status_display variant="warning" icon="fa-clock" %}
-          {% endif %}
-        </div>
-        <p class="mt-1.5 text-sm text-gray-500">
+    <div class="bg-white rounded-card border border-gray-200 shadow-sm px-4 py-3 mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div class="min-w-0 flex flex-wrap items-center gap-x-3 gap-y-1">
+        {% if form_obj.status == 'completed' %}
+          {% include "components/status_badge.html" with label=form_obj.get_status_display variant="success" icon="fa-circle-check" %}
+        {% elif form_obj.status == 'rejected' %}
+          {% include "components/status_badge.html" with label=form_obj.get_status_display variant="danger" icon="fa-ban" %}
+        {% elif form_obj.status == 'incomplete' %}
+          {% include "components/status_badge.html" with label="Draft" variant="muted" icon="fa-pen" %}
+        {% elif form_obj.status == 'pending' %}
+          {% include "components/status_badge.html" with label="Pending Review" variant="warning" icon="fa-clock" %}
+        {% else %}
+          {% include "components/status_badge.html" with label=form_obj.get_status_display variant="warning" icon="fa-clock" %}
+        {% endif %}
+        <p class="text-sm text-gray-500 whitespace-nowrap">
           Created {{ form_obj.created_at|date:"M d, Y" }}
           {% if form_obj.reviewed_at %}
           <span class="text-gray-400">· Reviewed {{ form_obj.reviewed_at|date:"M d, Y" }}</span>
@@ -37,39 +53,26 @@
         </p>
       </div>
 
-      <div class="flex flex-col-reverse sm:flex-row sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-        {# Secondary / guest actions #}
-        <div class="flex flex-wrap items-center gap-2">
-          {% if can_resend_guest_link and resend_guest_link_url %}
-          <form method="post" action="{{ resend_guest_link_url }}" class="inline">
-            {% csrf_token %}
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <button type="submit"
-                    class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
-                    title="Email a new magic link to the guest">
-              <i class="fas fa-envelope" aria-hidden="true"></i>
-              <span>Resend link</span>
-            </button>
-          </form>
-          {% endif %}
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+        {% if can_resend_guest_link and resend_guest_link_url %}
+        {% include 'health_forms_services/partials/_resend_guest_link_button.html' %}
+        {% endif %}
 
-          {% if can_submit_for_review and submit_url %}
-          <form method="post" action="{{ submit_url }}" class="inline">
-            {% csrf_token %}
-            <button type="submit"
-                    class="inline-flex items-center justify-center gap-2 px-3.5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
-              <i class="fas fa-paper-plane" aria-hidden="true"></i>
-              <span>Submit for review</span>
-            </button>
-          </form>
-          {% endif %}
-        </div>
+        {% if can_submit_for_review and submit_url %}
+        <form method="post" action="{{ submit_url }}" class="inline">
+          {% csrf_token %}
+          <button type="submit"
+                  class="inline-flex items-center justify-center gap-2 px-3.5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
+            <i class="fas fa-paper-plane" aria-hidden="true"></i>
+            <span>Submit for review</span>
+          </button>
+        </form>
+        {% endif %}
 
-        {# Primary CTA + overflow #}
         <div class="flex items-center gap-2 {% if can_edit and edit_url %}sm:pl-3 sm:border-l sm:border-gray-200{% endif %}">
           {% if can_edit and edit_url %}
           <a href="{{ edit_url }}"
-             class="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
+             class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
             <i class="fas fa-pen-to-square" aria-hidden="true"></i>
             <span>Edit</span>
           </a>
@@ -136,72 +139,53 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
-      <div class="lg:col-span-2 space-y-4 sm:space-y-5">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2" id="hf-detail-layout-controls">
+      <p class="text-xs text-gray-500">
+        <span x-show="sidebarLayout === 'side'" x-cloak>Side panel layout</span>
+        <span x-show="sidebarLayout === 'below'" x-cloak>Wide content — panel below</span>
+      </p>
+      <div class="inline-flex rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm" role="group" aria-label="Sidebar position">
+        <button type="button"
+                @click="setSidebarLayout('side')"
+                :aria-pressed="(sidebarLayout === 'side').toString()"
+                :class="sidebarLayout === 'side' ? 'bg-primary-50 text-primary-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'"
+                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors min-h-[36px]"
+                title="Show review panel on the right">
+          <i class="fas fa-table-columns" aria-hidden="true"></i>
+          <span>Side panel</span>
+        </button>
+        <button type="button"
+                @click="setSidebarLayout('below')"
+                :aria-pressed="(sidebarLayout === 'below').toString()"
+                :class="sidebarLayout === 'below' ? 'bg-primary-50 text-primary-700 shadow-sm' : 'text-gray-600 hover:bg-gray-50'"
+                class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors min-h-[36px]"
+                title="Move panel below to widen the main content">
+          <i class="fas fa-arrows-left-right-to-line" aria-hidden="true"></i>
+          <span>Widen content</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-5 sm:gap-6 items-start"
+         :class="sidebarLayout === 'side' ? 'lg:grid-cols-3' : 'lg:grid-cols-1'"
+         data-hf-detail-layout>
+      <div class="space-y-4 sm:space-y-5 min-w-0"
+           :class="sidebarLayout === 'side' ? 'lg:col-span-2' : 'lg:col-span-1'">
+        {% block detail_extra_content_before %}{% endblock %}
         {% for section in detail_sections %}
           {% include 'health_forms_services/partials/_section_card.html' with section=section %}
         {% endfor %}
         {% block detail_extra_content %}{% endblock %}
       </div>
 
-      <div class="space-y-4 sm:space-y-5">
-        {% if can_review %}
-        <div class="bg-white rounded-card border border-gray-200 shadow-sm">
-          <div class="px-5 py-4 border-b border-gray-200">
-            <h3 class="text-sm font-semibold text-gray-700">Review</h3>
-          </div>
-          <div class="p-5">
-            <button type="button"
-                    @click="$dispatch('open-modal', { type: 'success', title: 'Review Form', subtitle: 'Update status and optional notes', size: 'lg', embedFrom: '#hf-review-embed-{{ form_obj.pk }}', hasForm: true, actionLabel: 'Submit Review' })"
-                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-success-600 text-white rounded-lg hover:bg-success-700 font-medium text-sm transition-colors">
-              <i class="fas fa-circle-check"></i>Review Form
-            </button>
-          </div>
-        </div>
-        {% endif %}
-
-        {% include 'health_forms_services/partials/_review_notes_card.html' %}
-
-        <div class="bg-white rounded-card border border-gray-200 shadow-sm">
-          <div class="px-5 py-4 border-b border-gray-200">
-            <h3 class="text-sm font-semibold text-gray-700">Timeline</h3>
-          </div>
-          <div class="p-5 space-y-4">
-            <div class="flex gap-3">
-              <div class="flex flex-col items-center">
-                <div class="w-2 h-2 rounded-full bg-primary-500 mt-1.5"></div>
-                <div class="w-0.5 h-full bg-gray-200"></div>
-              </div>
-              <div>
-                <p class="text-sm font-medium text-gray-900">Created</p>
-                <p class="text-xs text-gray-500">{{ form_obj.created_at|date:"M d, Y H:i" }}</p>
-              </div>
-            </div>
-            {% if form_obj.reviewed_at %}
-            <div class="flex gap-3">
-              <div class="flex flex-col items-center">
-                <div class="w-2 h-2 rounded-full bg-emerald-500 mt-1.5"></div>
-                <div class="w-0.5 h-full bg-gray-200"></div>
-              </div>
-              <div>
-                <p class="text-sm font-medium text-gray-900">Reviewed</p>
-                <p class="text-xs text-gray-500">{{ form_obj.reviewed_at|date:"M d, Y H:i" }}</p>
-                {% if form_obj.reviewed_by %}
-                <p class="text-xs text-gray-400">by {{ form_obj.reviewed_by.get_full_name }}</p>
-                {% endif %}
-              </div>
-            </div>
-            {% endif %}
-            <div class="flex gap-3">
-              <div class="w-2 h-2 rounded-full bg-gray-400 mt-1.5"></div>
-              <div>
-                <p class="text-sm font-medium text-gray-900">Last Updated</p>
-                <p class="text-xs text-gray-500">{{ form_obj.updated_at|date:"M d, Y H:i" }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <aside
+        :class="sidebarLayout === 'side'
+          ? 'space-y-4 sm:space-y-5 lg:sticky lg:top-24 lg:self-start'
+          : 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-5'"
+        aria-label="Form actions and timeline"
+        data-hf-detail-sidebar>
+        {% include 'health_forms_services/partials/_detail_sidebar.html' %}
+      </aside>
     </div>
 </div>
 

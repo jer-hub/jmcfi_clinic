@@ -53,28 +53,28 @@
     {% endif %}
     {% endblock %}
 
-    <form method="post" novalidate class="space-y-6">
+    <form method="post" novalidate class="space-y-4 sm:space-y-6">
       {% csrf_token %}
 
-      <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
-        {% block form_fields %}{% endblock %}
-      </div>
+      {% block form_fields %}{% endblock %}
 
       {% block info_note %}{% endblock %}
 
       {% block extra_content %}{% endblock %}
 
-      <div class="flex flex-wrap justify-end gap-3">
-        {% block form_actions %}
-        <a href="{% block cancel_url %}#{% endblock %}"
-           class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
-          <i class="fas fa-xmark"></i>Cancel
-        </a>
-        <button type="submit"
-                class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
-          <i class="fas fa-floppy-disk"></i>{% block submit_label %}Create{% endblock %}
-        </button>
-        {% endblock %}
+      <div class="sticky bottom-0 z-20 -mx-4 sm:mx-0 mt-2 border-t border-gray-200 bg-gray-50/95 backdrop-blur px-4 py-3 sm:rounded-xl sm:border sm:shadow-sm">
+        <div class="flex flex-wrap justify-end gap-3">
+          {% block form_actions %}
+          <a href="{% block cancel_url %}#{% endblock %}"
+             class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-white font-medium text-sm transition-colors bg-white">
+            <i class="fas fa-xmark"></i>Cancel
+          </a>
+          <button type="submit"
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium text-sm transition-colors shadow-sm">
+            <i class="fas fa-floppy-disk"></i>{% block submit_label %}Create{% endblock %}
+          </button>
+          {% endblock %}
+        </div>
       </div>
     </form>
 </div>
@@ -92,9 +92,10 @@ window.__jmcfiAcademicCatalog = {
 };
 </script>
 {% endif %}
+<script src="{% static 'js/hf-academic-institutional.js' %}?v=5"></script>
 <script src="{% static 'js/student-list-field.js' %}?v=2"></script>
 <script src="{% static 'js/phone-input.js' %}"></script>
 <script src="{% static 'js/age-from-dob.js' %}?v=1"></script>
-<script src="{% static 'js/hf-patient-picker.js' %}?v=5"></script>
+<script src="{% static 'js/hf-patient-picker.js' %}?v=6"></script>
 <script src="{% static 'js/clinic-guest-register.js' %}?v=6"></script>
 {% endblock %}

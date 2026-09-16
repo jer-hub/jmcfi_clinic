@@ -24,12 +24,19 @@ from analytics.services.aggregations import (
     filtered_compliance_reports,
     filtered_concern_records,
     filtered_health_trend_records,
+    filtered_patient_chart_entries,
+    filtered_patient_charts,
     filters_from_request,
     financial_category_label,
     financial_monthly_table,
     financial_summary,
     hourly_chart_series,
     illness_stats,
+    patient_chart_by_department,
+    patient_chart_by_designation,
+    patient_chart_by_status,
+    patient_chart_entry_volume_by_day,
+    patient_chart_kpis,
     population_health_data,
     resource_utilization_kpis,
     resource_utilization_staff_stats,
@@ -477,6 +484,99 @@ def write_concerns_summary_csv(writer, date_from, date_to, filters=None, search=
         writer.writerow([row['label'], row['count']])
     writer.writerow([])
     writer.writerow(['Daily volume'])
+    writer.writerow(['Date', 'Count'])
+    for row in volume:
+        writer.writerow([row['day'], row['count']])
+
+
+def write_patient_charts_csv(writer, date_from, date_to, filters=None, search=None):
+    from health_forms_services.models import PatientChart
+
+    filters = filters or {}
+    status_map = dict(PatientChart.Status.choices)
+    designation_map = dict(PatientChart.Designation.choices)
+    writer.writerow([
+        'Created', 'Name', 'Designation', 'Department', 'Status',
+        'Entry count', 'Reviewed at',
+    ])
+    qs = filtered_patient_charts(date_from, date_to, filters=filters, search=search)
+    qs = qs.annotate(entry_count=Count('entries')).order_by('-created_at', '-id')
+    for chart in qs:
+        writer.writerow([
+            chart.created_at.date() if chart.created_at else '',
+            chart.get_full_name(),
+            designation_map.get(chart.designation, chart.designation or ''),
+            chart.department_college_office or '',
+            status_map.get(chart.status, chart.status or ''),
+            chart.entry_count,
+            chart.reviewed_at.date() if chart.reviewed_at else '',
+        ])
+
+
+def write_patient_chart_entries_csv(writer, date_from, date_to, filters=None, search=None):
+    filters = filters or {}
+    writer.writerow([
+        'Date and time', 'Patient name', 'Findings', "Doctor's orders", 'Recorded by',
+    ])
+    qs = filtered_patient_chart_entries(date_from, date_to, filters=filters, search=search)
+    for entry in qs.order_by('-date_and_time', '-id'):
+        recorded = ''
+        if entry.recorded_by_id:
+            recorded = entry.recorded_by.get_full_name() or entry.recorded_by.email
+        writer.writerow([
+            entry.date_and_time,
+            entry.patient_chart.get_full_name(),
+            entry.findings,
+            entry.doctors_orders,
+            recorded,
+        ])
+
+
+def write_patient_charts_summary_csv(writer, date_from, date_to, filters=None, search=None):
+    filters = filters or {}
+    kpis = patient_chart_kpis(date_from, date_to, filters=filters, search=search)
+    by_status = patient_chart_by_status(date_from, date_to, filters=filters, search=search, limit=50)
+    by_designation = patient_chart_by_designation(
+        date_from, date_to, filters=filters, search=search, limit=50,
+    )
+    by_department = patient_chart_by_department(
+        date_from, date_to, filters=filters, search=search, limit=50,
+    )
+    volume = patient_chart_entry_volume_by_day(
+        date_from, date_to, filters=filters, search=search,
+    )
+
+    writer.writerow(['Patient charts analysis'])
+    writer.writerow(['Period from', date_from])
+    writer.writerow(['Period to', date_to])
+    if search:
+        writer.writerow(['Search', search])
+    write_academic_filter_csv_rows(writer, filters)
+    writer.writerow(['Summary KPIs'])
+    writer.writerow(['Metric', 'Value'])
+    writer.writerow(['Total charts', kpis['total_charts']])
+    writer.writerow(['Unique patients', kpis['unique_patients']])
+    writer.writerow(['Pending review', kpis['pending_count']])
+    writer.writerow(['Completed', kpis['completed_count']])
+    writer.writerow(['Consultation entries', kpis['entry_count']])
+    writer.writerow(['Departments touched', kpis['departments_touched']])
+    writer.writerow([])
+    writer.writerow(['By status'])
+    writer.writerow(['Status', 'Count'])
+    for row in by_status:
+        writer.writerow([row['label'], row['count']])
+    writer.writerow([])
+    writer.writerow(['By designation'])
+    writer.writerow(['Designation', 'Count'])
+    for row in by_designation:
+        writer.writerow([row['label'], row['count']])
+    writer.writerow([])
+    writer.writerow(['By department'])
+    writer.writerow(['Department', 'Count'])
+    for row in by_department:
+        writer.writerow([row['label'], row['count']])
+    writer.writerow([])
+    writer.writerow(['Daily entry volume'])
     writer.writerow(['Date', 'Count'])
     for row in volume:
         writer.writerow([row['day'], row['count']])

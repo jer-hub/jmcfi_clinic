@@ -332,6 +332,7 @@ NON_ADMIN_NOTIFICATION_TRANSACTION_TYPES = frozenset({
     'health_form_incomplete',
     'health_form_submitted',
     'health_form_completed',
+    'patient_chart_submitted',
     'feedback_request',
 })
 
@@ -388,6 +389,11 @@ def resolve_notification_url(notification):
         if related_id:
             return reverse('health_forms_services:form_detail', kwargs={'pk': related_id})
         return reverse('health_forms_services:forms_list')
+
+    if transaction_type == 'patient_chart_submitted':
+        if related_id:
+            return reverse('health_forms_services:patient_chart_detail', kwargs={'pk': related_id})
+        return reverse('health_forms_services:patient_chart_list')
 
     if transaction_type == 'feedback_request':
         return reverse('feedback:submit_feedback')

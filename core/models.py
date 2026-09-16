@@ -443,6 +443,7 @@ class Notification(models.Model):
         ('health_form_incomplete', 'Health Form Incomplete'),
         ('health_form_submitted', 'Health Form Submitted for Review'),
         ('health_form_completed', 'Health Form Completed'),
+        ('patient_chart_submitted', 'Patient Chart Submitted'),
         
         # General system
         ('system_maintenance', 'System Maintenance'),

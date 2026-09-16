@@ -68,12 +68,34 @@
       searchSeq: 0,
       activeSearch: 0,
       selectedPatient: config.initialSelected || null,
-      guestRegisterOpen: false,
+      guestRegisterOpen: !!config.initialGuestOpen,
 
       onGuestToggled(detail) {
         this.guestRegisterOpen = !!(detail && detail.open);
         if (this.guestRegisterOpen) {
           this.clearSelected();
+          applyPrefillValue('designation', 'guest');
+          applyPrefillValue('department_college_office', '');
+          const designation = document.getElementById('id_designation');
+          if (designation) {
+            designation.value = 'guest';
+            designation.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          const dept = document.getElementById('id_department_college_office');
+          if (dept) {
+            dept.value = '';
+            dept.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          syncAcademicInstitutionalFromDom();
+          document.querySelectorAll('[data-section-key="institutional_details"]').forEach((section) => {
+            if (section.querySelector('[data-academic-fieldset]')) {
+              section.classList.add('hidden');
+            }
+          });
+        } else {
+          document.querySelectorAll('[data-section-key="institutional_details"]').forEach((section) => {
+            section.classList.remove('hidden');
+          });
         }
       },
 
@@ -161,7 +183,9 @@
       },
 
       init() {
-        if (this.selectedPatient?.id) {
+        if (this.guestRegisterOpen) {
+          this.onGuestToggled({ open: true });
+        } else if (this.selectedPatient?.id) {
           this.prefillFromProfile(this.selectedPatient.id);
         }
       },

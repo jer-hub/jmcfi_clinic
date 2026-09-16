@@ -85,7 +85,7 @@ def enrich_subnav(
 
     Pass *groups* for multi-row labeled layouts. Pass *dropdowns* for compact
     horizontal menus with Alpine.js flyouts. Use *nav_layout* ``wrapped`` for a
-    full-width flex-wrap tab strip on wide flat menus.
+    single-row, horizontally scrollable tab strip on wide flat menus.
     """
     items = list(items or [])
     groups = list(groups or [])

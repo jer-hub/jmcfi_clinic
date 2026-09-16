@@ -1,4 +1,4 @@
-{# Patient Chart — address grid; birth details side by side (F-HSS-20-0002). #}
+{# Patient Chart — address grid and place of birth (F-HSS-20-0002). #}
 <div class="flex items-center gap-2 mb-4">
   <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ section.icon_bg }} {{ section.icon_color }}">
     <i class="fas {{ section.icon }} text-sm"></i>
@@ -26,9 +26,9 @@
     </div>
   </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+  <div class="grid grid-cols-1 gap-3 sm:gap-4">
     {% for item in section.fields %}
-      {% if item.name == 'date_of_birth' or item.name == 'place_of_birth' %}
+      {% if item.name == 'place_of_birth' %}
       <div data-section-field data-field-name="{{ item.name }}"
            class="rounded-lg border border-gray-200 p-4 {% if item.field.errors %}border-red-300 bg-red-50/30{% endif %}">
         {% include 'health_forms_services/partials/_field.html' with field=item.field %}

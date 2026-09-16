@@ -6,7 +6,7 @@
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
     {% include 'analytics/_subnav.html' %}
 
-    {% include "analytics/_analytics_filter_bar.html" with export_variant="concerns" show_concern_search=True extra_query=extra_query export_query=export_query %}
+    {% include "analytics/_analytics_filter_bar.html" with export_variant="concerns" show_concern_search=True concern_search_label="Search concerns" concern_search_placeholder="Name, concerns, disposition…" extra_query=extra_query export_query=export_query %}
 
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
       {% include "components/stat_card.html" with label="Total concerns" value=kpis.total_records icon="fa-clipboard-list" variant="primary" hint=scope_hint %}

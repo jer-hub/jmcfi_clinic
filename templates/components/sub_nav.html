@@ -22,7 +22,7 @@
 {% elif groups %}
 <nav class="{{ nav_mb|default:'mb-6' }} w-full max-w-full"
      aria-label="{{ nav_aria_label|default:'Section navigation' }}">
-  <div class="rounded-card border border-gray-100 bg-white shadow-sm overflow-hidden divide-y divide-gray-100">
+  <div class="rounded-xl border border-gray-100 bg-white shadow-sm overflow-hidden divide-y divide-gray-100">
     {% for group in groups %}
     <div class="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-4">
       {% if group.label %}
@@ -30,7 +30,9 @@
         {{ group.label }}
       </p>
       {% endif %}
-      <div role="tablist" class="flex flex-wrap items-center gap-1 min-w-0 {% if group.label %}flex-1{% endif %}">
+      <div role="tablist"
+           aria-label="{{ group.label|default:'Section' }} tabs"
+           class="flex flex-wrap items-center gap-1.5 min-w-0 {% if group.label %}flex-1{% endif %}">
         {% for item in group.items %}
           {% include "components/_sub_nav_link.html" with item=item %}
         {% endfor %}
@@ -42,10 +44,26 @@
 {% elif items or dropdowns %}
 <nav class="{{ nav_mb|default:'mb-6' }} w-full max-w-full{% if dropdowns %} overflow-visible{% endif %}"
      aria-label="{{ nav_aria_label|default:'Section navigation' }}">
+  {% if nav_layout == 'wrapped' %}
+  <div class="relative w-full rounded-xl border border-gray-100 bg-white p-2 shadow-sm">
+    <div class="pointer-events-none absolute inset-y-2 left-2 w-6 rounded-l-lg bg-gradient-to-r from-white to-transparent z-10 hidden sm:block"
+         aria-hidden="true"></div>
+    <div class="pointer-events-none absolute inset-y-2 right-2 w-6 rounded-r-lg bg-gradient-to-l from-white to-transparent z-10 hidden sm:block"
+         aria-hidden="true"></div>
+    <div role="tablist"
+         class="flex flex-nowrap items-center gap-1.5 overflow-x-auto overscroll-x-contain scroll-smooth pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+         x-data
+         x-init="$nextTick(() => { const active = $el.querySelector('[aria-current=page]'); if (active) active.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' }); })">
+      {% for item in items %}
+        {% include "components/_sub_nav_link.html" with item=item %}
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
   <div role="tablist"
-       class="{% if nav_layout == 'wrapped' %}flex flex-wrap items-center gap-1.5 w-full rounded-xl border border-gray-100 bg-white p-2 shadow-sm{% elif dropdowns %}inline-flex flex-wrap items-center gap-1 w-full rounded-xl border border-gray-100 bg-white p-2 shadow-sm overflow-visible{% else %}flex w-full flex-nowrap items-stretch gap-0.5 rounded-xl border border-gray-200 bg-gray-100 p-1 shadow-sm{% endif %}">
+       class="{% if dropdowns %}inline-flex flex-wrap items-center gap-1 w-full rounded-xl border border-gray-100 bg-white p-2 shadow-sm overflow-visible{% else %}flex w-full flex-nowrap items-stretch gap-0.5 rounded-xl border border-gray-200 bg-gray-100 p-1 shadow-sm{% endif %}">
     {% for item in items %}
-      {% if nav_layout == 'wrapped' or dropdowns %}
+      {% if dropdowns %}
         {% include "components/_sub_nav_link.html" with item=item %}
       {% else %}
         {% include "components/_sub_nav_link.html" with item=item equal_tabs=True %}
@@ -55,5 +73,6 @@
       {% include "components/_sub_nav_dropdown.html" with dropdown=dropdown menu_id=forloop.counter %}
     {% endfor %}
   </div>
+  {% endif %}
 </nav>
 {% endif %}

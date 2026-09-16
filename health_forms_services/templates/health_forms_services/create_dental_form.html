@@ -29,6 +29,7 @@
   {% include 'health_forms_services/partials/_patient_picker_shell_open.html' %}
   {% include 'health_forms_services/partials/_patient_picker_panel.html' %}
 
+    <div class="bg-white rounded-card border border-gray-200 shadow-sm p-4 sm:p-6">
     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
     {% for field in personal_form %}
       <div class="{% if field.name == 'address' %}md:col-span-3{% endif %} {% if field.errors %}has-error{% endif %}">
@@ -41,6 +42,7 @@
         {% endif %}
       </div>
     {% endfor %}
+    </div>
     </div>
   </div>
 {% endblock %}

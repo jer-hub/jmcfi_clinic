@@ -29,14 +29,7 @@
         </button>
         {% endif %}
         {% if can_resend_guest_link and resend_guest_link_url %}
-        <form method="post" action="{{ resend_guest_link_url }}">
-          {% csrf_token %}
-          <input type="hidden" name="next" value="{{ request.path }}{% if request.GET.section %}?section={{ request.GET.section }}{% endif %}">
-          <button type="submit"
-                  class="inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 font-medium text-sm transition-colors">
-            <i class="fas fa-paper-plane mr-1.5"></i>Resend link
-          </button>
-        </form>
+        {% include 'health_forms_services/partials/_resend_guest_link_button.html' with next_path=request.get_full_path button_class='inline-flex items-center gap-2 px-4 py-2 border border-gray-300 bg-white text-sm font-medium rounded-lg transition-colors' %}
         {% endif %}
         {% if can_submit_for_review and submit_url %}
         <form method="post" action="{{ submit_url }}">

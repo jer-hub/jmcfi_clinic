@@ -27,12 +27,16 @@
            :disabled="guestSubmitting">
     <span class="text-sm font-medium text-gray-800">
       <i class="fas fa-user-plus text-xs text-primary-600 mr-1" aria-hidden="true"></i>
-      Register guest patient
+      {{ guest_checkbox_label|default:"Register guest patient" }}
     </span>
   </label>
 
   <p x-show="guestOpen && mode === 'defer'" x-cloak class="mt-2 text-xs text-gray-600">
+    {% if guest_defer_help %}
+    {{ guest_defer_help }}
+    {% else %}
     Complete the demographics below (including email). The guest patient will be created when you submit this form.
+    {% endif %}
   </p>
 
   <div x-show="guestOpen && (mode === 'instant' || mode === 'collect')" x-cloak class="mt-3 rounded-lg border border-gray-200 bg-gray-50/80 p-4 space-y-3">

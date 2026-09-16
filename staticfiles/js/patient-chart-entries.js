@@ -4,6 +4,8 @@
 (function () {
   'use strict';
 
+  var CLAMP_CHARS = 160;
+
   function getCookie(name) {
     var cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -93,24 +95,64 @@
     if (tableWrap) tableWrap.classList.toggle('hidden', !hasRows);
   }
 
+  function buildClampHtml(rawValue) {
+    var text = (rawValue || '').trim();
+    var display = displayCellText(text);
+    var needsToggle = text.length > CLAMP_CHARS;
+    var html =
+      '<div class="entry-clamp" data-expanded="false">' +
+        '<div class="entry-clamp-text' +
+        (needsToggle ? ' is-clamped' : '') +
+        '">' +
+        escapeHtml(display) +
+        '</div>';
+    if (needsToggle) {
+      html +=
+        '<button type="button" class="entry-clamp-toggle mt-1 text-xs font-medium text-primary-600 hover:text-primary-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded">' +
+        'Show more</button>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function buildDateCellHtml(entry) {
+    var dateLine = entry.date_display || entry.date_and_time || '';
+    var timeLine = entry.time_display || '';
+    if (!timeLine && entry.date_and_time) {
+      var parts = String(entry.date_and_time).split(/\s+/);
+      if (parts.length >= 4) {
+        dateLine = parts.slice(0, 3).join(' ');
+        timeLine = parts.slice(3).join(' ');
+      }
+    }
+    return (
+      '<time>' +
+        '<span class="block break-words">' + escapeHtml(dateLine) + '</span>' +
+        (timeLine
+          ? '<span class="block text-xs text-gray-500 tabular-nums">' + escapeHtml(timeLine) + '</span>'
+          : '') +
+      '</time>'
+    );
+  }
+
   function buildRowHtml(entry, canManage) {
     var actions = '';
     if (canManage) {
       actions =
-        '<td class="px-1.5 sm:px-2 py-3 text-right align-top whitespace-nowrap">' +
-          '<div class="inline-flex items-center justify-end gap-0.5">' +
-            '<button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-indigo-50 hover:text-indigo-700 transition-colors entry-edit-btn" title="Edit entry" aria-label="Edit entry">' +
+        '<td class="px-1 sm:px-1.5 py-3 text-right align-top min-w-0">' +
+          '<div class="inline-flex items-center justify-end -mr-1">' +
+            '<button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-indigo-50 hover:text-indigo-700 transition-colors entry-edit-btn" title="Edit entry" aria-label="Edit entry">' +
               '<i class="fas fa-pen text-xs" aria-hidden="true"></i></button>' +
-            '<button type="button" class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-700 transition-colors entry-delete-btn" title="Delete entry" aria-label="Delete entry">' +
+            '<button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover:bg-red-50 hover:text-red-700 transition-colors entry-delete-btn" title="Delete entry" aria-label="Delete entry">' +
               '<i class="fas fa-trash text-xs" aria-hidden="true"></i></button>' +
           '</div>' +
         '</td>';
     }
     return (
-      '<td class="px-2.5 sm:px-3 py-3 text-gray-900 tabular-nums align-top leading-snug break-words">' + escapeHtml(entry.date_and_time) + '</td>' +
-      '<td class="px-2.5 sm:px-3 py-3 text-gray-700 whitespace-pre-wrap break-words align-top min-w-0 entry-findings-cell">' + escapeHtml(displayCellText(entry.findings)) + '</td>' +
-      '<td class="px-2.5 sm:px-3 py-3 text-gray-700 whitespace-pre-wrap break-words align-top min-w-0 entry-orders-cell">' + escapeHtml(displayCellText(entry.doctors_orders)) + '</td>' +
-      '<td class="px-2.5 sm:px-3 py-3 text-gray-600 align-top break-words leading-snug min-w-0 entry-recorded-by-cell">' + escapeHtml(entry.recorded_by || '—') + '</td>' +
+      '<td class="px-2 sm:px-3 py-3 text-gray-900 align-top leading-snug min-w-0 entry-date-cell">' + buildDateCellHtml(entry) + '</td>' +
+      '<td class="px-2 sm:px-3 py-3 text-gray-700 align-top min-w-0 entry-findings-cell">' + buildClampHtml(entry.findings) + '</td>' +
+      '<td class="px-2 sm:px-3 py-3 text-gray-700 align-top min-w-0 entry-orders-cell">' + buildClampHtml(entry.doctors_orders) + '</td>' +
+      '<td class="px-2 sm:px-3 py-3 text-gray-600 align-top break-words leading-snug min-w-0 entry-recorded-by-cell">' + escapeHtml(entry.recorded_by || '—') + '</td>' +
       actions
     );
   }
@@ -120,9 +162,14 @@
     row.dataset.updateUrl = entry.update_url || row.dataset.updateUrl || '';
     row.dataset.deleteUrl = entry.delete_url || row.dataset.deleteUrl || '';
     row.dataset.dateInput = entry.date_and_time_input || row.dataset.dateInput || '';
-    row.cells[0].textContent = entry.date_and_time;
-    row.querySelector('.entry-findings-cell').textContent = displayCellText(entry.findings);
-    row.querySelector('.entry-orders-cell').textContent = displayCellText(entry.doctors_orders);
+    row.dataset.findings = entry.findings || '';
+    row.dataset.orders = entry.doctors_orders || '';
+    var dateCell = row.querySelector('.entry-date-cell');
+    if (dateCell) dateCell.innerHTML = buildDateCellHtml(entry);
+    var findingsCell = row.querySelector('.entry-findings-cell');
+    var ordersCell = row.querySelector('.entry-orders-cell');
+    if (findingsCell) findingsCell.innerHTML = buildClampHtml(entry.findings);
+    if (ordersCell) ordersCell.innerHTML = buildClampHtml(entry.doctors_orders);
     var recordedByCell = row.querySelector('.entry-recorded-by-cell');
     if (recordedByCell && entry.recorded_by) {
       recordedByCell.textContent = entry.recorded_by;
@@ -149,6 +196,10 @@
     var findingsInput = document.getElementById(config.findingsInputId);
     var ordersInput = document.getElementById(config.ordersInputId);
     var dateInitialInput = form.querySelector('input[name="initial-date_and_time"]');
+    var focusComposerBtn = config.focusComposerId
+      ? document.getElementById(config.focusComposerId)
+      : null;
+    var composerEl = config.composerId ? document.getElementById(config.composerId) : null;
     var defaultDateTime = config.defaultDateTime || '';
     var canManage = Boolean(submitButton);
     var submitting = false;
@@ -198,10 +249,8 @@
       var dateValue = row.dataset.dateInput || '';
       dateInput.value = dateValue;
       syncDateTimeInitial(dateValue);
-      var findingsCell = row.querySelector('.entry-findings-cell');
-      var ordersCell = row.querySelector('.entry-orders-cell');
-      findingsInput.value = findingsCell && findingsCell.textContent.trim() !== '—' ? findingsCell.textContent.trim() : '';
-      ordersInput.value = ordersCell && ordersCell.textContent.trim() !== '—' ? ordersCell.textContent.trim() : '';
+      findingsInput.value = row.dataset.findings || '';
+      ordersInput.value = row.dataset.orders || '';
       if (editBanner) editBanner.classList.remove('hidden');
       if (submitLabel) submitLabel.textContent = 'Save changes';
       if (submitButton) {
@@ -222,6 +271,15 @@
       cancelEditButton.addEventListener('click', function () {
         clearEntryErrors(form);
         resetFormMode();
+      });
+    }
+
+    if (focusComposerBtn) {
+      focusComposerBtn.addEventListener('click', function () {
+        if (composerEl) {
+          composerEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        if (findingsInput) findingsInput.focus();
       });
     }
 
@@ -280,6 +338,8 @@
           row.dataset.updateUrl = entry.update_url || '';
           row.dataset.deleteUrl = entry.delete_url || '';
           row.dataset.dateInput = entry.date_and_time_input || '';
+          row.dataset.findings = entry.findings || '';
+          row.dataset.orders = entry.doctors_orders || '';
           row.innerHTML = buildRowHtml(entry, canManage);
           tbody.prepend(row);
           resetFormMode();
@@ -297,6 +357,18 @@
     });
 
     tbody.addEventListener('click', function (event) {
+      var clampToggle = event.target.closest('.entry-clamp-toggle');
+      if (clampToggle) {
+        var clamp = clampToggle.closest('.entry-clamp');
+        if (!clamp) return;
+        var textEl = clamp.querySelector('.entry-clamp-text');
+        var expanded = clamp.dataset.expanded === 'true';
+        clamp.dataset.expanded = expanded ? 'false' : 'true';
+        if (textEl) textEl.classList.toggle('is-clamped', expanded);
+        clampToggle.textContent = expanded ? 'Show more' : 'Show less';
+        return;
+      }
+
       var editBtn = event.target.closest('.entry-edit-btn');
       if (editBtn) {
         var editRow = editBtn.closest('tr');
@@ -306,32 +378,47 @@
 
       var btn = event.target.closest('.entry-delete-btn');
       if (!btn) return;
-      if (!window.confirm('Delete this consultation entry?')) return;
 
       var row = btn.closest('tr');
       var deleteUrl = row ? row.dataset.deleteUrl : '';
       if (!deleteUrl) return;
 
-      if (entryIdInput && entryIdInput.value && row && row.dataset.entryId === entryIdInput.value) {
-        resetFormMode();
+      function performDelete() {
+        if (entryIdInput && entryIdInput.value && row && row.dataset.entryId === entryIdInput.value) {
+          resetFormMode();
+        }
+
+        fetch(deleteUrl, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken,
+          },
+        })
+          .then(parseJsonResponse)
+          .then(function (result) {
+            if (!result.ok || !result.data.success) return;
+            if (row) row.remove();
+            var count = tbody.querySelectorAll('tr').length;
+            updateCountLabel(countLabel, count);
+            toggleEmptyState(emptyEl, tableWrap, count > 0);
+          });
       }
 
-      fetch(deleteUrl, {
-        method: 'POST',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest',
-          'X-CSRFToken': csrfToken,
-        },
-      })
-        .then(parseJsonResponse)
-        .then(function (result) {
-          if (!result.ok || !result.data.success) return;
-          if (row) row.remove();
-          var count = tbody.querySelectorAll('tr').length;
-          updateCountLabel(countLabel, count);
-          toggleEmptyState(emptyEl, tableWrap, count > 0);
+      if (typeof window.__jmcfiDispatchOpenModal === 'function') {
+        window.__jmcfiDispatchOpenModal({
+          type: 'danger',
+          title: 'Delete consultation entry?',
+          message: 'This will permanently remove this findings and orders row from the consultation log. This cannot be undone.',
+          actionLabel: 'Delete entry',
+          size: 'sm',
+          onConfirm: performDelete,
         });
+        return;
+      }
+
+      if (!window.confirm('Delete this consultation entry?')) return;
+      performDelete();
     });
   };
 })();
-

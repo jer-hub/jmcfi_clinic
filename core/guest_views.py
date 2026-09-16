@@ -663,7 +663,7 @@ def _notify_clinic_guest_patient_chart_submitted(patient_chart, access_token):
             title=title,
             message=message,
             notification_type='general',
-            transaction_type='general_announcement',
+            transaction_type='patient_chart_submitted',
             related_id=patient_chart.pk,
             send_email=False,
         )
@@ -681,7 +681,7 @@ def _notify_clinic_guest_patient_chart_submitted(patient_chart, access_token):
                 title=title,
                 message=message,
                 notification_type='general',
-                transaction_type='general_announcement',
+                transaction_type='patient_chart_submitted',
                 related_id=patient_chart.pk,
                 send_email=False,
             )

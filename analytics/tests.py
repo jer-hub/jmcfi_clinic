@@ -805,3 +805,178 @@ class ConcernsAnalyticsTests(TestCase):
         self.assertContains(response, 'Concerns')
         self.assertContains(response, reverse('analytics:concerns_analysis'))
 
+
+@override_settings(
+    MIDDLEWARE=[
+        m for m in settings.MIDDLEWARE
+        if m != 'core.middleware.ProfileCompleteMiddleware'
+    ],
+    STORAGES={
+        **settings.STORAGES,
+        'staticfiles': {
+            'BACKEND': 'django.contrib.staticfiles.storage.StaticFilesStorage',
+        },
+    },
+)
+class PatientChartsAnalyticsTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        from datetime import datetime, timezone as dt_timezone
+
+        from django.utils import timezone
+
+        from core.models import PatientProfile
+        from health_forms_services.models import PatientChart, PatientChartEntry
+
+        cls.staff = User.objects.create_user(
+            email='staff-patient-charts-analytics@test.com',
+            password='pass',
+            role='staff',
+            is_staff=True,
+            is_active=True,
+            first_name='Chart',
+            last_name='Staff',
+        )
+        _staff_profile(cls.staff, 'STAFF-PC-AN-01')
+
+        cls.patient = User.objects.create_user(
+            email='patient-patient-charts-analytics@test.com',
+            password='pass',
+            role='patient',
+            is_active=True,
+            first_name='Pat',
+            last_name='Chart',
+        )
+
+        cls.patient_a = User.objects.create_user(
+            email='patient-a-charts-analytics@test.com',
+            password='pass',
+            role='patient',
+            is_active=True,
+            first_name='Ana',
+            last_name='Reyes',
+        )
+        PatientProfile.objects.filter(user=cls.patient_a).update(
+            department='College of Nursing Charts',
+            course='BS Nursing',
+            year_level='2nd Year',
+        )
+
+        cls.patient_b = User.objects.create_user(
+            email='patient-b-charts-analytics@test.com',
+            password='pass',
+            role='patient',
+            is_active=True,
+            first_name='Ben',
+            last_name='Cruz',
+        )
+        PatientProfile.objects.filter(user=cls.patient_b).update(
+            department='College of Engineering Charts',
+            course='BS Engineering',
+            year_level='1st Year',
+        )
+
+        created = timezone.make_aware(datetime(2026, 4, 10, 9, 0), dt_timezone.utc)
+        cls.chart_a = PatientChart.objects.create(
+            user=cls.patient_a,
+            status=PatientChart.Status.PENDING,
+            designation=PatientChart.Designation.STUDENT,
+            last_name='Reyes',
+            first_name='Ana',
+            department_college_office='College of Nursing Charts',
+        )
+        PatientChart.objects.filter(pk=cls.chart_a.pk).update(created_at=created)
+        cls.chart_a.refresh_from_db()
+
+        cls.chart_b = PatientChart.objects.create(
+            user=cls.patient_b,
+            status=PatientChart.Status.COMPLETED,
+            designation=PatientChart.Designation.STUDENT,
+            last_name='Cruz',
+            first_name='Ben',
+            department_college_office='College of Engineering Charts',
+        )
+        PatientChart.objects.filter(pk=cls.chart_b.pk).update(created_at=created)
+        cls.chart_b.refresh_from_db()
+
+        entry_dt = timezone.make_aware(datetime(2026, 4, 12, 14, 30), dt_timezone.utc)
+        PatientChartEntry.objects.create(
+            patient_chart=cls.chart_a,
+            date_and_time=entry_dt,
+            findings='Mild fever and cough',
+            doctors_orders='Rest and hydration',
+            recorded_by=cls.staff,
+        )
+        PatientChartEntry.objects.create(
+            patient_chart=cls.chart_b,
+            date_and_time=entry_dt,
+            findings='Routine checkup',
+            doctors_orders='Continue current meds',
+            recorded_by=cls.staff,
+        )
+
+    def test_staff_can_open_patient_charts_analysis(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('analytics:patient_charts_analysis'), {
+            'date_from': '2026-04-01',
+            'date_to': '2026-04-30',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Total charts')
+        self.assertContains(response, 'Mild fever and cough')
+        self.assertContains(response, 'Reyes, Ana')
+
+    def test_patient_denied_patient_charts_analysis(self):
+        self.client.force_login(self.patient)
+        response = self.client.get(reverse('analytics:patient_charts_analysis'))
+        self.assertIn(response.status_code, (302, 403))
+
+    def test_department_filter_reduces_chart_entries(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('analytics:patient_charts_analysis'), {
+            'date_from': '2026-04-01',
+            'date_to': '2026-04-30',
+            'department': 'College of Nursing Charts',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Mild fever and cough')
+        self.assertNotContains(response, 'Routine checkup')
+
+    def test_patient_charts_csv_export_headers(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('analytics:export_report'), {
+            'report': 'patient_charts',
+            'date_from': '2026-04-01',
+            'date_to': '2026-04-30',
+        })
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn('Created', body)
+        self.assertIn('Designation', body)
+        self.assertIn('Entry count', body)
+        self.assertIn('Reyes, Ana', body)
+
+    def test_patient_chart_entries_csv_export_headers(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('analytics:export_report'), {
+            'report': 'patient_chart_entries',
+            'date_from': '2026-04-01',
+            'date_to': '2026-04-30',
+        })
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn('Date and time', body)
+        self.assertIn('Findings', body)
+        self.assertIn("Doctor's orders", body)
+        self.assertIn('Mild fever and cough', body)
+
+    def test_staff_dashboard_includes_patient_chart_count(self):
+        self.client.force_login(self.staff)
+        response = self.client.get(reverse('analytics:dashboard'), {
+            'date_from': '2026-04-01',
+            'date_to': '2026-04-30',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Patient charts')
+        self.assertContains(response, reverse('analytics:patient_charts_analysis'))
+

@@ -1,0 +1,12 @@
+{# Truncated prose cell with Show more. Expects: text #}
+{% with value=text|default_if_none:'' %}
+<div class="entry-clamp" data-expanded="false">
+  <div class="entry-clamp-text{% if value|length > 160 %} is-clamped{% endif %}">{% if value %}{{ value }}{% else %}—{% endif %}</div>
+  {% if value|length > 160 %}
+  <button type="button"
+          class="entry-clamp-toggle mt-1 text-xs font-medium text-primary-600 hover:text-primary-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded">
+    Show more
+  </button>
+  {% endif %}
+</div>
+{% endwith %}

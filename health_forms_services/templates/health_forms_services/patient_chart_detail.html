@@ -2,8 +2,7 @@
 {% extends 'health_forms_services/_base_detail.html' %}
 {% load static %}
 
-{% block detail_extra_content %}
-<div class="mt-4 sm:mt-5">
-  {% include 'health_forms_services/partials/_patient_chart_entries_panel.html' %}
-</div>
-{% endblock detail_extra_content %}
+{# Consultation log is the primary clinical work surface; demographics sit below, collapsed. #}
+{% block detail_extra_content_before %}
+{% include 'health_forms_services/partials/_patient_chart_entries_panel.html' %}
+{% endblock detail_extra_content_before %}

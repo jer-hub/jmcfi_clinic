@@ -1,4 +1,4 @@
-<details class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden group" {% if section.open|default:True %}open{% endif %}>
+<details class="bg-white rounded-card border border-gray-200 shadow-sm overflow-hidden group" {% if section.open is not False %}open{% endif %}>
   <summary class="px-4 sm:px-5 py-3 sm:py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors list-none marker:content-none select-none min-h-[44px]">
     <div class="flex items-center gap-2 min-w-0">
       {% if section.icon_bg %}

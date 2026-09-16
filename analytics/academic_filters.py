@@ -86,6 +86,24 @@ def apply_concern_academic_filters(qs, filters):
     return qs.filter(q)
 
 
+def apply_patient_chart_academic_filters(qs, filters, prefix=''):
+    """Filter PatientChart (or entry) queryset for the analytics filter bar.
+
+    Charts store denormalized department; course/year come from the linked profile.
+    Pass prefix='patient_chart__' when filtering PatientChartEntry querysets.
+    """
+    if not academic_filters_active(filters):
+        return qs
+    q = Q()
+    if filters.get('department'):
+        q &= Q(**{f'{prefix}department_college_office': filters['department']})
+    if filters.get('course'):
+        q &= Q(**{f'{prefix}user__patient_profile__course': filters['course']})
+    if filters.get('year_level'):
+        q &= Q(**{f'{prefix}user__patient_profile__year_level': filters['year_level']})
+    return qs.filter(q)
+
+
 def academic_filter_query_string(filters, *, extra=None):
     """Serialize filters for URL query strings."""
     parts = list(extra or [])

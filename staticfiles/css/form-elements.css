@@ -629,6 +629,25 @@
   color: #374151;
 }
 
+/* Consultation log — truncate long findings/orders until "Show more" */
+.entry-clamp-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.entry-clamp-text.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.entry-clamp-text:not(.is-clamped) {
+  white-space: pre-wrap;
+}
+
 /* ── Error wrapper (widgets inside .has-error container) ── */
 .has-error .form-input,
 .has-error .form-select,

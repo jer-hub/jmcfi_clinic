@@ -1468,7 +1468,7 @@ PATIENT_CHART_PERSONAL_SECTIONS: tuple[dict[str, object], ...] = (
         'description': 'Legal name and demographic details (F-HSS-20-0002).',
         'fields': (
             'last_name', 'first_name', 'middle_name',
-            'age', 'gender', 'civil_status', 'religion', 'citizenship',
+            'date_of_birth', 'age', 'gender', 'civil_status', 'religion', 'citizenship',
         ),
     },
     {
@@ -1477,10 +1477,10 @@ PATIENT_CHART_PERSONAL_SECTIONS: tuple[dict[str, object], ...] = (
         'icon': 'fa-location-dot',
         'icon_bg': 'bg-amber-50',
         'icon_color': 'text-amber-600',
-        'description': 'Residence, date of birth, and place of birth.',
+        'description': 'Residence and place of birth.',
         'fields': (
             'address', 'zip_code', 'current_address',
-            'date_of_birth', 'place_of_birth',
+            'place_of_birth',
         ),
     },
     {
@@ -1596,10 +1596,6 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
             'first_name': 'Given name as it appears on official records.',
             'middle_name': 'Optional — leave blank if not applicable.',
             'age': 'Calculated automatically from Date of Birth.',
-            'gender': 'Select the patient’s gender.',
-            'civil_status': 'Select the patient’s civil status.',
-            'religion': 'Religious affiliation.',
-            'citizenship': 'Citizenship as it appears on official records.',
             'address': 'Include house or unit number, street, barangay, city or municipality, and province.',
             'zip_code': 'Postal / ZIP code for the permanent address.',
             'current_address': 'Where the patient currently resides.',
@@ -1609,8 +1605,13 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
         for name, help_text in field_help.items():
             if name in self.fields:
                 self.fields[name].help_text = help_text
+        # Clear noisy help on self-explanatory selects
+        for name in ('gender', 'civil_status', 'religion', 'citizenship'):
+            if name in self.fields:
+                self.fields[name].help_text = ''
         required_fields = (
-            'age', 'gender', 'civil_status', 'religion', 'citizenship',
+            'last_name', 'first_name',
+            'gender', 'civil_status', 'religion', 'citizenship',
             'address', 'zip_code', 'current_address',
             'date_of_birth', 'place_of_birth',
             'email_address', 'contact_number',
@@ -1621,6 +1622,11 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
                 self.fields[name].required = True
                 attrs = {**self.fields[name].widget.attrs, 'required': True}
                 self.fields[name].widget.attrs = attrs
+        if 'age' in self.fields:
+            self.fields['age'].required = False
+            age_attrs = {**self.fields['age'].widget.attrs}
+            age_attrs.pop('required', None)
+            self.fields['age'].widget.attrs = age_attrs
         _configure_badge_phone_fields(self)
         if 'gender' in self.fields:
             gender_choices = PatientChart.Gender.choices
@@ -1693,6 +1699,12 @@ class PatientChartPersonalInfoForm(forms.ModelForm):
         if dob and 'age' in self.fields:
             cleaned['age'] = age_from_date_of_birth(dob)
             self._errors.pop('age', None)
+        registering_guest = False
+        if self.is_bound and self.data is not None:
+            registering_guest = (self.data.get('register_guest') or '') == '1'
+        if registering_guest:
+            cleaned['designation'] = GUEST_DESIGNATION_VALUE
+            cleaned['department_college_office'] = ''
         if (cleaned.get('designation') or '').strip().lower() == GUEST_DESIGNATION_VALUE:
             cleaned['department_college_office'] = ''
         return cleaned

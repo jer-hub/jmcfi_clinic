@@ -1,0 +1,58 @@
+{# Detail sidebar: Review, notes, Timeline. Used by _base_detail.html #}
+{% if can_review %}
+<div class="bg-white rounded-card border border-gray-200 shadow-sm">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h3 class="text-sm font-semibold text-gray-900">Review</h3>
+    <p class="mt-0.5 text-xs text-gray-500">Approve, reject, or add clinician notes.</p>
+  </div>
+  <div class="p-5">
+    <button type="button"
+            @click="$dispatch('open-modal', { type: 'success', title: 'Review Form', subtitle: 'Update status and optional notes', size: 'lg', embedFrom: '#hf-review-embed-{{ form_obj.pk }}', hasForm: true, actionLabel: 'Submit Review' })"
+            class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-success-600 text-white rounded-lg hover:bg-success-700 font-medium text-sm transition-colors shadow-sm min-h-[44px]">
+      <i class="fas fa-circle-check" aria-hidden="true"></i>Review Form
+    </button>
+  </div>
+</div>
+{% endif %}
+
+{% include 'health_forms_services/partials/_review_notes_card.html' %}
+
+<div class="bg-white rounded-card border border-gray-200 shadow-sm">
+  <div class="px-5 py-4 border-b border-gray-100">
+    <h3 class="text-sm font-semibold text-gray-900">Timeline</h3>
+  </div>
+  <div class="p-5 space-y-4">
+    <div class="flex gap-3">
+      <div class="flex flex-col items-center">
+        <div class="w-2 h-2 rounded-full bg-primary-500 mt-1.5"></div>
+        <div class="w-0.5 h-full bg-gray-200"></div>
+      </div>
+      <div>
+        <p class="text-sm font-medium text-gray-900">Created</p>
+        <p class="text-xs text-gray-500">{{ form_obj.created_at|date:"M d, Y H:i" }}</p>
+      </div>
+    </div>
+    {% if form_obj.reviewed_at %}
+    <div class="flex gap-3">
+      <div class="flex flex-col items-center">
+        <div class="w-2 h-2 rounded-full bg-emerald-500 mt-1.5"></div>
+        <div class="w-0.5 h-full bg-gray-200"></div>
+      </div>
+      <div>
+        <p class="text-sm font-medium text-gray-900">Reviewed</p>
+        <p class="text-xs text-gray-500">{{ form_obj.reviewed_at|date:"M d, Y H:i" }}</p>
+        {% if form_obj.reviewed_by %}
+        <p class="text-xs text-gray-400">by {{ form_obj.reviewed_by.get_full_name }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+    <div class="flex gap-3">
+      <div class="w-2 h-2 rounded-full bg-gray-400 mt-1.5"></div>
+      <div>
+        <p class="text-sm font-medium text-gray-900">Last Updated</p>
+        <p class="text-xs text-gray-500">{{ form_obj.updated_at|date:"M d, Y H:i" }}</p>
+      </div>
+    </div>
+  </div>
+</div>

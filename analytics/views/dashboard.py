@@ -29,6 +29,7 @@ from analytics.services import (
     hourly_chart_series,
     concern_kpis,
     illness_stats,
+    patient_chart_kpis,
     student_demographics,
     student_visit_history,
 )
@@ -43,6 +44,18 @@ User = get_user_model()
 
 def _concerns_analysis_href(date_from, date_to, academic_query=''):
     base = reverse('analytics:concerns_analysis')
+    qs = urlencode({
+        'date_from': date_from.isoformat(),
+        'date_to': date_to.isoformat(),
+    })
+    suffix = (academic_query or '').lstrip('&')
+    if suffix:
+        return f'{base}?{qs}&{suffix}'
+    return f'{base}?{qs}'
+
+
+def _patient_charts_analysis_href(date_from, date_to, academic_query=''):
+    base = reverse('analytics:patient_charts_analysis')
     qs = urlencode({
         'date_from': date_from.isoformat(),
         'date_to': date_to.isoformat(),
@@ -164,9 +177,14 @@ def render_analytics_dashboard(request):
 
             context['pharmacy_analytics'] = build_pharmacy_analytics_summary(date_from, date_to)
         concern_stats = concern_kpis(date_from, date_to, filters=filters)
+        chart_stats = patient_chart_kpis(date_from, date_to, filters=filters)
         context.update({
             'total_concerns': concern_stats['total_records'],
             'concerns_analysis_href': _concerns_analysis_href(
+                date_from, date_to, context.get('academic_query', ''),
+            ),
+            'total_patient_charts': chart_stats['total_charts'],
+            'patient_charts_analysis_href': _patient_charts_analysis_href(
                 date_from, date_to, context.get('academic_query', ''),
             ),
         })
@@ -208,6 +226,7 @@ def render_analytics_dashboard(request):
         from pharmacy.services.reports import build_pharmacy_analytics_summary
 
         concern_stats = concern_kpis(date_from, date_to, filters=filters)
+        chart_stats = patient_chart_kpis(date_from, date_to, filters=filters)
         context.update({
             'total_patients': total_patients,
             'total_staff': total_staff,
@@ -215,6 +234,10 @@ def render_analytics_dashboard(request):
             'total_records': total_records,
             'total_concerns': concern_stats['total_records'],
             'concerns_analysis_href': _concerns_analysis_href(
+                date_from, date_to, context.get('academic_query', ''),
+            ),
+            'total_patient_charts': chart_stats['total_charts'],
+            'patient_charts_analysis_href': _patient_charts_analysis_href(
                 date_from, date_to, context.get('academic_query', ''),
             ),
             'avg_feedback': round(avg_feedback, 1),

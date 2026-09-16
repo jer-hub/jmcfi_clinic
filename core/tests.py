@@ -1468,6 +1468,38 @@ class AdminProvisioningAuditTrailTests(TestCase):
 		self.assertEqual(audits[1].action, AccountProvisioningAudit.ACTION.SUSPENDED)
 
 
+class ResolveNotificationUrlTests(SimpleTestCase):
+	def test_patient_chart_submitted_links_to_chart_detail(self):
+		from types import SimpleNamespace
+
+		from core.utils import resolve_notification_url
+
+		notification = SimpleNamespace(
+			transaction_type='patient_chart_submitted',
+			related_id=357,
+			notification_type='general',
+		)
+		self.assertEqual(
+			resolve_notification_url(notification),
+			reverse('health_forms_services:patient_chart_detail', kwargs={'pk': 357}),
+		)
+
+	def test_patient_chart_submitted_without_id_links_to_list(self):
+		from types import SimpleNamespace
+
+		from core.utils import resolve_notification_url
+
+		notification = SimpleNamespace(
+			transaction_type='patient_chart_submitted',
+			related_id=None,
+			notification_type='general',
+		)
+		self.assertEqual(
+			resolve_notification_url(notification),
+			reverse('health_forms_services:patient_chart_list'),
+		)
+
+
 class AdminNotificationVisibilityTests(TestCase):
 	def setUp(self):
 		self.url = reverse('core:notifications')

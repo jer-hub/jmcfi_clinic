@@ -124,7 +124,7 @@ def _resolve_create_patient(request, personal_form):
 
     registering_guest = request.POST.get('register_guest') == '1'
     if not registering_guest:
-        return None, 'Please search for a patient or check Register guest patient.'
+        return None, 'Please search for a patient or check Walk-in guest (staff enters details).'
 
     if not personal_form.is_valid():
         return None, None
@@ -256,6 +256,7 @@ def _patient_picker_config(request, form_key, selected_patient=None):
             args=[0],
         ),
         'initialSelected': initial_selected,
+        'initialGuestOpen': request.method == 'POST' and request.POST.get('register_guest') == '1',
         'fieldMappings': picker_field_mappings(form_key),
         'registerGuestUrl': reverse('core:register_guest_patient'),
         'clinicalModule': clinical_module_for_form_key(form_key),
@@ -264,6 +265,9 @@ def _patient_picker_config(request, form_key, selected_patient=None):
 
 def _patient_picker_create_context(request, form_key, selected_patient=None):
     """Shared template context for patient picker on create flows."""
+    form_data = {}
+    if request.method == 'POST' and request.POST.get('register_guest') == '1':
+        form_data['register_guest'] = '1'
     return {
         'selected_patient': selected_patient,
         'selected_patient_payload': (
@@ -271,6 +275,7 @@ def _patient_picker_create_context(request, form_key, selected_patient=None):
         ),
         'hf_picker_config': _patient_picker_config(request, form_key, selected_patient),
         'clinical_module': clinical_module_for_form_key(form_key),
+        'form_data': form_data,
         **patient_catalog_context(),
     }
 
@@ -473,6 +478,67 @@ def invite_guest_health_profile(request):
     })
 
 
+def _wants_json(request):
+    return request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+
+
+def _guest_resend_response(
+    request,
+    *,
+    emailed,
+    contact,
+    email_error,
+    success_message,
+    default_redirect,
+):
+    """JSON for AJAX resend buttons; Django messages + redirect otherwise."""
+    if not contact:
+        status = 'warning'
+        message = 'This guest has no contact email — link was not sent.'
+    elif emailed:
+        status = 'success'
+        message = success_message
+    else:
+        status = 'error'
+        detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
+        message = f'Email was not sent ({detail}).'
+
+    if _wants_json(request):
+        return JsonResponse({
+            'success': status == 'success',
+            'status': status,
+            'message': message,
+            'contact': contact or '',
+        })
+
+    if status == 'success':
+        messages.success(request, message)
+    elif status == 'warning':
+        messages.warning(request, message)
+    else:
+        messages.error(request, message)
+
+    next_url = (request.POST.get('next') or '').strip()
+    if next_url.startswith('/'):
+        return redirect(next_url)
+    return redirect(default_redirect)
+
+
+def _guest_resend_denied(request, message, default_redirect):
+    if _wants_json(request):
+        return JsonResponse({
+            'success': False,
+            'status': 'error',
+            'message': message,
+            'contact': '',
+        }, status=400)
+    messages.error(request, message)
+    next_url = (request.POST.get('next') or '').strip()
+    if next_url.startswith('/'):
+        return redirect(next_url)
+    return redirect(default_redirect)
+
+
 @login_required
 @role_required('staff', 'doctor')
 @require_POST
@@ -481,12 +547,19 @@ def resend_guest_health_form_link(request, pk):
     health_form = get_form_or_404(
         HealthProfileForm, pk, request.user, select_related_fields=['user', 'user__patient_profile']
     )
+    detail_redirect = reverse('health_forms_services:form_detail', kwargs={'pk': pk})
     if not is_guest_user(health_form.user):
-        messages.error(request, 'Resend link is only available for guest patients.')
-        return redirect('health_forms_services:form_detail', pk=pk)
+        return _guest_resend_denied(
+            request,
+            'Resend link is only available for guest patients.',
+            detail_redirect,
+        )
     if health_form.status != HealthProfileForm.Status.INCOMPLETE:
-        messages.error(request, 'Resend link is only available while the form is still a draft.')
-        return redirect('health_forms_services:form_detail', pk=pk)
+        return _guest_resend_denied(
+            request,
+            'Resend link is only available while the form is still a draft.',
+            detail_redirect,
+        )
 
     from core.guest_emails import email_guest_health_form_pending
     from core.guest_auth import resolve_patient_contact_email
@@ -503,18 +576,14 @@ def resend_guest_health_form_link(request, pk):
         email_error = format_email_send_error(email_exc)
         emailed = False
 
-    if not contact:
-        messages.warning(request, 'This guest has no contact email — link was not sent.')
-    elif emailed:
-        messages.success(request, f'Health-form link resent to {contact}.')
-    else:
-        detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
-        messages.warning(request, f'Could not resend the email ({detail}).')
-
-    next_url = (request.POST.get('next') or '').strip()
-    if next_url.startswith('/'):
-        return redirect(next_url)
-    return redirect('health_forms_services:form_detail', pk=pk)
+    return _guest_resend_response(
+        request,
+        emailed=emailed,
+        contact=contact,
+        email_error=email_error,
+        success_message=f'Health-form link resent to {contact}.' if contact else '',
+        default_redirect=detail_redirect,
+    )
 
 
 @login_required
@@ -1213,6 +1282,9 @@ def create_patient_chart(request):
             chart = PatientChart(user=selected_patient)
             for field in form.cleaned_data:
                 setattr(chart, field, form.cleaned_data[field])
+            if request.POST.get('register_guest') == '1':
+                chart.designation = PatientChart.Designation.GUEST
+                chart.department_college_office = ''
             chart.status = PatientChart.Status.PENDING
             chart.save()
             messages.success(request, 'Patient chart created successfully.')
@@ -1309,12 +1381,19 @@ def resend_guest_patient_chart_link(request, pk):
     chart = get_form_or_404(
         PatientChart, pk, request.user, select_related_fields=['user', 'user__patient_profile']
     )
+    detail_redirect = reverse('health_forms_services:patient_chart_detail', kwargs={'pk': pk})
     if not is_guest_user(chart.user):
-        messages.error(request, 'Resend link is only available for guest patients.')
-        return redirect('health_forms_services:patient_chart_detail', pk=pk)
+        return _guest_resend_denied(
+            request,
+            'Resend link is only available for guest patients.',
+            detail_redirect,
+        )
     if chart.status != PatientChart.Status.INCOMPLETE:
-        messages.error(request, 'Resend link is only available while the chart is still a draft.')
-        return redirect('health_forms_services:patient_chart_detail', pk=pk)
+        return _guest_resend_denied(
+            request,
+            'Resend link is only available while the chart is still a draft.',
+            detail_redirect,
+        )
 
     from core.guest_emails import email_guest_patient_chart_pending
     from core.guest_auth import resolve_patient_contact_email
@@ -1331,15 +1410,14 @@ def resend_guest_patient_chart_link(request, pk):
         email_error = format_email_send_error(email_exc)
         emailed = False
 
-    if not contact:
-        messages.warning(request, 'This guest has no contact email — link was not sent.')
-    elif emailed:
-        messages.success(request, f'Patient-chart link emailed to {contact}.')
-    else:
-        detail = email_error or 'check clinic email settings / EMAIL_BACKEND'
-        messages.warning(request, f'Email was not sent ({detail}).')
-
-    return redirect('health_forms_services:patient_chart_detail', pk=pk)
+    return _guest_resend_response(
+        request,
+        emailed=emailed,
+        contact=contact,
+        email_error=email_error,
+        success_message=f'Patient-chart link emailed to {contact}.' if contact else '',
+        default_redirect=detail_redirect,
+    )
 
 
 @login_required
@@ -1381,10 +1459,13 @@ def delete_patient_chart(request, pk):
 
 
 def _chart_entry_json(entry, chart):
+    local_dt = timezone.localtime(entry.date_and_time)
     return {
         'id': entry.id,
-        'date_and_time': timezone.localtime(entry.date_and_time).strftime('%b %d, %Y %I:%M %p'),
-        'date_and_time_input': timezone.localtime(entry.date_and_time).strftime('%Y-%m-%dT%H:%M'),
+        'date_and_time': local_dt.strftime('%b %d, %Y %I:%M %p'),
+        'date_display': local_dt.strftime('%b %d, %Y'),
+        'time_display': local_dt.strftime('%I:%M %p').lstrip('0'),
+        'date_and_time_input': local_dt.strftime('%Y-%m-%dT%H:%M'),
         'findings': entry.findings,
         'doctors_orders': entry.doctors_orders,
         'recorded_by': entry.recorded_by.get_full_name() if entry.recorded_by else '',

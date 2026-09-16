@@ -103,6 +103,42 @@ class EnrichSubnavTests(SimpleTestCase):
         ]
         ctx = enrich_subnav(items, always_show_nav=True)
         self.assertEqual(ctx['nav_layout'], 'wrapped')
+        html = render_to_string('components/sub_nav.html', ctx)
+        self.assertIn('overflow-x-auto', html)
+        self.assertNotIn('flex-wrap items-center gap-1.5 w-full rounded-xl', html)
+
+
+class AnalyticsSubnavTests(SimpleTestCase):
+    def _context(self, role='admin', view_name='analytics:academic_correlation'):
+        from core.templatetags.app_subnav import analytics_subnav
+
+        request = RequestFactory().get('/analytics/academic/')
+        request.resolver_match = type(
+            'M',
+            (),
+            {'view_name': view_name, 'kwargs': {}},
+        )()
+        request.user = type('U', (), {'role': role})()
+        return analytics_subnav(Context({'request': request}))
+
+    def test_admin_analytics_uses_grouped_rows(self):
+        ctx = self._context('admin')
+        self.assertEqual(ctx['nav_layout'], 'grouped')
+        self.assertEqual([g['label'] for g in ctx['groups']], ['Overview', 'Insights', 'Admin'])
+        overview = [i['label'] for i in ctx['groups'][0]['items']]
+        insights = [i['label'] for i in ctx['groups'][1]['items']]
+        admin = [i['label'] for i in ctx['groups'][2]['items']]
+        self.assertEqual(overview, ['Dashboard', 'Health Trends', 'Concerns', 'Patient Charts'])
+        self.assertEqual(insights, ['Predictive', 'Resources', 'Population', 'Academic'])
+        self.assertEqual(admin, ['Compliance', 'Financial'])
+        html = render_to_string('components/sub_nav.html', ctx)
+        self.assertIn('Overview', html)
+        self.assertIn('Insights', html)
+        self.assertIn('Admin', html)
+
+    def test_staff_analytics_omits_admin_group(self):
+        ctx = self._context('staff')
+        self.assertEqual([g['label'] for g in ctx['groups']], ['Overview', 'Insights'])
 
 
 class PharmacySubnavTemplateTests(SimpleTestCase):

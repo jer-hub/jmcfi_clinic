@@ -8,8 +8,8 @@ alwaysApply: false
 
 ## Authentication
 
-- **Google OAuth only** — no password login exists. Enforced via `NoPasswordAdapter` in `core/adapters.py`
-- **Admin login** — separate endpoint at `/auth/admin-login/` for admin-role users
+- **Google OAuth** — default for patients, staff, and doctors. Password auth disabled for those users via `NoPasswordAdapter` in `core/adapters.py`
+- **Admin login** — password endpoint at `/auth/admin-login/` for admin-role users (see `dev-login.mdc`)
 - **Allowed domains** — controlled by `GOOGLE_ALLOWED_DOMAINS` env variable
 - **Session timeout** — enforced by `SessionTimeoutMiddleware`
 

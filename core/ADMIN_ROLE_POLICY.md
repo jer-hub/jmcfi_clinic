@@ -17,7 +17,7 @@ JMCFI Clinic has **two independent privilege dimensions** for admin users:
 | Clinic Administrator | `admin` | `True` | `False` | Core, Appointments, Analytics, Messaging | Full access | Blocked (pharmacy, health forms, dental/medical records, feedback, document requests) |
 | Superuser | `admin` | `True` | `True` | Everything | Full access | Full access |
 | Clinical Staff | `staff`/`doctor` | `True` | `False` | Clinical apps only (if `is_staff=True`) | Limited (own appointments, health forms) | Full access |
-| Student | `student` | `False` | `False` | None | Own data only | None |
+| Patient | `patient` | `False` | `False` | None | Own data only | None |
 
 ## Why Two Gates?
 
@@ -33,7 +33,7 @@ Located in `core/admin_mixins.py`. Applied to all **clinical data** Django Admin
 - `pharmacy` — Medicines, batches, suppliers, dispensing, stock adjustments
 - `health_forms_services` — Health profile forms, dental forms, patient charts, prescriptions
 - `health_tips` — Health tip content
-- `feedback` — Student feedback and ratings
+- `feedback` — Patient feedback and ratings
 - `dental_records` — Dental examinations, charts, progress notes
 - `medical_records` — Medical records and diagnoses
 - `document_request` — Document requests, medical certificates, doctor signatures
@@ -46,7 +46,7 @@ Located in `core/admin_mixins.py`. Applied to all **clinical data** Django Admin
 
 ## Admin Login
 
-Admin users authenticate via `/auth/admin-login/` (dedicated endpoint), not the Google OAuth flow used by students/staff/doctors.
+Admin users authenticate via `/auth/admin-login/` (dedicated endpoint), not the Google OAuth flow used by patients/staff/doctors.
 
 Security features:
 - Brute-force protection: 5 attempts per 15 minutes (per IP+email)

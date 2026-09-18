@@ -36,30 +36,33 @@ Django 5.2 · Channels 4.3 · django-allauth (Google OAuth) · HTMX 1.9 · Alpin
 | Need to... | Look in |
 |---|---|
 | Find all URL routes | `backend/urls.py` → each app's `urls.py` |
-| Add a view | App's `views.py` (or `views/` package for `health_forms_services`) |
+| Add a view | App's `views.py` or `views/` package |
 | Add a model | App's `models.py` |
 | Add a form | App's `forms.py` |
 | Add a template | App's `templates/<app_name>/` |
 | Change auth logic | `core/adapters.py`, `core/signals.py` |
 | Change middleware | `core/middleware.py` |
 | Change profile policy | `core/profile_policy.py` |
-| HTMX utilities | `core/htmx_utils.py` |
+| HTMX utilities | `core/htmx_utils.py` (`htmx_add_toast` is a no-op) |
 | Role decorators | `core/decorators.py` |
 | Context processors | `core/context_processors.py` |
 | Add dependencies | `pyproject.toml` (never requirements.txt) |
+| Agent / docs map | `docs/CURSOR.md`, `docs/README.md` |
 
 ## Template Locations
 
 - `core/templates/core/base.html` — base layout with sidebar, nav, scripts
-- `core/templates/core/partials/` — staff/student profile field partials
+- `core/templates/core/partials/` — staff/patient profile field partials
 - `core/templates/core/user_management/` — user CRUD, audit, cleanup
-- `templates/partials/` — shared form error fragments
-- `templates/components/` — shared `modal.html`
-- `health_forms_services/` — `_new` suffixed variants for CBV templates, `_base_*.html` base templates
+- `templates/partials/` — shared form error fragments + Django message banners
+- `templates/components/` — shared `modal.html`, layouts, sub_nav
+- `health_forms_services/` — `_base_*.html` base templates + form-specific pages
 
 ## Key Architecture
 
-- **Auth**: Google OAuth only, no passwords. `NoPasswordAdapter` + `GoogleOnlyAdapter` in `core/adapters.py`
-- **Profiles**: `PatientProfile` (`StudentProfile` alias) / `StaffProfile` with completion enforcement via `ProfileCompleteMiddleware`
-- **Middleware chain**: `UserActivityMiddleware` → `SessionTimeoutMiddleware` → `RoleMiddleware` → `ProfileCompleteMiddleware`
-- **Frontend**: HTMX for server communication, Alpine.js for local state, Tailwind CDN for styling
+- **Auth**: Google OAuth for patients/staff/doctors (`NoPasswordAdapter` + `GoogleOnlyAdapter` in `core/adapters.py`); admin password login at `/auth/admin-login/` (see `dev-login.mdc`)
+- **Profiles**: `PatientProfile` (legacy `StudentProfile` alias) / `StaffProfile` with completion enforcement via `ProfileCompleteMiddleware`
+- **Middleware chain** (after Django/allauth): `UserActivityMiddleware` → `SessionTimeoutMiddleware` → `MaintenanceModeMiddleware` → `RoleFeatureAccessMiddleware` → `RoleMiddleware` → `ProfileCompleteMiddleware` → `HtmxAccessResponseMiddleware` → `HTMXMiddleware`
+- **Frontend**: HTMX for server communication, Alpine.js for local state, Tailwind CLI build → `staticfiles/css/app.css`
+- **Feedback**: Django `messages` as inline banners (no floating toasts)
+- **Views packages**: Prefer `views/` packages for large apps (`core`, `appointments`, `dental_records`, `health_forms_services`, `analytics`, `pharmacy`)

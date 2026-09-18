@@ -66,13 +66,18 @@ Include once via `core/base.html`. Open from anywhere:
 - **Embedded form body**: put markup in a hidden container, then dispatch with `embedFrom: '#hidden-id'` and `hasForm: true` (used for health-form review/delete). The global `modalComponent` copies inner HTML server-side markup into the modal (`core/base.html`).
 - **Confirm callback**: optional `onConfirm` in `$dispatch('open-modal', { ... })`.
 
-Never use inline `display:none` + `onclick` pattern modals for new UI.
+Never use inline `display:none` + `onclick` pattern modals for new UI. Delete confirmations must use this modal (not one-off overlay markup — see `django-views.mdc`).
 
 ## Toasts & Messages
 
-- Server: Django `messages` + [`templates/partials/messages.html`](templates/partials/messages.html) bridges to Alpine `user-toast` (`$dispatch('user-toast', …)` on init).
-- HTMX: [`core/htmx_utils.htmx_add_toast`](core/htmx_utils.py).
-- Avoid ad-hoc `showToast()` JavaScript in templates.
+Floating toasts were removed. Use Django `messages` only — they render as inline banners via [`templates/partials/messages.html`](templates/partials/messages.html).
+
+```python
+messages.success(request, 'Saved.')
+messages.error(request, 'Could not save.')
+```
+
+For client-side validation without a page reload, use the shared Alpine modal (`__jmcfiDispatchOpenModal`) or inline field errors — do not add popup toast helpers.
 
 ## Icons
 
@@ -80,17 +85,13 @@ Font Awesome **6** `<i class="fas fa-*">` for UI icons.
 
 ## Forms
 
-Shared widget classes (`.form-input`, `.form-select`, `.form-textarea`, `.has-error`, …) are defined in [`static/css/form-elements.css`](static/css/form-elements.css); health form bases no longer duplicate inline `<style>` blocks.
+Shared widget classes (`.form-input`, `.form-select`, `.form-textarea`, `.has-error`, …) live in [`staticfiles/css/form-elements.css`](staticfiles/css/form-elements.css) (source; collectstatic copies to `STATIC_ROOT`).
 
 ## Sub-navigation Convention
 
 Every app exposes `…/_subnav.html` that does `{% load app_subnav %}` and calls one inclusion tag (`appointments_subnav`, `analytics_subnav`, …). Messaging adds a short “Communication” label above its nav strip.
 
-### Phase 0 cleanup manifest (completed)
+## CSS build
 
-Legacy duplicate templates removed from [`core/templates/core/`](core/templates/core/), duplicate `appointment_settings/edit_appointment_type_default`, unused document_request / dental / health_forms partials, merged `*_new.html` canonical health form pages, dropped legacy `health_forms_services/partials/interactive_dental_chart.html`, removed `health_forms_services/partials/_review_modal.html` in favor of the shared Alpine modal plus [`health_forms_services/partials/_review_form_embed.html`](health_forms_services/templates/health_forms_services/partials/_review_form_embed.html).
-
-## Known follow-ups
-
-- Tailwind CDN in `base.html` is acceptable for development; replace with a build pipeline before production traffic at scale.
+Prefer the Tailwind CLI build (`npm run build:css` → `staticfiles/css/app.css`). Do not reintroduce a Tailwind CDN in `base.html`.
 

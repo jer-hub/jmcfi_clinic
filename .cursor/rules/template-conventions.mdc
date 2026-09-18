@@ -93,9 +93,9 @@ Use shared partials from `templates/partials/`:
 {% include "partials/field_errors.html" with field=form.email %}
 ```
 
-## Messages/Toasts
+## Messages
 
-Django messages display via the base template. Add messages in views:
+Django messages display as inline banners via the base template (`templates/partials/messages.html`). Add messages in views:
 
 ```python
 messages.success(request, 'Record saved successfully.')
@@ -103,4 +103,4 @@ messages.error(request, 'Failed to save record.')
 messages.warning(request, 'Some fields were skipped.')
 ```
 
-For HTMX responses, use `htmx_add_toast()` from `core/htmx_utils.py`.
+Do not emit floating toasts. For HTMX, keep using `messages` when the next response includes the messages partial or a full redirect.

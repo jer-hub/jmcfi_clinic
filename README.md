@@ -18,6 +18,7 @@ A web-based clinic management system built with Django for managing patient prof
 - [Configuration](#configuration)
 - [Development](#development)
 - [Support](#support)
+- [Documentation](docs/README.md)
 
 ---
 
@@ -246,7 +247,7 @@ python manage.py test core.tests_roles appointments.tests_calendar
 python manage.py check
 ```
 
-Key conventions are documented in `.cursor/rules/` (project structure, views, templates, auth).
+Key conventions: [`.cursor/rules/`](.cursor/rules/) (structure, views, templates, auth, UI). Agent/docs map: [`docs/CURSOR.md`](docs/CURSOR.md). Full index: [`docs/README.md`](docs/README.md).
 
 After pulling changes that include migrations (e.g. student → patient rename), always run:
 
@@ -260,12 +261,14 @@ python manage.py migrate
 
 | Document | Description |
 |----------|-------------|
-| `docs/SUPABASE.md` | Local Supabase CLI, Postgres, and Storage setup |
-| `docs/DIGITALOCEAN.md` | Production deployment runbook for DigitalOcean App Platform |
-| `core/GOOGLE_STUDENT_PROFILE_POLICY.md` | Patient profile completion on Google signup |
-| `appointments/APPOINTMENT_SCHEDULING_POLICY.md` | Scheduling rules |
-| `document_request/DOCUMENT_REQUEST_POLICY.md` | Document request workflow |
-| `core/ADMIN_ROLE_POLICY.md` | Admin access boundaries |
+| [`docs/README.md`](docs/README.md) | Documentation index |
+| [`docs/CURSOR.md`](docs/CURSOR.md) | Cursor rules vs local skills |
+| [`docs/SUPABASE.md`](docs/SUPABASE.md) | Local Supabase CLI, Postgres, and Storage setup |
+| [`docs/DIGITALOCEAN.md`](docs/DIGITALOCEAN.md) | Production deployment runbook for DigitalOcean App Platform |
+| [`core/GOOGLE_STUDENT_PROFILE_POLICY.md`](core/GOOGLE_STUDENT_PROFILE_POLICY.md) | Patient profile completion on Google signup |
+| [`appointments/APPOINTMENT_SCHEDULING_POLICY.md`](appointments/APPOINTMENT_SCHEDULING_POLICY.md) | Scheduling rules |
+| [`document_request/DOCUMENT_REQUEST_POLICY.md`](document_request/DOCUMENT_REQUEST_POLICY.md) | Document request workflow |
+| [`core/ADMIN_ROLE_POLICY.md`](core/ADMIN_ROLE_POLICY.md) | Admin access boundaries |
 
 ---
 

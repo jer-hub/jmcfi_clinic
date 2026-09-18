@@ -1,16 +1,16 @@
 # Document Request Policy
 
 ## Overview
-Students and doctors request documents (medical certificates and records) through simple form submission. Document requests operate independently from both appointments and any scheduling windows. Any student can request documents at any time without restrictions.
+Patients and doctors request documents (medical certificates and records) through simple form submission. Document requests operate independently from both appointments and any scheduling windows. Any patient can request documents at any time without restrictions.
 
 ## Key Rules
 
 ### 1. No Schedule Requirement
-Students can submit document requests anytime without schedule window restrictions:
+Patients can submit document requests anytime without schedule window restrictions:
 - No daily time window validation
 - No allowed days restriction
 - No StudentRequestSchedule requirement
-- Doctor, staff, or admin can initiate requests on behalf of students
+- Doctor, staff, or admin can initiate requests on behalf of patients
 
 ### 2. Document Types
 Only `medical_certificate` supported for requests.
@@ -18,15 +18,15 @@ Only `medical_certificate` supported for requests.
 - Backend validation rejects other types
 - Historical data may contain other types but new requests blocked
 
-### 3. Request Workflow - Student Path
-1. Student submits document request form anytime (no schedule restriction)
+### 3. Request Workflow - Patient Path
+1. Patient submits document request form anytime (no schedule restriction)
 2. System auto-generates MedicalCertificate record (drafted)
 3. Doctor reviews and signs certificate
-4. Certificate sent to student
+4. Certificate sent to patient
 
 **Request States (DocumentRequest — single source of truth):**
 - `pending_review`: Awaiting clinician review/signature
-- `ready_for_pickup`: Approved; certificate issued
+- `completed`: Approved; certificate issued (`is_ready_for_pickup` is a deprecated alias)
 - `rejected`: Rejected with reason
 
 **Certificate States (MedicalCertificate):**
@@ -35,31 +35,31 @@ Only `medical_certificate` supported for requests.
 - `void`: Request was rejected
 
 ### 4. Request Workflow - Doctor Path (Doctor-Initiated)
-1. Doctor directly creates request on behalf of student
+1. Doctor directly creates request on behalf of patient
 2. Auto-populates certificate fields from doctor's records
 3. Doctor signs immediately (optional)
-4. Request marked `completed` or `pending` awaiting student
+4. Request marked `completed` or `pending_review` awaiting patient
 
 ### 5. No Appointment or Schedule Requirement
 - Document requests work independently from appointments app
 - No schedule window validation
-- Students can request anytime, any number of times
+- Patients can request anytime, any number of times
 - No StudentRequestSchedule requirement
 - Appointment system operates separately (see APPOINTMENT_SCHEDULING_POLICY.md)
 
 ### 6. Access Control by Role
 
-**Student:**
+**Patient:**
 - Can view own requests only
 - Can request anytime (no schedule restriction)
 - Cannot directly sign certificates
-- Only one **pending_review** request per document type at a time (additional requests allowed after ready_for_pickup/rejection)
+- Only one **pending_review** request per document type at a time (additional requests allowed after completed/rejection)
 
 **Doctor / Staff:**
 - Can view all requests
-- Can request on behalf of students anytime
+- Can request on behalf of patients anytime
 - Can complete or reject certificates (must upload signature before completing)
-- Can view request details and student info
+- Can view request details and patient info
 
 **Admin:**
 - Can view all requests and process complete/reject flows
@@ -67,16 +67,16 @@ Only `medical_certificate` supported for requests.
 
 ### 7. Notification Flow
 
-**When student requests:**
+**When patient requests:**
 → Notification sent to the **assigned doctor** (see resolution order below)
 
 **Assigned doctor resolution:**
-1. Clinician on the student's most recent non-cancelled appointment
+1. Clinician on the patient's most recent non-cancelled appointment
 2. Otherwise, clinician(s) assigned to the active `consultation` appointment type default (all assigned if multiple)
 3. If none configured, no automatic notification is sent (logged server-side)
 
 **When doctor signs:**
-→ Notification sent to student
+→ Notification sent to patient
 
 **When doctor rejects:**
 → Notification includes rejection reason
@@ -85,7 +85,7 @@ Only `medical_certificate` supported for requests.
 
 #### Multiple Requests Same Term
 - Allowed after a prior request is completed or rejected
-- Only one pending medical certificate request per student at a time
+- Only one pending medical certificate request per patient at a time
 
 #### Clinician Signature Requirements
 - Doctors and staff must upload a signature image on the **My Signature** page (`/documents/signature/`)
@@ -101,16 +101,16 @@ Only `medical_certificate` supported for requests.
 ### Model Structure
 ```
 DocumentRequest
-  - student (FK to User, role='student')
-  - document_type (choices: [medical_certificate only])
-  - status (pending_review | ready_for_pickup | rejected)
+  - patient (FK to User, role='patient')
+  - document_type (choices: [medical_certificate only for new requests])
+  - status (pending_review | completed | rejected)
   - assigned_to (FK — clinician notified at create)
   - rejection_reason (optional)
   - created_by (FK to User, for audit trail)
-  - request_origin (student | doctor | admin)
+  - request_origin (patient | doctor)
   
 MedicalCertificate (auto-created from DocumentRequest)
-  - student (FK)
+  - patient_name / linked patient via document_request
   - document_request (FK)
   - physician_name
   - consultation_date
@@ -141,33 +141,33 @@ ALLOWED_DOCUMENT_TYPES = [
 
 ## Testing Scenarios
 
-1. **Anytime request:** Student submits any time → Allow
-2. **Multiple requests:** Same student, multiple times → Allow
+1. **Anytime request:** Patient submits any time → Allow
+2. **Multiple requests:** Same patient, multiple times → Allow
 3. **Doctor-initiated:** Doctor creates on behalf → Allow
-4. **Different types:** Student requests different certificate types → Only medical_cert allowed
-5. **Student views own:** Student sees only own requests → Correct
+4. **Different types:** Patient requests different certificate types → Only medical_cert allowed
+5. **Patient views own:** Patient sees only own requests → Correct
 6. **Doctor views all:** Doctor sees all requests → Correct
 7. **Missing signature:** Doctor signs without image on file → Reject
 8. **Status progression:** pending → completed → downloadable → Correct
-9. **Rejection with reason:** Doctor rejects; student sees reason → Correct
+9. **Rejection with reason:** Doctor rejects; patient sees reason → Correct
 10. **No approval needed:** Request auto-creates certificate (no schedule gating) → Correct
 
 ## Relationship to Appointments
 
 **APPOINTMENTS** (separate app):
 - Doctors hold appointment time slots
-- Students book appointments with doctors
+- Patients book appointments with doctors
 - Uses 30-min interval buffer policy
 - Status: pending, confirmed, completed, cancelled
 
 **DOCUMENT REQUESTS** (this policy):
-- Students request documents anytime (no schedule requirement)
+- Patients request documents anytime (no schedule requirement)
 - Requests are independent of specific appointments
 - Doctors review and sign certificates
 - Status: pending, completed, rejected
 - NO automatic link or dependency on appointments
 - NO schedule window validation
 
-Students CAN request documents without ever booking an appointment.
+Patients CAN request documents without ever booking an appointment.
 Appointments CAN exist without any document requests.
 Both systems operate independently with no temporal coupling.

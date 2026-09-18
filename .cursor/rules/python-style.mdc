@@ -119,5 +119,5 @@ uv run manage.py runserver
 uv run manage.py runserver          # dev server
 uv run manage.py makemigrations     # create migrations
 uv run manage.py migrate            # apply migrations
-uv run manage.py createsuperuser    # create admin user
+uv run manage.py createsuperuser    # optional; local admin usually via /auth/admin-login/ (dev-login.mdc)
 ```

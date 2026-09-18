@@ -74,7 +74,7 @@ def create_view(request):
 | `HX-Reswap` | Override swap strategy from server |
 | `HX-Push-Url` | Update browser URL without reload |
 
-Use `htmx_add_trigger()` and `htmx_add_toast()` from `core/htmx_utils.py` for triggers and toasts.
+Use `htmx_add_trigger()` from `core/htmx_utils.py` for client events. Prefer Django `messages` + redirect (or `HX-Redirect`) for user feedback. `htmx_add_toast()` is a no-op kept for older call sites — do not add new toast UX.
 
 ## HTTP Status Codes
 
@@ -102,4 +102,78 @@ Stack decorators in this order: `@login_required` → `@role_required()` → `@p
 @role_required('admin', 'doctor')
 def admin_view(request):
     ...
+```
+
+## Standard CRUD URLs
+
+| Operation | URL pattern | View name |
+|-----------|-------------|-----------|
+| List | `/<resource>/` | `<resource>_list` |
+| Create | `/<resource>/new/` | `create_<resource>` |
+| Detail | `/<resource>/<pk>/` | `<resource>_detail` |
+| Edit | `/<resource>/<pk>/edit/` | `edit_<resource>` |
+| Delete | `/<resource>/<pk>/delete/` | `delete_<resource>` |
+| Export | `/<resource>/<pk>/export/<format>/` | `export_<resource>` |
+
+Use `get_object_or_404()` for detail/edit/delete — do not catch `DoesNotExist` for custom 404s.
+
+## Success feedback
+
+After create/update, set a Django message then redirect (or HTMX redirect):
+
+```python
+messages.success(request, f'{obj} saved.')
+if is_htmx_request(request):
+    response = HttpResponse(status=200)
+    response['HX-Redirect'] = reverse('app:resource_detail', args=[obj.pk])
+    return response
+return redirect('app:resource_detail', pk=obj.pk)
+```
+
+## Delete confirmation
+
+Use the shared Alpine modal (`templates/components/modal.html` — see `ui-consistency.mdc`). Do not add bespoke delete overlay markup.
+
+## Notifications
+
+For in-app alerts after important events:
+
+```python
+from core.models import Notification
+
+Notification.objects.create(
+    user=target_user,
+    title='Appointment confirmed',
+    message='…',
+    notification_type='appointment',
+)
+```
+
+## Status transitions
+
+Validate status changes server-side (`pending → approved`, `draft → submitted`, etc.). Never trust client-sent status alone.
+
+## List search & filter
+
+```python
+def resource_list(request):
+    qs = MyModel.objects.all()
+    if role_matches(request.user.role, ROLE_PATIENT):
+        qs = qs.filter(user=request.user)
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        qs = qs.filter(Q(field1__icontains=search) | Q(field2__icontains=search))
+
+    status = request.GET.get('status', '')
+    if status:
+        qs = qs.filter(status=status)
+
+    paginator = Paginator(qs, 15)
+    page_obj = paginator.get_page(request.GET.get('page', 1))
+
+    ctx = {'page_obj': page_obj, 'search': search, 'current_status': status}
+    if is_htmx_request(request):
+        return render(request, 'app/partials/_list.html', ctx)
+    return render(request, 'app/list.html', ctx)
 ```

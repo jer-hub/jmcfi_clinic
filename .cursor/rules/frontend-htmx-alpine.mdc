@@ -57,6 +57,8 @@ Canvas dental charting lives inline in `dental_records/templates/.../interactive
 </div>
 ```
 
+Prefer the shared clinic modal (`templates/components/modal.html` + `__jmcfiDispatchOpenModal`) over bespoke overlays when possible.
+
 ### Form Validation (client-side)
 
 ```html
@@ -90,10 +92,33 @@ Canvas dental charting lives inline in `dental_records/templates/.../interactive
 | `setTimeout` / `setInterval` | `hx-trigger="every 2s"`, Alpine `$watch` |
 | `onclick="..."` attribute | `@click="..."` (Alpine) |
 | Global `<script>` functions | `x-data` components or server endpoints |
+| Floating toasts / `showToast` | Django `messages` inline banners |
 
 ## Decision Guide
 
 - Server communication needed? → **HTMX**
 - Local UI state (toggle, dropdown, tab)? → **Alpine.js**
 - Both? → Alpine for state, HTMX for server calls
-- Canvas / WebGL / complex graphics? → Vanilla JS is acceptable (isolate in `staticfiles/js/`)
+- Canvas / WebGL / complex graphics? → Vanilla JS is acceptable (isolate in templates or `staticfiles/js/`)
+
+## Refactoring vanilla JS (when you find it)
+
+Priority: forms → toggles → modals/dropdowns → search/filter → inline edit. Keep canvas/SVG as-is.
+
+Checklist:
+
+1. Map vanilla JS for the feature
+2. Design HTMX + Alpine replacement
+3. Handle `is_htmx_request()` in the view; return `status=400` on validation errors
+4. Add a partial for HTMX swaps; update the full page
+5. Test HTMX and full navigation; remove old `<script>` blocks
+
+| Vanilla JS | HTMX/Alpine |
+|-----------|-------------|
+| `fetch('/url', {method: 'POST', …})` | `<form hx-post="/url">` |
+| `getElementById('x').innerHTML = y` | `hx-target="#x" hx-swap="innerHTML"` |
+| `el.style.display = …` | `x-show="condition"` |
+| `addEventListener('click', …)` | `@click` or `hx-trigger="click"` |
+| `classList.add/remove/toggle` | `:class="{ 'active': condition }"` |
+| debounce `setTimeout` | `hx-trigger="input changed delay:300ms"` |
+| `JSON.parse` then DOM update | Return HTML fragment from Django |

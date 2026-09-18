@@ -6,16 +6,31 @@ alwaysApply: false
 
 # App Architecture Patterns
 
+## Views packages
+
+Large apps use a `views/` package (not a single `views.py`):
+
+| App | Package notes |
+|-----|----------------|
+| `health_forms_services/views/` | CBVs + FBVs (`base`, `forms_cbvs`, `_cbvs`, `_fbvs`, `bulk`) |
+| `appointments/views/` | list, detail, calendar, schedule, settings |
+| `dental_records/views/` | crud, chart, intake, status |
+| `analytics/views/` | dashboard + domain report pages |
+| `pharmacy/views/` | inventory, operations, procurement, reports |
+| `core/views/` | auth, dashboard, profile, notifications, patients, user_management |
+
+Do not add a sibling `views.py` next to a `views/` package.
+
 ## health_forms_services — CBV Architecture
 
-The only app using a `views/` package. Views split across modules:
+Views split across modules:
 
 | File | Purpose |
 |------|---------|
 | `views/base.py` | `BaseFormListView`, `BaseFormDetailView`, `BaseFormEditView` |
 | `views/forms_cbvs.py` | HealthProfileForm CBVs |
 | `views/_cbvs.py` | Dental, PatientChart, Prescription, DentalServices CBVs |
-| `views/_fbvs.py` | Legacy FBVs (create, review, delete, export) |
+| `views/_fbvs.py` | FBVs (create, invite, review, delete, export, guest resend) |
 | `views/bulk.py` | `HealthProfileBulkReviewView` |
 | `views/__init__.py` | Re-exports all views |
 
@@ -65,9 +80,9 @@ def detail_sections(self):
     ]
 ```
 
-## All Other Apps — FBV Pattern
+## Smaller apps — FBV pattern
 
-All other apps use pure FBVs. Follow these conventions:
+Apps without a `views/` package (e.g. `medical_records`, `document_request`, `feedback`) use FBVs. Larger apps use `views/` packages (see above). Shared conventions:
 
 ### Common Helpers (per-app)
 

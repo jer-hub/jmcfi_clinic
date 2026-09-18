@@ -213,15 +213,8 @@ def htmx_add_trigger(response: HttpResponse, event_name: str, detail: Optional[D
 
 
 def htmx_add_toast(response: HttpResponse, message: str, toast_type: str = 'success') -> HttpResponse:
-    """Attach the standard user toast trigger to an existing response."""
-    return htmx_add_trigger(
-        response,
-        'user-toast',
-        {
-            'message': message,
-            'type': toast_type,
-        },
-    )
+    """No-op: floating toasts were removed. Call sites may still wrap responses for compatibility."""
+    return response
 
 
 def htmx_push_url(response: HttpResponse, url: str) -> HttpResponse:

@@ -239,10 +239,20 @@ class HealthFormsPatientSubnavTests(SimpleTestCase):
         self.assertFalse(ctx['items'][0]['active'])
         self.assertTrue(ctx['items'][1]['active'])
 
-    def test_my_forms_active_on_list_and_edit(self):
+    def test_request_form_active_during_edit_draft_flow(self):
+        for vn in (
+            'health_forms_services:edit_form',
+            'health_forms_services:load_form_section',
+            'health_forms_services:submit_for_review',
+        ):
+            ctx = self._health_forms_context(vn)
+            self.assertFalse(ctx['items'][0]['active'], vn)
+            self.assertTrue(ctx['items'][1]['active'], vn)
+
+    def test_my_forms_active_on_list_and_detail(self):
         for vn in (
             'health_forms_services:forms_list',
-            'health_forms_services:edit_form',
+            'health_forms_services:form_detail',
         ):
             ctx = self._health_forms_context(vn)
             self.assertTrue(ctx['items'][0]['active'], vn)

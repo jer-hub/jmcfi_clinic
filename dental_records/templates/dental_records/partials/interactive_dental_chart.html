@@ -2,32 +2,6 @@
 <!-- Interactive Dental Chart Component with Alpine.js -->
 
 <div x-data="dentalChartApp()" x-init="init()" class="dental-chart-container" id="interactive-dental-chart">
-    <!-- Toast Notifications -->
-    <div x-show="toast.show" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 translate-x-full"
-         x-transition:enter-end="opacity-100 translate-x-0"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 translate-x-0"
-         x-transition:leave-end="opacity-0 translate-x-full"
-            class="fixed top-20 right-4 z-[9999] max-w-md"
-         x-cloak>
-           <div :class="toast.type === 'success' ? 'bg-emerald-50 border-emerald-400 text-emerald-800' : 'bg-red-50 border-red-400 text-red-800'"
-               class="border-l-4 p-4 rounded-lg shadow-lg bg-white">
-            <div class="flex items-center gap-3">
-                 <div :class="toast.type === 'success' ? 'bg-emerald-100' : 'bg-red-100'" 
-                     class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center">
-                    <i :class="toast.type === 'success' ? 'fa-check-circle text-emerald-600' : 'fa-exclamation-circle text-red-600'" 
-                       class="fas text-lg"></i>
-                </div>
-                <span class="flex-1 font-medium" x-text="toast.message"></span>
-                <button type="button" @click="toast.show = false" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Chart Header -->
     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
@@ -875,13 +849,6 @@ function dentalChartApp() {
         teeth: [],
         teethData: {},
         
-        // Toast notification
-        toast: {
-            show: false,
-            message: '',
-            type: 'success'
-        },
-        
         // Single tooth edit modal
         toothModal: {
             open: false,
@@ -1118,15 +1085,13 @@ function dentalChartApp() {
                 
                 if (response.ok && data.success) {
                     this.toothModal.open = false;
-                    this.showToast(data.created ? 'Tooth added successfully!' : 'Tooth updated successfully!', 'success');
                     await this.loadTeeth();
                     this.clearSelection();
                 } else {
-                    this.showToast(data.error || 'Failed to save tooth', 'error');
+                    console.error(data.error || 'Failed to save tooth');
                 }
             } catch (error) {
                 console.error('Error saving tooth:', error);
-                this.showToast('An error occurred while saving', 'error');
             } finally {
                 this.toothModal.loading = false;
             }
@@ -1153,15 +1118,13 @@ function dentalChartApp() {
                 
                 if (response.ok && data.success) {
                     this.bulkModal.open = false;
-                    this.showToast(`${data.updated_count} teeth updated successfully!`, 'success');
                     await this.loadTeeth();
                     this.clearSelection();
                 } else {
-                    this.showToast(data.error || 'Failed to update teeth', 'error');
+                    console.error(data.error || 'Failed to update teeth');
                 }
             } catch (error) {
                 console.error('Error in bulk update:', error);
-                this.showToast('An error occurred while updating', 'error');
             } finally {
                 this.bulkModal.loading = false;
             }
@@ -1197,27 +1160,15 @@ function dentalChartApp() {
                 
                 if (response.ok && data.success) {
                     this.deleteModal.open = false;
-                    this.showToast(`Tooth #${this.deleteModal.toothNumber} deleted successfully!`, 'success');
                     await this.loadTeeth();
                 } else {
-                    this.showToast(data.error || 'Failed to delete tooth', 'error');
+                    console.error(data.error || 'Failed to delete tooth');
                 }
             } catch (error) {
                 console.error('Error deleting tooth:', error);
-                this.showToast('An error occurred while deleting', 'error');
             } finally {
                 this.deleteModal.loading = false;
             }
-        },
-        
-        showToast(message, type = 'success') {
-            this.toast.message = message;
-            this.toast.type = type;
-            this.toast.show = true;
-            
-            setTimeout(() => {
-                this.toast.show = false;
-            }, 4000);
         },
         
         getCsrfToken() {

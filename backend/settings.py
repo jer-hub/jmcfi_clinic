@@ -409,7 +409,9 @@ else:
     USE_SUPABASE_STORAGE = False
 
 STORAGES["staticfiles"]["BACKEND"] = (
-    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    "django.contrib.staticfiles.storage.StaticFilesStorage"
+    if _running_tests
+    else "whitenoise.storage.CompressedManifestStaticFilesStorage"
 )
 
 # PDF generation engine path (wkhtmltopdf)

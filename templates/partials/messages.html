@@ -1,20 +1,32 @@
 {% comment %}
-  Django messages framework renderer.
-
-  Bridges the server-side messages framework to the Alpine `user-toast`
-  event stack defined in `core/base.html`. Each message dispatches a
-  `user-toast` event on load so all toasts share the same animation /
-  auto-dismiss pipeline as HTMX-driven toasts.
+  Django messages framework — inline page banners (not floating toasts).
 {% endcomment %}
 {% if messages %}
-  <div x-data="{}"
-       x-init="
-         {% for message in messages %}
-           $dispatch('user-toast', {
-             message: '{{ message|escapejs }}',
-             type: '{% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% elif message.tags == 'info' %}info{% elif message.tags == 'success' %}success{% else %}info{% endif %}'
-           });
-         {% endfor %}
-       "
-       x-cloak></div>
+  <div id="django-messages" class="space-y-2 mb-4" role="status" aria-live="polite" x-data>
+    {% for message in messages %}
+      <div
+        x-data="{ show: true }"
+        x-show="show"
+        x-transition.opacity.duration.200ms
+        class="flex items-start gap-3 border-l-4 rounded-lg px-4 py-3 shadow-sm
+          {% if message.tags == 'error' %}bg-red-50 border-red-400 text-red-800
+          {% elif message.tags == 'warning' %}bg-amber-50 border-amber-400 text-amber-800
+          {% elif message.tags == 'success' %}bg-emerald-50 border-emerald-400 text-emerald-800
+          {% else %}bg-primary-50 border-primary-400 text-primary-800{% endif %}"
+        role="alert"
+      >
+        <p class="flex-1 text-sm font-medium">{{ message }}</p>
+        <button
+          type="button"
+          class="shrink-0 opacity-70 hover:opacity-100 transition-opacity"
+          @click="show = false"
+          aria-label="Dismiss"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+    {% endfor %}
+  </div>
 {% endif %}

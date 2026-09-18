@@ -6,7 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from core.decorators import role_required
-from core.htmx_utils import htmx_add_toast, htmx_redirect, is_htmx_request
+from core.htmx_utils import htmx_redirect, is_htmx_request
 from core.utils import paginate_queryset
 
 from pharmacy.forms import PurchaseOrderForm, PurchaseOrderItemFormSet, SupplierForm
@@ -294,14 +294,14 @@ def purchase_order_submit(request, order_id):
   if request.method == 'POST':
     if submit_purchase_order(order, request.user):
       msg = f'PO {order.order_number} submitted for approval.'
+      messages.success(request, msg)
       if is_htmx_request(request):
         detail_url = reverse('pharmacy:purchase_order_detail', kwargs={'order_id': order.pk})
-        return htmx_add_toast(htmx_redirect(detail_url), msg)
-      messages.success(request, msg)
-    elif is_htmx_request(request):
-      return htmx_add_toast(HttpResponse(status=400), 'Order cannot be submitted.', 'error')
+        return htmx_redirect(detail_url)
     else:
       messages.error(request, 'Order cannot be submitted.')
+      if is_htmx_request(request):
+        return HttpResponse(status=400)
   return redirect('pharmacy:purchase_order_detail', order_id=order.pk)
 
 
@@ -312,12 +312,14 @@ def purchase_order_approve(request, order_id):
   if request.method == 'POST':
     if approve_purchase_order(order, request.user):
       msg = f'PO {order.order_number} approved.'
+      messages.success(request, msg)
       if is_htmx_request(request):
         detail_url = reverse('pharmacy:purchase_order_detail', kwargs={'order_id': order.pk})
-        return htmx_add_toast(htmx_redirect(detail_url), msg)
-      messages.success(request, msg)
-    elif is_htmx_request(request):
-      return htmx_add_toast(HttpResponse(status=400), 'Order cannot be approved.', 'error')
+        return htmx_redirect(detail_url)
+    else:
+      messages.error(request, 'Order cannot be approved.')
+      if is_htmx_request(request):
+        return HttpResponse(status=400)
   return redirect('pharmacy:purchase_order_detail', order_id=order.pk)
 
 
@@ -328,10 +330,12 @@ def purchase_order_receive(request, order_id):
   if request.method == 'POST':
     if receive_purchase_order(order, request.user):
       msg = f'PO {order.order_number} received and stock updated.'
+      messages.success(request, msg)
       if is_htmx_request(request):
         detail_url = reverse('pharmacy:purchase_order_detail', kwargs={'order_id': order.pk})
-        return htmx_add_toast(htmx_redirect(detail_url), msg)
-      messages.success(request, msg)
-    elif is_htmx_request(request):
-      return htmx_add_toast(HttpResponse(status=400), 'Order cannot be received.', 'error')
+        return htmx_redirect(detail_url)
+    else:
+      messages.error(request, 'Order cannot be received.')
+      if is_htmx_request(request):
+        return HttpResponse(status=400)
   return redirect('pharmacy:purchase_order_detail', order_id=order.pk)

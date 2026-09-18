@@ -42,53 +42,6 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
       {% include 'partials/messages.html' %}
     </div>
-    <div
-      x-data="{
-        toasts: [],
-        nextId: 1,
-        pushToast(detail) {
-          const toast = {
-            id: this.nextId++,
-            message: detail?.message || '',
-            type: detail?.type || 'success',
-            visible: true,
-          };
-          this.toasts.push(toast);
-          window.setTimeout(() => {
-            toast.visible = false;
-            window.setTimeout(() => {
-              this.toasts = this.toasts.filter(item => item.id !== toast.id);
-            }, 250);
-          }, 5000);
-        },
-        removeToast(id) {
-          this.toasts = this.toasts.filter(item => item.id !== id);
-        },
-        toastClasses(type) {
-          const base = 'border-l-4 rounded-lg shadow-lg backdrop-blur-sm flex items-center gap-3';
-          const map = {
-            success: 'bg-emerald-50 border-emerald-400 text-emerald-800',
-            error: 'bg-red-50 border-red-400 text-red-800',
-            info: 'bg-primary-50 border-primary-400 text-primary-800',
-            warning: 'bg-amber-50 border-amber-400 text-amber-800',
-          };
-          return `${base} ${map[type] || map.success}`;
-        }
-      }"
-      x-on:user-toast.window="pushToast($event.detail)"
-      class="pointer-events-none fixed top-20 right-4 z-50 w-full max-w-sm px-4 sm:px-6 lg:px-8"
-    >
-      <template x-for="toast in toasts" :key="toast.id">
-        <div x-show="toast.visible" x-transition.opacity.duration.200ms :class="toastClasses(toast.type)" class="pointer-events-auto mb-3 px-4 py-3">
-          <span class="flex-1 font-medium text-sm" x-text="toast.message"></span>
-          <button type="button" class="ml-2 opacity-70 hover:opacity-100 transition-opacity" @click="removeToast(toast.id)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-      </template>
-    </div>
     {% endif %}
 
     {% block content %}
@@ -300,12 +253,14 @@
           openBulkConfirm() {
             const count = this.selectedCount();
             if (count === 0) {
-              window.dispatchEvent(
-                new CustomEvent('user-toast', {
-                  bubbles: true,
-                  detail: { message: 'Select at least one deleted user.', type: 'error' },
-                }),
-              );
+              window.__jmcfiDispatchOpenModal({
+                type: 'warning',
+                title: 'No users selected',
+                message: 'Select at least one deleted user.',
+                actionLabel: '',
+                size: 'sm',
+                viewOnly: true,
+              });
               return;
             }
             const actionEl = document.getElementById('bulk_action');
@@ -397,15 +352,14 @@
       window.__jmcfiHealthFormCancelDraftModal = function (btn) {
         if (!btn) return;
         if (window.__jmcfiDentalEditHasUnsaved && window.__jmcfiDentalEditHasUnsaved()) {
-          window.dispatchEvent(
-            new CustomEvent('user-toast', {
-              bubbles: true,
-              detail: {
-                message: 'Save or discard unsaved changes before cancelling this draft.',
-                type: 'warning',
-              },
-            }),
-          );
+          window.__jmcfiDispatchOpenModal({
+            type: 'warning',
+            title: 'Unsaved changes',
+            message: 'Save or discard unsaved changes before cancelling this draft.',
+            actionLabel: '',
+            size: 'sm',
+            viewOnly: true,
+          });
           return;
         }
         var title = (btn.getAttribute('data-modal-title') || 'Cancel draft').trim();
@@ -427,15 +381,14 @@
         if (!rid) return;
         // Edit page: block while any tab still has unsaved AJAX section changes.
         if (window.__jmcfiDentalEditHasUnsaved && window.__jmcfiDentalEditHasUnsaved()) {
-          window.dispatchEvent(
-            new CustomEvent('user-toast', {
-              bubbles: true,
-              detail: {
-                message: 'Save unsaved changes on all tabs before marking this record completed.',
-                type: 'warning',
-              },
-            }),
-          );
+          window.__jmcfiDispatchOpenModal({
+            type: 'warning',
+            title: 'Unsaved changes',
+            message: 'Save unsaved changes on all tabs before marking this record completed.',
+            actionLabel: '',
+            size: 'sm',
+            viewOnly: true,
+          });
           return;
         }
         var sub = (btn.getAttribute('data-subtitle') || '').trim();

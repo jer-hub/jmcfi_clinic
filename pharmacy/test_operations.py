@@ -231,10 +231,9 @@ class PurchaseOrderActionViewTest(TestCase):
             ).exists()
         )
 
-    def test_approve_htmx_returns_toast_trigger(self):
+    def test_approve_htmx_redirects(self):
         url = reverse('pharmacy:purchase_order_approve', kwargs={'order_id': self.po.pk})
         response = self.client.post(url, HTTP_HX_REQUEST='true')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('HX-Trigger', response)
-        self.assertIn('user-toast', response['HX-Trigger'])
+        self.assertNotIn('user-toast', response.get('HX-Trigger', ''))
         self.assertIn('HX-Redirect', response)

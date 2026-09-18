@@ -616,9 +616,6 @@ function resetToothForm() {
 function handleToothFormResponse(event) {
   if (event.detail.successful) {
     resetToothForm();
-    window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Tooth successfully added/updated!', type: 'success' } }));
-  } else {
-    window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Error updating tooth. Please try again.', type: 'error' } }));
   }
 }
 
@@ -646,7 +643,7 @@ function progressNotes() {
       if (this.submitting) return;
       this.errors = {};
       if (!this.form.procedure_done.trim()) { this.errors.procedure_done = 'Please enter the procedure done.'; return; }
-      if (!csrfToken) { window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Security token missing. Please refresh.', type: 'error' } })); return; }
+      if (!csrfToken) { this.errors.procedure_done = 'Security token missing. Please refresh.'; return; }
       this.submitting = true;
       try {
         const res = await fetch(addUrl, {
@@ -660,11 +657,12 @@ function progressNotes() {
         if (res.ok && data.success) {
           this.notes.unshift(data.note);
           this.form = { date: today, procedure_done: '', remarks: '' };
-          window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Progress note added successfully.', type: 'success' } }));
         } else {
-          window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: data.error || 'Failed to add note.', type: 'error' } }));
+          this.errors.procedure_done = data.error || 'Failed to add note.';
         }
-      } catch { window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Network error. Please try again.', type: 'error' } })); }
+      } catch {
+        this.errors.procedure_done = 'Network error. Please try again.';
+      }
       finally { this.submitting = false; }
     },
 
@@ -683,11 +681,12 @@ function progressNotes() {
         const data = await res.json();
         if (res.ok && data.success) {
           this.notes = this.notes.filter(n => n.id !== note.id);
-          window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Progress note deleted.', type: 'success' } }));
         } else {
-          window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: data.error || 'Failed to delete note.', type: 'error' } }));
+          this.errors.procedure_done = data.error || 'Failed to delete note.';
         }
-      } catch { window.dispatchEvent(new CustomEvent('user-toast', { detail: { message: 'Network error. Please try again.', type: 'error' } })); }
+      } catch {
+        this.errors.procedure_done = 'Network error. Please try again.';
+      }
       finally { this.deleting = false; this.deleteModal = { show: false, note: null }; }
     },
   };

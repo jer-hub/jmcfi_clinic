@@ -420,13 +420,13 @@ class AdminUserToggleStatusTests(TestCase):
         self.client.force_login(self.admin_user)
         self.url = reverse('core:user_toggle_status', kwargs={'user_id': self.target_user.id})
 
-    def test_toggle_status_htmx_emits_toast(self):
+    def test_toggle_status_htmx_updates_status(self):
         response = self.client.post(self.url, HTTP_HX_REQUEST='true')
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('HX-Trigger', response.headers)
         self.assertIn('updateStatus', response.headers['HX-Trigger'])
-        self.assertIn('user-toast', response.headers['HX-Trigger'])
+        self.assertNotIn('user-toast', response.headers.get('HX-Trigger', ''))
 
         self.target_user.refresh_from_db()
         self.assertFalse(self.target_user.is_active)
@@ -468,9 +468,8 @@ class AdminUserRestoreTests(TestCase):
     def test_restore_htmx_stays_on_deleted_page(self):
         response = self.client.post(self.url, HTTP_HX_REQUEST='true')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('HX-Trigger', response.headers)
-        self.assertIn('user-toast', response.headers['HX-Trigger'])
         self.assertContains(response, 'Deleted Accounts')
+        self.assertNotIn('user-toast', response.headers.get('HX-Trigger', ''))
 
         self.target_user.refresh_from_db()
         self.assertFalse(self.target_user.is_deleted)
@@ -584,8 +583,7 @@ class AdminDeletedUsersBulkActionTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn('HX-Trigger', response.headers)
-        self.assertIn('user-toast', response.headers['HX-Trigger'])
+        self.assertNotIn('user-toast', response.headers.get('HX-Trigger', ''))
 
         for user in self.restore_users:
             user.refresh_from_db()
@@ -604,15 +602,14 @@ class AdminDeletedUsersBulkActionTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn('HX-Trigger', response.headers)
-        self.assertIn('user-toast', response.headers['HX-Trigger'])
+        self.assertNotIn('user-toast', response.headers.get('HX-Trigger', ''))
         self.assertFalse(User.objects.filter(id__in=user_ids).exists())
 
     def test_bulk_action_requires_selection(self):
         response = self.client.post(self.url, {'bulk_action': 'restore'}, HTTP_HX_REQUEST='true')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('HX-Trigger', response.headers)
-        self.assertIn('error', response.headers['HX-Trigger'])
+        self.assertContains(response, 'No deleted users were selected.')
+        self.assertNotIn('user-toast', response.headers.get('HX-Trigger', ''))
 
     def test_deleted_list_bulk_apply_uses_confirmation_modal(self):
         response = self.client.get(reverse('core:deleted_user_management'))
@@ -663,9 +660,8 @@ class AdminDeletedUserPermanentDeleteTests(TestCase):
     def test_permanent_delete_htmx_stays_on_deleted_page(self):
         response = self.client.post(self.url, HTTP_HX_REQUEST='true')
         self.assertEqual(response.status_code, 200)
-        self.assertIn('HX-Trigger', response.headers)
-        self.assertIn('user-toast', response.headers['HX-Trigger'])
         self.assertContains(response, 'Deleted Accounts')
+        self.assertNotIn('user-toast', response.headers.get('HX-Trigger', ''))
         self.assertFalse(User.objects.filter(id=self.target_user.id).exists())
 
     def test_deleted_list_row_actions_exclude_restore_and_permanent_delete(self):

@@ -426,9 +426,6 @@ def health_forms_services_subnav(context):
                     vn,
                     'health_forms_services:forms_list',
                     'health_forms_services:form_detail',
-                    'health_forms_services:edit_form',
-                    'health_forms_services:load_form_section',
-                    'health_forms_services:submit_for_review',
                     'health_forms_services:export_form',
                     'health_forms_services:export_health_profile_docx',
                 ),
@@ -437,7 +434,15 @@ def health_forms_services_subnav(context):
                 'Request Form',
                 'health_forms_services:request_health_profile',
                 icon='fa-file-circle-plus',
-                active=is_active(vn, 'health_forms_services:request_health_profile'),
+                # request_health_profile always redirects into edit; keep this tab
+                # active for the whole draft fill / submit flow.
+                active=is_active(
+                    vn,
+                    'health_forms_services:request_health_profile',
+                    'health_forms_services:edit_form',
+                    'health_forms_services:load_form_section',
+                    'health_forms_services:submit_for_review',
+                ),
             ),
         ]
         return enrich_subnav(items, always_show_nav=True)
